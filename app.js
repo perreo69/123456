@@ -3487,7 +3487,6 @@ var LIVE = (function () {
     return t.slice(5, 10).replace('-', '/') + ' ' + t.slice(11, 16);
   }
   function renderPhotos() {
-    photo.count = photo.list.length;
     photoBadge(photo.count);
     var grid = $('photoGrid');
     if (!grid) return;
@@ -3514,12 +3513,11 @@ var LIVE = (function () {
       if (n === had && photo.loaded) return;
       return SB.db.photoList().then(function (list) {
         photo.list = list || [];
+        photo.count = n;
         photo.loaded = true;
         renderPhotos();
-        if (n > had && n > 0) {
-          if (!quiet) {
-            toast('📷 입고 사진 ' + n + '건이 대기 중입니다. 확인하고 입고를 등록하세요.', 'warn', 5000);
-          }
+        if (n > had && n > 0 && !quiet) {
+          toast('📷 입고 사진 ' + n + '건이 대기 중입니다. 확인하고 입고를 등록하세요.', 'warn', 5000);
           var now = Date.now();
           if (now - photo.lastAlert > 8000) { photo.lastAlert = now; beep(); pushNote(n); }
         }
@@ -3861,7 +3859,7 @@ var LIVE = (function () {
     renderAccTable();
     renderAccReflect();
     updatePriceHint();
-    photoTick(true);
+    photoTick(false);
     if (xls.kind) renderXls();
   }
 
