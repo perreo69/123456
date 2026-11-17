@@ -527,48 +527,6 @@ th.actcol .colrz{right:1px}
 .rangebox.set{color:#1d4ed8;border-style:solid;border-color:#9db9f2;background:#f7faff}
 .rangebox:hover{border-color:#9db6f5}
 
-/* ---------- 거래구분 · 정산 · 세금계산서 배지 ---------- */
-.trbadge{display:inline-block;font-size:11px;font-weight:750;padding:2px 7px;border-radius:6px;background:#eef1f6;color:#41506a;white-space:nowrap}
-.trbadge.money{background:#eef4ff;color:#1d4ed8}
-.trbadge.tr-self{background:#f3eefb;color:#6d4a9c}
-.trbadge.tr-return{background:#fdf6e6;color:#946f0f}
-.trbadge.tr-site{background:#e6f7f0;color:#047857}
-.trbadge.tr-sample{background:#f1f3f8;color:#5a6779}
-.stbadge{display:inline-block;font-size:11px;font-weight:800;padding:2px 7px;border-radius:20px;white-space:nowrap}
-.stbadge.unpaid{background:#fff3e0;color:#b45309}
-.stbadge.receivable{background:#fdecec;color:#b42318}
-.stbadge.paid{background:#e6f7f0;color:#047857}
-.stbadge.na{background:#eef1f6;color:#8a95a8}
-.stbadge.tax-none{background:#fff8e8;color:#8a5a09}
-.stbadge.tax-issued{background:#eaf1ff;color:#1d4ed8}
-.stbadge.tax-na{background:#eef1f6;color:#8a95a8}
-
-/* ---------- 정산 요약 타일 ---------- */
-.settle-sum{
-  display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;
-  padding:10px 12px;border-bottom:1px solid var(--line2);background:#fbfcff;
-}
-.stile{background:#fff;border:1px solid var(--line);border-radius:11px;padding:8px 10px 7px;position:relative;overflow:hidden}
-.stile:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#cbd5e1}
-.stile.recv:before{background:var(--red)}
-.stile.pay:before{background:#b45309}
-.stile.tax:before{background:var(--indigo)}
-.stile.sales:before{background:var(--blue)}
-.stile.buy:before{background:var(--green)}
-.stile-label{display:block;font-size:11px;font-weight:700;color:#5f6b80;letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.stile-line{display:flex;align-items:baseline;gap:3px;margin-top:2px}
-.stile-value{font-size:16.5px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
-.stile.recv .stile-value{color:#b42318}
-.stile.pay .stile-value{color:#b45309}
-.stile.tax .stile-value{color:#4338ca}
-.stile.sales .stile-value{color:#1d4ed8}
-.stile.buy .stile-value{color:#047857}
-.stile-unit{font-size:11px;color:var(--muted);font-weight:650}
-.stile-sub{display:block;font-size:10.5px;color:var(--muted2);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.act.settle{color:#047857;border-color:#c7e9dc;background:#f6fdfa}
-.act.tax{color:#1d4ed8;border-color:#bcd0f7;background:#f2f7ff}
-.act.undone{color:#8a5a09;border-color:#f0dcb0;background:#fffaf0}
-
 /* ---------- 기간 선택 팝업 (2개월 달력) ---------- */
 .rngcard{max-width:1020px;width:100%;padding:15px 18px 13px}
 .rm-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px}
@@ -625,7 +583,6 @@ th.actcol .colrz{right:1px}
 .rm-actions .btn{padding:9px 24px;border-radius:3px;font-size:12.5px;font-weight:750}
 
 @media (max-width:1080px){
-  .settle-sum{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (max-width:860px){
   .rngcard{max-width:100%}
@@ -636,6 +593,5 @@ th.actcol .colrz{right:1px}
   .rm-quick.months{grid-template-columns:repeat(6,1fr)}
 }
 @media (max-width:560px){
-  .settle-sum{grid-template-columns:repeat(2,minmax(0,1fr))}
   .cal-day{padding:5px 0;font-size:12px}
 }

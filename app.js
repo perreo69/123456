@@ -61,66 +61,6 @@ var ERP = (function () {
   }
   function destName(v) { return DEST_NAME[destKey(v)]; }
 
-  /* ---------- 거래구분 · 정산상태 · 세금계산서 (v3 회계) ----------
-     입고 : 매입(줄돈) / 자체생산 / 반품·기타
-     출고 : 매출(받을돈) / 현장투입 / 샘플·기타
-     정산 : 미지급(줄돈) / 지급완료 … 출고는 미수금 / 수금완료
-     세금계산서 : 미발행 / 발행완료 / 해당없음 */
-  var TRADE_IN = ['purchase', 'self', 'return'];
-  var TRADE_OUT = ['sale', 'site', 'sample'];
-  var TRADE_NAME = {
-    purchase: '매입(줄돈)', self: '자체생산', return: '반품/기타',
-    sale: '매출(받을돈)', site: '현장투입', sample: '샘플/기타'
-  };
-  var TRADE_KEYS_ALL = ['purchase', 'self', 'return', 'sale', 'site', 'sample'];
-  function tradeKeys(dir) { return dir === 'in' ? TRADE_IN : TRADE_OUT; }
-  function tradeKey(v, dir) {
-    var t = s(v), list = tradeKeys(dir === 'in' ? 'in' : 'out');
-    for (var i = 0; i < list.length; i++) if (list[i] === t) return t;
-    if (TRADE_KEYS_ALL.indexOf(t) >= 0) return t;
-    return dir === 'in' ? 'purchase' : 'sale';
-  }
-  function tradeName(v) {
-    var t = s(v);
-    return TRADE_NAME[t] || '-';
-  }
-  /* 출고처 구분에 맞는 기본 거래구분 (업체로 나가면 매출, 현장이면 현장투입, 그 밖은 샘플·기타) */
-  function tradeDefault(dir, destType) {
-    if (dir === 'in') return 'purchase';
-    var d = destKey(destType);
-    return d === 'vendor' ? 'sale' : (d === 'site' ? 'site' : 'sample');
-  }
-  function tradeMoney(v) { return v === 'purchase' || v === 'sale'; }
-
-  var SETTLE_KEYS = ['unsettled', 'settled', 'na'];
-  function settleKey(v) {
-    var t = s(v);
-    return SETTLE_KEYS.indexOf(t) >= 0 ? t : 'na';
-  }
-  /* 같은 값이라도 방향에 따라 이름이 다르다: 미지급(입고) / 미수금(출고) */
-  function settleName(v, dir) {
-    var k = settleKey(v);
-    if (k === 'unsettled') return dir === 'in' ? '미지급' : '미수금';
-    if (k === 'settled') return dir === 'in' ? '지급완료' : '수금완료';
-    return '해당없음';
-  }
-  function settleOptions(dir) {
-    return [
-      { k: 'unsettled', t: settleName('unsettled', dir) },
-      { k: 'settled', t: settleName('settled', dir) },
-      { k: 'na', t: '해당없음' }
-    ];
-  }
-
-  var TAX_KEYS = ['none', 'issued', 'na'];
-  function taxKey(v) {
-    var t = s(v);
-    return TAX_KEYS.indexOf(t) >= 0 ? t : 'na';
-  }
-  function taxName(v) {
-    var k = taxKey(v);
-    return k === 'none' ? '미발행' : (k === 'issued' ? '발행완료' : '해당없음');
-  }
   function typeName(t) {
     return t === 'in' ? '입고' : (t === 'thaw' ? '해동' : (t === 're' ? '재냉동' : (t === 'base' ? '기초재고' : '출고')));
   }
@@ -171,15 +111,12 @@ var ERP = (function () {
       var brand = nz(r.brand) || lbr || '';
       var lt = nz(r.tx_type) || 'out';
       var dtt = nz(r.dest_type);
-      var trade = s(r.trade_type);
-      if (!trade) trade = lt === 'in' ? 'purchase' : (lt === 'out' ? tradeDefault('out', dtt) : '');
       logs.push({
         id: 'H' + r.id, dbid: Number(r.id), d: nz(r.tx_date), w: nz(r.warehouse) || 'F',
         t: lt, n: nz(r.product_name),
         major: majorName(r.major_category), mt: meatName(r.meat_type),
         v: nz(r.vendor), b: brand, i: nz(r.in_date), e: nz(r.exp_date), k: r2(r.qty),
         price: pr, amt: r2(r.total_amount),
-        tr: trade, stl: settleKey(s(r.settle_status)), tax: taxKey(s(r.tax_invoice_status)),
         p: nz(r.dest_detail), dt: dtt, note: nz(r.note),
         lid: lid2,
         worker: nz(r.worker_name), email: nz(r.worker_email),
@@ -240,35 +177,19 @@ var ERP = (function () {
   var LOG_COLS = [
     { k: 'd', t: '날짜', w: 92 },
     { k: 't', t: '구분', w: 74 },
-    { k: 'tr', t: '거래구분', w: 100 },
     { k: 'major', t: '대분류', w: 100 },
     { k: 'mv', t: '창고', w: 88 },
     { k: 'n', t: '제품명', w: 142 },
     { k: 'v', t: '업체명', w: 100 },
-    { k: 'b', t: '브랜드', w: 78 },
+    { k: 'b', t: '브랜드', w: 80 },
     { k: 'i', t: '입고일', w: 92 },
     { k: 'e', t: '소비기한', w: 100 },
     { k: 'k', t: '중량(kg)', w: 80, num: true },
-    { k: 'price', t: '단가(원/kg)', w: 88, num: true },
+    { k: 'inp', t: '입고단가(원/kg)', w: 96, num: true },
+    { k: 'outp', t: '출고단가(원/kg)', w: 96, num: true },
     { k: 'amt', t: '금액(원)', w: 108, num: true },
-    { k: 'stl', t: '정산', w: 84 },
-    { k: 'tax', t: '세금계산서', w: 100 },
     { k: 'p', t: '출고처 · 비고', w: 168 },
     { k: 'worker', t: '작업자', w: 78 }
-  ];
-  /* 정산 탭 전용 컴럼 */
-  var STL_COLS = [
-    { k: 'd', t: '날짜', w: 84 },
-    { k: 't', t: '구분', w: 64 },
-    { k: 'tr', t: '거래구분', w: 92 },
-    { k: 'major', t: '대분류', w: 86 },
-    { k: 'n', t: '제품명', w: 132 },
-    { k: 'partner', t: '거래처(업체명)', w: 120 },
-    { k: 'k', t: '중량(kg)', w: 74, num: true },
-    { k: 'price', t: '단가(원/kg)', w: 78, num: true },
-    { k: 'amt', t: '금액(원)', w: 92, num: true },
-    { k: 'stl', t: '정산상태', w: 78 },
-    { k: 'tax', t: '세금계산서', w: 84 }
   ];
   function lotCols(wh) {
     var out = [], i, c;
@@ -302,7 +223,6 @@ var ERP = (function () {
   function logCell(e, k) {
     if (k === 'd') return e.d;
     if (k === 't') return typeName(e.t);
-    if (k === 'tr') return (e.t === 'in' || e.t === 'out') ? tradeName(e.tr) : '-';
     if (k === 'major') return e.major;
     if (k === 'mv') return moveName(e);
     if (k === 'n') return e.n;
@@ -311,11 +231,10 @@ var ERP = (function () {
     if (k === 'i') return e.i;
     if (k === 'e') return e.e;
     if (k === 'k') return e.k;
-    if (k === 'price') return e.price;
+    /* 입고단가·출고단가를 나눠 둔다: 입고 건은 입고단가만, 출고 건은 출고단가만, 해동·재냉동은 둘 다 비운다 */
+    if (k === 'inp') return e.t === 'in' ? e.price : '';
+    if (k === 'outp') return e.t === 'out' ? e.price : '';
     if (k === 'amt') return e.amt;
-    if (k === 'partner') return e.t === 'out' ? (s(e.p) || e.v) : e.v;
-    if (k === 'stl') return (e.t === 'in' || e.t === 'out') ? settleName(e.stl, e.t) : '-';
-    if (k === 'tax') return (e.t === 'in' || e.t === 'out') ? taxName(e.tax) : '-';
     if (k === 'p') {
       var parts = [];
       if (e.t === 'out') parts.push(destName(e.dt) + ' ' + (e.p || ''));
@@ -621,87 +540,6 @@ var ERP = (function () {
     return out;
   }
 
-  /* ---------- 정산 (매입·매출) ---------- */
-  function isSettleRow(e) { return e.t === 'in' || e.t === 'out'; }
-
-  /* 요약: 총 받을 돈(미수금) · 총 줄 돈(매입 미지급) · 세금계산서 미발행 · 기간 매출·매입 */
-  function settleStats(st, list) {
-    var recv = 0, pay = 0, taxPending = 0, sales = 0, purchase = 0, i, e;
-    var logs = (st && st.logs) || [];
-    for (i = 0; i < logs.length; i++) {
-      e = logs[i];
-      if (!isSettleRow(e)) continue;
-      if (e.stl === 'unsettled') {
-        if (e.t === 'out') recv += e.amt; else pay += e.amt;
-      }
-      if (e.tax === 'none') taxPending++;
-    }
-    list = list || [];
-    for (i = 0; i < list.length; i++) {
-      e = list[i];
-      if (e.t === 'out') sales += e.amt;
-      else if (e.t === 'in') purchase += e.amt;
-    }
-    return {
-      receivable: r0(recv), payable: r0(pay), taxPending: taxPending,
-      sales: r0(sales), purchase: r0(purchase), net: r0(recv - pay)
-    };
-  }
-
-  /* opt: { q, dir:'all'|'in'|'out', settle, tax, trade, major, from, to, sortKey, sortDir } */
-  function filterSettle(st, opt) {
-    opt = opt || {};
-    var out = [], i, e, qq = s(opt.q).toLowerCase();
-    for (i = 0; i < st.logs.length; i++) {
-      e = st.logs[i];
-      if (!isSettleRow(e)) continue;
-      if (opt.dir && opt.dir !== 'all' && e.t !== opt.dir) continue;
-      if (opt.settle && opt.settle !== 'all' && e.stl !== opt.settle) continue;
-      if (opt.tax && opt.tax !== 'all' && e.tax !== opt.tax) continue;
-      if (opt.trade && opt.trade !== 'all' && e.tr !== opt.trade) continue;
-      if (opt.major && opt.major !== 'all' && e.major !== opt.major) continue;
-      if (!inRange(e.d, opt.from, opt.to)) continue;
-      if (qq) {
-        var hay = [e.n, e.v, e.p, e.note, e.d, tradeName(e.tr), settleName(e.stl, e.t),
-          taxName(e.tax), typeName(e.t), e.major].join(' ').toLowerCase();
-        if (hay.indexOf(qq) < 0) continue;
-      }
-      if (!passCols(opt.cols, function (k) { return logCell(e, k); })) continue;
-      out.push(e);
-    }
-    if (opt.sortKey) {
-      var def = colDef(STL_COLS, opt.sortKey), sd = opt.sortDir === -1 ? -1 : 1;
-      out.sort(function (a, b) {
-        var c = cmpVal(logCell(a, opt.sortKey), logCell(b, opt.sortKey), def && def.num);
-        if (c !== 0) return sd * c;
-        return (b.dbid || 0) - (a.dbid || 0);
-      });
-    } else {
-      out = sortLogsDesc(out);
-    }
-    return out;
-  }
-
-  /* 정산 내역 CSV: 날짜, 구분(입고/출고), 거래구분, 거래처, 품목, 대분류, 중량, 단가, 금액, 정산상태, 세금계산서, 비고 */
-  function settleCsv(list) {
-    var head = ['날짜', '구분', '거래구분', '거래처(업체명)', '품목명', '대분류', '중량(kg)',
-      '단가(원/kg)', '금액(원)', '정산상태', '세금계산서', '비고'];
-    var rows = [head], i, e;
-    list = list || [];
-    for (i = 0; i < list.length; i++) {
-      e = list[i];
-      rows.push([
-        e.d, e.t === 'in' ? '입고(매입)' : '출고(매출)',
-        e.t === 'in' || e.t === 'out' ? tradeName(e.tr) : '',
-        e.t === 'out' ? (s(e.p) || e.v) : e.v, e.n, e.major, Number(e.k).toFixed(2), Number(e.price || 0).toFixed(2), r0(e.amt),
-        e.t === 'in' || e.t === 'out' ? settleName(e.stl, e.t) : '',
-        e.t === 'in' || e.t === 'out' ? taxName(e.tax) : '',
-        e.note || ''
-      ]);
-    }
-    return csvQuote(rows);
-  }
-
   /* ---------- CSV ---------- */
   function csvQuote(rows) {
     var out = [], r, c, cells, v;
@@ -716,19 +554,20 @@ var ERP = (function () {
     return out.join('\r\n');
   }
 
-  /* 입출고 내역 CSV — 날짜, 구분, 거래구분, 대분류, 창고, 제품명, 업체명, 브랜드, 입고일, … */
+  /* 입출고 내역 CSV — 날짜, 구분, 대분류, 창고, 제품명, 업체명, 브랜드, 입고일, …, 입고단가, 출고단가, 금액, … */
   function csv(st) {
-    var head = ['날짜', '구분', '거래구분', '대분류', '창고', '제품명', '업체명', '브랜드', '입고일', '소비기한', '중량(kg)',
-      '단가(원/kg)', '금액(원)', '정산상태', '세금계산서', '출고처 구분', '출고처 / 생산품목', '비고', '작업자'];
+    var head = ['날짜', '구분', '대분류', '창고', '제품명', '업체명', '브랜드', '입고일', '소비기한', '중량(kg)',
+      '입고단가(원/kg)', '출고단가(원/kg)', '금액(원)', '출고처 구분', '출고처 / 생산품목', '비고', '작업자'];
     var rows = [head];
     var list = sortLogsDesc(st.logs);
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
-      var pay = e.t === 'in' || e.t === 'out';
+      var isIn = e.t === 'in', isOut = e.t === 'out';
       rows.push([
-        e.d, typeName(e.t), pay ? tradeName(e.tr) : '', e.major, moveName(e), e.n, e.v, e.b || '', e.i, e.e, Number(e.k).toFixed(2),
-        Number(e.price || 0).toFixed(2), r0(e.amt),
-        pay ? settleName(e.stl, e.t) : '', pay ? taxName(e.tax) : '',
+        e.d, typeName(e.t), e.major, moveName(e), e.n, e.v, e.b || '', e.i, e.e, Number(e.k).toFixed(2),
+        isIn ? Number(e.price || 0).toFixed(2) : '',
+        isOut ? Number(e.price || 0).toFixed(2) : '',
+        r0(e.amt),
         e.t === 'out' ? destName(e.dt) : '', e.p || '', e.note || '', e.worker || ''
       ]);
     }
@@ -1207,12 +1046,8 @@ var ERP = (function () {
     MEATS: MEATS, meatName: meatName,
     DESTS: DEST_KEYS, DEST_NAME: DEST_NAME, DEST_LABEL: DEST_LABEL, DEST_HINT: DEST_HINT,
     destKey: destKey, destName: destName, typeName: typeName, whName: whName, moveName: moveName,
-    TRADE_IN: TRADE_IN, TRADE_OUT: TRADE_OUT, TRADE_NAME: TRADE_NAME, tradeKeys: tradeKeys,
-    tradeKey: tradeKey, tradeName: tradeName, tradeDefault: tradeDefault, tradeMoney: tradeMoney,
-    SETTLE_KEYS: SETTLE_KEYS, settleKey: settleKey, settleName: settleName, settleOptions: settleOptions,
-    TAX_KEYS: TAX_KEYS, taxKey: taxKey, taxName: taxName,
     stateFrom: stateFrom, totals: totals, getLot: getLot, getLog: getLog, qtyOf: qtyOf, lotValue: lotValue,
-    sortLots: sortLots, LOT_COLS: LOT_COLS, LOG_COLS: LOG_COLS, STL_COLS: STL_COLS, lotCols: lotCols,
+    sortLots: sortLots, LOT_COLS: LOT_COLS, LOG_COLS: LOG_COLS, lotCols: lotCols,
     lotCell: lotCell, logCell: logCell, cellKey: cellKey, passCols: passCols, uniqValues: uniqValues,
     dateAdd: dateAdd, inRange: inRange, presetRange: presetRange, rangeOf: rangeOf, monthRange: monthRange,
     ymd: ymd, ymOf: ymOf, lastDay: lastDay, monthRangeOf: monthRangeOf, fmtKorDate: fmtKorDate,
@@ -1220,7 +1055,6 @@ var ERP = (function () {
     PERIOD_QUICK: PERIOD_QUICK, periodRange: periodRange, periodKeyOf: periodKeyOf,
     grouped: grouped, filterLots: filterLots, countLive: countLive,
     sortLogsDesc: sortLogsDesc, sortLogsAsc: sortLogsAsc, filterLogs: filterLogs,
-    isSettleRow: isSettleRow, settleStats: settleStats, filterSettle: filterSettle, settleCsv: settleCsv,
     priceStats: priceStats, priceCompare: priceCompare,
     csv: csv, stockCsv: stockCsv, csvQuote: csvQuote, dict: dict, destHistory: destHistory,
     precheck: precheck, precheckUpdate: precheckUpdate,
@@ -1266,10 +1100,10 @@ var SB = (function () {
       return 'DB 표를 찾을 수 없습니다. supabase_setup.sql을 먼저 실행해 주세요.';
     }
     if (/Could not find the function|PGRST202/i.test(m)) {
-      return 'DB 함수(tx_apply · tx_settle_update)를 찾을 수 없습니다. Supabase SQL Editor에서 supabase_migrate_v3.sql을 실행해 주세요.';
+      return 'DB 함수(tx_apply)를 찾을 수 없습니다. Supabase SQL Editor에서 supabase_migrate_v3.sql을 실행해 주세요.';
     }
     if (/column .* does not exist|PGRST204/i.test(m)) {
-      return 'DB에 새 열(거래구분·정산상태·세금계산서)이 없습니다. supabase_migrate_v3.sql을 실행해 주세요.';
+      return 'DB에 새 열(대분류·기준단가·금액)이 없습니다. supabase_migrate_v3.sql을 실행해 주세요.';
     }
     if (/permission denied/i.test(m)) return '이 작업을 할 권한이 없습니다. 로그인 상태를 확인해 주세요.';
     if (/JWT expired|invalid JWT|token is expired/i.test(m)) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
@@ -1424,10 +1258,7 @@ var SB = (function () {
         p_brand: p.brand || '',
         p_major: p.major || '원료육',
         p_unit_price: Number(p.price || 0),
-        p_amount: p.amount === undefined || p.amount === null || p.amount === '' ? null : Number(p.amount),
-        p_trade: p.trade || '',
-        p_settle: p.settle || '',
-        p_tax: p.tax || ''
+        p_amount: p.amount === undefined || p.amount === null || p.amount === '' ? null : Number(p.amount)
       }
     });
   }
@@ -1465,17 +1296,6 @@ var SB = (function () {
     });
   }
   function undo(logId) { return rest('rpc/tx_undo', { method: 'POST', body: { p_log_id: Number(logId) } }); }
-  /* 정산 상태(거래구분·수금/지급·세금계산서)만 바꾸기 — 보낸 값만 바뀌고 나머지는 그대로 */
-  function settle(p) {
-    return rest('rpc/tx_settle_update', {
-      method: 'POST', body: {
-        p_log_id: Number(p.logId),
-        p_trade: p.trade === undefined ? null : (p.trade || null),
-        p_settle: p.settle === undefined ? null : (p.settle || null),
-        p_tax: p.tax === undefined ? null : (p.tax || null)
-      }
-    });
-  }
 
   function restore() {
     ses = readStored();
@@ -1484,7 +1304,7 @@ var SB = (function () {
 
   return {
     auth: { signIn: signIn, signUp: signUp, signOut: signOut, refresh: refresh, ensure: ensure, restore: restore, session: function () { return ses; } },
-    db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, settle: settle, rest: rest },
+    db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, rest: rest },
     errOf: errOf
   };
 })();
@@ -1579,12 +1399,9 @@ var LIVE = (function () {
     major: 'all',
     stock: { preset: 'all', field: 'in', from: '', to: '' },
     hist: { preset: 'all', from: '', to: '' },
-    settle: { preset: 'all', from: '', to: '' },
-    settleDir: 'all', settleStatus: 'all', settleTax: 'all',
     sortLot: { k: '', dir: 1 },
     sortLog: { k: '', dir: -1 },
-    sortStl: { k: '', dir: -1 },
-    fLot: {}, fLog: {}, fStl: {}
+    fLot: {}, fLog: {}
   };
   var prev = {};
   var loading = false, again = false;
@@ -1596,16 +1413,16 @@ var LIVE = (function () {
 
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
   var COLW_KEY = 'meatERP.colw.v3';
-  var COLW = { lot: {}, log: {}, stl: {} };
+  var COLW = { lot: {}, log: {} };
   var COL_MIN = 44, COL_MAX = 720;
-  var ACT_DEF = { lot: 148, log: 128, stl: 190 };
-  function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'S' ? 'stl' : 'lot'); }
+  var ACT_DEF = { lot: 148, log: 132 };
+  function tblOf(tab) { return tab === 'H' ? 'log' : 'lot'; }
   function loadColW() {
     try {
       var raw = localStorage.getItem(COLW_KEY);
       if (!raw) return;
       var o = JSON.parse(raw);
-      ['lot', 'log', 'stl'].forEach(function (t) {
+      ['lot', 'log'].forEach(function (t) {
         if (!o || !o[t]) return;
         for (var k in o[t]) {
           if (!Object.prototype.hasOwnProperty.call(o[t], k)) continue;
@@ -1646,7 +1463,7 @@ var LIVE = (function () {
     }
   }
   function resetColWidth() {
-    COLW = { lot: {}, log: {}, stl: {} };
+    COLW = { lot: {}, log: {} };
     try { localStorage.removeItem(COLW_KEY); } catch (e) { }
     renderTable();
     toast('열 너비를 기본값으로 되돌렸습니다.', 'ok');
@@ -1686,7 +1503,7 @@ var LIVE = (function () {
     saveColW();
   }
   function colsOfTable(tbl) {
-    return tbl === 'lot' ? ERP.lotCols(cur.tab === 'C' ? 'C' : 'F') : (tbl === 'log' ? ERP.LOG_COLS : ERP.STL_COLS);
+    return tbl === 'lot' ? ERP.lotCols(cur.tab === 'C' ? 'C' : 'F') : ERP.LOG_COLS;
   }
 
   function esc(v) {
@@ -1799,9 +1616,6 @@ var LIVE = (function () {
     $('cntF').textContent = ERP.countLive(st, 'F');
     $('cntC').textContent = ERP.countLive(st, 'C');
     $('cntH').textContent = st.logs.length;
-    var ns = 0, j;
-    for (j = 0; j < st.logs.length; j++) if (ERP.isSettleRow(st.logs[j])) ns++;
-    if ($('cntS')) $('cntS').textContent = ns;
   }
 
   /* ---------- 표 머리글 (정렬 + 필터 + 너비 조절 핸들) ---------- */
@@ -1946,38 +1760,22 @@ var LIVE = (function () {
   function logCellHtml(e, k) {
     if (k === 'd') return '<td>' + esc(e.d || '-') + '</td>';
     if (k === 't') return '<td><span class="badge ' + esc(e.t) + '">' + ERP.typeName(e.t) + '</span></td>';
-    if (k === 'tr') return '<td class="ellip">' + tradeCell(e) + '</td>';
     if (k === 'major') return '<td><span class="mj">' + esc(e.major || ERP.MAJOR_DEFAULT) + '</span></td>';
     if (k === 'mv') return '<td><span class="move">' + ERP.moveName(e) + '</span></td>';
     if (k === 'n') return '<td class="ellip"><b>' + esc(e.n) + '</b></td>';
     if (k === 'k') return '<td class="num">' + fmt(e.k) + '</td>';
-    if (k === 'price') return '<td class="num">' + (e.price > 0 ? fmtInt(e.price) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'inp') return unitPriceCell(e.t === 'in' ? e.price : 0, '입고단가');
+    if (k === 'outp') return unitPriceCell(e.t === 'out' ? e.price : 0, '출고단가');
     if (k === 'amt') return '<td class="num" title="' + (e.amt > 0 ? fmtInt(e.amt) + '원' : '금액 미입력') + '">' +
       (e.amt > 0 ? fmtInt(e.amt) : '<span class="ttag">-</span>') + '</td>';
-    if (k === 'stl') return '<td>' + settleBadge(e) + '</td>';
-    if (k === 'tax') return '<td>' + taxBadge(e) + '</td>';
     if (k === 'p') return '<td class="ellip" title="' + esc(destTitle(e)) + '">' + destCell(e) + '</td>';
     if (k === 'worker') return '<td class="ellip">' + (e.worker ? '<span class="worker" title="' + esc(e.email) + '">' + esc(e.worker) + '</span>' : '<span class="ttag">-</span>') + '</td>';
     return '<td class="ellip">' + esc(ERP.logCell(e, k) || '-') + '</td>';
   }
-  /* 거래구분 · 정산 · 세금계산서 배지 (입출고 내역과 정산 탭이 같이 쓴다) */
-  function tradeCell(e) {
-    if (e.t !== 'in' && e.t !== 'out') return '<span class="ttag">-</span>';
-    var money = ERP.tradeMoney(e.tr);
-    return '<span class="trbadge' + (money ? ' money' : '') + ' tr-' + esc(e.tr) + '" title="' + esc(ERP.tradeName(e.tr)) + '">' +
-      esc(ERP.tradeName(e.tr)) + '</span>';
-  }
-  function settleBadge(e) {
-    if (e.t !== 'in' && e.t !== 'out') return '<span class="ttag">-</span>';
-    var cls = e.stl === 'unsettled' ? (e.t === 'in' ? 'unpaid' : 'receivable')
-      : (e.stl === 'settled' ? 'paid' : 'na');
-    return '<span class="stbadge ' + cls + '" title="' + esc(ERP.settleName(e.stl, e.t)) + '">' +
-      esc(ERP.settleName(e.stl, e.t)) + '</span>';
-  }
-  function taxBadge(e) {
-    if (e.t !== 'in' && e.t !== 'out') return '<span class="ttag">-</span>';
-    return '<span class="stbadge tax-' + esc(e.tax) + '" title="세금계산서 ' + esc(ERP.taxName(e.tax)) + '">' +
-      esc(ERP.taxName(e.tax)) + '</span>';
+  /* 입고단가·출고단가 칸 — 그 방향의 건이 아니거나 단가가 없으면 - */
+  function unitPriceCell(price, label) {
+    if (!(Number(price) > 0)) return '<td class="num"><span class="ttag">-</span></td>';
+    return '<td class="num" title="' + label + ' ' + fmtInt(price) + '원/kg">' + fmtInt(price) + '</td>';
   }
   function renderHistory() {
     var wrap = $('tableWrap');
@@ -2020,80 +1818,11 @@ var LIVE = (function () {
     if (more) more.addEventListener('click', function () { cur.hLimit += 250; renderHistory(); });
   }
 
-  /* ---------- 정산(매입·매출) 탭 ---------- */
-  function settleOpts() {
-    return {
-      q: cur.search, dir: cur.settleDir, settle: cur.settleStatus, tax: cur.settleTax,
-      major: cur.major, from: cur.settle.from, to: cur.settle.to,
-      cols: cur.fStl, sortKey: cur.sortStl.k, sortDir: cur.sortStl.dir
-    };
-  }
-  function renderSettleSum(stats) {
-    var box = $('settleSum');
-    if (!box) return;
-    function tile(cls, label, value, unit, sub) {
-      return '<div class="stile ' + cls + '"><span class="stile-label">' + label + '</span>' +
-        '<div class="stile-line"><span class="stile-value">' + value + '</span><span class="stile-unit">' + unit + '</span></div>' +
-        '<span class="stile-sub">' + sub + '</span></div>';
-    }
-    box.innerHTML =
-      tile('recv', '💰 총 받을 돈(미수금)', fmtInt(stats.receivable), '원', '출고 매출 중 미수금') +
-      tile('pay', '💸 총 줄 돈(미지급)', fmtInt(stats.payable), '원', '입고 매입 중 미지급') +
-      tile('tax', '🧾 세금계산서 미발행', String(stats.taxPending), '건', '발행완료로 바꾸면 줄어듭니다') +
-      tile('sales', '📈 기간 매출', fmtInt(stats.sales), '원', '지금 조건의 출고 합계') +
-      tile('buy', '📉 기간 매입', fmtInt(stats.purchase), '원', '지금 조건의 입고 합계');
-  }
-  function settleActHtml(e) {
-    var sLabel = e.stl === 'unsettled' ? (e.t === 'in' ? '지급완료' : '수금완료')
-      : (e.stl === 'settled' ? '정산취소' : '정산대상');
-    var tLabel = e.tax === 'none' ? '발행완료' : (e.tax === 'issued' ? '발행취소' : '발행대상');
-    return '<td><div class="acts">' +
-      '<button type="button" class="act ' + (e.stl === 'settled' ? 'undone' : 'settle') + '" data-settle-toggle="' + e.dbid + '">' + sLabel + '</button>' +
-      '<button type="button" class="act ' + (e.tax === 'issued' ? 'undone' : 'tax') + '" data-tax-toggle="' + e.dbid + '">' + tLabel + '</button>' +
-      '<button type="button" class="act edit" data-edit="' + e.dbid + '">수정</button>' +
-      '</div></td>';
-  }
-  function renderSettle() {
-    var wrap = $('tableWrap');
-    var list = ERP.filterSettle(st, settleOpts());
-    var stats = ERP.settleStats(st, list);
-    renderSettleSum(stats);
-    var kg = 0, amt = 0, i;
-    for (i = 0; i < list.length; i++) { kg += Number(list[i].k) || 0; amt += Number(list[i].amt) || 0; }
-    setRangeSum(list.length + '건', kg, amt);
-
-    if (!list.length) {
-      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>조건에 맞는 정산 내역이 없습니다. 기간·구분·정산상태를 넓혀 보세요.</td></tr></tbody></table>';
-      return;
-    }
-    var cols = ERP.STL_COLS;
-    var page = list.slice(0, cur.hLimit);
-    var html = [tableOpen('t-stl', 'stl', cols, ACT_DEF.stl), '<thead><tr>'];
-    for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortStl, cur.fStl));
-    html.push(actTh() + '</tr></thead><tbody>');
-    for (i = 0; i < page.length; i++) {
-      var e = page[i];
-      html.push('<tr class="hrow srow"' + (e.act ? '' : ' title="엑셀에서 옮긴 원본 이력"') + '>');
-      for (var c = 0; c < cols.length; c++) html.push(logCellHtml(e, cols[c].k));
-      html.push(settleActHtml(e));
-      html.push('</tr>');
-    }
-    html.push('</tbody></table>');
-    if (list.length > cur.hLimit) {
-      html.push('<button class="more" id="btnMore">더 보기 (' + (list.length - cur.hLimit) + '건 남음)</button>');
-    }
-    wrap.innerHTML = html.join('');
-    var more = $('btnMore');
-    if (more) more.addEventListener('click', function () { cur.hLimit += 250; renderSettle(); });
-  }
-
   function renderTable() {
-    var anyF = hasCols(cur.fLot) || hasCols(cur.fLog) || hasCols(cur.fStl);
+    var anyF = hasCols(cur.fLot) || hasCols(cur.fLog);
     var btn = $('btnResetFilters');
     if (btn) btn.classList.toggle('hidden', !anyF);
-    $('settleSum').classList.toggle('hidden', cur.tab !== 'S');
     if (cur.tab === 'H') { renderHistory(); return; }
-    if (cur.tab === 'S') { renderSettle(); return; }
     renderStock(cur.tab);
   }
 
@@ -2105,7 +1834,6 @@ var LIVE = (function () {
   /* ---------- 기간 바 ---------- */
   function rangeTarget() {
     if (cur.tab === 'H') return cur.hist;
-    if (cur.tab === 'S') return cur.settle;
     return cur.stock;
   }
   function rangeLabel(r) {
@@ -2113,7 +1841,7 @@ var LIVE = (function () {
     return (r.from || '처음') + ' ~ ' + (r.to || '오늘');
   }
   function renderRangeBar() {
-    var isH = cur.tab === 'H' || cur.tab === 'S';
+    var isH = cur.tab === 'H';
     $('dateFieldWrap').classList.toggle('hidden', isH);
     var soon = document.querySelector('#rangePresets [data-preset="soon"]');
     if (soon) soon.classList.toggle('hidden', isH);
@@ -2288,18 +2016,12 @@ var LIVE = (function () {
         major: cur.major, dateField: cur.stock.field, from: cur.stock.from, to: cur.stock.to, cols: cols
       });
     }
-    if (tbl === 'stl') {
-      return ERP.filterSettle(st, {
-        q: cur.search, dir: cur.settleDir, settle: cur.settleStatus, tax: cur.settleTax,
-        major: cur.major, from: cur.settle.from, to: cur.settle.to, cols: cols
-      });
-    }
     return ERP.filterLogs(st, {
       q: cur.search, type: cur.hFilter, major: cur.major, from: cur.hist.from, to: cur.hist.to, cols: cols
     });
   }
   function filterStore(tbl) {
-    return tbl === 'lot' ? cur.fLot : (tbl === 'stl' ? cur.fStl : cur.fLog);
+    return tbl === 'lot' ? cur.fLot : cur.fLog;
   }
   function cellOf(tbl) {
     return tbl === 'lot'
@@ -2307,7 +2029,7 @@ var LIVE = (function () {
       : function (e, k) { return ERP.logCell(e, k); };
   }
   function colLabel(tbl, key) {
-    var list = tbl === 'lot' ? ERP.LOT_COLS : (tbl === 'stl' ? ERP.STL_COLS : ERP.LOG_COLS);
+    var list = tbl === 'lot' ? ERP.LOT_COLS : ERP.LOG_COLS;
     for (var i = 0; i < list.length; i++) if (list[i].k === key) return list[i].t;
     return key;
   }
@@ -2547,12 +2269,6 @@ var LIVE = (function () {
       courier: '예: 김사장님(김포) · 운송장 1234-5678', other: '예: 샘플 제공 · 폐기'
     }[cur.dest];
     $('destHint').textContent = ERP.DEST_HINT[cur.dest];
-    /* 출고처를 바꾸면 거래구분 기본값도 따라간다 (업체=매출, 현장=현장투입, 그밖=샘플/기타) */
-    var tr = ERP.tradeDefault('out', cur.dest);
-    if ($('outTrade')) {
-      $('outTrade').value = tr;
-      syncTradeDefaults('out');
-    }
     fillDatalists();
   }
 
@@ -2648,7 +2364,6 @@ var LIVE = (function () {
     var d = today();
     ['inDate', 'inInDate', 'thDate', 'reDate', 'outDate'].forEach(function (id) { if (!$(id).value) $(id).value = d; });
     if (!$('inMajor').value) $('inMajor').value = '원료육';
-    fillTradeSelects();
     setInWh('F'); setOutWh('C'); setDest('site'); setMode('in');
     reload().then(function () {
       LIVE.start(function () { reload({ silent: true }); }, liveLabel);
@@ -2742,23 +2457,18 @@ var LIVE = (function () {
       p.exp_date = $('inExpiry').value || null;
       p.kg = Number($('inKg').value || 0);
       p.note = $('inNote').value;
-      p.trade = $('inTrade').value || 'purchase';
-      p.settle = $('inSettle').value || '';
-      p.tax = $('inTax').value || '';
     } else if (cur.mode === 'thaw') {
       p.date = $('thDate').value || today();
       p.wh = 'F';
       p.lot_id = dbId($('thLot').value);
       p.kg = Number($('thKg').value || 0);
       p.note = $('thNote').value;
-      p.trade = '';
     } else if (cur.mode === 're') {
       p.date = $('reDate').value || today();
       p.wh = 'C';
       p.lot_id = dbId($('reLot').value);
       p.kg = Number($('reKg').value || 0);
       p.note = $('reNote').value;
-      p.trade = '';
     } else {
       p.date = $('outDate').value || today();
       p.wh = cur.whOut;
@@ -2767,9 +2477,6 @@ var LIVE = (function () {
       p.dest = $('outDest').value;
       p.kg = Number($('outKg').value || 0);
       p.note = $('outNote').value;
-      p.trade = $('outTrade').value || 'sale';
-      p.settle = $('outSettle').value || '';
-      p.tax = $('outTax').value || '';
     }
     return p;
   }
@@ -2847,6 +2554,10 @@ var LIVE = (function () {
     $('edDate').value = e.d || '';
     $('edKg').value = e.k;
     $('edPrice').value = e.price > 0 ? e.price : '';
+    /* 그 건의 방향에 맞는 단가 이름을 쓴다 (입고단가 / 출고단가 / 이동 단가) */
+    if ($('edPriceLabel')) {
+      $('edPriceLabel').textContent = e.t === 'in' ? '입고단가(원/kg)' : (e.t === 'out' ? '출고단가(원/kg)' : '단가(원/kg)');
+    }
     $('edAmount').value = e.amt > 0 ? e.amt : (e.price > 0 ? Math.round(e.k * e.price) : '');
     $('edWh').value = e.w;
     $('edWh').disabled = (e.t === 'thaw' || e.t === 're');
@@ -3178,65 +2889,6 @@ var LIVE = (function () {
     }, true);
   }
 
-  /* ---------- 정산 상태 바꾸기 (수금/지급·세금계산서) ---------- */
-  function settleUpdate(logId, kind, btn) {
-    var e = ERP.getLog(st, logId);
-    if (!e) { toast('내역을 찾을 수 없습니다. 새로고침 후 다시 시도하세요.', 'err'); return; }
-    var p = { logId: logId };
-    if (kind === 'settle') {
-      p.settle = e.stl === 'settled' ? 'unsettled' : 'settled';
-    } else {
-      p.tax = e.tax === 'issued' ? 'none' : 'issued';
-    }
-    if (btn) btn.disabled = true;
-    SB.db.settle(p).then(function (row) {
-      var msg = kind === 'settle'
-        ? ERP.settleName(p.settle, e.t) + ' 처리: ' + e.n + ' ' + (e.amt > 0 ? fmtInt(e.amt) + '원' : fmt(e.k) + 'kg')
-        : '세금계산서 ' + ERP.taxName(p.tax) + ': ' + e.n + ' ' + (e.amt > 0 ? fmtInt(e.amt) + '원' : fmt(e.k) + 'kg');
-      toast(msg, 'ok');
-      return reload({ silent: true });
-    }).then(function () {
-      if (btn) btn.disabled = false;
-    }, function (err) {
-      if (btn) btn.disabled = false;
-      toast(err.message, 'err');
-    });
-  }
-
-  /* ---------- 거래구분/정산/세금계산서 선택지 ---------- */
-  function tradeOptsHtml(list) {
-    var out = [], i;
-    for (i = 0; i < list.length; i++) out.push('<option value="' + list[i] + '">' + esc(ERP.TRADE_NAME[list[i]]) + '</option>');
-    return out.join('');
-  }
-  function settleOptsHtml(dir) {
-    var list = ERP.settleOptions(dir), out = [], i;
-    for (i = 0; i < list.length; i++) out.push('<option value="' + list[i].k + '">' + esc(list[i].t) + '</option>');
-    return out.join('');
-  }
-  function taxOptsHtml() {
-    return '<option value="none">미발행</option><option value="issued">발행완료</option><option value="na">해당없음</option>';
-  }
-  function fillTradeSelects() {
-    $('inTrade').innerHTML = tradeOptsHtml(ERP.TRADE_IN);
-    $('inSettle').innerHTML = settleOptsHtml('in');
-    $('inTax').innerHTML = taxOptsHtml();
-    $('outTrade').innerHTML = tradeOptsHtml(ERP.TRADE_OUT);
-    $('outSettle').innerHTML = settleOptsHtml('out');
-    $('outTax').innerHTML = taxOptsHtml();
-    $('inTrade').value = 'purchase';
-    $('outTrade').value = ERP.tradeDefault('out', cur.dest);
-    syncTradeDefaults('in');
-    syncTradeDefaults('out');
-  }
-  /* 거래구분에 맞춰 정산·세금계산서 기본값을 맞춘다 (매입·매출이면 미지급/미수금 · 미발행) */
-  function syncTradeDefaults(dir) {
-    var tr = $(dir === 'in' ? 'inTrade' : 'outTrade').value;
-    var money = ERP.tradeMoney(tr);
-    $(dir === 'in' ? 'inSettle' : 'outSettle').value = money ? 'unsettled' : 'na';
-    $(dir === 'in' ? 'inTax' : 'outTax').value = money ? 'none' : 'na';
-  }
-
   function bindAppEvents() {
     var modes = document.querySelectorAll('.mode');
     for (var i = 0; i < modes.length; i++) {
@@ -3249,14 +2901,9 @@ var LIVE = (function () {
         cur.hLimit = 250;
         for (var k = 0; k < tabs.length; k++) tabs[k].classList.toggle('active', tabs[k] === this);
         var isH = cur.tab === 'H';
-        var isS = cur.tab === 'S';
-        $('zeroWrap').classList.toggle('hidden', isH || isS);
+        $('zeroWrap').classList.toggle('hidden', isH);
         $('typeFilter').classList.toggle('hidden', !isH);
         $('histNote').classList.toggle('hidden', !isH);
-        $('settleDirWrap').classList.toggle('hidden', !isS);
-        $('settleStatWrap').classList.toggle('hidden', !isS);
-        $('settleTaxWrap').classList.toggle('hidden', !isS);
-        $('btnCsvSettle').classList.toggle('hidden', !isS);
         closeFilter();
         renderRangeBar();
         renderTable();
@@ -3273,7 +2920,7 @@ var LIVE = (function () {
       if (sortBtn) {
         ev.preventDefault();
         var tbl = tblOf(cur.tab);
-        var s0 = tbl === 'log' ? cur.sortLog : (tbl === 'stl' ? cur.sortStl : cur.sortLot);
+        var s0 = tbl === 'log' ? cur.sortLog : cur.sortLot;
         var k0 = sortBtn.getAttribute('data-sort');
         if (s0.k !== k0) { s0.k = k0; s0.dir = 1; }
         else if (s0.dir === 1) { s0.dir = -1; }
@@ -3285,18 +2932,6 @@ var LIVE = (function () {
       if (filtBtn) {
         ev.preventDefault();
         openFilter(tblOf(cur.tab), filtBtn.getAttribute('data-filter'), filtBtn);
-        return;
-      }
-      var slb = t.closest ? t.closest('[data-settle-toggle]') : null;
-      if (slb) {
-        ev.stopPropagation();
-        settleUpdate(Number(slb.getAttribute('data-settle-toggle')), 'settle', slb);
-        return;
-      }
-      var txb = t.closest ? t.closest('[data-tax-toggle]') : null;
-      if (txb) {
-        ev.stopPropagation();
-        settleUpdate(Number(txb.getAttribute('data-tax-toggle')), 'tax', txb);
         return;
       }
       var und = t.closest ? t.closest('[data-undo]') : null;
@@ -3335,19 +2970,11 @@ var LIVE = (function () {
     $('showZero').addEventListener('change', function () { cur.showZero = this.checked; renderTable(); });
     $('typeFilter').addEventListener('change', function () { cur.hFilter = this.value; cur.hLimit = 250; renderTable(); });
     $('majorFilter').addEventListener('change', function () { cur.major = this.value; cur.hLimit = 250; renderTable(); });
-    $('settleDir').addEventListener('change', function () { cur.settleDir = this.value; cur.hLimit = 250; renderTable(); });
-    $('settleStatus').addEventListener('change', function () { cur.settleStatus = this.value; cur.hLimit = 250; renderTable(); });
-    $('settleTax').addEventListener('change', function () { cur.settleTax = this.value; cur.hLimit = 250; renderTable(); });
     $('btnResetFilters').addEventListener('click', function () {
-      cur.fLot = {}; cur.fLog = {}; cur.fStl = {};
+      cur.fLot = {}; cur.fLog = {};
       renderTable();
     });
     $('btnColReset').addEventListener('click', resetColWidth);
-    $('btnCsvSettle').addEventListener('click', function () {
-      var list = ERP.filterSettle(st, settleOpts());
-      download(ERP.settleCsv(list), '정산내역_' + today().replace(/-/g, '') + '.csv');
-      toast('정산 내역 ' + list.length + '건을 CSV로 내려받았습니다.', 'ok');
-    });
 
     var presets = document.querySelectorAll('#rangePresets .pr');
     for (var p = 0; p < presets.length; p++) {
@@ -3494,9 +3121,6 @@ var LIVE = (function () {
     });
 
     /* 단가 ↔ 금액 */
-    ['inTrade', 'outTrade'].forEach(function (id) {
-      $(id).addEventListener('change', function () { syncTradeDefaults(id === 'inTrade' ? 'in' : 'out'); });
-    });
     ['in', 'thaw', 're', 'out'].forEach(function (m) {
       var ids = PRICE_IDS[m];
       $(ids.kg).addEventListener('input', function () { priceSync(m, 'kg'); });
