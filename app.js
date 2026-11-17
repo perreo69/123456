@@ -77,6 +77,7 @@ var ERP = (function () {
         t: nz(r.tx_type) || 'out', n: nz(r.product_name), v: nz(r.vendor),
         i: nz(r.in_date), e: nz(r.exp_date), k: r2(r.qty),
         p: nz(r.dest_detail), dt: nz(r.dest_type), note: nz(r.note),
+        lid: r.lot_id === null || r.lot_id === undefined ? '' : String(r.lot_id),
         worker: nz(r.worker_name), email: nz(r.worker_email),
         act: r.is_manual !== false, at: nz(r.created_at)
       });
@@ -204,6 +205,317 @@ var ERP = (function () {
     return csvQuote(rows);
   }
 
+  /* ==========================================================================
+     실무 양식 내보내기
+       · 사방넷 풀필먼트 엑셀입고   : 시트 '엑셀입고',   1행 헤더 8열
+       · 경리나라 매출거래명세표     : 시트 '일괄등록',   1행 헤더 20열
+     헤더 이름과 순서는 사용자가 준 원본 양식과 똑같이 맞춘다. 바꾸지 말 것.
+     ========================================================================== */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  /* 'YYYY-MM-DD' → 'YYYYMMDD' (사방넷 유통기한·제조일자 형식) */
+  function ymd8(v) {
+    var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s(v));
+    if (!m) return '';
+    return m[1] + pad2(Number(m[2])) + pad2(Number(m[3]));
+  }
+  /* 'YYYY-MM-DD' → 'MMDD' (경리나라 품목월일 형식) */
+  function mmdd(v) {
+    var m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s(v));
+    if (!m) return '';
+    return pad2(Number(m[2])) + pad2(Number(m[3]));
+  }
+  /* 값이 있는 것만 '/'로 잇는다 */
+  function joinSlash(parts) {
+    var out = [];
+    for (var i = 0; i < parts.length; i++) {
+      var v = s(parts[i]);
+      if (v) out.push(v);
+    }
+    return out.join('/');
+  }
+
+  /* 이력 한 건이 가리키는 로트 (원산지·브랜드는 로트에만 있다) */
+  function lotOf(st, e) {
+    var i, l;
+    if (e.lid) {
+      for (i = 0; i < st.lots.length; i++) if (st.lots[i].id === 'L' + e.lid) return st.lots[i];
+    }
+    for (i = 0; i < st.lots.length; i++) {
+      l = st.lots[i];
+      if (l.n === e.n && l.v === e.v && l.i === e.i && l.e === e.e) return l;
+    }
+    return null;
+  }
+
+  /* 날짜 범위 조건 — opt.range: 'today' | 'range' | 'all' */
+  function inDateRange(d, opt) {
+    opt = opt || {};
+    d = s(d);
+    if (opt.range === 'all') return true;
+    if (opt.range === 'range') {
+      if (!s(opt.from) && !s(opt.to)) return true;
+      if (s(opt.from) && d < s(opt.from)) return false;
+      if (s(opt.to) && d > s(opt.to)) return false;
+      return true;
+    }
+    return d === s(opt.today);
+  }
+
+  function sortLogsAsc(logs) {
+    var out = logs.slice();
+    out.sort(function (a, b) {
+      if (a.d !== b.d) return a.d < b.d ? -1 : 1;
+      return (a.dbid || 0) - (b.dbid || 0);
+    });
+    return out;
+  }
+
+  /* 사방넷 풀필먼트 '엑셀입고' 양식 — 헤더 8열 */
+  var SABANG_HEAD = ['매입처', '출고상품코드', '출고상품명', '수량', '제조일자', '유통기한', '로케이션', '입고메모'];
+  function sabangnetRows(st, opt) {
+    opt = opt || {};
+    var rows = [SABANG_HEAD.slice()];
+    var list = sortLogsAsc(st.logs);
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      var isIn = e.t === 'in';
+      var isThaw = e.t === 'thaw';
+      if (!isIn && !(opt.thaw && isThaw)) continue;
+      if (!inDateRange(e.d, opt)) continue;
+      var lot = lotOf(st, e);
+      var qty = Math.abs(Number(e.k) || 0);
+      if (!(qty > 0)) continue;
+      /* 해동은 냉장고로 들어오는 입고라 로케이션을 냉장고로 적는다 */
+      var wh = isThaw ? 'C' : e.w;
+      rows.push([
+        s(e.v),                                        /* 매입처 (업체명) */
+        '',                                            /* 출고상품코드 */
+        s(e.n),                                        /* 출고상품명 */
+        qty,                                           /* 수량 (양수 kg) */
+        '',                                            /* 제조일자 */
+        ymd8(e.e),                                     /* 유통기한 YYYYMMDD */
+        whName(wh),                                    /* 로케이션 냉동고 / 냉장고 */
+        joinSlash([lot ? lot.o : '', lot ? lot.b : '', e.note]) /* 입고메모 원산지/브랜드/비고 */
+      ]);
+    }
+    return rows;
+  }
+
+  /* 경리나라 '매출거래명세표 일괄등록' 양식 — 헤더 20열 */
+  var SALES_HEAD = ['거래일자', '구분', '거래처명', '사업자번호', '부가세구분', '프로젝트/현장', '창고',
+    '품목월일', '품목코드', '품목명', '규격', '수량', '단위', '단가', '공급가액', '세액', '품목비고',
+    '입금액', '인수자', '공통메모'];
+  function salesRows(st, opt) {
+    opt = opt || {};
+    var vat = s(opt.vat) || '면세';
+    var rows = [SALES_HEAD.slice()];
+    var list = sortLogsAsc(st.logs);
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i];
+      if (e.t !== 'out') continue;
+      if (!opt.allOut && e.dt !== 'vendor') continue;
+      if (!inDateRange(e.d, opt)) continue;
+      var qty = Math.abs(Number(e.k) || 0);
+      if (!(qty > 0)) continue;
+      var lot = lotOf(st, e);
+      rows.push([
+        s(e.d),                                        /* 거래일자 YYYY-MM-DD */
+        '사업자',                                      /* 구분 */
+        s(e.p) || destName(e.dt),                      /* 거래처명 */
+        '',                                            /* 사업자번호 */
+        vat,                                           /* 부가세구분 면세/별도/없음 */
+        e.dt === 'site' ? '현장' : '',                 /* 프로젝트/현장 */
+        whName(e.w),                                   /* 창고 */
+        mmdd(e.d),                                     /* 품목월일 MMDD */
+        '',                                            /* 품목코드 */
+        s(e.n),                                        /* 품목명 */
+        joinSlash([lot ? lot.o : '', lot ? lot.b : '']), /* 규격 원산지/브랜드 */
+        qty,                                           /* 수량 (양수) */
+        'kg',                                          /* 단위 */
+        0, 0, 0,                                       /* 단가·공급가액·세액 (업로드 후 입력) */
+        s(e.note),                                     /* 품목비고 */
+        '', '', ''                                     /* 입금액·인수자·공통메모 */
+      ]);
+    }
+    return rows;
+  }
+
+  /* ---------- xlsx 만들기 (외부 라이브러리·CDN 없이 ZIP store + OOXML) ---------- */
+  var CRC_TABLE = null;
+  function crc32(bytes) {
+    if (!CRC_TABLE) {
+      CRC_TABLE = [];
+      for (var n = 0; n < 256; n++) {
+        var c = n;
+        for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+        CRC_TABLE[n] = c >>> 0;
+      }
+    }
+    var v = -1;
+    for (var i = 0; i < bytes.length; i++) v = (v >>> 8) ^ CRC_TABLE[(v ^ bytes[i]) & 0xFF];
+    return (v ^ -1) >>> 0;
+  }
+  function utf8(sv) {
+    var out = [], i, c, c2, cp;
+    for (i = 0; i < sv.length; i++) {
+      c = sv.charCodeAt(i);
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 0x3F));
+      else if (c >= 0xD800 && c <= 0xDBFF && i + 1 < sv.length) {
+        c2 = sv.charCodeAt(i + 1);
+        if (c2 >= 0xDC00 && c2 <= 0xDFFF) {
+          cp = 0x10000 + ((c - 0xD800) << 10) + (c2 - 0xDC00);
+          out.push(0xF0 | (cp >> 18), 0x80 | ((cp >> 12) & 0x3F), 0x80 | ((cp >> 6) & 0x3F), 0x80 | (cp & 0x3F));
+          i++;
+        } else out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+      } else out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 0x3F), 0x80 | (c & 0x3F));
+    }
+    return out;
+  }
+  function push16(a, v) { a.push(v & 0xFF, (v >>> 8) & 0xFF); }
+  function push32(a, v) { a.push(v & 0xFF, (v >>> 8) & 0xFF, (v >>> 16) & 0xFF, (v >>> 24) & 0xFF); }
+  /* 파일 목록 → ZIP(무압축 store) 바이트 배열. [ {name:'a.xml', data:'<xml/>'} ] */
+  function zipStore(files) {
+    var out = [], central = [], i, f, nameB, dataB, crc, off = 0;
+    var DOS_TIME = 0, DOS_DATE = 0x21; /* 1980-01-01 00:00 */
+    for (i = 0; i < files.length; i++) {
+      f = files[i];
+      nameB = utf8(f.name);
+      dataB = utf8(f.data);
+      crc = crc32(dataB);
+      f._off = off;
+      push32(out, 0x04034b50);
+      push16(out, 20); push16(out, 0x0800); push16(out, 0);
+      push16(out, DOS_TIME); push16(out, DOS_DATE);
+      push32(out, crc); push32(out, dataB.length); push32(out, dataB.length);
+      push16(out, nameB.length); push16(out, 0);
+      for (var k = 0; k < nameB.length; k++) out.push(nameB[k]);
+      for (var d = 0; d < dataB.length; d++) out.push(dataB[d]);
+      off += 30 + nameB.length + dataB.length;
+    }
+    var cdStart = off, cdSize = 0;
+    for (i = 0; i < files.length; i++) {
+      f = files[i];
+      nameB = utf8(f.name);
+      dataB = utf8(f.data);
+      crc = crc32(dataB);
+      push32(central, 0x02014b50);
+      push16(central, 20); push16(central, 20); push16(central, 0x0800); push16(central, 0);
+      push16(central, DOS_TIME); push16(central, DOS_DATE);
+      push32(central, crc); push32(central, dataB.length); push32(central, dataB.length);
+      push16(central, nameB.length); push16(central, 0); push16(central, 0);
+      push16(central, 0); push16(central, 0); push32(central, 0);
+      push32(central, f._off);
+      for (var j = 0; j < nameB.length; j++) central.push(nameB[j]);
+      cdSize += 46 + nameB.length;
+    }
+    for (var m = 0; m < central.length; m++) out.push(central[m]);
+    push32(out, 0x06054b50);
+    push16(out, 0); push16(out, 0);
+    push16(out, files.length); push16(out, files.length);
+    push32(out, cdSize); push32(out, cdStart); push16(out, 0);
+    return out;
+  }
+
+  function xmlEsc(v) {
+    return String(v === null || v === undefined ? '' : v)
+      .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
+      .replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c];
+      });
+  }
+  function colName(n) {
+    var out = '';
+    while (n > 0) { var m = (n - 1) % 26; out = String.fromCharCode(65 + m) + out; n = Math.floor((n - 1) / 26); }
+    return out;
+  }
+  function numStr(v) {
+    var n = Number(v);
+    if (!isFinite(n)) return '0';
+    return String(n);
+  }
+  function cellXml(ref, v, style) {
+    var st2 = style ? ' s="' + style + '"' : '';
+    if (v === null || v === undefined || v === '') return '<c r="' + ref + '"' + st2 + '/>';
+    if (typeof v === 'number' && isFinite(v)) return '<c r="' + ref + '"' + st2 + '><v>' + numStr(v) + '</v></c>';
+    return '<c r="' + ref + '"' + st2 + ' t="inlineStr"><is><t xml:space="preserve">' + xmlEsc(v) + '</t></is></c>';
+  }
+  function sheetXml(sheet) {
+    var rows = sheet.rows || [], widths = sheet.widths || [], out = [], i, j, r;
+    var maxCol = 1;
+    for (i = 0; i < rows.length; i++) if (rows[i] && rows[i].length > maxCol) maxCol = rows[i].length;
+    out.push('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>');
+    out.push('<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">');
+    out.push('<dimension ref="A1:' + colName(maxCol) + Math.max(1, rows.length) + '"/>');
+    out.push('<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>');
+    out.push('<sheetFormatPr defaultRowHeight="15"/>');
+    if (widths.length) {
+      out.push('<cols>');
+      for (i = 0; i < widths.length; i++) {
+        out.push('<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + widths[i] + '" customWidth="1"/>');
+      }
+      out.push('</cols>');
+    }
+    out.push('<sheetData>');
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i] || [];
+      out.push('<row r="' + (i + 1) + '">');
+      for (j = 0; j < r.length; j++) out.push(cellXml(colName(j + 1) + (i + 1), r[j], i === 0 ? 1 : 0));
+      out.push('</row>');
+    }
+    out.push('</sheetData></worksheet>');
+    return out.join('');
+  }
+  var XML_HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  function stylesXml() {
+    return XML_HEAD +
+      '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+      '<fonts count="2"><font><sz val="11"/><name val="맑은 고딕"/></font>' +
+      '<font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>' +
+      '<fills count="2"><fill><patternFill patternType="none"/></fill>' +
+      '<fill><patternFill patternType="gray125"/></fill></fills>' +
+      '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+      '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+      '<cellXfs count="2"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+      '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs>' +
+      '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+      '</styleSheet>';
+  }
+  /* sheets: [ {name:'엑셀입고', rows:[[...],...], widths:[14,12,...]} ] → xlsx 바이트(숫자 배열) */
+  function xlsxBytes(sheets) {
+    var files = [], i, n = sheets.length;
+    var ct = [XML_HEAD, '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">',
+      '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+      '<Default Extension="xml" ContentType="application/xml"/>',
+      '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
+      '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'];
+    for (i = 0; i < n; i++) {
+      ct.push('<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>');
+    }
+    ct.push('</Types>');
+    files.push({ name: '[Content_Types].xml', data: ct.join('') });
+    files.push({ name: '_rels/.rels', data: XML_HEAD +
+      '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+      '</Relationships>' });
+    var wb = [XML_HEAD, '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" ',
+      'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>'];
+    for (i = 0; i < n; i++) wb.push('<sheet name="' + xmlEsc(sheets[i].name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>');
+    wb.push('</sheets></workbook>');
+    files.push({ name: 'xl/workbook.xml', data: wb.join('') });
+    var rels = [XML_HEAD, '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'];
+    for (i = 0; i < n; i++) {
+      rels.push('<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>');
+    }
+    rels.push('<Relationship Id="rId' + (n + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>');
+    rels.push('</Relationships>');
+    files.push({ name: 'xl/_rels/workbook.xml.rels', data: rels.join('') });
+    files.push({ name: 'xl/styles.xml', data: stylesXml() });
+    for (i = 0; i < n; i++) files.push({ name: 'xl/worksheets/sheet' + (i + 1) + '.xml', data: sheetXml(sheets[i]) });
+    return zipStore(files);
+  }
+
   /* 자동완성·필터 목록 (지금 데이터에서 뽑는다) */
   function dict(st) {
     var names = [], vendors = [], origins = [], brands = [], products = [];
@@ -269,7 +581,10 @@ var ERP = (function () {
     destKey: destKey, destName: destName, typeName: typeName, whName: whName, moveName: moveName,
     stateFrom: stateFrom, totals: totals, getLot: getLot, qtyOf: qtyOf, sortLots: sortLots,
     grouped: grouped, countLive: countLive, sortLogsDesc: sortLogsDesc,
-    csv: csv, stockCsv: stockCsv, csvQuote: csvQuote, dict: dict, destHistory: destHistory, precheck: precheck
+    csv: csv, stockCsv: stockCsv, csvQuote: csvQuote, dict: dict, destHistory: destHistory, precheck: precheck,
+    SABANG_HEAD: SABANG_HEAD, SALES_HEAD: SALES_HEAD, sabangnetRows: sabangnetRows, salesRows: salesRows,
+    lotOf: lotOf, ymd8: ymd8, mmdd: mmdd, sortLogsAsc: sortLogsAsc, inDateRange: inDateRange,
+    xlsxBytes: xlsxBytes, zipStore: zipStore, crc32: crc32, colName: colName
   };
 })();
 /* ============================== CORE:END ============================== */
@@ -963,6 +1278,7 @@ var LIVE = (function () {
     renderTable();
     syncLotViews();
     fillDatalists();
+    if (xls.kind) renderXls();
   }
 
   function reload(opts) {
@@ -1014,6 +1330,7 @@ var LIVE = (function () {
 
   function doLogout(silent) {
     LIVE.stop();
+    if (xls.kind) closeXls();
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     SB.auth.signOut().then(function () {
       $('appView').classList.add('hidden');
@@ -1186,6 +1503,116 @@ var LIVE = (function () {
     toast((wh === 'F' ? '냉동고' : '냉장고') + ' 재고 ' + n + '개 로트 · ' + fmt(kg) + 'kg을 CSV로 내려받았습니다.', 'ok');
   }
 
+  /* ---------- 사방넷 · 경리나라 양식 내려받기 ---------- */
+  var xls = { kind: null, range: 'today' };
+
+  function firstOfMonth() {
+    var d = today().split('-');
+    return d[0] + '-' + d[1] + '-01';
+  }
+  function rangeText(opt) {
+    if (opt.range === 'all') return '전체 기간';
+    if (opt.range === 'range') return (opt.from || '처음') + ' ~ ' + (opt.to || '오늘');
+    return '오늘 (' + opt.today + ')';
+  }
+  function rangeTag(opt) {
+    if (opt.range === 'all') return '전체';
+    if (opt.range === 'range') return (opt.from || 'first') + '_' + (opt.to || 'last');
+    return opt.today;
+  }
+  function xlsOpts() {
+    return {
+      range: xls.range,
+      from: xls.range === 'range' ? ($('xlsFrom').value || '') : '',
+      to: xls.range === 'range' ? ($('xlsTo').value || '') : '',
+      today: today(),
+      thaw: !!($('xlsThaw') && $('xlsThaw').checked),
+      allOut: !!($('xlsAllOut') && $('xlsAllOut').checked),
+      vat: ($('xlsVat') && $('xlsVat').value) || '면세'
+    };
+  }
+  function xlsRows(kind, opt) {
+    return kind === 'sales' ? ERP.salesRows(st, opt) : ERP.sabangnetRows(st, opt);
+  }
+
+  function renderXls() {
+    if (!xls.kind) return;
+    var isSales = xls.kind === 'sales';
+    $('xlsRangeBox').classList.toggle('hidden', xls.range !== 'range');
+    var opt = xlsOpts();
+    var rows = xlsRows(xls.kind, opt);
+    var n = rows.length - 1, qtyCol = isSales ? 11 : 3, f = 0, ch = 0, kg = 0, i;
+    for (i = 1; i < rows.length; i++) {
+      if (rows[i][6] === '냉동고') f++; else if (rows[i][6] === '냉장고') ch++;
+      kg += Number(rows[i][qtyCol]) || 0;
+    }
+    var box = $('xlsCount');
+    if (!n) {
+      box.className = 'xls-count none';
+      box.textContent = rangeText(opt) + '에 해당하는 ' + (isSales ? '출고' : '입고') +
+        ' 내역이 없습니다. 날짜 범위를 [전체]로 바꾸거나 기간을 넓혀 보세요.';
+    } else {
+      box.className = 'xls-count';
+      box.textContent = rangeText(opt) + ' · ' + (isSales ? '매출' : '입고') + ' ' + n + '건 · 냉동고 ' + f +
+        ' / 냉장고 ' + ch + ' · 합계 ' + fmt(kg) + 'kg';
+    }
+    $('xlsGo').disabled = !n;
+    return n;
+  }
+
+  function openXls(kind) {
+    xls.kind = kind;
+    var isSales = kind === 'sales';
+    $('xlsTitle').textContent = isSales ? '경리나라 매출 양식 내려받기' : '사방넷 입고 양식 내려받기';
+    $('xlsSub').textContent = isSales
+      ? '업체 출고를 경리나라 [매출거래명세표 일괄등록] 양식(.xlsx, 시트 일괄등록)으로 만듭니다. 거래처명은 출고 업체명, 단가·공급가액·세액은 0으로 넣으니 업로드한 뒤 입력하세요.'
+      : '입고를 사방넷 풀필먼트 [엑셀입고] 양식(.xlsx, 시트 엑셀입고)으로 만듭니다. 매입처는 업체명, 로케이션은 냉동고·냉장고, 유통기한은 8자리(YYYYMMDD)로 들어갑니다.';
+    $('xlsOptSabang').classList.toggle('hidden', isSales);
+    $('xlsOptSales').classList.toggle('hidden', !isSales);
+    if (xls.range === 'range') {
+      if (!$('xlsFrom').value) $('xlsFrom').value = firstOfMonth();
+      if (!$('xlsTo').value) $('xlsTo').value = today();
+    }
+    var segs = document.querySelectorAll('#xlsRangeSeg button');
+    for (var i = 0; i < segs.length; i++) {
+      segs[i].classList.toggle('active', segs[i].getAttribute('data-range') === xls.range);
+    }
+    $('xlsModal').classList.remove('hidden');
+    renderXls();
+    if (!$('xlsGo').disabled) $('xlsGo').focus();
+  }
+  function closeXls() {
+    $('xlsModal').classList.add('hidden');
+    xls.kind = null;
+  }
+
+  function downloadXls() {
+    if (!xls.kind) return;
+    var isSales = xls.kind === 'sales';
+    var opt = xlsOpts();
+    var rows = xlsRows(xls.kind, opt);
+    if (rows.length < 2) { toast('내려받을 내역이 없습니다. 날짜 범위를 넓혀 보세요.', 'warn'); return; }
+    var bytes = ERP.xlsxBytes([{
+      name: isSales ? '일괄등록' : '엑셀입고',
+      rows: rows,
+      widths: isSales
+        ? [12, 8, 20, 14, 10, 12, 9, 9, 10, 24, 16, 9, 7, 9, 11, 9, 26, 10, 10, 20]
+        : [16, 14, 26, 10, 11, 11, 10, 34]
+    }]);
+    var blob = new Blob([new Uint8Array(bytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = (isSales ? '매출거래명세표_일괄등록_' : '사방넷_엑셀입고_') + rangeTag(opt).replace(/-/g, '') + '.xlsx';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      if (a.parentNode) a.parentNode.removeChild(a);
+    }, 600);
+    toast((isSales ? '경리나라 매출 양식' : '사방넷 입고 양식') + ' ' + (rows.length - 1) + '건을 엑셀로 내려받았습니다.', 'ok');
+    closeXls();
+  }
+
   /* ---------- 자동완성 ---------- */
   function datalist(id, arr) {
     var el = $(id);
@@ -1290,6 +1717,31 @@ var LIVE = (function () {
     $('btnCsvF').addEventListener('click', function () { csvStock('F'); });
     $('btnCsvC').addEventListener('click', function () { csvStock('C'); });
     $('btnCsvH').addEventListener('click', function () { csvHistory(); });
+    $('btnXlsSabang').addEventListener('click', function () { openXls('sabang'); });
+    $('btnXlsSales').addEventListener('click', function () { openXls('sales'); });
+    $('xlsClose').addEventListener('click', closeXls);
+    $('xlsCancel').addEventListener('click', closeXls);
+    $('xlsGo').addEventListener('click', downloadXls);
+    $('xlsModal').addEventListener('click', function (ev) { if (ev.target === this) closeXls(); });
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && !$('xlsModal').classList.contains('hidden')) closeXls();
+    });
+    var xlsSegs = document.querySelectorAll('#xlsRangeSeg button');
+    for (var s2 = 0; s2 < xlsSegs.length; s2++) {
+      xlsSegs[s2].addEventListener('click', function () {
+        xls.range = this.getAttribute('data-range');
+        for (var q = 0; q < xlsSegs.length; q++) xlsSegs[q].classList.toggle('active', xlsSegs[q] === this);
+        if (xls.range === 'range') {
+          if (!$('xlsFrom').value) $('xlsFrom').value = firstOfMonth();
+          if (!$('xlsTo').value) $('xlsTo').value = today();
+        }
+        renderXls();
+      });
+    }
+    ['xlsFrom', 'xlsTo', 'xlsThaw', 'xlsAllOut', 'xlsVat'].forEach(function (id) {
+      $(id).addEventListener('change', renderXls);
+      $(id).addEventListener('input', renderXls);
+    });
     $('btnLogout').addEventListener('click', function () { doLogout(false); });
 
     var nums = document.querySelectorAll('input[type=number]');

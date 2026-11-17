@@ -68,6 +68,8 @@
     </div>
     <div class="top-actions">
       <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
+      <button class="btn xls" id="btnXlsSabang" type="button" title="사방넷 풀필먼트 입고 업로드용 엑셀">📥 사방넷 입고 양식</button>
+      <button class="btn xls" id="btnXlsSales" type="button" title="경리나라 매출거래명세표 일괄등록용 엑셀">📥 경리나라 매출 양식</button>
       <button class="btn" id="btnCsvF" type="button">⬇ 냉동고 재고</button>
       <button class="btn" id="btnCsvC" type="button">⬇ 냉장고 재고</button>
       <button class="btn" id="btnCsvH" type="button">⬇ 입출고 내역</button>
@@ -223,6 +225,50 @@
   </main>
 
   <div class="toast" id="toast"></div>
+
+  <!-- ===================== 양식 내려받기 (사방넷 · 경리나라) ===================== -->
+  <div class="modal hidden" id="xlsModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="xlsTitle">
+      <div class="modal-head">
+        <h2 id="xlsTitle">양식 내려받기</h2>
+        <button class="modal-x" id="xlsClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="xlsSub"></p>
+
+      <div class="field"><span>날짜 범위</span>
+        <div class="seg" id="xlsRangeSeg">
+          <button type="button" data-range="today" class="active">오늘</button>
+          <button type="button" data-range="range">기간 지정</button>
+          <button type="button" data-range="all">전체</button>
+        </div>
+      </div>
+      <div class="grid2 hidden" id="xlsRangeBox">
+        <label class="field"><span>시작일</span><input type="date" id="xlsFrom"></label>
+        <label class="field"><span>종료일</span><input type="date" id="xlsTo"></label>
+      </div>
+
+      <div id="xlsOptSabang" class="hidden">
+        <label class="check"><input type="checkbox" id="xlsThaw">해동 내역도 입고로 포함 (냉장고 입고)</label>
+      </div>
+
+      <div id="xlsOptSales" class="hidden">
+        <label class="check"><input type="checkbox" id="xlsAllOut">업체 출고 외(현장·택배·기타)도 포함</label>
+        <label class="field"><span>부가세구분</span>
+          <select id="xlsVat">
+            <option value="면세" selected>면세 (원료육 기본)</option>
+            <option value="별도">별도</option>
+            <option value="없음">없음</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="xls-count" id="xlsCount"></p>
+      <div class="modal-actions">
+        <button class="btn" id="xlsCancel" type="button">취소</button>
+        <button class="submit" id="xlsGo" type="button">⬇ 엑셀 다운로드</button>
+      </div>
+    </div>
+  </div>
 
   <datalist id="dlNames"></datalist>
   <datalist id="dlVendors"></datalist>
