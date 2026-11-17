@@ -33,7 +33,7 @@ var ERP = (function () {
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
   /* ---------- 대분류 / 소분류 ---------- */
-  var MAJORS = ['원료육', '완제품', '부자재', '소스'];
+  var MAJORS = ['원료육', '완제품(자체생산)', '완제품(매입)', '야채/농산물', '부자재', '소스/양념', '기타'];
   var MAJOR_DEFAULT = '원료육';
   function majorName(v) { var t = s(v); return t || MAJOR_DEFAULT; }
 
@@ -60,6 +60,67 @@ var ERP = (function () {
     return Object.prototype.hasOwnProperty.call(DEST_NAME, v) ? v : 'site';
   }
   function destName(v) { return DEST_NAME[destKey(v)]; }
+
+  /* ---------- 거래구분 · 정산상태 · 세금계산서 (v3 회계) ----------
+     입고 : 매입(줄돈) / 자체생산 / 반품·기타
+     출고 : 매출(받을돈) / 현장투입 / 샘플·기타
+     정산 : 미지급(줄돈) / 지급완료 … 출고는 미수금 / 수금완료
+     세금계산서 : 미발행 / 발행완료 / 해당없음 */
+  var TRADE_IN = ['purchase', 'self', 'return'];
+  var TRADE_OUT = ['sale', 'site', 'sample'];
+  var TRADE_NAME = {
+    purchase: '매입(줄돈)', self: '자체생산', return: '반품/기타',
+    sale: '매출(받을돈)', site: '현장투입', sample: '샘플/기타'
+  };
+  var TRADE_KEYS_ALL = ['purchase', 'self', 'return', 'sale', 'site', 'sample'];
+  function tradeKeys(dir) { return dir === 'in' ? TRADE_IN : TRADE_OUT; }
+  function tradeKey(v, dir) {
+    var t = s(v), list = tradeKeys(dir === 'in' ? 'in' : 'out');
+    for (var i = 0; i < list.length; i++) if (list[i] === t) return t;
+    if (TRADE_KEYS_ALL.indexOf(t) >= 0) return t;
+    return dir === 'in' ? 'purchase' : 'sale';
+  }
+  function tradeName(v) {
+    var t = s(v);
+    return TRADE_NAME[t] || '-';
+  }
+  /* 출고처 구분에 맞는 기본 거래구분 (업체로 나가면 매출, 현장이면 현장투입, 그 밖은 샘플·기타) */
+  function tradeDefault(dir, destType) {
+    if (dir === 'in') return 'purchase';
+    var d = destKey(destType);
+    return d === 'vendor' ? 'sale' : (d === 'site' ? 'site' : 'sample');
+  }
+  function tradeMoney(v) { return v === 'purchase' || v === 'sale'; }
+
+  var SETTLE_KEYS = ['unsettled', 'settled', 'na'];
+  function settleKey(v) {
+    var t = s(v);
+    return SETTLE_KEYS.indexOf(t) >= 0 ? t : 'na';
+  }
+  /* 같은 값이라도 방향에 따라 이름이 다르다: 미지급(입고) / 미수금(출고) */
+  function settleName(v, dir) {
+    var k = settleKey(v);
+    if (k === 'unsettled') return dir === 'in' ? '미지급' : '미수금';
+    if (k === 'settled') return dir === 'in' ? '지급완료' : '수금완료';
+    return '해당없음';
+  }
+  function settleOptions(dir) {
+    return [
+      { k: 'unsettled', t: settleName('unsettled', dir) },
+      { k: 'settled', t: settleName('settled', dir) },
+      { k: 'na', t: '해당없음' }
+    ];
+  }
+
+  var TAX_KEYS = ['none', 'issued', 'na'];
+  function taxKey(v) {
+    var t = s(v);
+    return TAX_KEYS.indexOf(t) >= 0 ? t : 'na';
+  }
+  function taxName(v) {
+    var k = taxKey(v);
+    return k === 'none' ? '미발행' : (k === 'issued' ? '발행완료' : '해당없음');
+  }
   function typeName(t) {
     return t === 'in' ? '입고' : (t === 'thaw' ? '해동' : (t === 're' ? '재냉동' : (t === 'base' ? '기초재고' : '출고')));
   }
@@ -90,13 +151,18 @@ var ERP = (function () {
     for (i = 0; i < logRows.length; i++) {
       r = logRows[i];
       var pr = r2(r.unit_price);
+      var lt = nz(r.tx_type) || 'out';
+      var dtt = nz(r.dest_type);
+      var trade = s(r.trade_type);
+      if (!trade) trade = lt === 'in' ? 'purchase' : (lt === 'out' ? tradeDefault('out', dtt) : '');
       logs.push({
         id: 'H' + r.id, dbid: Number(r.id), d: nz(r.tx_date), w: nz(r.warehouse) || 'F',
-        t: nz(r.tx_type) || 'out', n: nz(r.product_name),
+        t: lt, n: nz(r.product_name),
         major: majorName(r.major_category), mt: meatName(r.meat_type),
         v: nz(r.vendor), i: nz(r.in_date), e: nz(r.exp_date), k: r2(r.qty),
         price: pr, amt: r2(r.total_amount),
-        p: nz(r.dest_detail), dt: nz(r.dest_type), note: nz(r.note),
+        tr: trade, stl: settleKey(s(r.settle_status)), tax: taxKey(s(r.tax_invoice_status)),
+        p: nz(r.dest_detail), dt: dtt, note: nz(r.note),
         lid: r.lot_id === null || r.lot_id === undefined ? '' : String(r.lot_id),
         worker: nz(r.worker_name), email: nz(r.worker_email),
         act: r.is_manual !== false, at: nz(r.created_at)
@@ -141,32 +207,49 @@ var ERP = (function () {
 
   /* ---------- 표 컬럼 정의 (머리글 · 정렬 · 필터가 모두 여기서 나온다) ---------- */
   var LOT_COLS = [
-    { k: 'major', t: '대분류', w: 78 },
-    { k: 'mt', t: '소분류', w: 72 },
-    { k: 'n', t: '제품명', w: 152 },
-    { k: 'o', t: '원산지', w: 76 },
-    { k: 'v', t: '업체명', w: 96 },
-    { k: 'b', t: '브랜드', w: 76 },
-    { k: 'i', t: '입고일', w: 90 },
-    { k: 'e', t: '소비기한', w: 104 },
-    { k: 'qty', t: '재고(kg)', w: 88, num: true },
-    { k: 'price', t: '단가(원/kg)', w: 84, num: true },
-    { k: 'amt', t: '재고금액(원)', w: 112, num: true }
+    { k: 'major', t: '대분류', w: 86 },
+    { k: 'mt', t: '소분류', w: 76 },
+    { k: 'n', t: '제품명', w: 150 },
+    { k: 'o', t: '원산지', w: 74 },
+    { k: 'v', t: '업체명', w: 104 },
+    { k: 'b', t: '브랜드', w: 74 },
+    { k: 'i', t: '입고일', w: 86 },
+    { k: 'e', t: '소비기한', w: 98 },
+    { k: 'qty', t: '재고(kg)', w: 90, num: true },
+    { k: 'price', t: '입고단가(원/kg)', w: 96, num: true },
+    { k: 'amt', t: '재고금액(원)', w: 94, num: true }
   ];
   var LOG_COLS = [
-    { k: 'd', t: '날짜', w: 88 },
-    { k: 't', t: '구분', w: 66 },
-    { k: 'major', t: '대분류', w: 78 },
-    { k: 'mv', t: '창고', w: 84 },
+    { k: 'd', t: '날짜', w: 92 },
+    { k: 't', t: '구분', w: 74 },
+    { k: 'tr', t: '거래구분', w: 100 },
+    { k: 'major', t: '대분류', w: 100 },
+    { k: 'mv', t: '창고', w: 88 },
+    { k: 'n', t: '제품명', w: 142 },
+    { k: 'v', t: '업체명', w: 100 },
+    { k: 'i', t: '입고일', w: 92 },
+    { k: 'e', t: '소비기한', w: 100 },
+    { k: 'k', t: '중량(kg)', w: 80, num: true },
+    { k: 'price', t: '단가(원/kg)', w: 88, num: true },
+    { k: 'amt', t: '금액(원)', w: 108, num: true },
+    { k: 'stl', t: '정산', w: 84 },
+    { k: 'tax', t: '세금계산서', w: 100 },
+    { k: 'p', t: '출고처 · 비고', w: 168 },
+    { k: 'worker', t: '작업자', w: 78 }
+  ];
+  /* 정산 탭 전용 컴럼 */
+  var STL_COLS = [
+    { k: 'd', t: '날짜', w: 84 },
+    { k: 't', t: '구분', w: 64 },
+    { k: 'tr', t: '거래구분', w: 92 },
+    { k: 'major', t: '대분류', w: 86 },
     { k: 'n', t: '제품명', w: 132 },
-    { k: 'v', t: '업체명', w: 92 },
-    { k: 'i', t: '입고일', w: 88 },
-    { k: 'e', t: '소비기한', w: 96 },
-    { k: 'k', t: '중량(kg)', w: 76, num: true },
-    { k: 'price', t: '단가(원/kg)', w: 82, num: true },
-    { k: 'amt', t: '금액(원)', w: 106, num: true },
-    { k: 'p', t: '출고처 · 비고', w: 0 },
-    { k: 'worker', t: '작업자', w: 72 }
+    { k: 'partner', t: '거래처(업체명)', w: 120 },
+    { k: 'k', t: '중량(kg)', w: 74, num: true },
+    { k: 'price', t: '단가(원/kg)', w: 78, num: true },
+    { k: 'amt', t: '금액(원)', w: 92, num: true },
+    { k: 'stl', t: '정산상태', w: 78 },
+    { k: 'tax', t: '세금계산서', w: 84 }
   ];
   function lotCols(wh) {
     var out = [], i, c;
@@ -200,6 +283,7 @@ var ERP = (function () {
   function logCell(e, k) {
     if (k === 'd') return e.d;
     if (k === 't') return typeName(e.t);
+    if (k === 'tr') return (e.t === 'in' || e.t === 'out') ? tradeName(e.tr) : '-';
     if (k === 'major') return e.major;
     if (k === 'mv') return moveName(e);
     if (k === 'n') return e.n;
@@ -209,6 +293,9 @@ var ERP = (function () {
     if (k === 'k') return e.k;
     if (k === 'price') return e.price;
     if (k === 'amt') return e.amt;
+    if (k === 'partner') return e.t === 'out' ? (s(e.p) || e.v) : e.v;
+    if (k === 'stl') return (e.t === 'in' || e.t === 'out') ? settleName(e.stl, e.t) : '-';
+    if (k === 'tax') return (e.t === 'in' || e.t === 'out') ? taxName(e.tax) : '-';
     if (k === 'p') {
       var parts = [];
       if (e.t === 'out') parts.push(destName(e.dt) + ' ' + (e.p || ''));
@@ -303,6 +390,103 @@ var ERP = (function () {
   function rangeOf(key, todayStr) {
     if (key === 'month') return monthRange(todayStr);
     return presetRange(key, todayStr);
+  }
+
+  /* ---------- 기간 선택 달력 도우미 (2개월 팝업) ---------- */
+  function ymd(y, m, d) {
+    return String(y) + '-' + pad2(Number(m)) + '-' + pad2(Number(d));
+  }
+  function ymOf(dstr) {
+    var m = /^(\d{4})-(\d{1,2})/.exec(s(dstr) || '');
+    return m ? { y: Number(m[1]), m: Number(m[2]) } : { y: 0, m: 0 };
+  }
+  function lastDay(y, m) {
+    return new Date(Date.UTC(Number(y), Number(m), 0)).getUTCDate();
+  }
+  function monthRangeOf(y, m) {
+    return { from: ymd(y, m, 1), to: ymd(y, m, lastDay(y, m)) };
+  }
+  function fmtKorDate(dstr) {
+    var m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(s(dstr));
+    if (!m) return '-';
+    return m[1] + '년 ' + Number(m[2]) + '월 ' + Number(m[3]) + '일';
+  }
+  function fmtKorMonth(y, m) { return Number(y) + '년 ' + Number(m) + '월'; }
+  var WEEK_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+  /* 달력 한 달치: 7일×여러 주. inMonth=false 는 앞·뒤 달 날짜 */
+  function monthMatrix(y, m) {
+    y = Number(y); m = Number(m);
+    if (!(m >= 1 && m <= 12)) return [];
+    var first = new Date(Date.UTC(y, m - 1, 1));
+    var startDow = first.getUTCDay();
+    var start = Date.UTC(y, m - 1, 1 - startDow);
+    var weeks = [], w = [], i, d, dm, dy;
+    for (i = 0; i < 42; i++) {
+      d = new Date(start + i * 86400000);
+      dy = d.getUTCFullYear(); dm = d.getUTCMonth() + 1;
+      w.push({ d: ymd(dy, dm, d.getUTCDate()), day: d.getUTCDate(), y: dy, m: dm,
+        inMonth: dm === m && dy === y, dow: d.getUTCDay() });
+      if (w.length === 7) { weeks.push(w); w = []; }
+    }
+    while (weeks.length > 4) {
+      var last = weeks[weeks.length - 1], any = false;
+      for (i = 0; i < last.length; i++) if (last[i].inMonth) any = true;
+      if (any) break;
+      weeks.pop();
+    }
+    return weeks;
+  }
+
+  /* 기간 선택 팝업의 빠른 버튼 (그림과 같은 3줄) */
+  var PERIOD_QUICK = [
+    [['today', '오늘'], ['yesterday', '전일'], ['week', '주간'], ['prevweek', '전주'],
+      ['month', '당월'], ['prevmonth', '전월'], ['year', '올해']],
+    [['h1', '상반기'], ['h2', '하반기'], ['q1', '1/4분기'], ['q2', '2/4분기'],
+      ['q3', '3/4분기'], ['q4', '4/4분기'], ['uptoday', '오늘까지']],
+    [['m1', '1월'], ['m2', '2월'], ['m3', '3월'], ['m4', '4월'], ['m5', '5월'], ['m6', '6월'],
+      ['m7', '7월'], ['m8', '8월'], ['m9', '9월'], ['m10', '10월'], ['m11', '11월'], ['m12', '12월']]
+  ];
+
+  /* key → { from, to }  (baseYear 는 팝업의 기준연도)
+     today: 오늘 · yesterday: 전일 · week/prevweek: 주간/전주(월~일)
+     month/prevmonth: 당월/전월 · year/h1/h2/q1~q4/uptoday: 기준연도 기준
+     m1~m12: 기준연도의 그 달 */
+  function periodRange(key, todayStr, baseYear) {
+    var t = s(todayStr);
+    var y = Number(baseYear) || Number(t.slice(0, 4)) || 2026;
+    if (key === 'today') return { from: t, to: t };
+    if (key === 'yesterday') { var yd = dateAdd(t, -1); return { from: yd, to: yd }; }
+    if (key === 'week') return presetRange('week', t);
+    if (key === 'prevweek') return presetRange('week', dateAdd(t, -7));
+    if (key === 'month') return monthRange(t);
+    if (key === 'prevmonth') return monthRange(dateAdd(monthRange(t).from, -1));
+    if (key === 'year') return { from: ymd(y, 1, 1), to: ymd(y, 12, 31) };
+    if (key === 'h1') return { from: ymd(y, 1, 1), to: ymd(y, 6, 30) };
+    if (key === 'h2') return { from: ymd(y, 7, 1), to: ymd(y, 12, 31) };
+    if (/^q[1-4]$/.test(key)) {
+      var q = Number(key.slice(1));
+      return { from: ymd(y, (q - 1) * 3 + 1, 1), to: ymd(y, q * 3, lastDay(y, q * 3)) };
+    }
+    if (key === 'uptoday') {
+      var sameYear = t && t.slice(0, 4) === String(y);
+      return { from: ymd(y, 1, 1), to: sameYear ? t : ymd(y, 12, 31) };
+    }
+    if (/^m(1[0-2]|[1-9])$/.test(key)) {
+      var mm = Number(key.slice(1));
+      return monthRangeOf(y, mm);
+    }
+    return { from: '', to: '' };
+  }
+  /* 그 기간이 어떤 빠른 버튼과 같은지 (팝업에서 선택 표시) */
+  function periodKeyOf(from, to, todayStr, baseYear) {
+    var all = [], i, j;
+    for (i = 0; i < PERIOD_QUICK.length; i++) for (j = 0; j < PERIOD_QUICK[i].length; j++) all.push(PERIOD_QUICK[i][j][0]);
+    for (i = 0; i < all.length; i++) {
+      var r = periodRange(all[i], todayStr, baseYear);
+      if (r.from === s(from) && r.to === s(to)) return all[i];
+    }
+    return '';
   }
 
   /* ---------- 재고 묶음 ---------- */
@@ -417,6 +601,87 @@ var ERP = (function () {
     return out;
   }
 
+  /* ---------- 정산 (매입·매출) ---------- */
+  function isSettleRow(e) { return e.t === 'in' || e.t === 'out'; }
+
+  /* 요약: 총 받을 돈(미수금) · 총 줄 돈(매입 미지급) · 세금계산서 미발행 · 기간 매출·매입 */
+  function settleStats(st, list) {
+    var recv = 0, pay = 0, taxPending = 0, sales = 0, purchase = 0, i, e;
+    var logs = (st && st.logs) || [];
+    for (i = 0; i < logs.length; i++) {
+      e = logs[i];
+      if (!isSettleRow(e)) continue;
+      if (e.stl === 'unsettled') {
+        if (e.t === 'out') recv += e.amt; else pay += e.amt;
+      }
+      if (e.tax === 'none') taxPending++;
+    }
+    list = list || [];
+    for (i = 0; i < list.length; i++) {
+      e = list[i];
+      if (e.t === 'out') sales += e.amt;
+      else if (e.t === 'in') purchase += e.amt;
+    }
+    return {
+      receivable: r0(recv), payable: r0(pay), taxPending: taxPending,
+      sales: r0(sales), purchase: r0(purchase), net: r0(recv - pay)
+    };
+  }
+
+  /* opt: { q, dir:'all'|'in'|'out', settle, tax, trade, major, from, to, sortKey, sortDir } */
+  function filterSettle(st, opt) {
+    opt = opt || {};
+    var out = [], i, e, qq = s(opt.q).toLowerCase();
+    for (i = 0; i < st.logs.length; i++) {
+      e = st.logs[i];
+      if (!isSettleRow(e)) continue;
+      if (opt.dir && opt.dir !== 'all' && e.t !== opt.dir) continue;
+      if (opt.settle && opt.settle !== 'all' && e.stl !== opt.settle) continue;
+      if (opt.tax && opt.tax !== 'all' && e.tax !== opt.tax) continue;
+      if (opt.trade && opt.trade !== 'all' && e.tr !== opt.trade) continue;
+      if (opt.major && opt.major !== 'all' && e.major !== opt.major) continue;
+      if (!inRange(e.d, opt.from, opt.to)) continue;
+      if (qq) {
+        var hay = [e.n, e.v, e.p, e.note, e.d, tradeName(e.tr), settleName(e.stl, e.t),
+          taxName(e.tax), typeName(e.t), e.major].join(' ').toLowerCase();
+        if (hay.indexOf(qq) < 0) continue;
+      }
+      if (!passCols(opt.cols, function (k) { return logCell(e, k); })) continue;
+      out.push(e);
+    }
+    if (opt.sortKey) {
+      var def = colDef(STL_COLS, opt.sortKey), sd = opt.sortDir === -1 ? -1 : 1;
+      out.sort(function (a, b) {
+        var c = cmpVal(logCell(a, opt.sortKey), logCell(b, opt.sortKey), def && def.num);
+        if (c !== 0) return sd * c;
+        return (b.dbid || 0) - (a.dbid || 0);
+      });
+    } else {
+      out = sortLogsDesc(out);
+    }
+    return out;
+  }
+
+  /* 정산 내역 CSV: 날짜, 구분(입고/출고), 거래구분, 거래처, 품목, 대분류, 중량, 단가, 금액, 정산상태, 세금계산서, 비고 */
+  function settleCsv(list) {
+    var head = ['날짜', '구분', '거래구분', '거래처(업체명)', '품목명', '대분류', '중량(kg)',
+      '단가(원/kg)', '금액(원)', '정산상태', '세금계산서', '비고'];
+    var rows = [head], i, e;
+    list = list || [];
+    for (i = 0; i < list.length; i++) {
+      e = list[i];
+      rows.push([
+        e.d, e.t === 'in' ? '입고(매입)' : '출고(매출)',
+        e.t === 'in' || e.t === 'out' ? tradeName(e.tr) : '',
+        e.t === 'out' ? (s(e.p) || e.v) : e.v, e.n, e.major, Number(e.k).toFixed(2), Number(e.price || 0).toFixed(2), r0(e.amt),
+        e.t === 'in' || e.t === 'out' ? settleName(e.stl, e.t) : '',
+        e.t === 'in' || e.t === 'out' ? taxName(e.tax) : '',
+        e.note || ''
+      ]);
+    }
+    return csvQuote(rows);
+  }
+
   /* ---------- CSV ---------- */
   function csvQuote(rows) {
     var out = [], r, c, cells, v;
@@ -431,17 +696,19 @@ var ERP = (function () {
     return out.join('\r\n');
   }
 
-  /* 입출고 내역 CSV — 날짜, 구분, 대분류, 창고, …, 단가 · 금액, 출고처 · 비고, 작업자 */
+  /* 입출고 내역 CSV — 날짜, 구분, 거래구분, 대분류, 창고, …, 단가 · 금액, 정산 · 세금계산서, 출고처 · 비고, 작업자 */
   function csv(st) {
-    var head = ['날짜', '구분', '대분류', '창고', '제품명', '업체명', '입고일', '소비기한', '중량(kg)',
-      '단가(원/kg)', '금액(원)', '출고처 구분', '출고처 / 생산품목', '비고', '작업자'];
+    var head = ['날짜', '구분', '거래구분', '대분류', '창고', '제품명', '업체명', '입고일', '소비기한', '중량(kg)',
+      '단가(원/kg)', '금액(원)', '정산상태', '세금계산서', '출고처 구분', '출고처 / 생산품목', '비고', '작업자'];
     var rows = [head];
     var list = sortLogsDesc(st.logs);
     for (var i = 0; i < list.length; i++) {
       var e = list[i];
+      var pay = e.t === 'in' || e.t === 'out';
       rows.push([
-        e.d, typeName(e.t), e.major, moveName(e), e.n, e.v, e.i, e.e, Number(e.k).toFixed(2),
+        e.d, typeName(e.t), pay ? tradeName(e.tr) : '', e.major, moveName(e), e.n, e.v, e.i, e.e, Number(e.k).toFixed(2),
         Number(e.price || 0).toFixed(2), r0(e.amt),
+        pay ? settleName(e.stl, e.t) : '', pay ? taxName(e.tax) : '',
         e.t === 'out' ? destName(e.dt) : '', e.p || '', e.note || '', e.worker || ''
       ]);
     }
@@ -920,12 +1187,20 @@ var ERP = (function () {
     MEATS: MEATS, meatName: meatName,
     DESTS: DEST_KEYS, DEST_NAME: DEST_NAME, DEST_LABEL: DEST_LABEL, DEST_HINT: DEST_HINT,
     destKey: destKey, destName: destName, typeName: typeName, whName: whName, moveName: moveName,
+    TRADE_IN: TRADE_IN, TRADE_OUT: TRADE_OUT, TRADE_NAME: TRADE_NAME, tradeKeys: tradeKeys,
+    tradeKey: tradeKey, tradeName: tradeName, tradeDefault: tradeDefault, tradeMoney: tradeMoney,
+    SETTLE_KEYS: SETTLE_KEYS, settleKey: settleKey, settleName: settleName, settleOptions: settleOptions,
+    TAX_KEYS: TAX_KEYS, taxKey: taxKey, taxName: taxName,
     stateFrom: stateFrom, totals: totals, getLot: getLot, getLog: getLog, qtyOf: qtyOf, lotValue: lotValue,
-    sortLots: sortLots, LOT_COLS: LOT_COLS, LOG_COLS: LOG_COLS, lotCols: lotCols,
+    sortLots: sortLots, LOT_COLS: LOT_COLS, LOG_COLS: LOG_COLS, STL_COLS: STL_COLS, lotCols: lotCols,
     lotCell: lotCell, logCell: logCell, cellKey: cellKey, passCols: passCols, uniqValues: uniqValues,
     dateAdd: dateAdd, inRange: inRange, presetRange: presetRange, rangeOf: rangeOf, monthRange: monthRange,
+    ymd: ymd, ymOf: ymOf, lastDay: lastDay, monthRangeOf: monthRangeOf, fmtKorDate: fmtKorDate,
+    fmtKorMonth: fmtKorMonth, WEEK_NAMES: WEEK_NAMES, monthMatrix: monthMatrix,
+    PERIOD_QUICK: PERIOD_QUICK, periodRange: periodRange, periodKeyOf: periodKeyOf,
     grouped: grouped, filterLots: filterLots, countLive: countLive,
     sortLogsDesc: sortLogsDesc, sortLogsAsc: sortLogsAsc, filterLogs: filterLogs,
+    isSettleRow: isSettleRow, settleStats: settleStats, filterSettle: filterSettle, settleCsv: settleCsv,
     priceStats: priceStats, priceCompare: priceCompare,
     csv: csv, stockCsv: stockCsv, csvQuote: csvQuote, dict: dict, destHistory: destHistory,
     precheck: precheck, precheckUpdate: precheckUpdate,
@@ -969,6 +1244,12 @@ var SB = (function () {
     if (status === 401) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
     if (/Could not find the table|relation .* does not exist|PGRST205|schema cache/i.test(m)) {
       return 'DB 표를 찾을 수 없습니다. supabase_setup.sql을 먼저 실행해 주세요.';
+    }
+    if (/Could not find the function|PGRST202/i.test(m)) {
+      return 'DB 함수(tx_apply · tx_settle_update)를 찾을 수 없습니다. Supabase SQL Editor에서 supabase_migrate_v3.sql을 실행해 주세요.';
+    }
+    if (/column .* does not exist|PGRST204/i.test(m)) {
+      return 'DB에 새 열(거래구분·정산상태·세금계산서)이 없습니다. supabase_migrate_v3.sql을 실행해 주세요.';
     }
     if (/permission denied/i.test(m)) return '이 작업을 할 권한이 없습니다. 로그인 상태를 확인해 주세요.';
     if (/JWT expired|invalid JWT|token is expired/i.test(m)) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
@@ -1123,7 +1404,10 @@ var SB = (function () {
         p_brand: p.brand || '',
         p_major: p.major || '원료육',
         p_unit_price: Number(p.price || 0),
-        p_amount: p.amount === undefined || p.amount === null || p.amount === '' ? null : Number(p.amount)
+        p_amount: p.amount === undefined || p.amount === null || p.amount === '' ? null : Number(p.amount),
+        p_trade: p.trade || '',
+        p_settle: p.settle || '',
+        p_tax: p.tax || ''
       }
     });
   }
@@ -1161,6 +1445,17 @@ var SB = (function () {
     });
   }
   function undo(logId) { return rest('rpc/tx_undo', { method: 'POST', body: { p_log_id: Number(logId) } }); }
+  /* 정산 상태(거래구분·수금/지급·세금계산서)만 바꾸기 — 보낸 값만 바뀌고 나머지는 그대로 */
+  function settle(p) {
+    return rest('rpc/tx_settle_update', {
+      method: 'POST', body: {
+        p_log_id: Number(p.logId),
+        p_trade: p.trade === undefined ? null : (p.trade || null),
+        p_settle: p.settle === undefined ? null : (p.settle || null),
+        p_tax: p.tax === undefined ? null : (p.tax || null)
+      }
+    });
+  }
 
   function restore() {
     ses = readStored();
@@ -1169,7 +1464,7 @@ var SB = (function () {
 
   return {
     auth: { signIn: signIn, signUp: signUp, signOut: signOut, refresh: refresh, ensure: ensure, restore: restore, session: function () { return ses; } },
-    db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, rest: rest },
+    db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, settle: settle, rest: rest },
     errOf: errOf
   };
 })();
@@ -1264,9 +1559,12 @@ var LIVE = (function () {
     major: 'all',
     stock: { preset: 'all', field: 'in', from: '', to: '' },
     hist: { preset: 'all', from: '', to: '' },
+    settle: { preset: 'all', from: '', to: '' },
+    settleDir: 'all', settleStatus: 'all', settleTax: 'all',
     sortLot: { k: '', dir: 1 },
     sortLog: { k: '', dir: -1 },
-    fLot: {}, fLog: {}
+    sortStl: { k: '', dir: -1 },
+    fLot: {}, fLog: {}, fStl: {}
   };
   var prev = {};
   var loading = false, again = false;
@@ -1275,6 +1573,102 @@ var LIVE = (function () {
   var fpop = { open: false, tbl: '', key: '', rect: null, all: [], sel: {}, q: '' };
 
   function $(id) { return document.getElementById(id); }
+
+  /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
+  var COLW_KEY = 'meatERP.colw.v3';
+  var COLW = { lot: {}, log: {}, stl: {} };
+  var COL_MIN = 44, COL_MAX = 720;
+  var ACT_DEF = { lot: 148, log: 128, stl: 190 };
+  function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'S' ? 'stl' : 'lot'); }
+  function loadColW() {
+    try {
+      var raw = localStorage.getItem(COLW_KEY);
+      if (!raw) return;
+      var o = JSON.parse(raw);
+      ['lot', 'log', 'stl'].forEach(function (t) {
+        if (!o || !o[t]) return;
+        for (var k in o[t]) {
+          if (!Object.prototype.hasOwnProperty.call(o[t], k)) continue;
+          var w = Math.round(Number(o[t][k]));
+          if (w >= COL_MIN && w <= COL_MAX) COLW[t][k] = w;
+        }
+      });
+    } catch (e) { /* 저장 못 하는 환경 무시 */ }
+  }
+  function saveColW() {
+    try { localStorage.setItem(COLW_KEY, JSON.stringify(COLW)); } catch (e) { }
+  }
+  function colWidth(tbl, key, def) {
+    var w = COLW[tbl] && COLW[tbl][key];
+    return w > 0 ? w : (def || 100);
+  }
+  function setColWidth(tbl, key, w) {
+    w = Math.round(w);
+    if (!isFinite(w)) return;
+    w = Math.max(COL_MIN, Math.min(COL_MAX, w));
+    if (!COLW[tbl]) COLW[tbl] = {};
+    COLW[tbl][key] = w;
+    var col = document.querySelector('#tableWrap col[data-colwrap="' + key + '"]');
+    if (col) col.style.width = w + 'px';
+    syncTableWidth();
+  }
+  function syncTableWidth() {
+    var t = document.querySelector('#tableWrap table');
+    if (!t) return;
+    var cols = t.querySelectorAll('colgroup col'), sum = 0, i, w;
+    for (i = 0; i < cols.length; i++) {
+      w = parseFloat(cols[i].style.width) || 0;
+      sum += w;
+    }
+    if (sum > 0) {
+      t.style.width = sum + 'px';
+      t.style.minWidth = sum + 'px';
+    }
+  }
+  function resetColWidth() {
+    COLW = { lot: {}, log: {}, stl: {} };
+    try { localStorage.removeItem(COLW_KEY); } catch (e) { }
+    renderTable();
+    toast('열 너비를 기본값으로 되돌렸습니다.', 'ok');
+  }
+  /* 글자 폭 계산 (열 더블클릭 = 내용에 맞춤) */
+  var MEASURE = null;
+  function textWidth(txt, font) {
+    try {
+      if (!MEASURE) MEASURE = document.createElement('canvas').getContext('2d');
+      MEASURE.font = font || '13px -apple-system,BlinkMacSystemFont,"Malgun Gothic","Noto Sans KR",sans-serif';
+      return MEASURE.measureText(String(txt || '')).width;
+    } catch (e) { return String(txt || '').length * 12; }
+  }
+  function autoFitCol(tbl, key) {
+    var cols = key === '_act' ? null : colsOfTable(tbl);
+    var idx = -1, i;
+    if (cols) {
+      for (i = 0; i < cols.length; i++) if (cols[i].k === key) idx = i;
+      if (idx < 0) return;
+    }
+    var th = document.querySelector('#tableWrap th[data-col="' + key + '"]');
+    var label = th ? (th.querySelector('.ht') ? th.querySelector('.ht').textContent : th.textContent) : '';
+    var max = textWidth(label, '700 11.5px -apple-system,BlinkMacSystemFont,"Malgun Gothic","Noto Sans KR",sans-serif') + 46;
+    var cells = document.querySelectorAll('#tableWrap tbody tr.lot td, #tableWrap tbody tr.hrow td');
+    var seen = 0;
+    for (i = 0; i < cells.length; i++) {
+      var td = cells[i];
+      if (td.colSpan > 1) continue;
+      var cellIdx = Array.prototype.indexOf.call(td.parentNode.children, td);
+      if (cellIdx !== idx) continue;
+      seen++;
+      if (seen > 400) break;
+      var w = textWidth(td.textContent.trim()) + 22;
+      if (w > max) max = w;
+    }
+    setColWidth(tbl, key, Math.max(COL_MIN, Math.ceil(max) + 2));
+    saveColW();
+  }
+  function colsOfTable(tbl) {
+    return tbl === 'lot' ? ERP.lotCols(cur.tab === 'C' ? 'C' : 'F') : (tbl === 'log' ? ERP.LOG_COLS : ERP.STL_COLS);
+  }
+
   function esc(v) {
     return String(v === null || v === undefined ? '' : v).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -1352,7 +1746,7 @@ var LIVE = (function () {
   }
   function hideBanner() { $('banner').classList.add('hidden'); }
   function isSetupError(e) {
-    return e && (/supabase_setup\.sql|만들 수 없습니다|DB 표를 찾을 수 없습니다/.test(e.message || ''));
+    return e && (/supabase_setup\.sql|supabase_migrate_v3\.sql|만들 수 없습니다|DB 표를 찾을 수 없습니다|DB 함수|DB에 새 열/.test(e.message || ''));
   }
 
   /* ---------- KPI ---------- */
@@ -1385,9 +1779,12 @@ var LIVE = (function () {
     $('cntF').textContent = ERP.countLive(st, 'F');
     $('cntC').textContent = ERP.countLive(st, 'C');
     $('cntH').textContent = st.logs.length;
+    var ns = 0, j;
+    for (j = 0; j < st.logs.length; j++) if (ERP.isSettleRow(st.logs[j])) ns++;
+    if ($('cntS')) $('cntS').textContent = ns;
   }
 
-  /* ---------- 표 머리글 (정렬 + 필터) ---------- */
+  /* ---------- 표 머리글 (정렬 + 필터 + 너비 조절 핸들) ---------- */
   function thHtml(c, sort, filt) {
     var on = !!(sort && sort.k === c.k);
     var arrow = on ? (sort.dir === -1 ? '▼' : '▲') : '';
@@ -1397,16 +1794,27 @@ var LIVE = (function () {
       '<button type="button" class="hdsort' + (on ? ' on' : '') + '" data-sort="' + c.k + '" title="' + esc(c.t) + ' 정렬">' +
       '<span class="ht">' + esc(c.t) + '</span><span class="harrow">' + arrow + '</span></button>' +
       '<button type="button" class="hdfilt' + (onF ? ' on' : '') + '" data-filter="' + c.k + '" title="' + esc(c.t) + ' 값 필터" aria-label="' + esc(c.t) + ' 필터">▾</button>' +
-      '</div></th>';
+      '</div><span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
   }
-  function colGroup(cols, extra) {
+  function actTh() {
+    return '<th class="num actcol"><span class="th-plain">작업</span>' +
+      '<span class="colrz" data-rz="_act" title="드래그: 열 너비 조절"></span></th>';
+  }
+  function colGroup(tbl, cols, actDef) {
     var out = ['<colgroup>'], i;
     for (i = 0; i < cols.length; i++) {
-      out.push(cols[i].w ? '<col style="width:' + cols[i].w + 'px">' : '<col>');
+      out.push('<col data-colwrap="' + cols[i].k + '" style="width:' + colWidth(tbl, cols[i].k, cols[i].w) + 'px">');
     }
-    if (extra) out.push('<col style="width:' + extra + 'px">');
+    if (actDef) out.push('<col data-colwrap="_act" style="width:' + colWidth(tbl, '_act', actDef) + 'px">');
     out.push('</colgroup>');
     return out.join('');
+  }
+  function tableOpen(cls, tbl, cols, actDef) {
+    var w = 0, i;
+    for (i = 0; i < cols.length; i++) w += colWidth(tbl, cols[i].k, cols[i].w);
+    if (actDef) w += colWidth(tbl, '_act', actDef);
+    return '<table class="fixed ' + cls + '" style="width:' + w + 'px;min-width:' + w + 'px">' +
+      colGroup(tbl, cols, actDef);
   }
 
   /* ---------- 재고표 ---------- */
@@ -1431,10 +1839,10 @@ var LIVE = (function () {
       wrap.scrollTop = 0;
       return;
     }
-    var html = ['<table class="fixed t-lot">', colGroup(cols, 126),
+    var html = [tableOpen('t-lot', 'lot', cols, ACT_DEF.lot),
       '<thead><tr>'];
     for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortLot, cur.fLot));
-    html.push('<th class="num"><span class="th-plain">작업</span></th></tr></thead><tbody>');
+    html.push(actTh() + '</tr></thead><tbody>');
 
     for (i = 0; i < groups.length; i++) {
       var g = groups[i];
@@ -1518,6 +1926,7 @@ var LIVE = (function () {
   function logCellHtml(e, k) {
     if (k === 'd') return '<td>' + esc(e.d || '-') + '</td>';
     if (k === 't') return '<td><span class="badge ' + esc(e.t) + '">' + ERP.typeName(e.t) + '</span></td>';
+    if (k === 'tr') return '<td class="ellip">' + tradeCell(e) + '</td>';
     if (k === 'major') return '<td><span class="mj">' + esc(e.major || ERP.MAJOR_DEFAULT) + '</span></td>';
     if (k === 'mv') return '<td><span class="move">' + ERP.moveName(e) + '</span></td>';
     if (k === 'n') return '<td class="ellip"><b>' + esc(e.n) + '</b></td>';
@@ -1525,9 +1934,30 @@ var LIVE = (function () {
     if (k === 'price') return '<td class="num">' + (e.price > 0 ? fmtInt(e.price) : '<span class="ttag">-</span>') + '</td>';
     if (k === 'amt') return '<td class="num" title="' + (e.amt > 0 ? fmtInt(e.amt) + '원' : '금액 미입력') + '">' +
       (e.amt > 0 ? fmtInt(e.amt) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'stl') return '<td>' + settleBadge(e) + '</td>';
+    if (k === 'tax') return '<td>' + taxBadge(e) + '</td>';
     if (k === 'p') return '<td class="ellip" title="' + esc(destTitle(e)) + '">' + destCell(e) + '</td>';
     if (k === 'worker') return '<td class="ellip">' + (e.worker ? '<span class="worker" title="' + esc(e.email) + '">' + esc(e.worker) + '</span>' : '<span class="ttag">-</span>') + '</td>';
     return '<td class="ellip">' + esc(ERP.logCell(e, k) || '-') + '</td>';
+  }
+  /* 거래구분 · 정산 · 세금계산서 배지 (입출고 내역과 정산 탭이 같이 쓴다) */
+  function tradeCell(e) {
+    if (e.t !== 'in' && e.t !== 'out') return '<span class="ttag">-</span>';
+    var money = ERP.tradeMoney(e.tr);
+    return '<span class="trbadge' + (money ? ' money' : '') + ' tr-' + esc(e.tr) + '" title="' + esc(ERP.tradeName(e.tr)) + '">' +
+      esc(ERP.tradeName(e.tr)) + '</span>';
+  }
+  function settleBadge(e) {
+    if (e.t !== 'in' && e.t !== 'out') return '<span class="ttag">-</span>';
+    var cls = e.stl === 'unsettled' ? (e.t === 'in' ? 'unpaid' : 'receivable')
+      : (e.stl === 'settled' ? 'paid' : 'na');
+    return '<span class="stbadge ' + cls + '" title="' + esc(ERP.settleName(e.stl, e.t)) + '">' +
+      esc(ERP.settleName(e.stl, e.t)) + '</span>';
+  }
+  function taxBadge(e) {
+    if (e.t !== 'in' && e.t !== 'out') return '<span class="ttag">-</span>';
+    return '<span class="stbadge tax-' + esc(e.tax) + '" title="세금계산서 ' + esc(ERP.taxName(e.tax)) + '">' +
+      esc(ERP.taxName(e.tax)) + '</span>';
   }
   function renderHistory() {
     var wrap = $('tableWrap');
@@ -1546,12 +1976,12 @@ var LIVE = (function () {
     }
     var cols = ERP.LOG_COLS;
     var page = list.slice(0, cur.hLimit);
-    var html = ['<table class="fixed t-log">', colGroup(cols, 92), '<thead><tr>'];
+    var html = [tableOpen('t-log', 'log', cols, ACT_DEF.log), '<thead><tr>'];
     for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortLog, cur.fLog));
-    html.push('<th class="num"><span class="th-plain">작업</span></th></tr></thead><tbody>');
+    html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < page.length; i++) {
       var e = page[i];
-      html.push('<tr>');
+      html.push('<tr class="hrow">');
       for (var c = 0; c < cols.length; c++) html.push(logCellHtml(e, cols[c].k));
       html.push('<td><div class="acts">' +
         (e.act
@@ -1570,11 +2000,80 @@ var LIVE = (function () {
     if (more) more.addEventListener('click', function () { cur.hLimit += 250; renderHistory(); });
   }
 
+  /* ---------- 정산(매입·매출) 탭 ---------- */
+  function settleOpts() {
+    return {
+      q: cur.search, dir: cur.settleDir, settle: cur.settleStatus, tax: cur.settleTax,
+      major: cur.major, from: cur.settle.from, to: cur.settle.to,
+      cols: cur.fStl, sortKey: cur.sortStl.k, sortDir: cur.sortStl.dir
+    };
+  }
+  function renderSettleSum(stats) {
+    var box = $('settleSum');
+    if (!box) return;
+    function tile(cls, label, value, unit, sub) {
+      return '<div class="stile ' + cls + '"><span class="stile-label">' + label + '</span>' +
+        '<div class="stile-line"><span class="stile-value">' + value + '</span><span class="stile-unit">' + unit + '</span></div>' +
+        '<span class="stile-sub">' + sub + '</span></div>';
+    }
+    box.innerHTML =
+      tile('recv', '💰 총 받을 돈(미수금)', fmtInt(stats.receivable), '원', '출고 매출 중 미수금') +
+      tile('pay', '💸 총 줄 돈(미지급)', fmtInt(stats.payable), '원', '입고 매입 중 미지급') +
+      tile('tax', '🧾 세금계산서 미발행', String(stats.taxPending), '건', '발행완료로 바꾸면 줄어듭니다') +
+      tile('sales', '📈 기간 매출', fmtInt(stats.sales), '원', '지금 조건의 출고 합계') +
+      tile('buy', '📉 기간 매입', fmtInt(stats.purchase), '원', '지금 조건의 입고 합계');
+  }
+  function settleActHtml(e) {
+    var sLabel = e.stl === 'unsettled' ? (e.t === 'in' ? '지급완료' : '수금완료')
+      : (e.stl === 'settled' ? '정산취소' : '정산대상');
+    var tLabel = e.tax === 'none' ? '발행완료' : (e.tax === 'issued' ? '발행취소' : '발행대상');
+    return '<td><div class="acts">' +
+      '<button type="button" class="act ' + (e.stl === 'settled' ? 'undone' : 'settle') + '" data-settle-toggle="' + e.dbid + '">' + sLabel + '</button>' +
+      '<button type="button" class="act ' + (e.tax === 'issued' ? 'undone' : 'tax') + '" data-tax-toggle="' + e.dbid + '">' + tLabel + '</button>' +
+      '<button type="button" class="act edit" data-edit="' + e.dbid + '">수정</button>' +
+      '</div></td>';
+  }
+  function renderSettle() {
+    var wrap = $('tableWrap');
+    var list = ERP.filterSettle(st, settleOpts());
+    var stats = ERP.settleStats(st, list);
+    renderSettleSum(stats);
+    var kg = 0, amt = 0, i;
+    for (i = 0; i < list.length; i++) { kg += Number(list[i].k) || 0; amt += Number(list[i].amt) || 0; }
+    setRangeSum(list.length + '건', kg, amt);
+
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>조건에 맞는 정산 내역이 없습니다. 기간·구분·정산상태를 넓혀 보세요.</td></tr></tbody></table>';
+      return;
+    }
+    var cols = ERP.STL_COLS;
+    var page = list.slice(0, cur.hLimit);
+    var html = [tableOpen('t-stl', 'stl', cols, ACT_DEF.stl), '<thead><tr>'];
+    for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortStl, cur.fStl));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < page.length; i++) {
+      var e = page[i];
+      html.push('<tr class="hrow srow"' + (e.act ? '' : ' title="엑셀에서 옮긴 원본 이력"') + '>');
+      for (var c = 0; c < cols.length; c++) html.push(logCellHtml(e, cols[c].k));
+      html.push(settleActHtml(e));
+      html.push('</tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > cur.hLimit) {
+      html.push('<button class="more" id="btnMore">더 보기 (' + (list.length - cur.hLimit) + '건 남음)</button>');
+    }
+    wrap.innerHTML = html.join('');
+    var more = $('btnMore');
+    if (more) more.addEventListener('click', function () { cur.hLimit += 250; renderSettle(); });
+  }
+
   function renderTable() {
-    var anyF = hasCols(cur.fLot) || hasCols(cur.fLog);
+    var anyF = hasCols(cur.fLot) || hasCols(cur.fLog) || hasCols(cur.fStl);
     var btn = $('btnResetFilters');
     if (btn) btn.classList.toggle('hidden', !anyF);
+    $('settleSum').classList.toggle('hidden', cur.tab !== 'S');
     if (cur.tab === 'H') { renderHistory(); return; }
+    if (cur.tab === 'S') { renderSettle(); return; }
     renderStock(cur.tab);
   }
 
@@ -1584,9 +2083,17 @@ var LIVE = (function () {
   }
 
   /* ---------- 기간 바 ---------- */
-  function rangeTarget() { return cur.tab === 'H' ? cur.hist : cur.stock; }
+  function rangeTarget() {
+    if (cur.tab === 'H') return cur.hist;
+    if (cur.tab === 'S') return cur.settle;
+    return cur.stock;
+  }
+  function rangeLabel(r) {
+    if (!r.from && !r.to) return '전체 기간';
+    return (r.from || '처음') + ' ~ ' + (r.to || '오늘');
+  }
   function renderRangeBar() {
-    var isH = cur.tab === 'H';
+    var isH = cur.tab === 'H' || cur.tab === 'S';
     $('dateFieldWrap').classList.toggle('hidden', isH);
     var soon = document.querySelector('#rangePresets [data-preset="soon"]');
     if (soon) soon.classList.toggle('hidden', isH);
@@ -1598,6 +2105,11 @@ var LIVE = (function () {
     $('rangeFrom').value = r.from || '';
     $('rangeTo').value = r.to || '';
     if (!isH) $('dateField').value = cur.stock.field || 'in';
+    var disp = $('rangeDisplay');
+    if (disp) {
+      disp.textContent = rangeLabel(r);
+      disp.classList.toggle('set', !!(r.from || r.to));
+    }
   }
   function setPreset(key) {
     var r = rangeTarget();
@@ -1618,12 +2130,137 @@ var LIVE = (function () {
     cur.hLimit = 250;
     var btns = document.querySelectorAll('#rangePresets .pr');
     for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
+    renderRangeBar();
     renderTable();
+  }
+
+  /* ---------- 기간 선택 팝업 (그림과 같은 2개월 달력) ----------
+     왼쪽·오른쪽 달력은 각자 연도·월을 바꿀 수 있다(연속 2개월로 고정되지 않음).
+     그래서 1년 넘는 긴 기간도 클릭으로 고를 수 있다. */
+  var rngm = { open: false, from: '', to: '', year: 2026, anchor: 'from', calL: { y: 2026, m: 1 }, calR: { y: 2026, m: 2 } };
+
+  function shiftMonth(y, m, step) {
+    var yy = Number(y), mm = Number(m) + Number(step);
+    while (mm < 1) { mm += 12; yy -= 1; }
+    while (mm > 12) { mm -= 12; yy += 1; }
+    return { y: yy, m: mm };
+  }
+  function yearOptions(y) {
+    var out = [], c = Number(y), i;
+    for (i = c - 12; i <= c + 8; i++) {
+      out.push('<option value="' + i + '"' + (i === c ? ' selected' : '') + '>' + i + '</option>');
+    }
+    return out.join('');
+  }
+  function monthOptions(m) {
+    var out = [], i;
+    for (i = 1; i <= 12; i++) out.push('<option value="' + i + '"' + (i === Number(m) ? ' selected' : '') + '>' + i + '월</option>');
+    return out.join('');
+  }
+  function calHtml(which) {
+    var c = which === 'L' ? rngm.calL : rngm.calR;
+    var weeks = ERP.monthMatrix(c.y, c.m);
+    var html = ['<div class="cal-head">',
+      '<button type="button" class="cal-nav" data-cal="' + which + '" data-step="-1" aria-label="이전 달">◀</button>',
+      '<select class="cal-y" data-cal="' + which + '" aria-label="연도">' + yearOptions(c.y) + '</select>',
+      '<select class="cal-m" data-cal="' + which + '" aria-label="월">' + monthOptions(c.m) + '</select>',
+      '<button type="button" class="cal-nav" data-cal="' + which + '" data-step="1" aria-label="다음 달">▶</button>',
+      '</div><div class="cal-dow">'];
+    var i, j, w;
+    for (i = 0; i < 7; i++) {
+      html.push('<span class="' + (i === 0 ? 'sun' : (i === 6 ? 'sat' : '')) + '">' + ERP.WEEK_NAMES[i] + '</span>');
+    }
+    html.push('</div><div class="cal-grid">');
+    var t = today();
+    for (w = 0; w < weeks.length; w++) {
+      for (j = 0; j < 7; j++) {
+        var d = weeks[w][j];
+        var cls = 'cal-day' + (d.inMonth ? '' : ' other') + (d.d === t ? ' today' : '');
+        if (rngm.from && rngm.to) {
+          if (d.d === rngm.from) cls += ' start';
+          if (d.d === rngm.to) cls += ' end';
+          if (d.d > rngm.from && d.d < rngm.to) cls += ' range';
+        }
+        html.push('<button type="button" class="' + cls + '" data-day="' + d.d + '">' + d.day + '</button>');
+      }
+    }
+    html.push('</div>');
+    return html.join('');
+  }
+  function renderRangeModal() {
+    if (!rngm.open) return;
+    $('rmYear').textContent = rngm.year;
+    $('rmCurrent').textContent = ERP.fmtKorDate(rngm.from) + ' ~ ' + ERP.fmtKorDate(rngm.to);
+    var picked = ERP.periodKeyOf(rngm.from, rngm.to, today(), rngm.year);
+    var rows = [['rmQ1', 0], ['rmQ2', 1], ['rmQ3', 2]];
+    for (var r = 0; r < rows.length; r++) {
+      var list = ERP.PERIOD_QUICK[rows[r][1]], html = [];
+      for (var i = 0; i < list.length; i++) {
+        html.push('<button type="button" class="rq' + (picked === list[i][0] ? ' on' : '') +
+          '" data-period="' + list[i][0] + '">' + list[i][1] + '</button>');
+      }
+      $(rows[r][0]).innerHTML = html.join('');
+    }
+    $('rmCalL').innerHTML = calHtml('L');
+    $('rmCalR').innerHTML = calHtml('R');
+  }
+  function openRange() {
+    var r = rangeTarget();
+    var t = today();
+    var from = r.from || t, to = r.to || t;
+    rngm.open = true;
+    rngm.from = from;
+    rngm.to = to;
+    rngm.year = Number(from.slice(0, 4)) || Number(t.slice(0, 4));
+    rngm.anchor = 'from';
+    rngm.calL = ERP.ymOf(from);
+    rngm.calR = ERP.ymOf(to);
+    if (rngm.calL.y === rngm.calR.y && rngm.calL.m === rngm.calR.m) {
+      rngm.calR = shiftMonth(rngm.calR.y, rngm.calR.m, 1);
+    }
+    $('rangeModal').classList.remove('hidden');
+    renderRangeModal();
+  }
+  function closeRange() {
+    rngm.open = false;
+    $('rangeModal').classList.add('hidden');
+  }
+  /* 시작일 → 종료일 차례로 클릭. 범위가 완성된 뒤 다음 클릭은 새 범위로 다시 시작. */
+  function pickDay(d) {
+    if (rngm.anchor !== 'to') {
+      rngm.from = d; rngm.to = d; rngm.anchor = 'to';
+    } else if (d < rngm.from) {
+      rngm.to = rngm.from; rngm.from = d; rngm.anchor = 'from';
+    } else {
+      rngm.to = d; rngm.anchor = 'from';
+    }
+    renderRangeModal();
+  }
+  function quickPeriod(key) {
+    var r = ERP.periodRange(key, today(), rngm.year);
+    if (!r.from && !r.to) return;
+    rngm.from = r.from;
+    rngm.to = r.to;
+    var a = ERP.ymOf(r.from), b = ERP.ymOf(r.to);
+    rngm.calL = a;
+    rngm.calR = (a.y === b.y && a.m === b.m) ? shiftMonth(b.y, b.m, 1) : b;
+    renderRangeModal();
+  }
+  function applyRange() {
+    var r = rangeTarget();
+    r.from = rngm.from;
+    r.to = rngm.to;
+    r.preset = 'custom';
+    cur.hLimit = 250;
+    closeRange();
+    renderRangeBar();
+    renderTable();
+    toast('기간 적용: ' + rangeLabel(r), 'ok');
   }
 
   /* ---------- 컬럼 필터 팝오버 ---------- */
   function rowsForFilter(tbl, key) {
-    var base = tbl === 'lot' ? cur.fLot : cur.fLog;
+    var base = filterStore(tbl);
     var cols = {}, k;
     for (k in base) if (Object.prototype.hasOwnProperty.call(base, k) && k !== key) cols[k] = base[k];
     if (tbl === 'lot') {
@@ -1631,18 +2268,26 @@ var LIVE = (function () {
         major: cur.major, dateField: cur.stock.field, from: cur.stock.from, to: cur.stock.to, cols: cols
       });
     }
+    if (tbl === 'stl') {
+      return ERP.filterSettle(st, {
+        q: cur.search, dir: cur.settleDir, settle: cur.settleStatus, tax: cur.settleTax,
+        major: cur.major, from: cur.settle.from, to: cur.settle.to, cols: cols
+      });
+    }
     return ERP.filterLogs(st, {
       q: cur.search, type: cur.hFilter, major: cur.major, from: cur.hist.from, to: cur.hist.to, cols: cols
     });
   }
-  function filterStore(tbl) { return tbl === 'lot' ? cur.fLot : cur.fLog; }
+  function filterStore(tbl) {
+    return tbl === 'lot' ? cur.fLot : (tbl === 'stl' ? cur.fStl : cur.fLog);
+  }
   function cellOf(tbl) {
     return tbl === 'lot'
       ? function (l, k) { return ERP.lotCell(l, k, cur.tab); }
       : function (e, k) { return ERP.logCell(e, k); };
   }
   function colLabel(tbl, key) {
-    var list = tbl === 'lot' ? ERP.LOT_COLS : ERP.LOG_COLS;
+    var list = tbl === 'lot' ? ERP.LOT_COLS : (tbl === 'stl' ? ERP.STL_COLS : ERP.LOG_COLS);
     for (var i = 0; i < list.length; i++) if (list[i].k === key) return list[i].t;
     return key;
   }
@@ -1882,6 +2527,12 @@ var LIVE = (function () {
       courier: '예: 김사장님(김포) · 운송장 1234-5678', other: '예: 샘플 제공 · 폐기'
     }[cur.dest];
     $('destHint').textContent = ERP.DEST_HINT[cur.dest];
+    /* 출고처를 바꾸면 거래구분 기본값도 따라간다 (업체=매출, 현장=현장투입, 그밖=샘플/기타) */
+    var tr = ERP.tradeDefault('out', cur.dest);
+    if ($('outTrade')) {
+      $('outTrade').value = tr;
+      syncTradeDefaults('out');
+    }
     fillDatalists();
   }
 
@@ -1957,7 +2608,7 @@ var LIVE = (function () {
     }, function (e) {
       setSync('err', '동기화 실패');
       if (isSetupError(e)) {
-        showBanner('DB 표·함수를 찾을 수 없습니다. Supabase SQL Editor에서 <b>supabase_setup.sql</b>(기존 DB라면 <b>supabase_migrate_v2.sql</b>)을 한 번 실행해 주세요.<br><span class="banner-sub">' + esc(e.message) + '</span>');
+        showBanner('DB 표·함수를 찾을 수 없습니다. Supabase SQL Editor에서 <b>supabase_setup.sql</b>(기존 DB라면 <b>supabase_migrate_v3.sql</b>)을 한 번 실행해 주세요.<br><span class="banner-sub">' + esc(e.message) + '</span>');
       } else if (e.status === 401 || e.kind === 'auth') {
         toast(e.message, 'err');
         doLogout(true);
@@ -1977,6 +2628,7 @@ var LIVE = (function () {
     var d = today();
     ['inDate', 'inInDate', 'thDate', 'reDate', 'outDate'].forEach(function (id) { if (!$(id).value) $(id).value = d; });
     if (!$('inMajor').value) $('inMajor').value = '원료육';
+    fillTradeSelects();
     setInWh('F'); setOutWh('C'); setDest('site'); setMode('in');
     reload().then(function () {
       LIVE.start(function () { reload({ silent: true }); }, liveLabel);
@@ -1991,6 +2643,7 @@ var LIVE = (function () {
     LIVE.stop();
     if (xls.kind) closeXls();
     closeFilter();
+    closeRange();
     closeEdit(); closeLot();
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     SB.auth.signOut().then(function () {
@@ -2069,18 +2722,23 @@ var LIVE = (function () {
       p.exp_date = $('inExpiry').value || null;
       p.kg = Number($('inKg').value || 0);
       p.note = $('inNote').value;
+      p.trade = $('inTrade').value || 'purchase';
+      p.settle = $('inSettle').value || '';
+      p.tax = $('inTax').value || '';
     } else if (cur.mode === 'thaw') {
       p.date = $('thDate').value || today();
       p.wh = 'F';
       p.lot_id = dbId($('thLot').value);
       p.kg = Number($('thKg').value || 0);
       p.note = $('thNote').value;
+      p.trade = '';
     } else if (cur.mode === 're') {
       p.date = $('reDate').value || today();
       p.wh = 'C';
       p.lot_id = dbId($('reLot').value);
       p.kg = Number($('reKg').value || 0);
       p.note = $('reNote').value;
+      p.trade = '';
     } else {
       p.date = $('outDate').value || today();
       p.wh = cur.whOut;
@@ -2089,6 +2747,9 @@ var LIVE = (function () {
       p.dest = $('outDest').value;
       p.kg = Number($('outKg').value || 0);
       p.note = $('outNote').value;
+      p.trade = $('outTrade').value || 'sale';
+      p.settle = $('outSettle').value || '';
+      p.tax = $('outTax').value || '';
     }
     return p;
   }
@@ -2434,6 +3095,128 @@ var LIVE = (function () {
   }
 
   /* ---------- 이벤트 ---------- */
+  /* ---------- 검색 버튼 · Enter ---------- */
+  function doSearch() {
+    cur.search = $('search').value || '';
+    cur.hLimit = 250;
+    renderTable();
+    var sum = $('rangeSum') ? $('rangeSum').textContent : '';
+    toast((cur.search ? '검색: ' + cur.search + ' · ' : '검색 ') + (sum || '결과를 표에 보여줍니다'), 'ok');
+  }
+
+  /* ---------- 열 너비 드래그 ---------- */
+  function bindColResize() {
+    var drag = null;
+    var wrapEl = $('tableWrap');
+    wrapEl.addEventListener('pointerdown', function (ev) {
+      var h = ev.target.closest ? ev.target.closest('.colrz') : null;
+      if (!h) return;
+      var key = h.getAttribute('data-rz');
+      var col = wrapEl.querySelector('col[data-colwrap="' + key + '"]');
+      if (!col) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      var w0 = parseFloat(col.style.width) || col.getBoundingClientRect().width;
+      drag = { key: key, tbl: tblOf(cur.tab), col: col, x: ev.clientX, w: w0, cur: w0, h: h };
+      try { h.setPointerCapture(ev.pointerId); } catch (e) { }
+      h.classList.add('on');
+      document.body.classList.add('colresizing');
+    });
+    document.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var dx = ev.clientX - drag.x;
+      var w = Math.round(drag.w + dx);
+      w = Math.max(COL_MIN, Math.min(COL_MAX, w));
+      if (w === drag.cur) return;
+      drag.cur = w;
+      drag.col.style.width = w + 'px';
+      syncTableWidth();
+    });
+    function endDrag() {
+      if (!drag) return;
+      if (!COLW[drag.tbl]) COLW[drag.tbl] = {};
+      COLW[drag.tbl][drag.key] = Math.round(drag.cur);
+      saveColW();
+      drag.h.classList.remove('on');
+      drag = null;
+      document.body.classList.remove('colresizing');
+    }
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+    wrapEl.addEventListener('dblclick', function (ev) {
+      var h = ev.target.closest ? ev.target.closest('.colrz') : null;
+      if (!h) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      autoFitCol(tblOf(cur.tab), h.getAttribute('data-rz'));
+    });
+    wrapEl.addEventListener('click', function (ev) {
+      if (ev.target.closest && ev.target.closest('.colrz')) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+      }
+    }, true);
+  }
+
+  /* ---------- 정산 상태 바꾸기 (수금/지급·세금계산서) ---------- */
+  function settleUpdate(logId, kind, btn) {
+    var e = ERP.getLog(st, logId);
+    if (!e) { toast('내역을 찾을 수 없습니다. 새로고침 후 다시 시도하세요.', 'err'); return; }
+    var p = { logId: logId };
+    if (kind === 'settle') {
+      p.settle = e.stl === 'settled' ? 'unsettled' : 'settled';
+    } else {
+      p.tax = e.tax === 'issued' ? 'none' : 'issued';
+    }
+    if (btn) btn.disabled = true;
+    SB.db.settle(p).then(function (row) {
+      var msg = kind === 'settle'
+        ? ERP.settleName(p.settle, e.t) + ' 처리: ' + e.n + ' ' + (e.amt > 0 ? fmtInt(e.amt) + '원' : fmt(e.k) + 'kg')
+        : '세금계산서 ' + ERP.taxName(p.tax) + ': ' + e.n + ' ' + (e.amt > 0 ? fmtInt(e.amt) + '원' : fmt(e.k) + 'kg');
+      toast(msg, 'ok');
+      return reload({ silent: true });
+    }).then(function () {
+      if (btn) btn.disabled = false;
+    }, function (err) {
+      if (btn) btn.disabled = false;
+      toast(err.message, 'err');
+    });
+  }
+
+  /* ---------- 거래구분/정산/세금계산서 선택지 ---------- */
+  function tradeOptsHtml(list) {
+    var out = [], i;
+    for (i = 0; i < list.length; i++) out.push('<option value="' + list[i] + '">' + esc(ERP.TRADE_NAME[list[i]]) + '</option>');
+    return out.join('');
+  }
+  function settleOptsHtml(dir) {
+    var list = ERP.settleOptions(dir), out = [], i;
+    for (i = 0; i < list.length; i++) out.push('<option value="' + list[i].k + '">' + esc(list[i].t) + '</option>');
+    return out.join('');
+  }
+  function taxOptsHtml() {
+    return '<option value="none">미발행</option><option value="issued">발행완료</option><option value="na">해당없음</option>';
+  }
+  function fillTradeSelects() {
+    $('inTrade').innerHTML = tradeOptsHtml(ERP.TRADE_IN);
+    $('inSettle').innerHTML = settleOptsHtml('in');
+    $('inTax').innerHTML = taxOptsHtml();
+    $('outTrade').innerHTML = tradeOptsHtml(ERP.TRADE_OUT);
+    $('outSettle').innerHTML = settleOptsHtml('out');
+    $('outTax').innerHTML = taxOptsHtml();
+    $('inTrade').value = 'purchase';
+    $('outTrade').value = ERP.tradeDefault('out', cur.dest);
+    syncTradeDefaults('in');
+    syncTradeDefaults('out');
+  }
+  /* 거래구분에 맞춰 정산·세금계산서 기본값을 맞춘다 (매입·매출이면 미지급/미수금 · 미발행) */
+  function syncTradeDefaults(dir) {
+    var tr = $(dir === 'in' ? 'inTrade' : 'outTrade').value;
+    var money = ERP.tradeMoney(tr);
+    $(dir === 'in' ? 'inSettle' : 'outSettle').value = money ? 'unsettled' : 'na';
+    $(dir === 'in' ? 'inTax' : 'outTax').value = money ? 'none' : 'na';
+  }
+
   function bindAppEvents() {
     var modes = document.querySelectorAll('.mode');
     for (var i = 0; i < modes.length; i++) {
@@ -2446,9 +3229,14 @@ var LIVE = (function () {
         cur.hLimit = 250;
         for (var k = 0; k < tabs.length; k++) tabs[k].classList.toggle('active', tabs[k] === this);
         var isH = cur.tab === 'H';
-        $('zeroWrap').classList.toggle('hidden', isH);
+        var isS = cur.tab === 'S';
+        $('zeroWrap').classList.toggle('hidden', isH || isS);
         $('typeFilter').classList.toggle('hidden', !isH);
         $('histNote').classList.toggle('hidden', !isH);
+        $('settleDirWrap').classList.toggle('hidden', !isS);
+        $('settleStatWrap').classList.toggle('hidden', !isS);
+        $('settleTaxWrap').classList.toggle('hidden', !isS);
+        $('btnCsvSettle').classList.toggle('hidden', !isS);
         closeFilter();
         renderRangeBar();
         renderTable();
@@ -2464,8 +3252,8 @@ var LIVE = (function () {
       var sortBtn = t.closest ? t.closest('[data-sort]') : null;
       if (sortBtn) {
         ev.preventDefault();
-        var tbl = cur.tab === 'H' ? 'log' : 'lot';
-        var s0 = tbl === 'log' ? cur.sortLog : cur.sortLot;
+        var tbl = tblOf(cur.tab);
+        var s0 = tbl === 'log' ? cur.sortLog : (tbl === 'stl' ? cur.sortStl : cur.sortLot);
         var k0 = sortBtn.getAttribute('data-sort');
         if (s0.k !== k0) { s0.k = k0; s0.dir = 1; }
         else if (s0.dir === 1) { s0.dir = -1; }
@@ -2476,7 +3264,19 @@ var LIVE = (function () {
       var filtBtn = t.closest ? t.closest('[data-filter]') : null;
       if (filtBtn) {
         ev.preventDefault();
-        openFilter(cur.tab === 'H' ? 'log' : 'lot', filtBtn.getAttribute('data-filter'), filtBtn);
+        openFilter(tblOf(cur.tab), filtBtn.getAttribute('data-filter'), filtBtn);
+        return;
+      }
+      var slb = t.closest ? t.closest('[data-settle-toggle]') : null;
+      if (slb) {
+        ev.stopPropagation();
+        settleUpdate(Number(slb.getAttribute('data-settle-toggle')), 'settle', slb);
+        return;
+      }
+      var txb = t.closest ? t.closest('[data-tax-toggle]') : null;
+      if (txb) {
+        ev.stopPropagation();
+        settleUpdate(Number(txb.getAttribute('data-tax-toggle')), 'tax', txb);
         return;
       }
       var und = t.closest ? t.closest('[data-undo]') : null;
@@ -2508,21 +3308,95 @@ var LIVE = (function () {
     });
 
     $('search').addEventListener('input', function () { cur.search = this.value; cur.hLimit = 250; renderTable(); });
+    $('search').addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); doSearch(); }
+    });
+    $('btnSearch').addEventListener('click', doSearch);
     $('showZero').addEventListener('change', function () { cur.showZero = this.checked; renderTable(); });
     $('typeFilter').addEventListener('change', function () { cur.hFilter = this.value; cur.hLimit = 250; renderTable(); });
     $('majorFilter').addEventListener('change', function () { cur.major = this.value; cur.hLimit = 250; renderTable(); });
+    $('settleDir').addEventListener('change', function () { cur.settleDir = this.value; cur.hLimit = 250; renderTable(); });
+    $('settleStatus').addEventListener('change', function () { cur.settleStatus = this.value; cur.hLimit = 250; renderTable(); });
+    $('settleTax').addEventListener('change', function () { cur.settleTax = this.value; cur.hLimit = 250; renderTable(); });
     $('btnResetFilters').addEventListener('click', function () {
-      cur.fLot = {}; cur.fLog = {};
+      cur.fLot = {}; cur.fLog = {}; cur.fStl = {};
       renderTable();
+    });
+    $('btnColReset').addEventListener('click', resetColWidth);
+    $('btnCsvSettle').addEventListener('click', function () {
+      var list = ERP.filterSettle(st, settleOpts());
+      download(ERP.settleCsv(list), '정산내역_' + today().replace(/-/g, '') + '.csv');
+      toast('정산 내역 ' + list.length + '건을 CSV로 내려받았습니다.', 'ok');
     });
 
     var presets = document.querySelectorAll('#rangePresets .pr');
     for (var p = 0; p < presets.length; p++) {
       presets[p].addEventListener('click', function () { setPreset(this.getAttribute('data-preset')); });
     }
-    ['rangeFrom', 'rangeTo'].forEach(function (id) { $(id).addEventListener('change', setCustomRange); });
+    ['rangeFrom', 'rangeTo'].forEach(function (id) {
+      $(id).addEventListener('change', setCustomRange);
+      /* 날짜칸을 눌러도 2개월 달력이 열린다 (브라우저 기본 달력 대신) */
+      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
+      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
+    });
     $('dateField').addEventListener('change', function () { cur.stock.field = this.value; renderTable(); });
     $('rangeClear').addEventListener('click', function () { setPreset('all'); });
+
+    /* 기간 선택 달력 팝업 */
+    $('btnPeriod').addEventListener('click', openRange);
+    $('rangeDisplay').addEventListener('click', openRange);
+    $('rmClose').addEventListener('click', closeRange);
+    $('rmCancel').addEventListener('click', closeRange);
+    $('rmApply').addEventListener('click', applyRange);
+    $('rangeModal').addEventListener('click', function (ev) { if (ev.target === this) closeRange(); });
+    $('rmPrevY').addEventListener('click', function () {
+      rngm.year -= 1;
+      rngm.calL = shiftMonth(rngm.calL.y, rngm.calL.m, -12);
+      rngm.calR = shiftMonth(rngm.calR.y, rngm.calR.m, -12);
+      renderRangeModal();
+    });
+    $('rmNextY').addEventListener('click', function () {
+      rngm.year += 1;
+      rngm.calL = shiftMonth(rngm.calL.y, rngm.calL.m, 12);
+      rngm.calR = shiftMonth(rngm.calR.y, rngm.calR.m, 12);
+      renderRangeModal();
+    });
+    ['rmQ1', 'rmQ2', 'rmQ3'].forEach(function (id) {
+      $(id).addEventListener('click', function (ev) {
+        var b = ev.target.closest ? ev.target.closest('[data-period]') : null;
+        if (!b) return;
+        quickPeriod(b.getAttribute('data-period'));
+      });
+    });
+    ['rmCalL', 'rmCalR'].forEach(function (id) {
+      var box = $(id);
+      box.addEventListener('click', function (ev) {
+        var t2 = ev.target;
+        var nav = t2.closest ? t2.closest('[data-step]') : null;
+        if (nav) {
+          var w = nav.getAttribute('data-cal');
+          var c = w === 'L' ? rngm.calL : rngm.calR;
+          var nx = shiftMonth(c.y, c.m, Number(nav.getAttribute('data-step')));
+          if (w === 'L') rngm.calL = nx; else rngm.calR = nx;
+          renderRangeModal();
+          return;
+        }
+        var day = t2.closest ? t2.closest('[data-day]') : null;
+        if (day) { ev.preventDefault(); pickDay(day.getAttribute('data-day')); }
+      });
+      box.addEventListener('change', function (ev) {
+        var sel = ev.target;
+        if (!sel || !sel.getAttribute) return;
+        var w = sel.getAttribute('data-cal');
+        var c = w === 'L' ? rngm.calL : rngm.calR;
+        if (sel.classList.contains('cal-y')) c.y = Number(sel.value);
+        else if (sel.classList.contains('cal-m')) c.m = Number(sel.value);
+        renderRangeModal();
+      });
+    });
+
+    /* 열 너비: 머리글 오른쪽 경계 드래그 / 더블클릭 = 내용에 맞춤 */
+    bindColResize();
 
     /* 필터 팝오버 */
     $('fpopSearch').addEventListener('input', function () { fpop.q = this.value; renderFpop(); });
@@ -2600,6 +3474,9 @@ var LIVE = (function () {
     });
 
     /* 단가 ↔ 금액 */
+    ['inTrade', 'outTrade'].forEach(function (id) {
+      $(id).addEventListener('change', function () { syncTradeDefaults(id === 'inTrade' ? 'in' : 'out'); });
+    });
     ['in', 'thaw', 're', 'out'].forEach(function (m) {
       var ids = PRICE_IDS[m];
       $(ids.kg).addEventListener('input', function () { priceSync(m, 'kg'); });
@@ -2647,6 +3524,7 @@ var LIVE = (function () {
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key !== 'Escape') return;
+      if (rngm.open) { closeRange(); return; }
       if (!$('xlsModal').classList.contains('hidden')) { closeXls(); return; }
       if (!$('editModal').classList.contains('hidden')) { closeEdit(); return; }
       if (!$('lotModal').classList.contains('hidden')) { closeLot(); return; }
@@ -2752,6 +3630,7 @@ var LIVE = (function () {
 
   /* ---------- 시작 ---------- */
   function boot() {
+    loadColW();
     bindLoginEvents();
     bindAppEvents();
     setSync('wait', '확인 중');
