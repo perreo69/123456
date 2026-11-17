@@ -133,6 +133,11 @@ var ERP = (function () {
   }
 
   /* ---------- DB 행 → 화면용 상태 ---------- */
+  /* 이력의 브랜드: 이력 행에 brand 값이 있으면 그것, 없으면 그 이력이 가리키는 로트의 브랜드.
+     (tx_logs에는 브랜드 열이 없고, 브랜드는 로트(lots.brand)에만 있다) */
+  function lotKey(n, v, i, e) {
+    return [nz(n), nz(v), nz(i), nz(e)].join('\u0001');
+  }
   function stateFrom(lotsRows, logRows) {
     var lots = [], logs = [], i, r;
     lotsRows = lotsRows || [];
@@ -148,9 +153,22 @@ var ERP = (function () {
         price: r2(r.unit_price), up: nz(r.updated_at)
       });
     }
+    /* 로트 id·로트 키 → 브랜드 (이력은 lot_id 또는 제품명·업체명·입고일·소비기한으로 로트를 찾는다) */
+    var brandById = {}, brandByKey = {};
+    for (i = 0; i < lots.length; i++) {
+      var L = lots[i];
+      if (!L.b) continue;
+      if (brandById[L.dbid] === undefined) brandById[L.dbid] = L.b;
+      var lk = lotKey(L.n, L.v, L.i, L.e);
+      if (brandByKey[lk] === undefined) brandByKey[lk] = L.b;
+    }
     for (i = 0; i < logRows.length; i++) {
       r = logRows[i];
       var pr = r2(r.unit_price);
+      var lid2 = r.lot_id === null || r.lot_id === undefined ? '' : String(r.lot_id);
+      var lbr = lid2 !== '' ? brandById[Number(lid2)] : undefined;
+      if (!lbr) lbr = brandByKey[lotKey(r.product_name, r.vendor, r.in_date, r.exp_date)];
+      var brand = nz(r.brand) || lbr || '';
       var lt = nz(r.tx_type) || 'out';
       var dtt = nz(r.dest_type);
       var trade = s(r.trade_type);
@@ -159,11 +177,11 @@ var ERP = (function () {
         id: 'H' + r.id, dbid: Number(r.id), d: nz(r.tx_date), w: nz(r.warehouse) || 'F',
         t: lt, n: nz(r.product_name),
         major: majorName(r.major_category), mt: meatName(r.meat_type),
-        v: nz(r.vendor), i: nz(r.in_date), e: nz(r.exp_date), k: r2(r.qty),
+        v: nz(r.vendor), b: brand, i: nz(r.in_date), e: nz(r.exp_date), k: r2(r.qty),
         price: pr, amt: r2(r.total_amount),
         tr: trade, stl: settleKey(s(r.settle_status)), tax: taxKey(s(r.tax_invoice_status)),
         p: nz(r.dest_detail), dt: dtt, note: nz(r.note),
-        lid: r.lot_id === null || r.lot_id === undefined ? '' : String(r.lot_id),
+        lid: lid2,
         worker: nz(r.worker_name), email: nz(r.worker_email),
         act: r.is_manual !== false, at: nz(r.created_at)
       });
@@ -227,6 +245,7 @@ var ERP = (function () {
     { k: 'mv', t: '창고', w: 88 },
     { k: 'n', t: '제품명', w: 142 },
     { k: 'v', t: '업체명', w: 100 },
+    { k: 'b', t: '브랜드', w: 78 },
     { k: 'i', t: '입고일', w: 92 },
     { k: 'e', t: '소비기한', w: 100 },
     { k: 'k', t: '중량(kg)', w: 80, num: true },
@@ -288,6 +307,7 @@ var ERP = (function () {
     if (k === 'mv') return moveName(e);
     if (k === 'n') return e.n;
     if (k === 'v') return e.v;
+    if (k === 'b') return e.b;
     if (k === 'i') return e.i;
     if (k === 'e') return e.e;
     if (k === 'k') return e.k;
@@ -581,7 +601,7 @@ var ERP = (function () {
       if (opt.major && opt.major !== 'all' && e.major !== opt.major) continue;
       if (!inRange(e.d, opt.from, opt.to)) continue;
       if (qq) {
-        var hay = [e.n, e.v, e.p, e.note, e.i, e.d, e.worker, typeName(e.t),
+        var hay = [e.n, e.v, e.b, e.p, e.note, e.i, e.d, e.worker, typeName(e.t),
           e.t === 'out' ? destName(e.dt) : '', moveName(e), e.major, e.mt].join(' ').toLowerCase();
         if (hay.indexOf(qq) < 0) continue;
       }
@@ -696,9 +716,9 @@ var ERP = (function () {
     return out.join('\r\n');
   }
 
-  /* 입출고 내역 CSV — 날짜, 구분, 거래구분, 대분류, 창고, …, 단가 · 금액, 정산 · 세금계산서, 출고처 · 비고, 작업자 */
+  /* 입출고 내역 CSV — 날짜, 구분, 거래구분, 대분류, 창고, 제품명, 업체명, 브랜드, 입고일, … */
   function csv(st) {
-    var head = ['날짜', '구분', '거래구분', '대분류', '창고', '제품명', '업체명', '입고일', '소비기한', '중량(kg)',
+    var head = ['날짜', '구분', '거래구분', '대분류', '창고', '제품명', '업체명', '브랜드', '입고일', '소비기한', '중량(kg)',
       '단가(원/kg)', '금액(원)', '정산상태', '세금계산서', '출고처 구분', '출고처 / 생산품목', '비고', '작업자'];
     var rows = [head];
     var list = sortLogsDesc(st.logs);
@@ -706,7 +726,7 @@ var ERP = (function () {
       var e = list[i];
       var pay = e.t === 'in' || e.t === 'out';
       rows.push([
-        e.d, typeName(e.t), pay ? tradeName(e.tr) : '', e.major, moveName(e), e.n, e.v, e.i, e.e, Number(e.k).toFixed(2),
+        e.d, typeName(e.t), pay ? tradeName(e.tr) : '', e.major, moveName(e), e.n, e.v, e.b || '', e.i, e.e, Number(e.k).toFixed(2),
         Number(e.price || 0).toFixed(2), r0(e.amt),
         pay ? settleName(e.stl, e.t) : '', pay ? taxName(e.tax) : '',
         e.t === 'out' ? destName(e.dt) : '', e.p || '', e.note || '', e.worker || ''
