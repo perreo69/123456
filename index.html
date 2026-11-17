@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>원료육 입출고 ERP</title>
+<meta name="description" content="냉동고·냉장고 원료육 재고와 입출고 이력을 여러 사람이 함께 쓰는 ERP (Supabase 로그인)">
+<meta name="theme-color" content="#1b2431">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===================== 로그인 화면 ===================== -->
+<section class="login-view" id="loginView">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="logo">🥩</span>
+      <div>
+        <h1>원료육 입출고 ERP</h1>
+        <p>냉동고 · 냉장고 재고를 함께 씁니다</p>
+      </div>
+    </div>
+
+    <div class="ltabs" role="tablist">
+      <button class="ltab active" data-ltab="in" type="button">로그인</button>
+      <button class="ltab" data-ltab="up" type="button">계정 만들기</button>
+    </div>
+
+    <form id="loginForm" class="lform" autocomplete="on">
+      <label class="field"><span>이메일</span>
+        <input type="email" id="liEmail" autocomplete="username" placeholder="name@company.co.kr">
+      </label>
+      <label class="field"><span>비밀번호</span>
+        <input type="password" id="liPw" autocomplete="current-password" placeholder="비밀번호">
+      </label>
+      <button class="submit" id="btnLogin" type="submit">로그인</button>
+    </form>
+
+    <form id="signupForm" class="lform hidden" autocomplete="off">
+      <label class="field"><span>작업자 이름</span>
+        <input id="suName" placeholder="예: 박한솔">
+      </label>
+      <label class="field"><span>이메일</span>
+        <input type="email" id="suEmail" autocomplete="username" placeholder="name@company.co.kr">
+      </label>
+      <label class="field"><span>비밀번호 (6자 이상)</span>
+        <input type="password" id="suPw" autocomplete="new-password" placeholder="비밀번호">
+      </label>
+      <button class="submit" id="btnSignup" type="submit">계정 만들기</button>
+      <p class="hint">회사 내부용입니다. 만든 계정으로 로그인하면 입출고 내역에 <b>작업자 이름</b>이 남습니다.</p>
+    </form>
+
+    <p class="lmsg" id="loginMsg"></p>
+    <p class="lfine">로그인한 사람만 재고를 볼 수 있습니다. PC·폰 어디서든 같은 데이터를 봅니다.</p>
+  </div>
+</section>
+
+<!-- ===================== 앱 화면 ===================== -->
+<div class="app hidden" id="appView">
+
+  <header class="top">
+    <div class="brand">
+      <span class="logo">🥩</span>
+      <div>
+        <h1>원료육 입출고 ERP</h1>
+        <p id="baseLabel">불러오는 중…</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
+      <button class="btn" id="btnCsvF" type="button">⬇ 냉동고 재고</button>
+      <button class="btn" id="btnCsvC" type="button">⬇ 냉장고 재고</button>
+      <button class="btn" id="btnCsvH" type="button">⬇ 입출고 내역</button>
+      <span class="who" id="whoami"></span>
+      <button class="btn ghost" id="btnLogout" type="button">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="banner hidden" id="banner"></div>
+
+  <section class="kpis">
+    <div class="kpi freeze">
+      <span class="kpi-label">🧊 냉동고 총재고</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFree">0.00</span><span class="kpi-unit">kg</span></div>
+      <span class="kpi-sub" id="kFreeSub">보관 로트 0개</span>
+    </div>
+    <div class="kpi chill">
+      <span class="kpi-label">❄️ 냉장고 총재고</span>
+      <div class="kpi-line"><span class="kpi-value" id="kChill">0.00</span><span class="kpi-unit">kg</span></div>
+      <span class="kpi-sub" id="kChillSub">보관 로트 0개</span>
+    </div>
+    <div class="kpi live">
+      <span class="kpi-label">📦 보관중 로트</span>
+      <div class="kpi-line"><span class="kpi-value" id="kLive">0</span><span class="kpi-unit">개</span></div>
+      <span class="kpi-sub" id="kLiveSub">전체 0개 로트 중</span>
+    </div>
+    <div class="kpi today">
+      <span class="kpi-label">✍️ 오늘 입력 건수</span>
+      <div class="kpi-line"><span class="kpi-value" id="kToday">0</span><span class="kpi-unit">건</span></div>
+      <span class="kpi-sub" id="kTodaySub">오늘 날짜 기준</span>
+    </div>
+  </section>
+
+  <main class="layout">
+    <aside class="panel form-panel">
+      <div class="modes" role="tablist">
+        <button class="mode active" data-mode="in" type="button">📥 입고</button>
+        <button class="mode" data-mode="thaw" type="button">🧊→❄️ 해동</button>
+        <button class="mode" data-mode="re" type="button">❄️→🧊 재냉동</button>
+        <button class="mode" data-mode="out" type="button">📤 출고</button>
+      </div>
+
+      <form id="entryForm" autocomplete="off">
+        <!-- ===== 입고 ===== -->
+        <div class="pane" data-pane="in">
+          <label class="field"><span>받는 창고</span>
+            <div class="seg" id="whSegIn">
+              <button type="button" data-wh="F" class="active">🧊 냉동고</button>
+              <button type="button" data-wh="C">❄️ 냉장고</button>
+            </div>
+          </label>
+          <div class="grid2">
+            <label class="field"><span>날짜</span><input type="date" id="inDate"></label>
+            <label class="field"><span>육류</span>
+              <select id="inMeat"><option value="돈">돈</option><option value="우">우</option><option value="계">계</option><option value="양">양</option></select>
+            </label>
+          </div>
+          <label class="field"><span>제품명 <span class="req">*</span></span><input id="inName" list="dlNames" placeholder="예: 등갈비"></label>
+          <div class="grid2">
+            <label class="field"><span>원산지</span><input id="inOrigin" list="dlOrigins" placeholder="예: 국내산"></label>
+            <label class="field"><span>업체명</span><input id="inVendor" list="dlVendors" placeholder="예: 도드람푸드"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span>브랜드</span><input id="inBrand" list="dlBrands" placeholder="선택"></label>
+            <label class="field"><span>입고일 <span class="req">*</span></span><input type="date" id="inInDate"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span>소비기한 <span class="req">*</span></span><input type="date" id="inExpiry"></label>
+            <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="inKg" step="0.01" min="0" placeholder="0.00"></label>
+          </div>
+          <label class="field"><span>비고</span><input id="inNote" placeholder="선택 입력"></label>
+          <p class="hint">제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
+        </div>
+
+        <!-- ===== 해동 ===== -->
+        <div class="pane hidden" data-pane="thaw">
+          <div class="flow"><span class="chip b">🧊 냉동고</span><span class="arrow">→</span><span class="chip g">❄️ 냉장고</span></div>
+          <label class="field"><span>날짜</span><input type="date" id="thDate"></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="thLot"></select></label>
+          <div class="lotinfo empty" id="thInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
+          <label class="field"><span>해동 중량(kg) <span class="req">*</span></span>
+            <div class="with-btn"><input type="number" id="thKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="thAll">전량</button></div>
+          </label>
+          <label class="field"><span>비고</span><input id="thNote" placeholder="선택 입력"></label>
+          <p class="hint">냉동고 재고가 차감되고, 같은 로트가 냉장고로 옮겨집니다. 냉동고 현재고보다 많이 입력할 수 없습니다.</p>
+        </div>
+
+        <!-- ===== 재냉동 ===== -->
+        <div class="pane hidden" data-pane="re">
+          <div class="flow"><span class="chip g">❄️ 냉장고</span><span class="arrow">→</span><span class="chip b">🧊 냉동고</span></div>
+          <label class="field"><span>날짜</span><input type="date" id="reDate"></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="reLot"></select></label>
+          <div class="lotinfo empty" id="reInfo">냉장고 재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
+          <label class="field"><span>재냉동 중량(kg) <span class="req">*</span></span>
+            <div class="with-btn"><input type="number" id="reKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="reAll">전량</button></div>
+          </label>
+          <label class="field"><span>사유</span><input id="reNote" placeholder="예: 생산 취소 · 해동 취소"></label>
+          <p class="hint">해동한 로트로 생산하지 않고 되돌릴 때 씁니다. 냉장고 재고가 차감되고 같은 로트가 냉동고로 돌아갑니다.</p>
+        </div>
+
+        <!-- ===== 출고 ===== -->
+        <div class="pane hidden" data-pane="out">
+          <label class="field"><span>출발 창고</span>
+            <div class="seg" id="whSegOut">
+              <button type="button" data-wh="F">🧊 냉동고</button>
+              <button type="button" data-wh="C" class="active">❄️ 냉장고</button>
+            </div>
+          </label>
+          <label class="field"><span>날짜</span><input type="date" id="outDate"></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="outLot"></select></label>
+          <div class="lotinfo empty" id="outInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
+          <label class="field"><span>출고처 구분 <span class="req">*</span></span>
+            <div class="seg" id="destSeg">
+              <button type="button" data-dest="site" class="active" title="현장(생산품목)으로 나감">🏭 현장</button>
+              <button type="button" data-dest="vendor" title="업체로 판매·이동">🏢 업체</button>
+              <button type="button" data-dest="courier" title="택배로 발송">📦 택배</button>
+              <button type="button" data-dest="other" title="그 밖의 출고">✏️ 기타</button>
+            </div>
+          </label>
+          <label class="field"><span><span id="destLabel">생산품목</span> <span class="req">*</span></span><input id="outDest" list="dlProducts" placeholder="예: 선진바베큐폭립"></label>
+          <label class="field"><span>출고 중량(kg) <span class="req">*</span></span>
+            <div class="with-btn"><input type="number" id="outKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="outAll">전량</button></div>
+          </label>
+          <label class="field"><span>비고</span><input id="outNote" placeholder="선택 입력"></label>
+          <p class="hint" id="destHint">현장은 생산품목으로 적습니다. 출발 창고의 재고가 차감되고, 나간 물량은 재고에서 빠집니다.</p>
+        </div>
+
+        <p class="msg" id="formMsg"></p>
+        <button class="submit" id="btnSave" type="submit">냉동고로 입고 저장</button>
+      </form>
+    </aside>
+
+    <section class="panel list-panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="F" type="button">🧊 냉동고 재고 <span class="cnt" id="cntF">0</span></button>
+        <button class="tab" data-tab="C" type="button">❄️ 냉장고 재고 <span class="cnt" id="cntC">0</span></button>
+        <button class="tab" data-tab="H" type="button">📋 입출고 내역 <span class="cnt" id="cntH">0</span></button>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 원산지 · 입고일 · 소비기한 검색">
+        <label class="check" id="zeroWrap"><input type="checkbox" id="showZero">0kg 소진 로트 보기</label>
+        <select id="typeFilter" class="hidden">
+          <option value="all">전체 구분</option>
+          <option value="in">입고</option>
+          <option value="thaw">해동</option>
+          <option value="re">재냉동</option>
+          <option value="out">출고 (현장/업체/택배/기타)</option>
+        </select>
+      </div>
+      <div class="note hidden" id="histNote"></div>
+      <div class="table-wrap" id="tableWrap"></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <datalist id="dlNames"></datalist>
+  <datalist id="dlVendors"></datalist>
+  <datalist id="dlOrigins"></datalist>
+  <datalist id="dlBrands"></datalist>
+  <datalist id="dlProducts"></datalist>
+  <datalist id="dlCourier"></datalist>
+  <datalist id="dlOther"></datalist>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
