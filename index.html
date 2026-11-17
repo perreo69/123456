@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>원료육 입출고 ERP</title>
-<meta name="description" content="냉동고·냉장고 원료육 재고와 입출고 이력을 여러 사람이 함께 쓰는 ERP (Supabase 로그인)">
+<title>입출고 ERP · 원료육 · 완제품 · 부자재 · 소스</title>
+<meta name="description" content="냉동고·냉장고 재고와 입출고 이력을 여러 사람이 함께 쓰는 ERP (Supabase 로그인)">
 <meta name="theme-color" content="#1b2431">
 <link rel="stylesheet" href="style.css">
 </head>
@@ -16,8 +16,8 @@
     <div class="login-brand">
       <span class="logo">🥩</span>
       <div>
-        <h1>원료육 입출고 ERP</h1>
-        <p>냉동고 · 냉장고 재고를 함께 씁니다</p>
+        <h1>입출고 ERP</h1>
+        <p>원료육 · 완제품 · 부자재 · 소스를 함께 씁니다</p>
       </div>
     </div>
 
@@ -62,7 +62,7 @@
     <div class="brand">
       <span class="logo">🥩</span>
       <div>
-        <h1>원료육 입출고 ERP</h1>
+        <h1>입출고 ERP</h1>
         <p id="baseLabel">불러오는 중…</p>
       </div>
     </div>
@@ -90,6 +90,11 @@
       <span class="kpi-label">❄️ 냉장고 총재고</span>
       <div class="kpi-line"><span class="kpi-value" id="kChill">0.00</span><span class="kpi-unit">kg</span></div>
       <span class="kpi-sub" id="kChillSub">보관 로트 0개</span>
+    </div>
+    <div class="kpi value">
+      <span class="kpi-label">💰 총 재고금액</span>
+      <div class="kpi-line"><span class="kpi-value" id="kValue">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub" id="kValueSub">단가 입력된 로트 기준</span>
     </div>
     <div class="kpi live">
       <span class="kpi-label">📦 보관중 로트</span>
@@ -123,11 +128,16 @@
           </label>
           <div class="grid2">
             <label class="field"><span>날짜</span><input type="date" id="inDate"></label>
-            <label class="field"><span>육류</span>
-              <select id="inMeat"><option value="돈">돈</option><option value="우">우</option><option value="계">계</option><option value="양">양</option></select>
+            <label class="field"><span>대분류</span>
+              <input id="inMajor" list="dlMajors" placeholder="원료육">
             </label>
           </div>
-          <label class="field"><span>제품명 <span class="req">*</span></span><input id="inName" list="dlNames" placeholder="예: 등갈비"></label>
+          <div class="grid2">
+            <label class="field"><span>소분류</span>
+              <input id="inMeat" list="dlMeats" placeholder="돈육 · 우육 · 계육 …">
+            </label>
+            <label class="field"><span>제품명 <span class="req">*</span></span><input id="inName" list="dlNames" placeholder="예: 등갈비"></label>
+          </div>
           <div class="grid2">
             <label class="field"><span>원산지</span><input id="inOrigin" list="dlOrigins" placeholder="예: 국내산"></label>
             <label class="field"><span>업체명</span><input id="inVendor" list="dlVendors" placeholder="예: 도드람푸드"></label>
@@ -140,8 +150,13 @@
             <label class="field"><span>소비기한 <span class="req">*</span></span><input type="date" id="inExpiry"></label>
             <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="inKg" step="0.01" min="0" placeholder="0.00"></label>
           </div>
+          <div class="grid2">
+            <label class="field"><span>단가(원/kg)</span><input type="number" id="inPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="inAmount" step="1" min="0" placeholder="0"></label>
+          </div>
+          <div class="pricebox" id="priceHint"></div>
           <label class="field"><span>비고</span><input id="inNote" placeholder="선택 입력"></label>
-          <p class="hint">제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
+          <p class="hint">대분류·제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
         </div>
 
         <!-- ===== 해동 ===== -->
@@ -153,8 +168,12 @@
           <label class="field"><span>해동 중량(kg) <span class="req">*</span></span>
             <div class="with-btn"><input type="number" id="thKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="thAll">전량</button></div>
           </label>
+          <div class="grid2">
+            <label class="field"><span>단가(원/kg)</span><input type="number" id="thPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="thAmount" step="1" min="0" placeholder="0"></label>
+          </div>
           <label class="field"><span>비고</span><input id="thNote" placeholder="선택 입력"></label>
-          <p class="hint">냉동고 재고가 차감되고, 같은 로트가 냉장고로 옮겨집니다. 냉동고 현재고보다 많이 입력할 수 없습니다.</p>
+          <p class="hint">냉동고 재고가 차감되고, 같은 로트가 냉장고로 옮겨집니다. 단가는 그 로트의 기준단가가 채워지며 바꿀 수 있습니다.</p>
         </div>
 
         <!-- ===== 재냉동 ===== -->
@@ -166,6 +185,10 @@
           <label class="field"><span>재냉동 중량(kg) <span class="req">*</span></span>
             <div class="with-btn"><input type="number" id="reKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="reAll">전량</button></div>
           </label>
+          <div class="grid2">
+            <label class="field"><span>단가(원/kg)</span><input type="number" id="rePrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="reAmount" step="1" min="0" placeholder="0"></label>
+          </div>
           <label class="field"><span>사유</span><input id="reNote" placeholder="예: 생산 취소 · 해동 취소"></label>
           <p class="hint">해동한 로트로 생산하지 않고 되돌릴 때 씁니다. 냉장고 재고가 차감되고 같은 로트가 냉동고로 돌아갑니다.</p>
         </div>
@@ -193,6 +216,10 @@
           <label class="field"><span>출고 중량(kg) <span class="req">*</span></span>
             <div class="with-btn"><input type="number" id="outKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="outAll">전량</button></div>
           </label>
+          <div class="grid2">
+            <label class="field"><span>단가(원/kg)</span><input type="number" id="outPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="outAmount" step="1" min="0" placeholder="0"></label>
+          </div>
           <label class="field"><span>비고</span><input id="outNote" placeholder="선택 입력"></label>
           <p class="hint" id="destHint">현장은 생산품목으로 적습니다. 출발 창고의 재고가 차감되고, 나간 물량은 재고에서 빠집니다.</p>
         </div>
@@ -209,8 +236,9 @@
         <button class="tab" data-tab="H" type="button">📋 입출고 내역 <span class="cnt" id="cntH">0</span></button>
       </div>
       <div class="toolbar">
-        <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 원산지 · 입고일 · 소비기한 검색">
-        <label class="check" id="zeroWrap"><input type="checkbox" id="showZero">0kg 소진 로트 보기</label>
+        <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색">
+        <label class="sel"><span>대분류</span><select id="majorFilter"><option value="all">전체</option></select></label>
+        <label class="check" id="zeroWrap"><input type="checkbox" id="showZero">0kg 소진 로트</label>
         <select id="typeFilter" class="hidden">
           <option value="all">전체 구분</option>
           <option value="in">입고</option>
@@ -218,6 +246,22 @@
           <option value="re">재냉동</option>
           <option value="out">출고 (현장/업체/택배/기타)</option>
         </select>
+        <button class="btn ghost tiny hidden" id="btnResetFilters" type="button">필터 초기화</button>
+      </div>
+      <div class="rangebar" id="rangeBar">
+        <div class="presets" id="rangePresets">
+          <button type="button" class="pr active" data-preset="all">전체</button>
+          <button type="button" class="pr" data-preset="today">오늘</button>
+          <button type="button" class="pr" data-preset="week">이번주</button>
+          <button type="button" class="pr" data-preset="month">이번달</button>
+          <button type="button" class="pr soon hidden" data-preset="soon">유통임박</button>
+        </div>
+        <label class="rng hidden" id="dateFieldWrap"><span>기준</span>
+          <select id="dateField"><option value="in">입고일</option><option value="exp">소비기한</option></select>
+        </label>
+        <label class="rng"><input type="date" id="rangeFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="rangeTo" aria-label="종료일"></label>
+        <button class="btn ghost tiny" id="rangeClear" type="button">초기화</button>
+        <span class="range-sum" id="rangeSum"></span>
       </div>
       <div class="note hidden" id="histNote"></div>
       <div class="table-wrap" id="tableWrap"></div>
@@ -225,6 +269,89 @@
   </main>
 
   <div class="toast" id="toast"></div>
+
+  <!-- ===================== 컬럼 필터 (엑셀 스타일) ===================== -->
+  <div class="fpop hidden" id="fpop">
+    <div class="fpop-head">
+      <b id="fpopTitle">필터</b>
+      <button class="fpop-x" id="fpopClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="fpop-body">
+      <input type="search" id="fpopSearch" placeholder="값 검색">
+      <div class="fpop-list" id="fpopList"></div>
+    </div>
+    <div class="fpop-foot">
+      <button class="btn tiny" id="fpopAll" type="button">전체</button>
+      <button class="btn tiny" id="fpopNone" type="button">모두 해제</button>
+      <button class="btn tiny ghost" id="fpopReset" type="button">필터 해제</button>
+      <button class="btn tiny primary" id="fpopDone" type="button">완료</button>
+    </div>
+  </div>
+
+  <!-- ===================== 입력 수정 ===================== -->
+  <div class="modal hidden" id="editModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-head">
+        <h2 id="editTitle">입출고 내역 수정</h2>
+        <button class="modal-x" id="editClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="editSub"></p>
+      <div class="grid2">
+        <label class="field"><span>거래일 <span class="req">*</span></span><input type="date" id="edDate"></label>
+        <label class="field"><span>창고</span><select id="edWh"><option value="F">냉동고</option><option value="C">냉장고</option></select></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="edKg" step="0.01" min="0"></label>
+        <label class="field"><span>단가(원/kg)</span><input type="number" id="edPrice" step="1" min="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>금액(원)</span><input type="number" id="edAmount" step="1" min="0"></label>
+        <label class="field hidden" id="edDestWrap"><span>출고처 구분</span>
+          <select id="edDest"><option value="site">현장</option><option value="vendor">업체</option><option value="courier">택배</option><option value="other">기타</option></select>
+        </label>
+      </div>
+      <label class="field hidden" id="edDestDetailWrap"><span>출고처 / 생산품목 <span class="req">*</span></span><input id="edDestDetail"></label>
+      <label class="field"><span>비고</span><input id="edNote"></label>
+      <p class="msg" id="editMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="editCancel" type="button">취소</button>
+        <button class="submit" id="editSave" type="button">수정 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 로트 정보 수정 ===================== -->
+  <div class="modal hidden" id="lotModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="lotTitle">
+      <div class="modal-head">
+        <h2 id="lotTitle">로트 정보 수정</h2>
+        <button class="modal-x" id="lotClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="lotSub"></p>
+      <div class="grid2">
+        <label class="field"><span>대분류</span><input id="ltMajor" list="dlMajors"></label>
+        <label class="field"><span>소분류</span><input id="ltMeat" list="dlMeats"></label>
+      </div>
+      <label class="field"><span>품목명 <span class="req">*</span></span><input id="ltName" list="dlNames"></label>
+      <div class="grid2">
+        <label class="field"><span>업체명</span><input id="ltVendor" list="dlVendors"></label>
+        <label class="field"><span>브랜드</span><input id="ltBrand" list="dlBrands"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>원산지</span><input id="ltOrigin" list="dlOrigins"></label>
+        <label class="field"><span>기준단가(원/kg)</span><input type="number" id="ltPrice" step="1" min="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>입고일</span><input type="date" id="ltInDate"></label>
+        <label class="field"><span>소비기한</span><input type="date" id="ltExp"></label>
+      </div>
+      <p class="msg" id="lotMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="lotCancel" type="button">취소</button>
+        <button class="submit" id="lotSave" type="button">수정 저장</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ===================== 양식 내려받기 (사방넷 · 경리나라) ===================== -->
   <div class="modal hidden" id="xlsModal">
@@ -277,6 +404,8 @@
   <datalist id="dlProducts"></datalist>
   <datalist id="dlCourier"></datalist>
   <datalist id="dlOther"></datalist>
+  <datalist id="dlMajors"></datalist>
+  <datalist id="dlMeats"></datalist>
 </div>
 
 <script src="app.js"></script>
