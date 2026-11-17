@@ -800,6 +800,114 @@ var ERP = (function () {
     return res;
   }
 
+  /* ---------- 입고 단가 변동 표 (v6) ----------
+     tx_logs 의 입고(type='in', 단가>0)만 품목명으로 묶어 직전 입고가와 최근 입고가를 비교한다.
+     입고가 2번 이상인 품목만 나온다(비교할 직전가가 있어야 변동을 말할 수 있다). */
+  var CHG_COLS = [
+    { k: 'n', t: '제품명', w: 160 },
+    { k: 'mt', t: '육류', w: 92 },
+    { k: 'v', t: '최근 업체', w: 128 },
+    { k: 'prev', t: '직전 단가(원/kg)', w: 118, num: true },
+    { k: 'last', t: '최근 단가(원/kg)', w: 118, num: true },
+    { k: 'delta', t: '변동액(원/kg)', w: 112, num: true },
+    { k: 'pct', t: '변동률(%)', w: 100, num: true },
+    { k: 'd', t: '최근 입고일', w: 110 },
+    { k: 'cnt', t: '입고 횟수', w: 86, num: true }
+  ];
+  function chgRows(st) {
+    var byKey = {}, out = [], i, e, key, rows, j;
+    var logs = (st && st.logs) || [];
+    for (i = 0; i < logs.length; i++) {
+      e = logs[i];
+      if (e.t !== 'in') continue;
+      if (!(Number(e.price) > 0)) continue;
+      key = s(e.n).toLowerCase();
+      if (!key) continue;
+      if (!byKey[key]) byKey[key] = [];
+      byKey[key].push(e);
+    }
+    for (key in byKey) {
+      if (!Object.prototype.hasOwnProperty.call(byKey, key)) continue;
+      rows = byKey[key];
+      if (rows.length < 2) continue;
+      rows.sort(function (a, b) {
+        if (a.d !== b.d) return a.d < b.d ? -1 : 1;
+        return (a.dbid || 0) - (b.dbid || 0);
+      });
+      var last = rows[rows.length - 1], prev = rows[rows.length - 2];
+      var lp = Number(last.price) || 0, pp = Number(prev.price) || 0;
+      var delta = r0(lp - pp);
+      var pct = pp > 0 ? Math.round((lp - pp) / pp * 1000) / 10 : 0;
+      out.push({
+        n: last.n, mt: last.mt, v: last.v, prev: r0(pp), last: r0(lp),
+        delta: delta, pct: pct, d: last.d, cnt: rows.length,
+        dir: delta > 0 ? 'up' : (delta < 0 ? 'down' : 'same')
+      });
+    }
+    out.sort(function (a, b) {
+      var c = Math.abs(b.pct) - Math.abs(a.pct);
+      if (c !== 0) return c;
+      return a.d < b.d ? 1 : (a.d > b.d ? -1 : 0);
+    });
+    return out;
+  }
+  function chgCell(r, k) {
+    if (k === 'n') return r.n;
+    if (k === 'mt') return r.mt;
+    if (k === 'v') return r.v;
+    if (k === 'prev') return r.prev;
+    if (k === 'last') return r.last;
+    if (k === 'delta') return r.delta;
+    if (k === 'pct') return r.pct;
+    if (k === 'd') return r.d;
+    if (k === 'cnt') return r.cnt;
+    return '';
+  }
+  /* opt: { q, from, to, cols, sortKey, sortDir } — 정렬을 고르지 않으면 |변동률| 큰 순 */
+  function filterChg(list, opt) {
+    opt = opt || {};
+    var out = [], i, r, qq = s(opt.q).toLowerCase();
+    for (i = 0; i < (list || []).length; i++) {
+      r = list[i];
+      if (!inRange(r.d, opt.from, opt.to)) continue;
+      if (qq) {
+        var hay = [r.n, r.mt, r.v, r.d, String(r.prev), String(r.last)].join(' ').toLowerCase();
+        if (hay.indexOf(qq) < 0) continue;
+      }
+      if (!passCols(opt.cols, function (k) { return chgCell(r, k); })) continue;
+      out.push(r);
+    }
+    if (opt.sortKey) {
+      var def = colDef(CHG_COLS, opt.sortKey), sd = opt.sortDir === -1 ? -1 : 1;
+      out.sort(function (a, b) {
+        var c = cmpVal(chgCell(a, opt.sortKey), chgCell(b, opt.sortKey), def && def.num);
+        if (c !== 0) return sd * c;
+        return Math.abs(b.pct) - Math.abs(a.pct);
+      });
+    } else {
+      out.sort(function (a, b) {
+        var c = Math.abs(b.pct) - Math.abs(a.pct);
+        if (c !== 0) return c;
+        return a.d < b.d ? 1 : (a.d > b.d ? -1 : 0);
+      });
+    }
+    return out;
+  }
+  /* 같은 기간 원료육 현장(생산 투입) 출고 합계 — 완제품 자체생산 참고용 */
+  function siteInput(st, from, to) {
+    var cnt = 0, kg = 0, amt = 0, i, e;
+    var logs = (st && st.logs) || [];
+    for (i = 0; i < logs.length; i++) {
+      e = logs[i];
+      if (e.t !== 'out' || destKey(e.dt) !== 'site') continue;
+      if (!inRange(e.d, from, to)) continue;
+      cnt++;
+      kg += Number(e.k) || 0;
+      amt += Number(e.amt) || 0;
+    }
+    return { cnt: cnt, kg: r2(kg), amt: r0(amt) };
+  }
+
   /* ---------- xlsx 만들기 (외부 라이브러리·CDN 없이 ZIP store + OOXML) ---------- */
   var CRC_TABLE = null;
   function crc32(bytes) {
@@ -2115,6 +2223,7 @@ var ERP = (function () {
     grouped: grouped, filterLots: filterLots, countLive: countLive,
     sortLogsDesc: sortLogsDesc, sortLogsAsc: sortLogsAsc, filterLogs: filterLogs,
     priceStats: priceStats, priceCompare: priceCompare,
+    CHG_COLS: CHG_COLS, chgRows: chgRows, chgCell: chgCell, filterChg: filterChg, siteInput: siteInput,
     csv: csv, stockCsv: stockCsv, csvQuote: csvQuote, dict: dict, destHistory: destHistory,
     precheck: precheck, precheckUpdate: precheckUpdate,
     SABANG_HEAD: SABANG_HEAD, SALES_HEAD: SALES_HEAD, sabangnetRows: sabangnetRows, salesRows: salesRows,
@@ -2591,10 +2700,11 @@ var LIVE = (function () {
     hist: { preset: 'all', from: '', to: '' },
     sortLot: { k: '', dir: 1 },
     sortLog: { k: '', dir: -1 },
-    fLot: {}, fLog: {},
+    sortChg: { k: '', dir: -1 },
+    fLot: {}, fLog: {}, fChg: {},
     /* v4 */
     erp: 'meat',
-    fgType: 'IN', fgTab: 'G', fgCode: '', fgSearch: '', fgCat: 'all', fgShowZero: false,
+    fgType: 'IN', fgSrc: 'buy', fgTab: 'G', fgCode: '', fgSearch: '', fgCat: 'all', fgShowZero: false,
     fgTypeF: 'all', fgLimit: 300,
     fgRange: { preset: 'all', from: '', to: '' },
     fgSortG: { k: '', dir: 1 }, fgSortL: { k: '', dir: -1 }, fgSortP: { k: '', dir: 1 },
@@ -2615,11 +2725,11 @@ var LIVE = (function () {
 
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
   var COLW_KEY = 'meatERP.colw.v3';
-  var COLW = { lot: {}, log: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {} };
+  var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {} };
   var COL_MIN = 44, COL_MAX = 720;
   var ACT_DEF = { lot: 84, log: 84, fpG: 112, fpL: 84, fpP: 96, accV: 108, accR: 132, accE: 96 };
-  var COLW_KEYS = ['lot', 'log', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM'];
-  function tblOf(tab) { return tab === 'H' ? 'log' : 'lot'; }
+  var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM'];
+  function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
   function loadColW() {
     try {
       var raw = localStorage.getItem(COLW_KEY);
@@ -2673,7 +2783,7 @@ var LIVE = (function () {
   /* 현재 화면(모드)의 표들만 기본 너비로 되돌린다 */
   function resetColWidth(mode) {
     var tables = mode === 'fg' ? ['fpG', 'fpL', 'fpP']
-      : (mode === 'acc' ? ['accV', 'accR', 'accE', 'accM'] : ['lot', 'log']);
+      : (mode === 'acc' ? ['accV', 'accR', 'accE', 'accM'] : ['lot', 'log', 'chg']);
     tables.forEach(function (t) { COLW[t] = {}; });
     saveColW();
     if (mode === 'fg') renderFgTable();
@@ -2719,6 +2829,7 @@ var LIVE = (function () {
   function colsOfTable(tbl) {
     if (tbl === 'lot') return ERP.lotCols(cur.tab === 'C' ? 'C' : 'F');
     if (tbl === 'log') return ERP.LOG_COLS;
+    if (tbl === 'chg') return ERP.CHG_COLS;
     if (tbl === 'fpG' || tbl === 'fpL' || tbl === 'fpP') return ERP.fpCols(tbl.charAt(2));
     if (tbl === 'accV' || tbl === 'accR' || tbl === 'accE' || tbl === 'accM') return ERP.accCols(tbl.charAt(3));
     return ERP.LOG_COLS;
@@ -2845,6 +2956,7 @@ var LIVE = (function () {
     $('cntF').textContent = ERP.countLive(st, 'F');
     $('cntC').textContent = ERP.countLive(st, 'C');
     $('cntH').textContent = st.logs.length;
+    if ($('cntV')) $('cntV').textContent = ERP.chgRows(st).length;
   }
 
   /* ---------- 표 머리글 (화살표 하나로 정렬 · 값 필터) ---------- */
@@ -3024,11 +3136,69 @@ var LIVE = (function () {
   }
 
   function renderTable() {
-    var anyF = hasCols(cur.fLot) || hasCols(cur.fLog);
+    var anyF = hasCols(cur.fLot) || hasCols(cur.fLog) || hasCols(cur.fChg);
     var btn = $('btnResetFilters');
     if (btn) btn.classList.toggle('hidden', !anyF);
     if (cur.tab === 'H') { renderHistory(); return; }
+    if (cur.tab === 'V') { renderChg(); return; }
     renderStock(cur.tab);
+  }
+
+  /* ---------- 📈 단가 변동 (v6) ---------- */
+  function fmtPct(v) {
+    var n = Number(v) || 0;
+    return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+  }
+  function chgCellHtml(r, k) {
+    if (k === 'n') return '<td class="ellip" title="' + esc(r.n) + '"><b>' + esc(r.n) + '</b></td>';
+    if (k === 'mt') return '<td><span class="mtag mt-' + esc(r.mt || '기타') + '">' + esc(r.mt || '-') + '</span></td>';
+    if (k === 'v') return '<td class="ellip">' + (r.v ? esc(r.v) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'prev') return '<td class="num">' + fmtInt(r.prev) + '</td>';
+    if (k === 'last') return '<td class="num">' + fmtInt(r.last) + '</td>';
+    if (k === 'delta') {
+      var cls = r.dir === 'up' ? 'chg-up' : (r.dir === 'down' ? 'chg-down' : 'chg-same');
+      var sign = r.delta > 0 ? '+' : (r.delta < 0 ? '−' : '');
+      return '<td class="num"><span class="' + cls + '">' + sign + fmtInt(Math.abs(r.delta)) + '</span></td>';
+    }
+    if (k === 'pct') {
+      var c2 = r.dir === 'up' ? 'chg-up' : (r.dir === 'down' ? 'chg-down' : 'chg-same');
+      var ar = r.dir === 'up' ? '▲ ' : (r.dir === 'down' ? '▼ ' : '');
+      return '<td class="num"><span class="delta-badge ' + c2 + '">' + ar + fmtPct(r.pct) + '</span></td>';
+    }
+    if (k === 'd') return '<td>' + esc(r.d || '-') + '</td>';
+    if (k === 'cnt') return '<td class="num">' + r.cnt + '</td>';
+    return '<td class="ellip">' + esc(ERP.chgCell(r, k) || '-') + '</td>';
+  }
+  function renderChg() {
+    var wrap = $('tableWrap');
+    var keep = wrap.scrollTop, keepL = wrap.scrollLeft;
+    var cols = ERP.CHG_COLS;
+    var list = ERP.filterChg(ERP.chgRows(st), {
+      q: cur.search, from: cur.hist.from, to: cur.hist.to,
+      cols: cur.fChg, sortKey: cur.sortChg.k, sortDir: cur.sortChg.dir
+    });
+    var up = 0, down = 0, i;
+    for (i = 0; i < list.length; i++) { if (list[i].dir === 'up') up++; else if (list[i].dir === 'down') down++; }
+    if ($('rangeSum')) {
+      $('rangeSum').textContent = list.length + '품목 · ▲ ' + up + ' · ▼ ' + down;
+    }
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>단가 변동을 볼 품목이 없습니다. 같은 품목을 두 번 이상 입고하면 여기에 모입니다.</td></tr></tbody></table>';
+      wrap.scrollTop = 0;
+      return;
+    }
+    var html = [tableOpen('t-chg', 'chg', cols, 0), '<thead><tr>'];
+    for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortChg, cur.fChg));
+    html.push('</tr></thead><tbody>');
+    for (i = 0; i < list.length; i++) {
+      html.push('<tr class="chgrow">');
+      for (var c = 0; c < cols.length; c++) html.push(chgCellHtml(list[i], cols[c].k));
+      html.push('</tr>');
+    }
+    html.push('</tbody></table>');
+    wrap.innerHTML = html.join('');
+    wrap.scrollTop = keep;
+    wrap.scrollLeft = keepL;
   }
 
   function hasCols(o) {
@@ -3040,7 +3210,7 @@ var LIVE = (function () {
   function rangeTarget() {
     if (cur.erp === 'fg') return cur.fgRange;
     if (cur.erp === 'acc') return cur.accRange;
-    if (cur.tab === 'H') return cur.hist;
+    if (cur.tab === 'H' || cur.tab === 'V') return cur.hist;
     return cur.stock;
   }
   function rangeUI() {
@@ -3062,7 +3232,7 @@ var LIVE = (function () {
   function renderRangeBar() {
     var ui = rangeUI(), r = rangeTarget();
     if (cur.erp === 'meat') {
-      var isH = cur.tab === 'H';
+      var isH = cur.tab === 'H' || cur.tab === 'V';
       if ($('dateFieldWrap')) $('dateFieldWrap').classList.toggle('hidden', isH);
       var soon = document.querySelector('#rangePresets [data-preset="soon"]');
       if (soon) soon.classList.toggle('hidden', isH);
@@ -3238,6 +3408,11 @@ var LIVE = (function () {
         q: cur.search, type: cur.hFilter, from: cur.hist.from, to: cur.hist.to, cols: cols
       });
     }
+    if (tbl === 'chg') {
+      return ERP.filterChg(ERP.chgRows(st), {
+        q: cur.search, from: cur.hist.from, to: cur.hist.to, cols: cols
+      });
+    }
     if (tbl === 'fpL') {
       return ERP.fpFilteredLogs(st.fpLogs, {
         q: cur.fgSearch, type: cur.fgTypeF, cat: cur.fgCat, from: cur.fgRange.from, to: cur.fgRange.to, cols: cols
@@ -3265,6 +3440,7 @@ var LIVE = (function () {
   function filterStore(tbl) {
     if (tbl === 'lot') return cur.fLot;
     if (tbl === 'log') return cur.fLog;
+    if (tbl === 'chg') return cur.fChg;
     if (tbl === 'fpG') return cur.fFgG;
     if (tbl === 'fpL') return cur.fFgL;
     if (tbl === 'fpP') return cur.fFgP;
@@ -3276,6 +3452,7 @@ var LIVE = (function () {
   function cellOf(tbl) {
     if (tbl === 'lot') return function (l, k) { return ERP.lotCell(l, k, cur.tab); };
     if (tbl === 'log') return function (e, k) { return ERP.logCell(e, k); };
+    if (tbl === 'chg') return function (r, k) { return ERP.chgCell(r, k); };
     if (tbl === 'fpG' || tbl === 'fpP') return function (p, k) { return ERP.fpCell(p, k); };
     if (tbl === 'fpL') return function (g, k) { return ERP.fpLogCell(g, k); };
     if (tbl === 'accR') return function (r, k) { return ERP.accCell(r, k); };
@@ -3313,6 +3490,7 @@ var LIVE = (function () {
   function sortStateOf(tbl) {
     if (tbl === 'lot') return cur.sortLot;
     if (tbl === 'log') return cur.sortLog;
+    if (tbl === 'chg') return cur.sortChg;
     if (tbl === 'fpG') return cur.fgSortG;
     if (tbl === 'fpL') return cur.fgSortL;
     if (tbl === 'fpP') return cur.fgSortP;
@@ -3713,29 +3891,45 @@ var LIVE = (function () {
     priceSync(mode, 'price');
   }
 
-  /* ---------- 입고 단가 비교 (요구 8) ---------- */
+  /* ---------- 입고 단가 비교 (요구 8 + v6 등락률 배지) ---------- */
+  function setDeltaBadge(c) {
+    var badge = $('inPriceBadge');
+    if (!badge) return;
+    if (!c || !c.has || c.dir === 'same' || Math.abs(c.pct) < 5) {
+      badge.className = 'delta-badge hidden';
+      badge.textContent = '';
+      return;
+    }
+    badge.className = 'delta-badge ' + (c.dir === 'up' ? 'chg-up' : 'chg-down');
+    badge.textContent = (c.dir === 'up' ? '▲ +' : '▼ ') + c.pct.toFixed(1) + '%';
+    badge.title = '직전 입고단가 ' + fmtInt(c.base) + '원/kg → ' + fmtInt(c.base + c.delta) + '원/kg (' + (c.pct > 0 ? '+' : '') + c.pct + '%)';
+  }
   function updatePriceHint() {
     var box = $('priceHint');
     if (!box) return;
-    if (cur.mode !== 'in') { box.className = 'pricebox hidden'; box.innerHTML = ''; return; }
+    if (cur.mode !== 'in') { box.className = 'pricebox hidden'; box.innerHTML = ''; setDeltaBadge(null); return; }
     var name = ($('inName').value || '').replace(/^\s+|\s+$/g, '');
     var major = '';
     var price = Number($('inPrice').value || 0);
     box.className = 'pricebox';
     if (!name) {
       box.innerHTML = '<span class="pb-empty">품목명을 입력하면 지난 입고 단가와 비교해 드립니다.</span>';
+      setDeltaBadge(null);
       return;
     }
     var stat = ERP.priceStats(st, name, major);
     if (!stat.count) {
       box.innerHTML = '<div class="pb-line"><b>' + esc(name) + '</b> <span class="pb-new">첫 단가 입력(비교 이력 없음)</span></div>' +
         '<div class="pb-range">지난 입고 단가 기록이 없어 오타 여부를 비교할 수 없습니다.</div>';
+      setDeltaBadge(null);
       return;
     }
     var html = ['<div class="pb-line"><b>' + esc(name) + '</b> 지난 입고 <b>' + stat.count + '</b>건 · 최근 ' +
       esc(stat.lastDate) + ' <b>' + fmtInt(stat.last) + '</b>원/kg</div>'];
+    var cmp = null;
     if (price > 0) {
       var c = ERP.priceCompare(stat, price);
+      cmp = c;
       var arrow = c.dir === 'up' ? '▲ +' : (c.dir === 'down' ? '▼ −' : '＝ ');
       var body;
       if (c.dir === 'same') body = '변동 없음';
@@ -3751,6 +3945,7 @@ var LIVE = (function () {
     html.push('<div class="pb-range">과거 입고 최저 <b>' + fmtInt(stat.min) + '</b> · 평균 <b>' + fmtInt(stat.avg) +
       '</b> · 최고 <b>' + fmtInt(stat.max) + '</b> 원/kg</div>');
     box.innerHTML = html.join('');
+    setDeltaBadge(cmp);
   }
 
   /* ---------- 모드 ---------- */
@@ -4744,8 +4939,7 @@ var LIVE = (function () {
       var p = page[i];
       html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
-      html.push('<td><div class="acts"><button class="act edit" data-fgprice="' + esc(p.code) + '">단가</button>' +
-        '<button class="act" data-fgedit="' + esc(p.code) + '">수정</button></div></td></tr>');
+      html.push('<td class="actcell"><button type="button" class="actmenu" data-menu="fg" data-fgcode="' + esc(p.code) + '" title="상품·단가 수정">작업 ▾</button></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -4877,16 +5071,54 @@ var LIVE = (function () {
   }
   function setFgType(t) {
     cur.fgType = t === 'OUT' ? 'OUT' : 'IN';
+    /* 출고에는 자체생산 구분이 없다 — 거래처가 '자체생산'으로 남아 있으면 비운다 */
+    if (cur.fgType === 'OUT' && cur.fgSrc === 'self') setFgSrc('buy');
     $('fgTypeIN').classList.toggle('active', cur.fgType === 'IN');
     $('fgTypeOUT').classList.toggle('active', cur.fgType === 'OUT');
     $('fgQtyLabel').innerHTML = (cur.fgType === 'IN' ? '입고 수량' : '출고 수량') + ' <span class="req">*</span>';
     $('fgPriceLabel').textContent = cur.fgType === 'IN' ? '입고단가(원)' : '출고단가(원)';
     $('btnFgSave').textContent = cur.fgType === 'IN' ? '입고 저장' : '출고 저장';
     $('fgNegWrap').classList.toggle('hidden', cur.fgType !== 'OUT');
+    if ($('fgSrcWrap')) $('fgSrcWrap').classList.toggle('hidden', cur.fgType !== 'IN');
     var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
     if (p) $('fgPrice').placeholder = (cur.fgType === 'IN' ? p.inp : p.outp) > 0 ? fmtInt(cur.fgType === 'IN' ? p.inp : p.outp) : '비우면 상품단가';
+    renderFgProdRef();
     fgSyncAmount();
   }
+  /* ---------- 완제품 입고구분: 자체생산 / 외부매입 (v6, SQL 변경 없이 partner·note로 구분) ---------- */
+  function setFgSrc(src) {
+    cur.fgSrc = src === 'self' ? 'self' : 'buy';
+    var btns = document.querySelectorAll('#fgSrcSeg button');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-src') === cur.fgSrc);
+    var pt = $('fgPartner');
+    if (pt) {
+      if (cur.fgSrc === 'self') {
+        pt.value = '자체생산';
+        pt.placeholder = '자체생산';
+      } else if (pt.value === '자체생산') {
+        pt.value = '';
+        pt.placeholder = '매입처 / 납품처';
+      }
+    }
+    renderFgProdRef();
+  }
+  /* 자체생산을 고르면 왼쪽 폼에 최근 원료육 현장 투입(생산 투입) 합계를 가벼게 보여준다 */
+  function renderFgProdRef() {
+    var box = $('fgProdRef');
+    if (!box) return;
+    if (cur.fgType !== 'IN' || cur.fgSrc !== 'self') {
+      box.classList.add('hidden');
+      box.innerHTML = '';
+      return;
+    }
+    var d = ($('fgDate') && $('fgDate').value) || today();
+    var t = ERP.siteInput(st, ERP.dateAdd(d, -7), d);
+    box.classList.remove('hidden');
+    box.innerHTML = t.cnt
+      ? '참고: 최근 원료육 현장 투입 <b>' + t.cnt + '건</b> · <b>' + fmt(t.kg) + ' kg</b> · <b>' + fmtInt(t.amt) + '원</b> <span class="tiny-hint">(' + ERP.dateAdd(d, -7) + ' ~ ' + d + ')</span>'
+      : '참고: 최근 7일 원료육 현장 투입 기록이 없습니다. (' + ERP.dateAdd(d, -7) + ' ~ ' + d + ')';
+  }
+  function isSelfSrc(v) { return String(v === null || v === undefined ? '' : v).replace(/^\s+|\s+$/g, '') === '자체생산'; }
   function fgSubmit() {
     var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
     if (!p) { $('fgMsg').textContent = '상품을 먼저 정확히 골라 주세요.'; toast('상품을 골라 주세요.', 'warn'); return; }
@@ -4902,13 +5134,18 @@ var LIVE = (function () {
     b.disabled = true;
     var label = b.textContent;
     b.textContent = '저장 중…';
+    var selfMade = cur.fgType === 'IN' && cur.fgSrc === 'self';
+    var partner = selfMade ? '자체생산' : ($('fgPartner').value || '');
+    var note = $('fgNote').value || '';
+    if (selfMade) note = note.indexOf('[자체생산]') >= 0 ? note : ('[자체생산] ' + note).replace(/\s+$/, '');
     SB.db.fpApply({
       code: p.code, type: cur.fgType, qty: qty, date: $('fgDate').value || today(),
       price: $('fgPrice').value === '' ? null : Number($('fgPrice').value),
-      expiry: $('fgExpiry').value || null, partner: $('fgPartner').value || '',
-      note: $('fgNote').value || '', allowNegative: $('fgNeg').checked
+      expiry: $('fgExpiry').value || null, partner: partner,
+      note: note, allowNegative: $('fgNeg').checked
     }).then(function (row) {
-      toast('완제품 ' + ERP.fpTypeName(cur.fgType) + ' 완료: ' + (row && row.name || p.n) + ' ' + fmtQty(qty) + p.unit +
+      toast('완제품 ' + ERP.fpTypeName(cur.fgType) + (selfMade ? ' · 🏭 자체생산' : '') + ' 완료: ' +
+        (row && row.name || p.n) + ' ' + fmtQty(qty) + p.unit +
         (row && Number(row.amount) ? ' · ' + won(row.amount) : ''), cur.fgType === 'IN' ? 'in' : 'out');
       $('fgQty').value = ''; $('fgNote').value = ''; $('fgPrice').value = ''; $('fgAmount').value = '';
       cur.fgLimit = 300;
@@ -5455,8 +5692,14 @@ var LIVE = (function () {
   }
 
   /* ---------- 입출고 → 전표 일괄 반영 ---------- */
+  /* 자체생산 완제품 입고인가 — 사내 생산 이동이라 매입 전표에서 뺄다(원가·매입 이중집계 방지) */
+  function fpSelfMade(g) {
+    if (!g || g.t !== 'IN') return false;
+    if (isSelfSrc(g.p)) return true;
+    return String(g.note || '').indexOf('[자체생산]') >= 0;
+  }
   function reflectCandidates() {
-    var out = [], i, e, g, v;
+    var out = [], i, e, g, v, selfMade = 0;
     var from = cur.accRange.from || '', to = cur.accRange.to || '';
     var done = {};
     for (i = 0; i < st.vouchers.length; i++) {
@@ -5482,6 +5725,7 @@ var LIVE = (function () {
       if (!(Number(g.amt) > 0)) continue;
       if (!ERP.inPeriod(g.d, from, to)) continue;
       if (done['fp:' + g.id]) continue;
+      if (fpSelfMade(g)) { selfMade++; continue; }
       out.push({
         kind: 'fp', id: g.id, d: g.d, type: g.t === 'IN' ? 'purchase' : 'sale',
         partner: g.p || '', label: g.n + ' ' + fmtQty(g.q) + (g.unit || ''),
@@ -5489,6 +5733,7 @@ var LIVE = (function () {
       });
     }
     out.sort(function (a, b) { return a.d < b.d ? 1 : (a.d > b.d ? -1 : 0); });
+    out.selfMade = selfMade;
     return out;
   }
   function renderAccReflect() {
@@ -5497,13 +5742,16 @@ var LIVE = (function () {
     if (!cur.reflectOpen) { $('accReflectBox').classList.add('hidden'); return; }
     $('accReflectBox').classList.remove('hidden');
     var list = reflectCandidates();
+    var selfMade = list.selfMade || 0;
     if ($('accReflectFrom') && !$('accReflectFrom').value) $('accReflectFrom').value = today().slice(0, 8) + '01';
     if ($('accReflectTo') && !$('accReflectTo').value) $('accReflectTo').value = today();
     if (!list.length) {
-      box.innerHTML = '<div class="rempty">반영할 입출고가 없습니다. (금액이 입력된 입고·출고만 전표가 됩니다. 기간을 넓혀 보세요.)</div>';
+      box.innerHTML = '<div class="rempty">반영할 입출고가 없습니다. (금액이 입력된 입고·출고만 전표가 됩니다. 기간을 넓혀 보세요.)' +
+        (selfMade ? '<br>🏭 자체생산 완제품 입고 ' + selfMade + '건은 사내 생산 이동이라 자동 제외했습니다.' : '') + '</div>';
       return;
     }
     var html = ['<div class="reflect-row head"><span class="chk"></span><span>날짜</span><span>구분</span><span>거래처</span><span>품목</span><span class="num">금액</span></div>'];
+    if (selfMade) html.push('<div class="rempty">🏭 자체생산 완제품 입고 <b>' + selfMade + '건</b>은 사내 생산 이동이라 목록에서 자동 제외했습니다.</div>');
     for (var i = 0; i < Math.min(200, list.length); i++) {
       var c = list[i];
       html.push('<label class="reflect-row"><input type="checkbox" data-reflect="' + c.kind + ':' + c.id + '"' +
@@ -5882,6 +6130,11 @@ var LIVE = (function () {
     for (var j = 0; j < fm.length; j++) {
       fm[j].addEventListener('click', function () { setFgType(this.getAttribute('data-ftype')); });
     }
+    var fsrc = document.querySelectorAll('#fgSrcSeg button');
+    for (var js = 0; js < fsrc.length; js++) {
+      fsrc[js].addEventListener('click', function () { setFgSrc(this.getAttribute('data-src')); });
+    }
+    if ($('fgDate')) $('fgDate').addEventListener('change', renderFgProdRef);
     if ($('fgForm')) $('fgForm').addEventListener('submit', function (e) { e.preventDefault(); fgSubmit(); });
     if ($('btnFgFind')) $('btnFgFind').addEventListener('click', function () { fgPickProduct(false); });
     if ($('fgQuery')) {
@@ -5954,6 +6207,16 @@ var LIVE = (function () {
 
     bindResize('fgTableWrap', fgTableOf);
     bindTableClicks('fgTableWrap', function (ev, t) {
+      var fgMenu = t.closest ? t.closest('[data-menu="fg"]') : null;
+      if (fgMenu) {
+        ev.preventDefault(); ev.stopPropagation();
+        var fc = fgMenu.getAttribute('data-fgcode');
+        openRowMenu(fgMenu, [
+          { label: '💰 상품·단가 수정', act: 'fgprice', code: fc },
+          { label: '✏️ 상품 정보 수정', act: 'fgedit', code: fc }
+        ]);
+        return;
+      }
       var price = t.closest ? t.closest('[data-fgprice]') : null;
       if (price) { openFgPrice(price.getAttribute('data-fgprice')); return; }
       var edit = t.closest ? t.closest('[data-fgedit]') : null;
@@ -6018,6 +6281,7 @@ var LIVE = (function () {
     if ($('btnAccPayOut')) $('btnAccPayOut').addEventListener('click', function () { openAccPay('out', ''); });
     if ($('btnAccExpense')) $('btnAccExpense').addEventListener('click', function () { openAccExpense(null); });
     if ($('btnAccXls')) $('btnAccXls').addEventListener('click', accXls);
+    if ($('btnAccUpload')) $('btnAccUpload').addEventListener('click', function () { openUpload('acc_expense'); });
 
     /* 전표 모달 */
     if ($('accVoucherSeg')) {
@@ -6158,10 +6422,14 @@ var LIVE = (function () {
         cur.tab = this.getAttribute('data-tab');
         cur.hLimit = 250;
         for (var k = 0; k < tabs.length; k++) tabs[k].classList.toggle('active', tabs[k] === this);
-        var isH = cur.tab === 'H';
-        $('zeroWrap').classList.toggle('hidden', isH);
+        var isH = cur.tab === 'H', isV = cur.tab === 'V';
+        $('zeroWrap').classList.toggle('hidden', isH || isV);
         $('typeFilter').classList.toggle('hidden', !isH);
         $('histNote').classList.toggle('hidden', !isH);
+        if ($('chgNote')) $('chgNote').classList.toggle('hidden', !isV);
+        if ($('search')) $('search').placeholder = isV
+          ? '🔍 품목명 · 육류 · 업체명 검색'
+          : (isH ? '🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색' : '🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색');
         closeFilter();
         renderRangeBar();
         renderTable();
@@ -6365,6 +6633,10 @@ var LIVE = (function () {
           scrollPanel('form');
         } else if (it.act === 'lotedit') {
           openLot(it.lot);
+        } else if (it.act === 'fgprice') {
+          openFgPrice(it.code);
+        } else if (it.act === 'fgedit') {
+          openFgNew(it.code);
         } else if (it.act === 'edit') {
           openEdit(it.id);
         } else if (it.act === 'undo') {
@@ -6460,6 +6732,60 @@ var LIVE = (function () {
     $('btnCsvH').addEventListener('click', function () { csvHistory(); });
     $('btnXlsSabang').addEventListener('click', function () { openXls('sabang'); });
     $('btnXlsSales').addEventListener('click', function () { openXls('sales'); });
+
+    /* 📊 엑셀 ▾ 드롭다운 (원료육 · 완제품 · 회계 공통) */
+    var xlLast = null;
+    function closeXlMenus(except) {
+      var menus = document.querySelectorAll('.xlmenu');
+      for (var i = 0; i < menus.length; i++) {
+        if (menus[i] === except) continue;
+        var pop = menus[i].querySelector('.xlpop');
+        var btn = menus[i].querySelector('.xlbtn');
+        if (pop) pop.classList.add('hidden');
+        if (btn) { btn.classList.remove('on'); btn.setAttribute('aria-expanded', 'false'); }
+        if (xlLast && xlLast.pop === pop) xlLast = null;
+      }
+    }
+    function placeXlPop(btn, pop) {
+      var r = btn.getBoundingClientRect();
+      var w = pop.offsetWidth || 238, h = pop.offsetHeight || 240;
+      var left = Math.min(Math.max(8, r.right - w), window.innerWidth - w - 8);
+      var top = r.bottom + 6;
+      if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+      pop.style.left = left + 'px';
+      pop.style.top = top + 'px';
+    }
+    var xlMenus = document.querySelectorAll('.xlmenu');
+    for (var xm = 0; xm < xlMenus.length; xm++) {
+      (function (menu) {
+        var btn = menu.querySelector('.xlbtn'), pop = menu.querySelector('.xlpop');
+        if (!btn || !pop) return;
+        btn.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          var willOpen = pop.classList.contains('hidden');
+          closeXlMenus(menu);
+          pop.classList.toggle('hidden', !willOpen);
+          btn.classList.toggle('on', willOpen);
+          btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+          if (willOpen) { xlLast = { btn: btn, pop: pop }; placeXlPop(btn, pop); }
+          else if (xlLast && xlLast.pop === pop) xlLast = null;
+        });
+        pop.addEventListener('click', function (ev) {
+          if (ev.target.closest && ev.target.closest('[data-xl]')) closeXlMenus(null);
+        });
+      })(xlMenus[xm]);
+    }
+    document.addEventListener('click', function (ev) {
+      if (ev.target.closest && ev.target.closest('.xlmenu')) return;
+      closeXlMenus(null);
+    });
+    window.addEventListener('resize', function () { closeXlMenus(null); });
+    window.addEventListener('scroll', function () {
+      /* 메뉴는 버튼에 붙어 있으므로 스크롤하면 바로 따라 옮긴다 */
+      if (xlLast && !xlLast.pop.classList.contains('hidden')) placeXlPop(xlLast.btn, xlLast.pop);
+      else if (document.querySelector('.xlpop:not(.hidden)')) closeXlMenus(null);
+    }, true);
     $('xlsClose').addEventListener('click', closeXls);
     $('xlsCancel').addEventListener('click', closeXls);
     $('xlsGo').addEventListener('click', downloadXls);
@@ -6496,6 +6822,8 @@ var LIVE = (function () {
 
     document.addEventListener('keydown', function (ev) {
       if (ev.key !== 'Escape') return;
+      var openX = document.querySelector('.xlpop:not(.hidden)');
+      if (openX) { closeXlMenus(null); return; }
       if (rowMenu.open) { closeRowMenu(); return; }
       if (rngm.open) { closeRange(); return; }
       if (!$('photoViewModal').classList.contains('hidden')) { closePhoto(); return; }

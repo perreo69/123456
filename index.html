@@ -77,11 +77,6 @@
     <div class="top-actions">
       <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
       <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함">📷 입고대기 <span class="pbadge" id="photoBadge">0</span></button>
-      <button class="btn xls only-meat" id="btnXlsSabang" type="button" title="사방넷 풀필먼트 입고 업로드용 엑셀">📥 사방넷 입고 양식</button>
-      <button class="btn xls only-meat" id="btnXlsSales" type="button" title="경리나라 매출거래명세표 일괄등록용 엑셀">📥 경리나라 매출 양식</button>
-      <button class="btn only-meat" id="btnCsvF" type="button">⬇ 냉동고 재고</button>
-      <button class="btn only-meat" id="btnCsvC" type="button">⬇ 냉장고 재고</button>
-      <button class="btn only-meat" id="btnCsvH" type="button">⬇ 입출고 내역</button>
       <span class="who" id="whoami"></span>
       <button class="btn ghost" id="btnLogout" type="button">로그아웃</button>
     </div>
@@ -239,7 +234,7 @@
             <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="inKg" step="0.01" min="0" placeholder="0.00"></label>
           </div>
           <div class="grid2">
-            <label class="field"><span>입고단가(원/kg)</span><input type="number" id="inPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>입고단가(원/kg) <b class="delta-badge hidden" id="inPriceBadge"></b></span><input type="number" id="inPrice" step="1" min="0" placeholder="0"></label>
             <label class="field"><span>금액(원)</span><input type="number" id="inAmount" step="1" min="0" placeholder="0"></label>
           </div>
           <div class="pricebox" id="priceHint"></div>
@@ -323,6 +318,7 @@
         <button class="tab active" data-tab="F" type="button">🧊 냉동고 재고 <span class="cnt" id="cntF">0</span></button>
         <button class="tab" data-tab="C" type="button">❄️ 냉장고 재고 <span class="cnt" id="cntC">0</span></button>
         <button class="tab" data-tab="H" type="button">📋 입출고 내역 <span class="cnt" id="cntH">0</span></button>
+        <button class="tab" data-tab="V" type="button">📈 단가 변동 <span class="cnt" id="cntV">0</span></button>
       </div>
       <div class="toolbar">
         <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색">
@@ -338,6 +334,17 @@
         </select>
         <button class="btn ghost tiny hidden" id="btnResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+        <div class="xlmenu" id="xlMeat">
+          <button class="btn xlbtn" id="xlMeatBtn" type="button" aria-haspopup="true" aria-expanded="false" title="원료육 엑셀·CSV 모음">📊 엑셀 <span class="car">▾</span></button>
+          <div class="xlpop hidden" id="xlMeatPop" role="menu">
+            <button type="button" role="menuitem" id="btnCsvF" data-xl="csvF">⬇ 냉동고 재고 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvC" data-xl="csvC">⬇ 냉장고 재고 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvH" data-xl="csvH">⬇ 입출고 내역 CSV</button>
+            <div class="xlsep"></div>
+            <button type="button" role="menuitem" id="btnXlsSabang" data-xl="sabang" title="사방넷 풀필먼트 입고 업로드용 엑셀">📥 사방넷 입고 양식 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnXlsSales" data-xl="sales" title="경리나라 매출거래명세표 일괄등록용 엑셀">📥 경리나라 매출 양식 (.xlsx)</button>
+          </div>
+        </div>
       </div>
       <div class="rangebar" id="rangeBar">
         <button class="btn tiny period" id="btnPeriod" type="button">📅 기간선택</button>
@@ -347,6 +354,7 @@
         <span class="range-sum" id="rangeSum"></span>
       </div>
       <div class="note hidden" id="histNote"></div>
+      <div class="note hidden" id="chgNote">입고 이력이 2번 이상인 품목만 보입니다. <b>변동률</b>은 직전 입고단가 대비 최근 입고단가이고, 기본 정렬은 변동이 큰 순입니다.</div>
       <div class="table-wrap" id="tableWrap"></div>
     </section>
   </main>
@@ -359,6 +367,14 @@
         <button class="fmode" id="fgTypeOUT" data-ftype="OUT" type="button">📤 출고</button>
       </div>
       <form id="fgForm" autocomplete="off">
+        <div class="srcline" id="fgSrcWrap">
+          <span class="srclabel">입고구분</span>
+          <div class="seg" id="fgSrcSeg">
+            <button type="button" data-src="buy" class="active" title="거래처에서 사온 입고">🏢 외부매입</button>
+            <button type="button" data-src="self" title="원료육을 현장에 투입해 만든 자체 생산품">🏭 자체생산</button>
+          </div>
+        </div>
+        <div class="prodref hidden" id="fgProdRef"></div>
         <label class="field"><span>상품 <span class="req">*</span> <span class="tiny-hint">코드 또는 상품명</span></span>
           <div class="with-btn">
             <input id="fgQuery" list="dlFgNames" placeholder="예: 떡갈비 / W00100016">
@@ -390,28 +406,12 @@
         <p class="msg" id="fgMsg"></p>
         <button class="submit" id="btnFgSave" type="submit">입고 저장</button>
       </form>
-
-      <h2 class="panel-title">📄 엑셀 일괄 작업</h2>
-      <div class="btn-row">
-        <button class="btn" id="btnFgTpl" type="button">⬇ 입출고 양식</button>
-        <button class="btn" id="btnFgUpload" type="button">⬆ 입출고 엑셀</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn" id="btnFgPriceTpl" type="button">⬇ 단가표 양식</button>
-        <button class="btn" id="btnFgPriceUpload" type="button">⬆ 단가표 엑셀</button>
-      </div>
-      <div class="btn-row">
-        <button class="btn" id="btnFgStockXls" type="button">⬇ 완제품 재고 엑셀</button>
-        <button class="btn" id="btnFgLogXls" type="button">⬇ 입출고 이력 엑셀</button>
-      </div>
-      <p class="hint">양식을 먼저 받아 채우는 게 가장 안전합니다. .xlsx 는 물론 .csv 도 그대로 올릴 수 있습니다.</p>
     </aside>
 
     <section class="panel list-panel" id="fgListPanel">
       <div class="tabs" id="fgTabs">
         <button class="tab active" data-ftab="G" type="button">📦 재고현황 <span class="cnt" id="cntFg">0</span></button>
         <button class="tab" data-ftab="L" type="button">📋 입출고 이력 <span class="cnt" id="cntFgLog">0</span></button>
-        <button class="tab" data-ftab="P" type="button">💰 단가 관리 <span class="cnt" id="cntFgPrice">0</span></button>
       </div>
 
       <div class="catbar" id="fgCatBar">
@@ -436,6 +436,19 @@
         </select>
         <button class="btn ghost tiny hidden" id="btnFgResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnFgColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+        <div class="xlmenu" id="xlFg">
+          <button class="btn xlbtn" id="xlFgBtn" type="button" aria-haspopup="true" aria-expanded="false" title="완제품 엑셀 모음">📊 엑셀 <span class="car">▾</span></button>
+          <div class="xlpop hidden" id="xlFgPop" role="menu">
+            <button type="button" role="menuitem" id="btnFgStockXls" data-xl="fgStock">⬇ 완제품 재고 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnFgLogXls" data-xl="fgLog">⬇ 입출고 이력 (.xlsx)</button>
+            <div class="xlsep"></div>
+            <button type="button" role="menuitem" id="btnFgTpl" data-xl="fgTpl">⬇ 입출고 양식 받기</button>
+            <button type="button" role="menuitem" id="btnFgUpload" data-xl="fgUpload">⬆ 입출고 엑셀 올리기</button>
+            <div class="xlsep"></div>
+            <button type="button" role="menuitem" id="btnFgPriceTpl" data-xl="fgPriceTpl">⬇ 단가표 양식 받기</button>
+            <button type="button" role="menuitem" id="btnFgPriceUpload" data-xl="fgPriceUpload">⬆ 단가표 엑셀 올리기</button>
+          </div>
+        </div>
       </div>
 
       <div class="rangebar" id="fgRangeBar">
@@ -490,6 +503,7 @@
             <button class="btn ghost tiny" id="accReflectClose" type="button">닫기</button>
           </div>
         </div>
+        <p class="reflect-hint">🏭 <b>자체생산</b> 완제품 입고는 사내 생산 이동이라 매입 전표에서 <b>자동 제외</b>됩니다(원가·매입 이중집계 방지).</p>
         <div class="reflect-list" id="accReflectList"></div>
       </div>
     </section>
@@ -513,7 +527,13 @@
         </select>
         <button class="btn ghost tiny hidden" id="btnAccResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnAccColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
-        <button class="btn" id="btnAccXls" type="button">⬇ 엑셀</button>
+        <div class="xlmenu" id="xlAcc">
+          <button class="btn xlbtn" id="xlAccBtn" type="button" aria-haspopup="true" aria-expanded="false" title="회계 엑셀 모음">📊 엑셀 <span class="car">▾</span></button>
+          <div class="xlpop hidden" id="xlAccPop" role="menu">
+            <button type="button" role="menuitem" id="btnAccXls" data-xl="accXls">⬇ 현재 표 엑셀</button>
+            <button type="button" role="menuitem" id="btnAccUpload" data-xl="accUpload">⬆ 통장·카드 엑셀 올리기</button>
+          </div>
+        </div>
       </div>
 
       <div class="rangebar" id="accRangeBar">
