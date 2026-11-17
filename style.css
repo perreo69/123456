@@ -377,8 +377,10 @@ thead th.num .hdfilt{order:2}
 tbody tr.lot td:first-child .mj{background:#e9eefb;color:#33477a}
 
 /* ---------- 대분류 선택/툴바 ---------- */
-.sel{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#5b6779;white-space:nowrap}
-.sel select{padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:#fff;font-weight:700;color:#41506a}
+.filt-sel{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:#5b6779;white-space:nowrap}
+.filt-sel select{padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:#fff;font-weight:700;color:#41506a}
+/* 선택된 표 행은 절대 inline-flex 가 되면 안 된다 (예전 .sel 클래스 충돌 방지) */
+tbody tr.sel,tbody tr.on{display:table-row !important}
 .btn.tiny{padding:5px 9px;font-size:11.5px;border-radius:8px}
 .btn.tiny.primary{background:var(--blue);border-color:var(--blue);color:#fff}
 .btn.tiny.primary:hover{background:#1d4ed8}
@@ -594,4 +596,301 @@ th.actcol .colrz{right:1px}
 }
 @media (max-width:560px){
   .cal-day{padding:5px 0;font-size:12px}
+}
+
+/* ============================ v4: 3모드 통합 ERP ============================ */
+/* ---------- 상단 모드 전환 ---------- */
+.modesw{
+  display:flex;gap:6px;padding:8px 18px 0;max-width:1560px;margin:0 auto;width:100%;
+}
+.mswitch{
+  flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;
+  border:1px solid var(--line);background:#fff;color:#4a576d;font-weight:800;font-size:13.5px;
+  padding:10px 10px;border-radius:12px 12px 0 0;letter-spacing:-.2px;transition:.14s;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.mswitch:hover{background:#f7faff;color:var(--ink)}
+.mswitch.active{background:#1b2431;border-color:#1b2431;color:#fff;box-shadow:0 4px 14px rgba(16,24,40,.18)}
+.mswitch .cnt{font-size:11px;font-weight:800;background:#eef1f6;color:#46536b;border-radius:20px;padding:1px 7px}
+.mswitch.active .cnt{background:rgba(255,255,255,.18);color:#fff}
+.mswitch .cnt.neg{background:#fee4e2;color:#b42318}
+
+/* ---------- 대분류 필터 바 ---------- */
+.catbar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:9px 12px;
+  border-bottom:1px solid var(--line2);background:#fbfcff;
+}
+.catbar-title{font-size:11.5px;font-weight:750;color:#6b7789;margin-right:2px}
+.catchip{
+  display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;
+  border-radius:20px;padding:5px 10px;font-size:11.5px;font-weight:700;color:#4a576d;white-space:nowrap;
+}
+.catchip b{font-weight:800;color:#37435b}
+.catchip span{font-size:10.5px;color:#8a95a8;font-weight:700}
+.catchip:hover{border-color:#b9c8de;background:#f7faff}
+.catchip.active{background:#eef3ff;border-color:#a9c2f2;color:#1d4ed8}
+.catchip.active b,.catchip.active span{color:#1d4ed8}
+.catchip.add{border-style:dashed;color:#5b6779}
+.catchip-input{
+  border:1px solid #a9c2f2;border-radius:20px;padding:5px 10px;font-size:12px;width:120px;
+}
+
+/* ---------- 완제품 입력 폼 ---------- */
+.panel-title{margin:16px 10px 0;font-size:12.5px;font-weight:800;color:#37435b;letter-spacing:-.2px}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px 10px 0}
+.btn-row .btn{padding:8px 6px;font-size:12px;border-radius:9px;justify-content:center}
+.fgnewrow{padding:0 0 2px}
+.btn.fgnew{
+  width:100%;justify-content:center;border:1px dashed #b9c8de;background:#f8fbff;color:#1d4ed8;
+  font-weight:800;border-radius:10px;padding:8px;font-size:12.5px;
+}
+.btn.fgnew:hover{background:#eef4ff;border-color:#9db9f2}
+.tiny-hint{font-weight:600;color:#9aa6ba;font-size:10.5px}
+.code-cell{font-variant-numeric:tabular-nums;color:#41506a;font-size:12px;letter-spacing:.1px}
+.cat-tag{display:inline-block;font-size:11px;font-weight:750;padding:2px 7px;border-radius:6px;background:#eef1f6;color:#41506a;white-space:nowrap}
+tr.fgrow{cursor:pointer}
+tr.fgrow:hover td{background:#f4f9ff}
+tr.fgrow.undone td{opacity:.5}
+tr.accrow:hover td{background:#f7faff}
+td.zero,.num.zero{color:#b0b8c6}
+td.pos{color:#0f766e}
+td.neg,.neg{color:#b42318}
+.act.in{color:#0f766e;border-color:#c7e9dc;background:#f6fdfa}
+.act.out{color:#b45309;border-color:#f8d8c2;background:#fffaf6}
+
+/* ---------- 회계 ---------- */
+.accwrap{display:flex;flex-direction:column;gap:12px;padding:12px 18px 18px;max-width:1560px;margin:0 auto;width:100%}
+.acc-quick{padding:12px 14px 14px}
+.acc-quick-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.acc-quick-head h2{margin:0;font-size:14px;font-weight:800;letter-spacing:-.3px}
+.acc-quick-head .hint{margin:0}
+.accbtn-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:7px}
+.accbtn{
+  border:1px solid var(--line);background:#fff;border-radius:11px;padding:11px 8px;font-size:12.5px;font-weight:800;
+  color:#37435b;white-space:nowrap;transition:.13s;
+}
+.accbtn:hover{background:#f7faff;border-color:#b9c8de}
+.accbtn.sale{color:#1d4ed8;border-color:#c9d9f7;background:#f5f9ff}
+.accbtn.buy{color:#b45309;border-color:#f5d8bd;background:#fffaf4}
+.accbtn.payin{color:#0f766e;border-color:#c7e9dc;background:#f6fdfa}
+.accbtn.payout{color:#a21caf;border-color:#eccdf1;background:#fdf7ff}
+.accbtn.exp{color:#41506a}
+.accbtn.refl{background:#1b2431;border-color:#1b2431;color:#fff}
+.accbtn.refl:hover{background:#2a3648}
+.reflectbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#fbfcff;overflow:hidden}
+.reflect-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line2);background:#f4f8ff}
+.reflect-opts{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.reflect-list{max-height:320px;overflow:auto}
+.reflect-row{
+  display:grid;grid-template-columns:26px 96px 128px minmax(120px,1fr) minmax(140px,1.4fr) 110px;
+  gap:8px;align-items:center;padding:6px 12px;border-bottom:1px solid #f1f4f9;font-size:12px;color:#37435b;
+}
+.reflect-row.head{background:#f7f9fc;font-weight:800;color:#5f6b80;font-size:11.5px;position:sticky;top:0;z-index:1}
+.reflect-row:not(.head):hover{background:#f2f7ff}
+.reflect-row .num{text-align:right;font-variant-numeric:tabular-nums}
+.reflect-row .ellip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rempty{padding:12px;font-size:12px;color:#7b8798}
+.setuptip{margin:0;padding:10px 12px;background:#fff8e8;border-bottom:1px solid #f4e2b8;color:#8a5a09;font-size:12px;line-height:1.55}
+.src-tag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:5px;background:#eef1f6;color:#4a576d}
+.src-tag.meat{background:#e9eefb;color:#33477a}
+.src-tag.fp{background:#eafaf2;color:#0f766e}
+.src-tag.direct{background:#f3f0ff;color:#5b21b6}
+.tax-tag{display:inline-block;font-size:10.5px;font-weight:800;padding:1px 6px;border-radius:5px;background:#eef1f6;color:#4a576d}
+.tax-tag.tax{background:#fff1e8;color:#b45309}
+.docbtn{border:1px solid var(--line);background:#fff;border-radius:7px;padding:2px 7px;font-size:11px;font-weight:800;color:#0f766e}
+.docbtn.none{color:#b42318;border-color:#f3c9c4;background:#fff8f7}
+.docbtn:hover{border-color:#b9c8de;background:#f7faff}
+
+/* ---------- 업로드 미리보기 ---------- */
+.modal-card.wide{max-width:560px}
+.upload-preview{margin-top:10px;border:1px solid var(--line);border-radius:10px;overflow:hidden;max-height:240px;overflow-y:auto}
+.usum{padding:8px 10px;background:#f4f8ff;font-size:11.5px;font-weight:800;color:#1d4ed8;border-bottom:1px solid var(--line2)}
+.urow{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;font-size:12px;border-bottom:1px solid #f2f5fa;color:#37435b}
+.urow b{font-variant-numeric:tabular-nums}
+.uerr{color:#b42318;background:#fff8f7}
+.uerr span{flex:1 1 auto;min-width:0}
+.upload-preview:empty{display:none}
+
+/* ---------- 모바일 퀵 바 (기본은 숨김) ---------- */
+.quickbar{display:none}
+
+/* ============================ v4: 모바일 (<=768px) ============================ */
+@media (max-width:768px){
+  html,body{-webkit-text-size-adjust:100%}
+  /* 손가락으로 누르기 좋은 크기 + iOS 자동 확대 방지 */
+  input,select,textarea,button{font-size:16px}
+  .field>span{font-size:12px}
+  .field input,.field select{padding:11px 11px;border-radius:10px}
+  .seg button{padding:10px 6px;font-size:14px;border-radius:9px}
+  .btn,.act,.cancel,.docbtn{padding:9px 11px;font-size:13.5px;border-radius:9px}
+  .btn.tiny{padding:8px 10px;font-size:13px}
+  .btn-row .btn{padding:11px 8px;font-size:14px}
+  .accbtn{padding:13px 8px;font-size:14px}
+  .hdsort{font-size:12px;padding:10px 2px 10px 8px}
+  .hdfilt{padding:0 8px 0 3px}
+  .pr{padding:7px 11px;font-size:13px}
+  .rng input,.rng select{padding:8px 8px;font-size:15px}
+
+  /* 상단 모드 전환: 폰 폭을 꽉 채우고 터치하기 쉽게 */
+  .modesw{padding:8px 10px 0;gap:4px}
+  .mswitch{flex:1 1 0;min-height:46px;font-size:12.5px;padding:8px 4px;border-radius:11px;gap:3px}
+  .mswitch .cnt{font-size:10px;padding:1px 5px}
+  .app{max-width:none;padding:0}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:8px 10px 10px}
+  .kpi{padding:9px 10px}
+  .kpi-value{font-size:18px}
+  .kpi-label{font-size:11px}
+  .kpi-sub{font-size:10px}
+
+  .layout{padding:0 10px 78px}
+  .form-panel{position:static;max-height:none;border-radius:13px}
+  .panel{border-radius:13px}
+  .tabs{padding:8px 8px 0;gap:0}
+  .tab{padding:10px 9px;font-size:13px}
+  .tab .cnt{font-size:10px}
+  .toolbar{padding:9px 10px;gap:7px}
+  .toolbar input[type=search]{flex:1 1 100%;width:100%;padding:11px 11px}
+  .catbar{padding:9px 10px;gap:5px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .catbar::-webkit-scrollbar{display:none}
+  .catchip{padding:7px 11px;font-size:12.5px;flex:0 0 auto}
+  .rangebar{padding:9px 10px;gap:6px}
+  .rangebar .rng{flex:1 1 100%;justify-content:space-between}
+  .rangebar .rng input{flex:1 1 0;min-width:0;width:100%}
+  .rangebox{flex:1 1 auto;text-align:center}
+  .range-sum{flex:1 1 100%;text-align:right;font-size:11px}
+  .note{font-size:11px;padding:7px 10px}
+  .table-wrap{max-height:none;border-radius:0}
+  .acts{gap:4px}
+  tr.group td{font-size:11.5px}
+  .accwrap{padding:10px 10px 84px}
+  .acc-quick{padding:11px}
+  .acc-quick-head{gap:6px}
+  .acc-quick-head .hint{display:none}
+  .accbtn-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .reflect-row{grid-template-columns:24px 84px 106px minmax(90px,1fr);font-size:11.5px}
+  .reflect-row .num{display:none}
+  .reflect-row.head span:nth-child(6){display:none}
+  .reflect-list{max-height:52vh}
+
+  /* 모바일 퀵 바: 한 손으로 입력↔목록 전환 */
+  .quickbar{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;position:fixed;left:0;right:0;bottom:0;z-index:60;
+    padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.94);border-top:1px solid var(--line);
+    backdrop-filter:blur(6px);box-shadow:0 -6px 18px rgba(16,24,40,.08);
+  }
+  .qb{
+    border:1px solid var(--line);background:#f8fafc;color:#37435b;border-radius:12px;
+    padding:12px 8px;font-size:14px;font-weight:800;min-height:46px;
+  }
+  .qb.active{background:#1b2431;border-color:#1b2431;color:#fff}
+  /* 모달: 화면을 가득 쓰되 여백을 남긴다 */
+  .modal{padding:10px;align-items:flex-end}
+  .modal-card{max-width:100%;max-height:92vh;border-radius:16px 16px 12px 12px;padding:15px 14px 14px}
+  .modal-card .grid2{grid-template-columns:1fr;gap:8px}
+  .modal-actions{grid-template-columns:1fr 1.4fr}
+  .modal-actions .btn,.modal-actions .submit{padding:12px 10px;font-size:15px}
+  .modal-x{width:34px;height:34px;font-size:15px}
+  .modal-head h2{font-size:16px}
+  .modal-sub{font-size:12px}
+
+  /* 2개월 달력: 폰에서는 위/아래 1열로 (찌그러지지 않게) */
+  .rngcard{max-width:100%;max-height:94vh;overflow:auto;padding:13px 12px}
+  .rm-top{flex-wrap:wrap;gap:6px}
+  .rm-title{font-size:14px}
+  .rm-lbl{display:none}
+  .rm-year{margin-left:auto}
+  .rm-quick{grid-template-columns:repeat(4,1fr);gap:4px}
+  .rm-quick button{padding:9px 2px;font-size:12px}
+  .rm-quick.months{grid-template-columns:repeat(4,1fr)}
+  .rm-cals{grid-template-columns:1fr;gap:10px}
+  .rm-tilde{display:none}
+  .cal-day{padding:9px 0;font-size:13.5px;border-radius:6px}
+  .cal-nav{width:34px;height:34px}
+  .cal-y,.cal-m{padding:7px 6px;font-size:14px}
+  .rm-actions{position:sticky;bottom:0;background:#fff;padding-bottom:2px}
+  .rm-actions .submit,.rm-actions .btn{padding:12px 10px;font-size:15px}
+  .fpop.sheet{border-radius:14px 14px 0 0}
+  .fpop .fpop-body input[type=search]{padding:11px}
+  .fpop-foot .btn{padding:10px 8px;font-size:13px}
+  .login-card{max-width:100%}
+  .login-brand h1{font-size:17px}
+}
+
+@media (max-width:390px){
+  .mswitch{font-size:11.5px;letter-spacing:-.4px}
+  .mswitch .cnt{display:none}
+  .kpi-value{font-size:17px}
+  .accbtn-grid{grid-template-columns:1fr 1fr}
+  .catchip{font-size:12px;padding:6px 9px}
+  .tab{font-size:12px;padding:9px 7px}
+  .tab .cnt{display:none}
+}
+/* 거래처 원장: 수금·지급 내역 펼치기 */
+tr.subrow td{background:#f8faff;padding:0}
+.sublist{padding:7px 12px 9px}
+.subhead{font-size:11.5px;font-weight:800;color:#4a576d;margin-bottom:4px}
+.payrow{display:grid;grid-template-columns:96px 46px 120px 1fr auto;gap:8px;align-items:center;padding:4px 0;font-size:12px;border-top:1px dashed #e6ebf3}
+.payrow.empty{display:block;color:#8a95a8;border:0}
+.payrow b{font-variant-numeric:tabular-nums;text-align:right}
+@media (max-width:768px){
+  .payrow{grid-template-columns:82px 40px 1fr auto;font-size:12px}
+  .payrow .ttag{display:none}
+}
+
+/* ============================ 표 겹침 방지 (전 모드 공통) ============================ */
+/* 1) 칸 내용이 옆 칸으로 넘쳐 작업 열 아래로 들어가지 않게 자른다 */
+.table-wrap tbody td{overflow:hidden}
+.table-wrap tbody td .acts{overflow:visible}
+/* 2) 작업 열은 오른쪽에 고정하되, 항상 불투명 배경 + 경계선 + 그림자로 확실히 분리 */
+.table-wrap table.fixed thead th:last-child,
+.table-wrap table.fixed tbody tr td:last-child{
+  position:sticky;right:0;z-index:4;background:#fff;
+  border-left:1px solid var(--line);
+  box-shadow:-7px 0 8px -7px rgba(16,24,40,.22);
+}
+.table-wrap table.fixed thead th:last-child{background:#f7f9fc;z-index:7}
+.table-wrap table.fixed tbody tr:hover td:last-child{background:#f6f9ff}
+.table-wrap table.fixed tbody tr.fgrow:hover td:last-child{background:#f4f9ff}
+.table-wrap table.fixed tbody tr.accrow:hover td:last-child{background:#f7faff}
+.table-wrap table.fixed tbody tr.sel td:last-child{background:#eef4ff}
+.table-wrap table.fixed tbody tr.undone td:last-child{background:#fff}
+.table-wrap table.fixed tbody tr.subrow td:last-child{position:static;background:#f8faff;border:0;box-shadow:none}
+/* 3) 숫자 칸은 폭을 넘으면 말줄임(툴팁으로 전체 값 확인) */
+.table-wrap tbody td.num{text-overflow:ellipsis}
+/* 4) 선택 행이 다른 표시(테두리)로도 보이게 */
+tbody tr.lot.sel>td{background:#eef4ff}
+@media (max-width:768px){
+  .table-wrap tbody td{padding:8px 8px}
+  .table-wrap table.fixed tbody tr td:last-child{box-shadow:-5px 0 6px -5px rgba(16,24,40,.2)}
+}
+
+/* 작업 열은 표의 마지막 열로 자연스럽게 둔다 (sticky 로 숫자·버튼이 겹치는 문제 제거) */
+#tableWrap table.fixed thead th:last-child,
+#tableWrap table.fixed tbody tr td:last-child,
+#tableWrap th.actcol,
+.table-wrap table.fixed thead th:last-child,
+.table-wrap table.fixed tbody tr td:last-child,
+.table-wrap th.actcol{
+  position:static;right:auto;left:auto;box-shadow:none;
+  border-left:1px solid var(--line);
+}
+
+/* ---------- v4 보정 ---------- */
+.kpis.acc{grid-template-columns:repeat(6,minmax(0,1fr))}
+.kpis.acc .kpi-value{font-size:20px}
+.catbar-title{flex:0 0 auto;white-space:nowrap}
+@media (max-width:1080px){ .kpis.acc{grid-template-columns:repeat(3,minmax(0,1fr))} }
+@media (max-width:768px){
+  .kpis.acc{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis.acc .kpi-value{font-size:17px}
+  /* 폰에서 표가 페이지 전체를 길게 밀지 않도록 표 안에서 스크롤 */
+  .table-wrap{max-height:66vh;overflow:auto;-webkit-overflow-scrolling:touch}
+  .list-panel .table-wrap{max-height:66vh}
+}
+@media (max-width:768px){
+  /* 탭은 줄바꿈 대신 한 줄에서 좌우로 밀어 보게 */
+  .tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{flex:0 0 auto}
 }

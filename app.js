@@ -163,16 +163,16 @@ var ERP = (function () {
   /* ---------- 표 컬럼 정의 (머리글 · 정렬 · 필터가 모두 여기서 나온다) ---------- */
   var LOT_COLS = [
     { k: 'major', t: '대분류', w: 86 },
-    { k: 'mt', t: '소분류', w: 76 },
-    { k: 'n', t: '제품명', w: 150 },
-    { k: 'o', t: '원산지', w: 74 },
+    { k: 'mt', t: '소분류', w: 96 },
+    { k: 'n', t: '제품명', w: 156 },
+    { k: 'o', t: '원산지', w: 94 },
     { k: 'v', t: '업체명', w: 104 },
-    { k: 'b', t: '브랜드', w: 74 },
-    { k: 'i', t: '입고일', w: 86 },
-    { k: 'e', t: '소비기한', w: 98 },
-    { k: 'qty', t: '재고(kg)', w: 90, num: true },
-    { k: 'price', t: '입고단가(원/kg)', w: 96, num: true },
-    { k: 'amt', t: '재고금액(원)', w: 94, num: true }
+    { k: 'b', t: '브랜드', w: 84 },
+    { k: 'i', t: '입고일', w: 100 },
+    { k: 'e', t: '소비기한', w: 112 },
+    { k: 'qty', t: '재고(kg)', w: 104, num: true },
+    { k: 'price', t: '입고단가(원/kg)', w: 118, num: true },
+    { k: 'amt', t: '재고금액(원)', w: 118, num: true }
   ];
   var LOG_COLS = [
     { k: 'd', t: '날짜', w: 92 },
@@ -1041,6 +1041,1046 @@ var ERP = (function () {
     return null;
   }
 
+  /* ==========================================================================
+     v4 · 완제품 ERP (fp_products · fp_logs)
+     ========================================================================== */
+  var FP_CATS = ['완제품', '소스', '부재료', '향신료', '야채류'];
+  var FP_UNITS = ['개', '팩', '박스', '봉', '병', 'kg', 'g', 'L', 'ml'];
+  function r3(x) { var v = Math.round(Number(x) * 1000) / 1000; return v === 0 ? 0 : v; }
+  function fpTypeKey(t) { return String(t === undefined || t === null ? '' : t).toUpperCase() === 'OUT' ? 'OUT' : 'IN'; }
+  function fpTypeName(t) { return fpTypeKey(t) === 'OUT' ? '출고' : '입고'; }
+
+  function fpProductFrom(r) {
+    var q = r3(r.stock);
+    var ip = Number(r.in_price) || 0, op = Number(r.out_price) || 0;
+    return {
+      code: nz(r.code), cat: nz(r.category) || '완제품', n: nz(r.name),
+      spec: nz(r.spec), unit: nz(r.unit) || '개',
+      stock: q, inp: r2(ip), outp: r2(op), amt: Math.round(q * ip),
+      e: nz(r.expiry), sup: nz(r.supplier), bc: nz(r.barcode),
+      active: r.active !== false
+    };
+  }
+  function fpLogFrom(r) {
+    return {
+      id: Number(r.id), d: nz(r.tx_date), t: fpTypeKey(r.tx_type),
+      code: nz(r.code), n: nz(r.name), cat: nz(r.category),
+      spec: nz(r.spec), unit: nz(r.unit) || '개', q: r3(r.qty),
+      inp: r2(r.in_price), outp: r2(r.out_price), amt: r2(r.amount),
+      e: nz(r.expiry), p: nz(r.partner), note: nz(r.note), src: nz(r.source) || 'manual',
+      worker: nz(r.worker_name), email: nz(r.worker_email), undone: r.undone === true,
+      at: nz(r.created_at)
+    };
+  }
+  function fpStateFrom(prodRows, logRows) {
+    var fps = [], fpLogs = [], i;
+    prodRows = prodRows || []; logRows = logRows || [];
+    for (i = 0; i < prodRows.length; i++) fps.push(fpProductFrom(prodRows[i]));
+    for (i = 0; i < logRows.length; i++) fpLogs.push(fpLogFrom(logRows[i]));
+    return { fps: fps, fpLogs: fpLogs };
+  }
+
+  function fpTotals(fps) {
+    var stock = 0, amt = 0, hold = 0, noPrice = 0, total = 0, active = 0, i, p;
+    fps = fps || [];
+    for (i = 0; i < fps.length; i++) {
+      p = fps[i];
+      total++;
+      if (p.active) active++;
+      if (p.stock > 0.0004) {
+        hold++;
+        stock += p.stock;
+        amt += p.stock * p.inp;
+        if (p.inp <= 0) noPrice++;
+      }
+    }
+    return { stock: r3(stock), amount: Math.round(amt), hold: hold, noPrice: noPrice,
+      total: total, active: active, priced: total - noPrice };
+  }
+  function fpToday(fps, fpLogs, d0) {
+    var cnt = 0, amt = 0, i, g;
+    for (i = 0; i < (fpLogs || []).length; i++) {
+      g = fpLogs[i];
+      if (g.d !== d0 || g.undone) continue;
+      cnt++;
+      amt += g.amt;
+    }
+    return { cnt: cnt, amount: Math.round(amt) };
+  }
+
+  /* ---------- 표 열 ---------- */
+  var FP_COLS = {
+    G: [
+      { k: 'cat', t: '대분류', w: 86 },
+      { k: 'code', t: '상품코드', w: 110 },
+      { k: 'n', t: '상품명', w: 220 },
+      { k: 'spec', t: '규격', w: 120 },
+      { k: 'unit', t: '단위', w: 58 },
+      { k: 'stock', t: '재고', w: 82, num: true },
+      { k: 'inp', t: '입고단가', w: 96, num: true },
+      { k: 'outp', t: '출고단가', w: 96, num: true },
+      { k: 'amt', t: '재고금액', w: 112, num: true },
+      { k: 'e', t: '유통기한', w: 108 }
+    ],
+    L: [
+      { k: 'd', t: '날짜', w: 100 },
+      { k: 't', t: '구분', w: 62 },
+      { k: 'code', t: '상품코드', w: 108 },
+      { k: 'n', t: '상품명', w: 200 },
+      { k: 'spec', t: '규격', w: 110 },
+      { k: 'unit', t: '단위', w: 58 },
+      { k: 'q', t: '수량', w: 78, num: true },
+      { k: 'inp', t: '입고단가', w: 94, num: true },
+      { k: 'outp', t: '출고단가', w: 94, num: true },
+      { k: 'amt', t: '금액', w: 108, num: true },
+      { k: 'e', t: '소비기한', w: 104 },
+      { k: 'p', t: '거래처 · 비고', w: 170 },
+      { k: 'worker', t: '작업자', w: 96 }
+    ],
+    P: [
+      { k: 'cat', t: '대분류', w: 86 },
+      { k: 'code', t: '상품코드', w: 110 },
+      { k: 'n', t: '상품명', w: 220 },
+      { k: 'spec', t: '규격', w: 120 },
+      { k: 'unit', t: '단위', w: 58 },
+      { k: 'stock', t: '재고', w: 82, num: true },
+      { k: 'inp', t: '입고단가', w: 96, num: true },
+      { k: 'outp', t: '출고단가', w: 96, num: true },
+      { k: 'amt', t: '재고금액', w: 112, num: true }
+    ]
+  };
+  function fpCols(tab) { return FP_COLS[tab] || FP_COLS.G; }
+
+  function fpCell(p, k) {
+    if (!p) return '';
+    if (k === 'cat') return s(p.cat);
+    if (k === 'code') return s(p.code);
+    if (k === 'n') return s(p.n);
+    if (k === 'spec') return s(p.spec);
+    if (k === 'unit') return s(p.unit);
+    if (k === 'stock') return r3(p.stock);
+    if (k === 'inp') return p.inp > 0 ? String(p.inp) : '';
+    if (k === 'outp') return p.outp > 0 ? String(p.outp) : '';
+    if (k === 'amt') return p.inp > 0 ? String(p.amt) : '';
+    if (k === 'e') return s(p.e);
+    if (k === 'sup') return s(p.sup);
+    if (k === 'bc') return s(p.bc);
+    return '';
+  }
+  function fpLogCell(g, k) {
+    if (!g) return '';
+    if (k === 'd') return s(g.d);
+    if (k === 't') return fpTypeName(g.t);
+    if (k === 'code') return s(g.code);
+    if (k === 'n') return s(g.n);
+    if (k === 'spec') return s(g.spec);
+    if (k === 'unit') return s(g.unit);
+    if (k === 'q') return r3(g.q);
+    if (k === 'inp') return g.t === 'IN' && g.inp > 0 ? String(g.inp) : '';
+    if (k === 'outp') return g.t === 'OUT' && g.outp > 0 ? String(g.outp) : '';
+    if (k === 'amt') return g.amt > 0 ? String(g.amt) : '';
+    if (k === 'e') return s(g.e);
+    if (k === 'p') return s(g.p) + (g.note ? ' · ' + s(g.note) : '');
+    if (k === 'worker') return s(g.worker);
+    return '';
+  }
+
+  function fpMatch(p, q) {
+    if (!q) return true;
+    var hay = [p.code, p.n, p.cat, p.spec, p.unit, p.sup, p.bc].join(' ').toLowerCase();
+    return hay.indexOf(q) >= 0;
+  }
+  function fpMoveCodes(fpLogs, from, to) {
+    var m = {}, i, g;
+    if (!from && !to) return null;
+    for (i = 0; i < (fpLogs || []).length; i++) {
+      g = fpLogs[i];
+      if (g.undone) continue;
+      if (from && g.d < from) continue;
+      if (to && g.d > to) continue;
+      m[g.code] = 1;
+    }
+    return m;
+  }
+  function fpFilteredProducts(fps, fpLogs, o) {
+    o = o || {};
+    var q = s(o.q).toLowerCase(), out = [], i, p, moved = fpMoveCodes(fpLogs, o.from, o.to);
+    for (i = 0; i < (fps || []).length; i++) {
+      p = fps[i];
+      if (o.cat && o.cat !== 'all' && p.cat !== o.cat) continue;
+      if (o.activeOnly && !p.active) continue;
+      if (!o.showZero && !(p.stock > 0.0004)) continue;
+      if (moved && !moved[p.code]) continue;
+      if (!fpMatch(p, q)) continue;
+      out.push(p);
+    }
+    var key = o.sortKey || '', dir = o.sortDir === -1 ? -1 : 1;
+    out.sort(function (a, b) {
+      if (key) {
+        var av = fpCell(a, key), bv = fpCell(b, key);
+        var an = Number(av), bn = Number(bv);
+        var c = (av !== '' && bv !== '' && isFinite(an) && isFinite(bn)) ? (an - bn) : String(av).localeCompare(String(bv), 'ko');
+        if (c !== 0) return c * dir;
+      }
+      if (a.cat !== b.cat) return a.cat < b.cat ? -1 : 1;
+      return String(a.n).localeCompare(String(b.n), 'ko');
+    });
+    return out;
+  }
+  function fpFilteredLogs(fpLogs, o) {
+    o = o || {};
+    var q = s(o.q).toLowerCase(), out = [], i, g, cols = o.cols || {};
+    for (i = 0; i < (fpLogs || []).length; i++) {
+      g = fpLogs[i];
+      if (o.type && o.type !== 'all' && g.t !== o.type) continue;
+      if (o.cat && o.cat !== 'all' && g.cat !== o.cat) continue;
+      if (o.from && g.d < o.from) continue;
+      if (o.to && g.d > o.to) continue;
+      if (q) {
+        var hay = [g.d, fpTypeName(g.t), g.code, g.n, g.cat, g.spec, g.p, g.note, g.worker].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) continue;
+      }
+      var skip = false;
+      for (var k in cols) {
+        if (!Object.prototype.hasOwnProperty.call(cols, k)) continue;
+        if (cols[k] && cols[k].length && cols[k].indexOf(String(fpLogCell(g, k))) < 0) { skip = true; break; }
+      }
+      if (skip) continue;
+      out.push(g);
+    }
+    var key = o.sortKey || 'd', dir = o.sortKey ? (o.sortDir === -1 ? -1 : 1) : -1;
+    out.sort(function (a, b) {
+      var av = fpLogCell(a, key), bv = fpLogCell(b, key);
+      var an = Number(av), bn = Number(bv);
+      var c = (av !== '' && bv !== '' && isFinite(an) && isFinite(bn)) ? (an - bn) : String(av).localeCompare(String(bv), 'ko');
+      if (c !== 0) return c * dir;
+      return (b.id || 0) - (a.id || 0);
+    });
+    return out;
+  }
+  function fpProductOf(fps, code) {
+    for (var i = 0; i < (fps || []).length; i++) if (fps[i].code === code) return fps[i];
+    return null;
+  }
+  /* 상품명·코드로 찾기 (정확 → 부분, 하나만 남으면 그 상품) */
+  function fpFind(fps, q) {
+    q = s(q);
+    if (!q) return null;
+    var i, p, qu = q.toUpperCase(), hits = [];
+    for (i = 0; i < (fps || []).length; i++) if (String(fps[i].code).toUpperCase() === qu) return fps[i];
+    for (i = 0; i < (fps || []).length; i++) if (fps[i].n === q) return fps[i];
+    var ql = q.toLowerCase();
+    for (i = 0; i < (fps || []).length; i++) {
+      p = fps[i];
+      if ((p.n + ' ' + p.spec).toLowerCase().indexOf(ql) >= 0 || String(p.code).toLowerCase().indexOf(ql) >= 0) hits.push(p);
+    }
+    if (hits.length === 1) return hits[0];
+    for (i = 0; i < hits.length; i++) if (hits[i].n.toLowerCase() === ql) return hits[i];
+    return null;
+  }
+  /* 새 상품코드 — 기존 코드가 W00100016 형식이면 다음 번호, 아니면 P0001 형식 */
+  function fpNextCode(fps) {
+    var i, m, max = 0, allW = true, p;
+    for (i = 0; i < (fps || []).length; i++) {
+      p = fps[i];
+      m = /^W(\d{8,})$/.exec(String(p.code).toUpperCase());
+      if (!m) { allW = false; continue; }
+      if (Number(m[1]) > max) max = Number(m[1]);
+    }
+    if (!(fps || []).length || allW) {
+      var next = max ? max + 1 : 1;
+      var pad = '00000000' + next;
+      return 'W' + pad.slice(-8);
+    }
+    var n = 0;
+    for (i = 0; i < fps.length; i++) {
+      m = /^P(\d+)$/.exec(String(fps[i].code).toUpperCase());
+      if (m && Number(m[1]) > n) n = Number(m[1]);
+    }
+    var t = '0000' + (n + 1);
+    return 'P' + t.slice(-4);
+  }
+
+  /* ---------- 완제품 엑셀 양식 ---------- */
+  var FP_TX_HEAD = ['날짜', '구분', '상품코드', '상품명', '규격', '단위', '수량', '입고단가', '출고단가', '소비기한', '거래처', '비고'];
+  var FP_PRICE_HEAD = ['상품코드', '상품명', '규격', '단위', '입고단가', '출고단가', '현재고'];
+  function fpTxRows(fps, opt) {
+    opt = opt || {};
+    var rows = [FP_TX_HEAD.slice()];
+    rows.push([s(opt.today) || ymd(new Date()), '입고', s(opt.sampleCode) || 'W00000001', s(opt.sampleName) || '예시 상품 — 지우고 쓰세요',
+      '500g*2', '팩', 10, 3000, '', '', '삼양사', '예시 줄입니다']);
+    rows.push([s(opt.today) || ymd(new Date()), '출고', s(opt.sampleCode) || 'W00000001', '', '', '', 2, '', 4500, '', '미트박스', '상품명은 비워도 코드로 찾습니다']);
+    return rows;
+  }
+  function fpPriceRows(fps) {
+    var rows = [FP_PRICE_HEAD.slice()], list = (fps || []).slice().sort(function (a, b) { return a.code < b.code ? -1 : 1; }), i, p;
+    for (i = 0; i < list.length; i++) {
+      p = list[i];
+      rows.push([p.code, p.n, p.spec, p.unit, p.inp > 0 ? p.inp : '', p.outp > 0 ? p.outp : '', p.stock]);
+    }
+    return rows;
+  }
+  function fpStockRows(list) {
+    var rows = [['대분류', '상품코드', '상품명', '규격', '단위', '재고', '입고단가', '출고단가', '재고금액', '유통기한', '매입처']];
+    var q = 0, a = 0, i, p;
+    for (i = 0; i < (list || []).length; i++) {
+      p = list[i];
+      q += p.stock; a += p.amt;
+      rows.push([p.cat, p.code, p.n, p.spec, p.unit, p.stock, p.inp, p.outp, p.amt, p.e, p.sup]);
+    }
+    rows.push(['합계', '', '', '', '', r3(q), '', '', Math.round(a), '', '']);
+    return rows;
+  }
+  function fpLogRows(list) {
+    var rows = [['날짜', '구분', '상품코드', '상품명', '규격', '단위', '수량', '입고단가', '출고단가', '금액', '소비기한', '거래처', '비고', '작업자', '취소']];
+    var i, g;
+    for (i = 0; i < (list || []).length; i++) {
+      g = list[i];
+      rows.push([g.d, fpTypeName(g.t), g.code, g.n, g.spec, g.unit, g.q, g.inp || '', g.outp || '', g.amt || '',
+        g.e, g.p, g.note, g.worker, g.undone ? '취소됨' : '']);
+    }
+    return rows;
+  }
+
+  /* ==========================================================================
+     v4 · 회계 ERP (acc_vouchers · acc_payments · acc_expenses)
+     ========================================================================== */
+  var VAT_RATE = 0.1;
+  var ACC_TYPE = { sale: '매출', purchase: '매입' };
+  var ACC_TAX = { tax: '과세', free: '면세' };
+  var ACC_DOC = { none: '미발행', issued: '발행', received: '수령' };
+  var ACC_DOC_SHORT = { none: '미발행', issued: '발행완료', received: '수령완료' };
+  var ACC_PAY = { 'in': '수금', out: '지급' };
+  var ACC_METHODS = ['계좌이체', '카드', '현금', '어음', '기타'];
+  var ACC_EXPENSE_CATS = ['택배비', '부자재', '전기세', '수도·가스', '임대료', '급여', '식대', '차량유지비', '수수료', '통신비', '세금·공과', '기타'];
+  var ACC_INCOME_CATS = ['이자수익', '보조금', '기타수입', '기타'];
+
+  function accTypeName(t) { return ACC_TYPE[t] || '매출'; }
+  function accDocName(t, v) {
+    if (t === 'purchase') return v === 'received' ? '수령완료' : '미수령';
+    return v === 'issued' ? '발행완료' : '미발행';
+  }
+  /* 부가세 계산 — 과세면 10%, 금액이 부가세 포함이면 거꾸로 계산 */
+  function accVat(amount, taxType, included) {
+    var a = r2(amount), supply, vat;
+    if (taxType === 'free') return { supply: a, vat: 0, total: a };
+    if (included) {
+      supply = Math.round(a / 1.1 * 100) / 100;
+      vat = r2(a - supply);
+      return { supply: supply, vat: vat, total: a };
+    }
+    vat = Math.round(a * VAT_RATE * 100) / 100;
+    return { supply: a, vat: vat, total: r2(a + vat) };
+  }
+  function accVoucherFrom(r) {
+    return {
+      id: Number(r.id), d: nz(r.v_date), t: r.v_type === 'purchase' ? 'purchase' : 'sale',
+      partner: nz(r.partner), tax: r.tax_type === 'free' ? 'free' : 'tax',
+      supply: r2(r.supply_amount), vat: r2(r.vat_amount), total: r2(r.total_amount),
+      doc: nz(r.tax_status) || 'none', note: nz(r.note), src: nz(r.source) || 'manual',
+      srcKind: nz(r.source_kind), srcId: r.source_id === null || r.source_id === undefined ? null : Number(r.source_id),
+      worker: nz(r.worker_name), at: nz(r.created_at)
+    };
+  }
+  function accPaymentFrom(r) {
+    return {
+      id: Number(r.id), d: nz(r.p_date), partner: nz(r.partner),
+      t: r.p_type === 'out' ? 'out' : 'in', amount: r2(r.amount),
+      method: nz(r.method), note: nz(r.note), worker: nz(r.worker_name), at: nz(r.created_at)
+    };
+  }
+  function accExpenseFrom(r) {
+    return {
+      id: Number(r.id), d: nz(r.e_date), t: r.e_type === 'income' ? 'income' : 'expense',
+      cat: nz(r.category) || '기타', partner: nz(r.partner),
+      supply: r2(r.supply_amount), vat: r2(r.vat_amount), amount: r2(r.amount),
+      tax: r.tax_type === 'tax' ? 'tax' : 'free', method: nz(r.method), note: nz(r.note),
+      worker: nz(r.worker_name), at: nz(r.created_at)
+    };
+  }
+  function accStateFrom(vRows, pRows, eRows) {
+    var vouchers = [], payments = [], expenses = [], i;
+    for (i = 0; i < (vRows || []).length; i++) vouchers.push(accVoucherFrom(vRows[i]));
+    for (i = 0; i < (pRows || []).length; i++) payments.push(accPaymentFrom(pRows[i]));
+    for (i = 0; i < (eRows || []).length; i++) expenses.push(accExpenseFrom(eRows[i]));
+    return { vouchers: vouchers, payments: payments, expenses: expenses };
+  }
+
+  function inPeriod(d, from, to) {
+    d = s(d);
+    if (!d) return true;
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  }
+
+  /* 거래처별 원장 — 매출·수금·미수 / 매입·지급·미지급 */
+  function accLedger(acc, from, to, q) {
+    var map = {}, order = [], i, row, k;
+    function get(name) {
+      k = s(name) || '(거래처 없음)';
+      if (!map[k]) { map[k] = { partner: k, sale: 0, received: 0, receivable: 0, purchase: 0, paid: 0, payable: 0 }; order.push(k); }
+      return map[k];
+    }
+    for (i = 0; i < acc.vouchers.length; i++) {
+      row = acc.vouchers[i];
+      if (!inPeriod(row.d, from, to)) continue;
+      var L = get(row.partner);
+      if (row.t === 'sale') L.sale += row.total; else L.purchase += row.total;
+    }
+    for (i = 0; i < acc.payments.length; i++) {
+      row = acc.payments[i];
+      if (!inPeriod(row.d, from, to)) continue;
+      var P = get(row.partner);
+      if (row.t === 'in') P.received += row.amount; else P.paid += row.amount;
+    }
+    var out = [], qq = s(q).toLowerCase();
+    for (i = 0; i < order.length; i++) {
+      var r = map[order[i]];
+      r.sale = r2(r.sale); r.received = r2(r.received); r.purchase = r2(r.purchase); r.paid = r2(r.paid);
+      r.receivable = r2(r.sale - r.received);
+      r.payable = r2(r.purchase - r.paid);
+      r.balance = r2(r.receivable - r.payable);
+      if (qq && r.partner.toLowerCase().indexOf(qq) < 0) continue;
+      out.push(r);
+    }
+    out.sort(function (a, b) {
+      var av = Math.abs(a.balance), bv = Math.abs(b.balance);
+      if (av !== bv) return bv - av;
+      return a.partner.localeCompare(b.partner, 'ko');
+    });
+    return out;
+  }
+  /* 전체 미수·미지급 합계 (기간 무관 — 지금 남은 돈) */
+  function accBalance(acc) {
+    var receivable = 0, payable = 0, i, r;
+    var led = accLedger(acc, '', '', '');
+    for (i = 0; i < led.length; i++) {
+      r = led[i];
+      if (r.receivable > 0) receivable += r.receivable;
+      if (r.payable > 0) payable += r.payable;
+    }
+    return { receivable: Math.round(receivable), payable: Math.round(payable) };
+  }
+  /* 세금계산서 미발행(매출) / 미수령(매입) */
+  function accTaxPending(acc, from, to) {
+    var saleCnt = 0, saleAmt = 0, buyCnt = 0, buyAmt = 0, i, v;
+    for (i = 0; i < acc.vouchers.length; i++) {
+      v = acc.vouchers[i];
+      if (!inPeriod(v.d, from, to)) continue;
+      if (v.tax !== 'tax' || v.doc !== 'none') continue;
+      if (v.t === 'sale') { saleCnt++; saleAmt += v.total; }
+      else { buyCnt++; buyAmt += v.total; }
+    }
+    return { saleCnt: saleCnt, saleAmount: Math.round(saleAmt), buyCnt: buyCnt, buyAmount: Math.round(buyAmt) };
+  }
+  function ymKey(d) { return s(d).slice(0, 7); }
+  function accMonthly(acc, from, to) {
+    var map = {}, order = [], i, v, m;
+    function get(mm) {
+      if (!map[mm]) { map[mm] = { ym: mm, sale: 0, purchase: 0, expense: 0, income: 0, profit: 0 }; order.push(mm); }
+      return map[mm];
+    }
+    for (i = 0; i < acc.vouchers.length; i++) {
+      v = acc.vouchers[i];
+      if (!inPeriod(v.d, from, to)) continue;
+      m = get(ymKey(v.d));
+      if (v.t === 'sale') m.sale += v.supply; else m.purchase += v.supply;
+    }
+    for (i = 0; i < acc.expenses.length; i++) {
+      v = acc.expenses[i];
+      if (!inPeriod(v.d, from, to)) continue;
+      m = get(ymKey(v.d));
+      if (v.t === 'income') m.income += v.supply; else m.expense += v.supply;
+    }
+    var out = [];
+    for (i = 0; i < order.length; i++) {
+      var r = map[order[i]];
+      r.sale = Math.round(r.sale); r.purchase = Math.round(r.purchase);
+      r.expense = Math.round(r.expense); r.income = Math.round(r.income);
+      r.profit = Math.round(r.sale + r.income - r.purchase - r.expense);
+      out.push(r);
+    }
+    out.sort(function (a, b) { return a.ym < b.ym ? 1 : (a.ym > b.ym ? -1 : 0); });
+    return out;
+  }
+  /* 이번 달 요약 */
+  function accTotals(acc, ym) {
+    var sale = 0, purchase = 0, expense = 0, income = 0, i, v;
+    for (i = 0; i < acc.vouchers.length; i++) {
+      v = acc.vouchers[i];
+      if (ymKey(v.d) !== ym) continue;
+      if (v.t === 'sale') sale += v.supply; else purchase += v.supply;
+    }
+    for (i = 0; i < acc.expenses.length; i++) {
+      v = acc.expenses[i];
+      if (ymKey(v.d) !== ym) continue;
+      if (v.t === 'income') income += v.supply; else expense += v.supply;
+    }
+    return { sale: Math.round(sale), purchase: Math.round(purchase), expense: Math.round(expense),
+      income: Math.round(income), profit: Math.round(sale + income - purchase - expense) };
+  }
+  function accSum(acc, from, to) {
+    var sale = 0, purchase = 0, expense = 0, income = 0, i, v;
+    for (i = 0; i < acc.vouchers.length; i++) {
+      v = acc.vouchers[i];
+      if (!inPeriod(v.d, from, to)) continue;
+      if (v.t === 'sale') sale += v.total; else purchase += v.total;
+    }
+    for (i = 0; i < acc.expenses.length; i++) {
+      v = acc.expenses[i];
+      if (!inPeriod(v.d, from, to)) continue;
+      if (v.t === 'income') income += v.amount; else expense += v.amount;
+    }
+    return { sale: Math.round(sale), purchase: Math.round(purchase), expense: Math.round(expense), income: Math.round(income) };
+  }
+
+  /* ---------- 회계 표 열 ---------- */
+  var ACC_COLS = {
+    V: [
+      { k: 'd', t: '전표일자', w: 104 },
+      { k: 't', t: '구분', w: 74 },
+      { k: 'partner', t: '거래처', w: 180 },
+      { k: 'tax', t: '과세', w: 72 },
+      { k: 'supply', t: '공급가액', w: 116, num: true },
+      { k: 'vat', t: '부가세', w: 104, num: true },
+      { k: 'total', t: '합계금액', w: 120, num: true },
+      { k: 'doc', t: '세금계산서', w: 112 },
+      { k: 'src', t: '출처', w: 92 },
+      { k: 'note', t: '적요', w: 210 }
+    ],
+    R: [
+      { k: 'partner', t: '거래처', w: 180 },
+      { k: 'sale', t: '총 매출', w: 116, num: true },
+      { k: 'received', t: '총 수금', w: 116, num: true },
+      { k: 'receivable', t: '남은 미수금', w: 126, num: true },
+      { k: 'purchase', t: '총 매입', w: 116, num: true },
+      { k: 'paid', t: '총 지급', w: 116, num: true },
+      { k: 'payable', t: '남은 미지급금', w: 130, num: true },
+      { k: 'balance', t: '받을−줄', w: 116, num: true }
+    ],
+    E: [
+      { k: 'd', t: '날짜', w: 104 },
+      { k: 't', t: '구분', w: 62 },
+      { k: 'cat', t: '항목', w: 116 },
+      { k: 'partner', t: '거래처 · 적요', w: 200 },
+      { k: 'supply', t: '공급가액', w: 112, num: true },
+      { k: 'vat', t: '부가세', w: 100, num: true },
+      { k: 'amount', t: '금액', w: 118, num: true },
+      { k: 'method', t: '수단', w: 88 }
+    ],
+    M: [
+      { k: 'ym', t: '월', w: 96 },
+      { k: 'sale', t: '매출', w: 130, num: true },
+      { k: 'purchase', t: '매입원가', w: 130, num: true },
+      { k: 'expense', t: '일반경비', w: 130, num: true },
+      { k: 'income', t: '기타수입', w: 110, num: true },
+      { k: 'profit', t: '순이익', w: 130, num: true }
+    ]
+  };
+  function accCols(tab) { return ACC_COLS[tab] || ACC_COLS.V; }
+  function accCell(r, k) {
+    if (!r) return '';
+    if (k === 'd') return s(r.d);
+    if (k === 't') return ACC_TYPE[r.t] || (r.t === 'income' ? '수입' : '경비');
+    if (k === 'partner') return s(r.partner);
+    if (k === 'tax') return ACC_TAX[r.tax] || '';
+    if (k === 'supply') return String(r.supply);
+    if (k === 'vat') return String(r.vat);
+    if (k === 'total') return String(r.total);
+    if (k === 'doc') return ACC_DOC[r.doc] || '';
+    if (k === 'src') return r.src === 'meat' ? '원료육' : (r.src === 'fp' ? '완제품' : '직접');
+    if (k === 'note') return s(r.note);
+    if (k === 'sale') return String(r.sale);
+    if (k === 'received') return String(r.received);
+    if (k === 'receivable') return String(r.receivable);
+    if (k === 'purchase') return String(r.purchase);
+    if (k === 'paid') return String(r.paid);
+    if (k === 'payable') return String(r.payable);
+    if (k === 'balance') return String(r.balance);
+    if (k === 'cat') return s(r.cat);
+    if (k === 'amount') return String(r.amount);
+    if (k === 'method') return s(r.method);
+    if (k === 'ym') return s(r.ym);
+    if (k === 'expense') return String(r.expense);
+    if (k === 'income') return String(r.income);
+    if (k === 'profit') return String(r.profit);
+    return '';
+  }
+  function accFilterVouchers(acc, o) {
+    o = o || {};
+    var q = s(o.q).toLowerCase(), out = [], i, v, cols = o.cols || {};
+    for (i = 0; i < acc.vouchers.length; i++) {
+      v = acc.vouchers[i];
+      if (o.type && o.type !== 'all' && v.t !== o.type) continue;
+      if (!inPeriod(v.d, o.from, o.to)) continue;
+      if (q) {
+        var hay = [v.d, accTypeName(v.t), v.partner, ACC_TAX[v.tax], v.note, accDocName(v.t, v.doc)].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) continue;
+      }
+      var skip = false;
+      for (var k in cols) {
+        if (!Object.prototype.hasOwnProperty.call(cols, k)) continue;
+        if (cols[k] && cols[k].length && cols[k].indexOf(String(accCell(v, k))) < 0) { skip = true; break; }
+      }
+      if (skip) continue;
+      out.push(v);
+    }
+    var key = o.sortKey || 'd', dir = o.sortKey ? (o.sortDir === -1 ? -1 : 1) : -1;
+    out.sort(function (a, b) {
+      var av = accCell(a, key), bv = accCell(b, key);
+      var an = Number(av), bn = Number(bv);
+      var c = (av !== '' && bv !== '' && isFinite(an) && isFinite(bn)) ? (an - bn) : String(av).localeCompare(String(bv), 'ko');
+      if (c !== 0) return c * dir;
+      return (b.id || 0) - (a.id || 0);
+    });
+    return out;
+  }
+  function accFilterExpenses(acc, o) {
+    o = o || {};
+    var q = s(o.q).toLowerCase(), out = [], i, v, cols = o.cols || {};
+    for (i = 0; i < acc.expenses.length; i++) {
+      v = acc.expenses[i];
+      if (o.type && o.type !== 'all' && v.t !== o.type) continue;
+      if (!inPeriod(v.d, o.from, o.to)) continue;
+      if (q) {
+        var hay = [v.d, v.cat, v.partner, v.note, v.method, v.t === 'income' ? '수입' : '경비'].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) continue;
+      }
+      var skip = false;
+      for (var k in cols) {
+        if (!Object.prototype.hasOwnProperty.call(cols, k)) continue;
+        if (cols[k] && cols[k].length && cols[k].indexOf(String(accCell(v, k))) < 0) { skip = true; break; }
+      }
+      if (skip) continue;
+      out.push(v);
+    }
+    out.sort(function (a, b) {
+      if (a.d !== b.d) return a.d < b.d ? 1 : -1;
+      return (b.id || 0) - (a.id || 0);
+    });
+    return out;
+  }
+
+  /* 회계 내려받기용 행 */
+  function accVoucherRows(list) {
+    var rows = [['전표일자', '구분', '거래처', '과세구분', '공급가액', '부가세', '합계금액', '세금계산서', '출처', '적요']];
+    for (var i = 0; i < (list || []).length; i++) {
+      var v = list[i];
+      rows.push([v.d, accTypeName(v.t), v.partner, ACC_TAX[v.tax], v.supply, v.vat, v.total,
+        accDocName(v.t, v.doc), accCell(v, 'src'), v.note]);
+    }
+    return rows;
+  }
+  function accLedgerRows(list) {
+    var rows = [['거래처', '총 매출', '총 수금', '남은 미수금', '총 매입', '총 지급', '남은 미지급금', '받을−줄']];
+    for (var i = 0; i < (list || []).length; i++) {
+      var r = list[i];
+      rows.push([r.partner, r.sale, r.received, r.receivable, r.purchase, r.paid, r.payable, r.balance]);
+    }
+    return rows;
+  }
+  function accExpenseRows(list) {
+    var rows = [['날짜', '구분', '항목', '거래처', '공급가액', '부가세', '금액', '수단', '적요']];
+    for (var i = 0; i < (list || []).length; i++) {
+      var v = list[i];
+      rows.push([v.d, v.t === 'income' ? '수입' : '경비', v.cat, v.partner, v.supply, v.vat, v.amount, v.method, v.note]);
+    }
+    return rows;
+  }
+  function accMonthRows(list) {
+    var rows = [['월', '매출', '매입원가', '일반경비', '기타수입', '순이익']], sum = [0, 0, 0, 0, 0], i, r;
+    for (i = 0; i < (list || []).length; i++) {
+      r = list[i];
+      rows.push([r.ym, r.sale, r.purchase, r.expense, r.income, r.profit]);
+      sum[0] += r.sale; sum[1] += r.purchase; sum[2] += r.expense; sum[3] += r.income; sum[4] += r.profit;
+    }
+    if (list && list.length) rows.push(['합계', sum[0], sum[1], sum[2], sum[3], sum[4]]);
+    return rows;
+  }
+
+  /* ==========================================================================
+     엑셀 읽기 — 외부 라이브러리 없이 ZIP + deflate 를 직접 푼다
+     (인터넷이 막혀도 .xlsx 업로드가 된다. .csv 도 받는다)
+     ========================================================================== */
+  function inflateRaw(src, outLen) {
+    var out = new Uint8Array(outLen > 0 ? outLen + 64 : Math.max(256, src.length * 8 + 256));
+    var op = 0, pos = 0, bitbuf = 0, bitcnt = 0;
+    var LBASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+    var LEXT = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+    var DBASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+    var DEXT = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+    function ensure(n) {
+      if (op + n <= out.length) return;
+      var o2 = new Uint8Array(Math.max(out.length * 2, op + n + 256));
+      o2.set(out);
+      out = o2;
+    }
+    function bits(n) {
+      while (bitcnt < n) {
+        if (pos >= src.length) throw new Error('압축 데이터가 일찍 끝났습니다.');
+        bitbuf |= src[pos++] << bitcnt;
+        bitcnt += 8;
+      }
+      var v = bitbuf & ((1 << n) - 1);
+      bitbuf >>>= n;
+      bitcnt -= n;
+      return v;
+    }
+    function buildHuff(lens) {
+      var counts = [], maxBits = 0, i, sym;
+      for (i = 0; i < 16; i++) counts[i] = 0;
+      for (sym = 0; sym < lens.length; sym++) {
+        if (lens[sym] > 0) { counts[lens[sym]]++; if (lens[sym] > maxBits) maxBits = lens[sym]; }
+      }
+      var next = [], code = 0;
+      counts[0] = 0;
+      for (i = 1; i <= 15; i++) { code = (code + counts[i - 1]) << 1; next[i] = code; }
+      var map = {};
+      for (sym = 0; sym < lens.length; sym++) {
+        var len = lens[sym];
+        if (!len) continue;
+        map[len * 65536 + next[len]] = sym;
+        next[len]++;
+      }
+      return { maxBits: maxBits, map: map };
+    }
+    function decode(h) {
+      var code = 0, len;
+      for (len = 1; len <= h.maxBits; len++) {
+        code = (code << 1) | bits(1);
+        var sym = h.map[len * 65536 + code];
+        if (sym !== undefined) return sym;
+      }
+      throw new Error('압축 데이터를 읽지 못했습니다.');
+    }
+    var fixedLit = null, fixedDist = null;
+    function fixed() {
+      if (!fixedLit) {
+        var l = [], i;
+        for (i = 0; i < 144; i++) l[i] = 8;
+        for (i = 144; i < 256; i++) l[i] = 9;
+        for (i = 256; i < 280; i++) l[i] = 7;
+        for (i = 280; i < 288; i++) l[i] = 8;
+        fixedLit = buildHuff(l);
+        var d = [];
+        for (i = 0; i < 30; i++) d[i] = 5;
+        fixedDist = buildHuff(d);
+      }
+    }
+    var last = 0;
+    while (!last) {
+      last = bits(1);
+      var type = bits(2);
+      if (type === 0) {
+        bitbuf = 0; bitcnt = 0;
+        if (pos + 4 > src.length) throw new Error('압축 데이터가 일찍 끝났습니다.');
+        var len = src[pos] | (src[pos + 1] << 8);
+        pos += 4;
+        ensure(len);
+        for (var s0 = 0; s0 < len; s0++) out[op++] = src[pos++];
+      } else if (type === 1) {
+        fixed();
+        for (;;) {
+          var sym1 = decode(fixedLit);
+          if (sym1 < 256) { ensure(1); out[op++] = sym1; }
+          else if (sym1 === 256) break;
+          else {
+            var li = sym1 - 257;
+            var length = LBASE[li] + bits(LEXT[li]);
+            var ds = decode(fixedDist);
+            var dist = DBASE[ds] + bits(DEXT[ds]);
+            ensure(length);
+            for (var k1 = 0; k1 < length; k1++) { out[op] = out[op - dist]; op++; }
+          }
+        }
+      } else if (type === 2) {
+        var hlit = bits(5) + 257, hdist = bits(5) + 1, hclen = bits(4) + 4;
+        var order = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+        var clens = [], i2;
+        for (i2 = 0; i2 < 19; i2++) clens[i2] = 0;
+        for (i2 = 0; i2 < hclen; i2++) clens[order[i2]] = bits(3);
+        var ch = buildHuff(clens);
+        var lens2 = [], n2 = 0;
+        while (n2 < hlit + hdist) {
+          var cs = decode(ch);
+          if (cs < 16) { lens2[n2++] = cs; }
+          else if (cs === 16) {
+            var rep = 3 + bits(2), pv = lens2[n2 - 1];
+            while (rep--) lens2[n2++] = pv;
+          } else if (cs === 17) {
+            var rep2 = 3 + bits(3);
+            while (rep2--) lens2[n2++] = 0;
+          } else {
+            var rep3 = 11 + bits(7);
+            while (rep3--) lens2[n2++] = 0;
+          }
+        }
+        var litLens = lens2.slice(0, hlit), distLens = lens2.slice(hlit, hlit + hdist);
+        var litH = buildHuff(litLens), distH = buildHuff(distLens);
+        for (;;) {
+          var sym2 = decode(litH);
+          if (sym2 < 256) { ensure(1); out[op++] = sym2; }
+          else if (sym2 === 256) break;
+          else {
+            var li2 = sym2 - 257;
+            var length2 = LBASE[li2] + bits(LEXT[li2]);
+            var dcode = decode(distH);
+            var dist2 = DBASE[dcode] + bits(DEXT[dcode]);
+            ensure(length2);
+            for (var k2 = 0; k2 < length2; k2++) { out[op] = out[op - dist2]; op++; }
+          }
+        }
+      } else {
+        throw new Error('지원하지 않는 압축 방식입니다.');
+      }
+    }
+    return out.subarray(0, op);
+  }
+
+  function unzip(bytes) {
+    var i, eocd = -1;
+    for (i = bytes.length - 22; i >= 0 && i >= bytes.length - 66000; i--) {
+      if (bytes[i] === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x05 && bytes[i + 3] === 0x06) { eocd = i; break; }
+    }
+    if (eocd < 0) throw new Error('엑셀(ZIP) 파일이 아닙니다.');
+    function u16(p) { return bytes[p] | (bytes[p + 1] << 8); }
+    function u32(p) { return (bytes[p] | (bytes[p + 1] << 8) | (bytes[p + 2] << 16) | (bytes[p + 3] << 24)) >>> 0; }
+    var count = u16(eocd + 10), cdOff = u32(eocd + 16), p = cdOff, files = {};
+    for (i = 0; i < count; i++) {
+      if (u32(p) !== 0x02014b50) break;
+      var nameLen = u16(p + 28), extraLen = u16(p + 30), cmtLen = u16(p + 32);
+      var method = u16(p + 10), csize = u32(p + 20), usize = u32(p + 24), lho = u32(p + 42);
+      var name = '';
+      for (var j = 0; j < nameLen; j++) name += String.fromCharCode(bytes[p + 46 + j]);
+      var lnl = u16(lho + 26), lel = u16(lho + 28), start = lho + 30 + lnl + lel;
+      var raw = bytes.subarray(start, start + csize);
+      var data;
+      if (method === 0) data = raw;
+      else if (method === 8) data = inflateRaw(raw, usize);
+      else throw new Error('엑셀 안의 압축 방식을 풀 수 없습니다.');
+      files[name] = data;
+      p += 46 + nameLen + extraLen + cmtLen;
+    }
+    return files;
+  }
+  function bytesToStr(b) {
+    var out = [], i, c, c2;
+    for (i = 0; i < b.length; i++) {
+      c = b[i];
+      if (c < 0x80) out.push(String.fromCharCode(c));
+      else if (c < 0xE0) out.push(String.fromCharCode(((c & 0x1F) << 6) | (b[++i] & 0x3F)));
+      else if (c < 0xF0) { c2 = b[++i]; out.push(String.fromCharCode(((c & 0x0F) << 12) | ((c2 & 0x3F) << 6) | (b[++i] & 0x3F))); }
+      else {
+        var cp = ((c & 0x07) << 18) | ((b[++i] & 0x3F) << 12) | ((b[++i] & 0x3F) << 6) | (b[++i] & 0x3F);
+        cp -= 0x10000;
+        out.push(String.fromCharCode(0xD800 + (cp >> 10), 0xDC00 + (cp & 0x3FF)));
+      }
+    }
+    return out.join('');
+  }
+  function xmlText(v) {
+    return String(v || '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"')
+      .replace(/&apos;/g, "'").replace(/&#(\d+);/g, function (m, d) { return String.fromCharCode(Number(d)); })
+      .replace(/&amp;/g, '&');
+  }
+  function tagTexts(sv, tag) {
+    var re = new RegExp('<' + tag + '[^>]*>([\\s\\S]*?)<\\/' + tag + '>', 'g'), m, out = [];
+    while ((m = re.exec(sv))) out.push(xmlText(m[1].replace(/<[^>]+>/g, '')));
+    return out;
+  }
+  function colIndex(ref) {
+    var m = /^([A-Z]+)/.exec(String(ref || '').toUpperCase());
+    if (!m) return -1;
+    var n = 0;
+    for (var i = 0; i < m[1].length; i++) n = n * 26 + (m[1].charCodeAt(i) - 64);
+    return n - 1;
+  }
+  /* .xlsx 바이트 → 2차원 배열 (첫 시트) */
+  function xlsxRows(bytes) {
+    var files = unzip(bytes);
+    var shared = [];
+    if (files['xl/sharedStrings.xml']) {
+      var ss = bytesToStr(files['xl/sharedStrings.xml']);
+      var re = /<si[^>]*>([\s\S]*?)<\/si>/g, m;
+      while ((m = re.exec(ss))) {
+        var ts = tagTexts(m[1], 't');
+        shared.push(ts.join(''));
+      }
+    }
+    var sheetName = 'xl/worksheets/sheet1.xml';
+    if (!files[sheetName]) {
+      for (var k in files) if (Object.prototype.hasOwnProperty.call(files, k) && /^xl\/worksheets\/sheet\d+\.xml$/.test(k)) { sheetName = k; break; }
+    }
+    if (!files[sheetName]) throw new Error('엑셀에서 표(시트)를 찾지 못했습니다.');
+    var sx = bytesToStr(files[sheetName]);
+    var rows = [], rowRe = /<row[^>]*>([\s\S]*?)<\/row>/g, rm;
+    while ((rm = rowRe.exec(sx))) {
+      var cells = [], cellRe = /<c([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g, cm;
+      while ((cm = cellRe.exec(rm[1]))) {
+        var attrs = cm[1] || '', inner = cm[2] || '';
+        var refM = /r="([A-Z]+\d+)"/.exec(attrs);
+        var idx = refM ? colIndex(refM[1]) : cells.length;
+        if (idx < 0) idx = cells.length;
+        var tM = /t="([^"]+)"/.exec(attrs);
+        var type = tM ? tM[1] : 'n';
+        var val = '';
+        if (type === 'inlineStr') {
+          val = tagTexts(inner, 't').join('');
+        } else {
+          var vm = /<v[^>]*>([\s\S]*?)<\/v>/.exec(inner);
+          var raw = vm ? xmlText(vm[1]) : '';
+          if (type === 's') val = shared[Number(raw)] !== undefined ? shared[Number(raw)] : '';
+          else if (type === 'b') val = raw === '1' ? 'TRUE' : 'FALSE';
+          else if (type === 'str') val = raw;
+          else if (raw === '') val = '';
+          else val = isFinite(Number(raw)) ? Number(raw) : raw;
+        }
+        while (cells.length < idx) cells.push('');
+        cells[idx] = val;
+      }
+      rows.push(cells);
+    }
+    return rows;
+  }
+  /* .csv 텍스트 → 2차원 배열 */
+  function csvRows(text) {
+    text = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    var rows = [], row = [], cell = '', q = false, i, ch;
+    for (i = 0; i < text.length; i++) {
+      ch = text.charAt(i);
+      if (q) {
+        if (ch === '"') {
+          if (text.charAt(i + 1) === '"') { cell += '"'; i++; }
+          else q = false;
+        } else cell += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ',' || ch === '\t') { row.push(cell); cell = ''; }
+      else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+      else cell += ch;
+    }
+    if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+    return rows;
+  }
+
+  /* ---------- 업로드 양식 읽기 (머리글 이름은 조금 달라도 된다) ---------- */
+  function toDateStr(v) {
+    if (v === null || v === undefined || v === '') return '';
+    if (typeof v === 'number' && v > 20000 && v < 80000) {
+      var dt = new Date(Math.round((v - 25569) * 86400 * 1000));
+      return dt.getUTCFullYear() + '-' + pad2(dt.getUTCMonth() + 1) + '-' + pad2(dt.getUTCDate());
+    }
+    var t = String(v).replace(/^\s+|\s+$/g, '');
+    var m = /^(\d{4})[.\-\/년\s]+(\d{1,2})[.\-\/월\s]+(\d{1,2})/.exec(t);
+    if (m) return m[1] + '-' + pad2(Number(m[2])) + '-' + pad2(Number(m[3]));
+    m = /^(\d{2})[.\-\/](\d{1,2})[.\-\/](\d{1,2})$/.exec(t);
+    if (m) return (Number(m[1]) < 70 ? '20' : '19') + m[1] + '-' + pad2(Number(m[2])) + '-' + pad2(Number(m[3]));
+    return '';
+  }
+  function toNum(v) {
+    if (v === null || v === undefined || v === '') return 0;
+    if (typeof v === 'number') return isFinite(v) ? v : 0;
+    var t = String(v).replace(/[, \u20a9\ufeff]/g, '').replace(/원|개|kg|팩|박스|봉|병|g|L|ml/gi, '');
+    var neg = /^\(.*\)$/.test(t);
+    t = t.replace(/[()]/g, '');
+    var n = Number(t);
+    if (!isFinite(n)) return 0;
+    return neg ? -n : n;
+  }
+  function normHead(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[\s\(\)\[\]\/\*\-]/g, '').toLowerCase();
+  }
+  var HEAD_MAP = {
+    date: ['날짜', '일자', '거래일', '거래일자', '입출고일', '전표일자', 'txdate', 'date'],
+    type: ['구분', '입출고', '입출고구분', '종류', 'type'],
+    code: ['상품코드', '코드', '출고상품코드', '품목코드', 'code'],
+    name: ['상품명', '품목명', '출고상품명', '품명', 'name', '적요', '내용'],
+    spec: ['규격', '사이즈', 'spec'],
+    unit: ['단위', 'unit'],
+    qty: ['수량', '중량', 'qty', '입출고수량'],
+    inprice: ['입고단가', '매입단가', '원가', 'inprice'],
+    outprice: ['출고단가', '판매단가', '단가', 'outprice', 'price'],
+    expiry: ['소비기한', '유통기한', 'expiry'],
+    partner: ['거래처', '거래처명', '업체명', '매입처', 'partner', '사용처'],
+    note: ['비고', '메모', 'note'],
+    amount: ['금액', '합계', '합계금액', 'amount', 'total'],
+    supply: ['공급가액', '공급가', 'supply'],
+    vat: ['부가세', '세액', '부가세액', 'vat'],
+    out: ['출금', '지출', '출금액', 'withdraw'],
+    'in': ['입금', '수입', '입금액', 'deposit'],
+    category: ['항목', '분류', '카테고리', 'category'],
+    method: ['수단', '결제수단', '카드', 'method']
+  };
+  function mapHeader(row) {
+    var map = {}, i, key, list, j, h;
+    for (i = 0; i < row.length; i++) {
+      h = normHead(row[i]);
+      if (!h) continue;
+      for (key in HEAD_MAP) {
+        if (!Object.prototype.hasOwnProperty.call(HEAD_MAP, key)) continue;
+        if (map[key] !== undefined) continue;
+        list = HEAD_MAP[key];
+        for (j = 0; j < list.length; j++) {
+          if (h === normHead(list[j])) { map[key] = i; break; }
+        }
+      }
+    }
+    return map;
+  }
+  /* kind: 'fp_tx' | 'fp_price' | 'acc_expense' */
+  function parseSheet(rows, kind) {
+    var out = [], skipped = 0, i, headIdx = -1, map = null, m;
+    if (!rows || !rows.length) return { rows: out, skipped: 0, error: '읽을 줄이 없습니다.' };
+    for (i = 0; i < Math.min(15, rows.length); i++) {
+      m = mapHeader(rows[i] || []);
+      if (m.qty !== undefined || m.price !== undefined || m.name !== undefined || m.code !== undefined ||
+          m.amount !== undefined || m.out !== undefined || m['in'] !== undefined) {
+        headIdx = i; map = m; break;
+      }
+    }
+    if (headIdx < 0) return { rows: out, skipped: 0, error: '머리글 줄을 찾지 못했습니다. 양식의 열 이름을 확인해 주세요.' };
+    function cell(row, k) { return map[k] === undefined ? '' : row[map[k]]; }
+    for (i = headIdx + 1; i < rows.length; i++) {
+      var r = rows[i];
+      if (!r || !r.length) continue;
+      if (kind === 'fp_tx') {
+        var qty = toNum(cell(r, 'qty'));
+        var code = s(cell(r, 'code')), name = s(cell(r, 'name'));
+        if (!(qty > 0) || (!code && !name)) { if (name || code) skipped++; continue; }
+        var tn = s(cell(r, 'type'));
+        var type = (/출고|OUT|판매|반품|출하/i.test(tn)) ? 'OUT' : 'IN';
+        out.push({
+          date: toDateStr(cell(r, 'date')), type: type, code: code, name: name,
+          spec: s(cell(r, 'spec')), unit: s(cell(r, 'unit')), qty: qty,
+          price: toNum(cell(r, 'inprice')) || toNum(cell(r, 'outprice')) || 0,
+          expiry: toDateStr(cell(r, 'expiry')), partner: s(cell(r, 'partner')),
+          note: s(cell(r, 'note'))
+        });
+      } else if (kind === 'fp_price') {
+        var c2 = s(cell(r, 'code')), n2 = s(cell(r, 'name'));
+        if (!c2 && !n2) { skipped++; continue; }
+        var ip = cell(r, 'inprice'), op = cell(r, 'outprice');
+        out.push({
+          code: c2, name: n2, spec: s(cell(r, 'spec')), unit: s(cell(r, 'unit')),
+          in_price: ip === '' ? null : toNum(ip), out_price: op === '' ? null : toNum(op)
+        });
+      } else {
+        var outAmt = toNum(cell(r, 'out')), inAmt = toNum(cell(r, 'in'));
+        var amt = toNum(cell(r, 'amount'));
+        var isIncome = inAmt > 0 && outAmt <= 0;
+        var val = outAmt > 0 ? outAmt : (inAmt > 0 ? inAmt : amt);
+        if (!(val > 0)) { skipped++; continue; }
+        out.push({
+          date: toDateStr(cell(r, 'date')), type: isIncome ? 'income' : 'expense',
+          category: s(cell(r, 'category')), partner: s(cell(r, 'partner')),
+          amount: val, tax_type: 'free', method: s(cell(r, 'method')),
+          note: s(cell(r, 'name')) || s(cell(r, 'note'))
+        });
+      }
+    }
+    return { rows: out, skipped: skipped, error: out.length ? '' : '올릴 줄이 없습니다. 양식의 열 이름을 확인해 주세요.' };
+  }
+
   return {
     EPS: EPS, r2: r2, r0: r0, MAJORS: MAJORS, MAJOR_DEFAULT: MAJOR_DEFAULT, majorName: majorName,
     MEATS: MEATS, meatName: meatName,
@@ -1060,7 +2100,28 @@ var ERP = (function () {
     precheck: precheck, precheckUpdate: precheckUpdate,
     SABANG_HEAD: SABANG_HEAD, SALES_HEAD: SALES_HEAD, sabangnetRows: sabangnetRows, salesRows: salesRows,
     lotOf: lotOf, ymd8: ymd8, mmdd: mmdd, inDateRange: inDateRange,
-    xlsxBytes: xlsxBytes, zipStore: zipStore, crc32: crc32, colName: colName
+    xlsxBytes: xlsxBytes, zipStore: zipStore, crc32: crc32, colName: colName,
+    /* v4 완제품 */
+    FP_CATS: FP_CATS, FP_UNITS: FP_UNITS, fpTypeKey: fpTypeKey, fpTypeName: fpTypeName,
+    fpStateFrom: fpStateFrom, fpTotals: fpTotals, fpToday: fpToday,
+    FP_COLS: FP_COLS, fpCols: fpCols, fpCell: fpCell, fpLogCell: fpLogCell,
+    fpFilteredProducts: fpFilteredProducts, fpFilteredLogs: fpFilteredLogs,
+    fpProductOf: fpProductOf, fpFind: fpFind, fpNextCode: fpNextCode,
+    FP_TX_HEAD: FP_TX_HEAD, FP_PRICE_HEAD: FP_PRICE_HEAD,
+    fpTxRows: fpTxRows, fpPriceRows: fpPriceRows, fpStockRows: fpStockRows, fpLogRows: fpLogRows,
+    /* v4 회계 */
+    VAT_RATE: VAT_RATE, ACC_TYPE: ACC_TYPE, ACC_TAX: ACC_TAX, ACC_DOC: ACC_DOC,
+    ACC_PAY: ACC_PAY, ACC_METHODS: ACC_METHODS, ACC_EXPENSE_CATS: ACC_EXPENSE_CATS,
+    ACC_INCOME_CATS: ACC_INCOME_CATS, ACC_COLS: ACC_COLS, accCols: accCols,
+    accTypeName: accTypeName, accDocName: accDocName, accVat: accVat,
+    accStateFrom: accStateFrom, accLedger: accLedger, accBalance: accBalance,
+    accTaxPending: accTaxPending, accMonthly: accMonthly, accTotals: accTotals, accSum: accSum,
+    accCell: accCell, accFilterVouchers: accFilterVouchers, accFilterExpenses: accFilterExpenses,
+    accVoucherRows: accVoucherRows, accLedgerRows: accLedgerRows,
+    accExpenseRows: accExpenseRows, accMonthRows: accMonthRows, ymKey: ymKey, inPeriod: inPeriod,
+    /* 엑셀 읽기 */
+    inflateRaw: inflateRaw, unzip: unzip, xlsxRows: xlsxRows, csvRows: csvRows,
+    parseSheet: parseSheet, toDateStr: toDateStr, toNum: toNum, mapHeader: mapHeader
   };
 })();
 /* ============================== CORE:END ============================== */
@@ -1100,10 +2161,10 @@ var SB = (function () {
       return 'DB 표를 찾을 수 없습니다. supabase_setup.sql을 먼저 실행해 주세요.';
     }
     if (/Could not find the function|PGRST202/i.test(m)) {
-      return 'DB 함수(tx_apply)를 찾을 수 없습니다. Supabase SQL Editor에서 supabase_migrate_v3.sql을 실행해 주세요.';
+      return 'DB 함수를 찾을 수 없습니다. Supabase SQL Editor에서 supabase_migrate_v4.sql을 실행해 주세요.';
     }
     if (/column .* does not exist|PGRST204/i.test(m)) {
-      return 'DB에 새 열(대분류·기준단가·금액)이 없습니다. supabase_migrate_v3.sql을 실행해 주세요.';
+      return 'DB에 새 열이 없습니다. supabase_migrate_v4.sql을 실행해 주세요.';
     }
     if (/permission denied/i.test(m)) return '이 작업을 할 권한이 없습니다. 로그인 상태를 확인해 주세요.';
     if (/JWT expired|invalid JWT|token is expired/i.test(m)) return '로그인이 만료되었습니다. 다시 로그인해 주세요.';
@@ -1213,7 +2274,8 @@ var SB = (function () {
     });
   }
   var PAGE = 1000;
-  function selectAll(table, order) {
+  function selectAll(table, order, keyCol) {
+    var keyName = keyCol || 'id';
     var out = [];
     var seen = {};
     function step(from, pageNo) {
@@ -1222,7 +2284,7 @@ var SB = (function () {
       return rest(table + '?select=*&order=' + order, { headers: headers }).then(function (rows) {
         rows = rows || [];
         for (var i = 0; i < rows.length; i++) {
-          var key = String(rows[i].id);
+          var key = String(rows[i][keyName]);
           if (seen[key]) continue;
           seen[key] = 1;
           out.push(rows[i]);
@@ -1236,6 +2298,22 @@ var SB = (function () {
   function loadAll() {
     return Promise.all([selectAll('lots', 'id.asc'), selectAll('tx_logs', 'id.asc')])
       .then(function (r) { return { lots: r[0] || [], logs: r[1] || [] }; });
+  }
+  /* v4: 완제품·회계 표는 아직 없는 DB(v3)일 수 있으므로 실패해도 앱이 멈추지 않게 따로 읽는다 */
+  function loadAllV4() {
+    var names = ['fp_products', 'fp_logs', 'acc_vouchers', 'acc_payments', 'acc_expenses'];
+    return Promise.all(names.map(function (t) {
+      return selectAll(t, t === 'fp_products' ? 'code.asc' : 'id.asc',
+                       t === 'fp_products' ? 'code' : 'id').then(function (rows) {
+        return { ok: true, rows: rows || [] };
+      }, function () { return { ok: false, rows: [] }; });
+    })).then(function (r) {
+      return {
+        fps: r[0].rows, fpLogs: r[1].rows, vouchers: r[2].rows,
+        payments: r[3].rows, expenses: r[4].rows,
+        v4: r[0].ok && r[1].ok && r[2].ok && r[3].ok && r[4].ok
+      };
+    });
   }
   /* 저장: 화면 파라미터 → DB 함수 파라미터 */
   function apply(p) {
@@ -1297,6 +2375,65 @@ var SB = (function () {
   }
   function undo(logId) { return rest('rpc/tx_undo', { method: 'POST', body: { p_log_id: Number(logId) } }); }
 
+  /* ---------- v4 완제품 ---------- */
+  function fpProductSave(p) {
+    return rest('rpc/fp_product_save', { method: 'POST', body: {
+      p_code: p.code || '', p_category: p.cat || '완제품', p_name: p.name || '',
+      p_spec: p.spec || '', p_unit: p.unit || '개',
+      p_in_price: Number(p.inp || 0), p_out_price: Number(p.outp || 0),
+      p_expiry: p.expiry || null, p_supplier: p.sup || '', p_barcode: p.bc || '',
+      p_active: p.active !== false
+    } });
+  }
+  function fpApply(p) {
+    return rest('rpc/fp_tx_apply', { method: 'POST', body: {
+      p_code: p.code || '', p_type: p.type || 'IN', p_qty: Number(p.qty || 0),
+      p_date: p.date || null,
+      p_price: p.price === undefined || p.price === null || p.price === '' ? null : Number(p.price),
+      p_expiry: p.expiry || null, p_partner: p.partner || '', p_note: p.note || '',
+      p_allow_negative: !!p.allowNegative, p_source: p.source || 'manual'
+    } });
+  }
+  function fpUndo(id) { return rest('rpc/fp_tx_undo', { method: 'POST', body: { p_log_id: Number(id) } }); }
+  function fpBatch(rows, allowNegative) {
+    return rest('rpc/fp_batch', { method: 'POST', body: { p_rows: rows || [], p_allow_negative: !!allowNegative } });
+  }
+  function fpBatchPrice(rows) {
+    return rest('rpc/fp_batch_price', { method: 'POST', body: { p_rows: rows || [] } });
+  }
+
+  /* ---------- v4 회계 ---------- */
+  function accVoucherSave(p) {
+    return rest('rpc/acc_voucher_save', { method: 'POST', body: {
+      p_id: p.id === null || p.id === undefined || p.id === '' ? null : Number(p.id),
+      p_date: p.date || null, p_type: p.type || 'sale', p_partner: p.partner || '',
+      p_tax_type: p.tax || 'tax', p_amount: Number(p.amount || 0),
+      p_vat_included: !!p.vatIncluded, p_tax_status: p.doc || 'none', p_note: p.note || ''
+    } });
+  }
+  function accVoucherDelete(id) { return rest('rpc/acc_voucher_delete', { method: 'POST', body: { p_id: Number(id) } }); }
+  function accReflect(items, taxType) {
+    return rest('rpc/acc_reflect', { method: 'POST', body: { p_items: items || [], p_tax_type: taxType || 'auto' } });
+  }
+  function accPaymentSave(p) {
+    return rest('rpc/acc_payment_save', { method: 'POST', body: {
+      p_id: p.id === null || p.id === undefined || p.id === '' ? null : Number(p.id),
+      p_date: p.date || null, p_partner: p.partner || '', p_type: p.type || 'in',
+      p_amount: Number(p.amount || 0), p_method: p.method || '', p_note: p.note || ''
+    } });
+  }
+  function accPaymentDelete(id) { return rest('rpc/acc_payment_delete', { method: 'POST', body: { p_id: Number(id) } }); }
+  function accExpenseSave(p) {
+    return rest('rpc/acc_expense_save', { method: 'POST', body: {
+      p_id: p.id === null || p.id === undefined || p.id === '' ? null : Number(p.id),
+      p_date: p.date || null, p_type: p.type || 'expense', p_category: p.cat || '기타',
+      p_partner: p.partner || '', p_amount: Number(p.amount || 0),
+      p_tax_type: p.tax || 'free', p_vat_included: p.vatIncluded !== false,
+      p_method: p.method || '', p_note: p.note || ''
+    } });
+  }
+  function accExpenseDelete(id) { return rest('rpc/acc_expense_delete', { method: 'POST', body: { p_id: Number(id) } }); }
+
   function restore() {
     ses = readStored();
     return ses;
@@ -1304,7 +2441,13 @@ var SB = (function () {
 
   return {
     auth: { signIn: signIn, signUp: signUp, signOut: signOut, refresh: refresh, ensure: ensure, restore: restore, session: function () { return ses; } },
-    db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, rest: rest },
+    db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, rest: rest,
+      loadAllV4: loadAllV4,
+      fpProductSave: fpProductSave, fpApply: fpApply, fpUndo: fpUndo,
+      fpBatch: fpBatch, fpBatchPrice: fpBatchPrice,
+      accVoucherSave: accVoucherSave, accVoucherDelete: accVoucherDelete, accReflect: accReflect,
+      accPaymentSave: accPaymentSave, accPaymentDelete: accPaymentDelete,
+      accExpenseSave: accExpenseSave, accExpenseDelete: accExpenseDelete },
     errOf: errOf
   };
 })();
@@ -1332,7 +2475,12 @@ var LIVE = (function () {
           presence: { key: '' },
           postgres_changes: [
             { event: '*', schema: 'public', table: 'lots' },
-            { event: '*', schema: 'public', table: 'tx_logs' }
+            { event: '*', schema: 'public', table: 'tx_logs' },
+            { event: '*', schema: 'public', table: 'fp_products' },
+            { event: '*', schema: 'public', table: 'fp_logs' },
+            { event: '*', schema: 'public', table: 'acc_vouchers' },
+            { event: '*', schema: 'public', table: 'acc_payments' },
+            { event: '*', schema: 'public', table: 'acc_expenses' }
           ]
         },
         access_token: s.access
@@ -1392,7 +2540,7 @@ var LIVE = (function () {
 /* ============================== UI:START ============================== */
 (function () {
   'use strict';
-  var st = { lots: [], logs: [], loadedAt: 0 };
+  var st = { lots: [], logs: [], fps: [], fpLogs: [], vouchers: [], payments: [], expenses: [], loadedAt: 0 };
   var cur = {
     mode: 'in', tab: 'F', whIn: 'F', whOut: 'C', dest: 'site',
     search: '', showZero: false, hFilter: 'all', hLimit: 250, lotId: null,
@@ -1401,7 +2549,19 @@ var LIVE = (function () {
     hist: { preset: 'all', from: '', to: '' },
     sortLot: { k: '', dir: 1 },
     sortLog: { k: '', dir: -1 },
-    fLot: {}, fLog: {}
+    fLot: {}, fLog: {},
+    /* v4 */
+    erp: 'meat',
+    fgType: 'IN', fgTab: 'G', fgCode: '', fgSearch: '', fgCat: 'all', fgShowZero: false,
+    fgTypeF: 'all', fgLimit: 300,
+    fgRange: { preset: 'all', from: '', to: '' },
+    fgSortG: { k: '', dir: 1 }, fgSortL: { k: '', dir: -1 }, fgSortP: { k: '', dir: 1 },
+    fFgG: {}, fFgL: {}, fFgP: {},
+    accTab: 'V', accSearch: '', accType: 'all', accLimit: 300,
+    accRange: { preset: 'all', from: '', to: '' },
+    accSortV: { k: '', dir: -1 }, accSortE: { k: '', dir: -1 }, accSortR: { k: '', dir: -1 },
+    fAccV: {}, fAccE: {}, fAccR: {},
+    fgCats: [], v4ok: true, reflectOpen: false, reflectSel: {}, payOpen: {}
   };
   var prev = {};
   var loading = false, again = false;
@@ -1413,16 +2573,17 @@ var LIVE = (function () {
 
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
   var COLW_KEY = 'meatERP.colw.v3';
-  var COLW = { lot: {}, log: {} };
+  var COLW = { lot: {}, log: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {} };
   var COL_MIN = 44, COL_MAX = 720;
-  var ACT_DEF = { lot: 148, log: 132 };
+  var ACT_DEF = { lot: 148, log: 132, fpG: 112, fpL: 84, fpP: 96, accV: 108, accR: 132, accE: 96 };
+  var COLW_KEYS = ['lot', 'log', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM'];
   function tblOf(tab) { return tab === 'H' ? 'log' : 'lot'; }
   function loadColW() {
     try {
       var raw = localStorage.getItem(COLW_KEY);
       if (!raw) return;
       var o = JSON.parse(raw);
-      ['lot', 'log'].forEach(function (t) {
+      COLW_KEYS.forEach(function (t) {
         if (!o || !o[t]) return;
         for (var k in o[t]) {
           if (!Object.prototype.hasOwnProperty.call(o[t], k)) continue;
@@ -1433,24 +2594,29 @@ var LIVE = (function () {
     } catch (e) { /* 저장 못 하는 환경 무시 */ }
   }
   function saveColW() {
-    try { localStorage.setItem(COLW_KEY, JSON.stringify(COLW)); } catch (e) { }
+    try {
+      var empty = true;
+      COLW_KEYS.forEach(function (t) { for (var k in COLW[t]) if (Object.prototype.hasOwnProperty.call(COLW[t], k)) empty = false; });
+      if (empty) { localStorage.removeItem(COLW_KEY); return; }
+      localStorage.setItem(COLW_KEY, JSON.stringify(COLW));
+    } catch (e) { }
   }
   function colWidth(tbl, key, def) {
     var w = COLW[tbl] && COLW[tbl][key];
     return w > 0 ? w : (def || 100);
   }
-  function setColWidth(tbl, key, w) {
+  function setColWidth(tbl, key, w, wrapId) {
     w = Math.round(w);
     if (!isFinite(w)) return;
     w = Math.max(COL_MIN, Math.min(COL_MAX, w));
     if (!COLW[tbl]) COLW[tbl] = {};
     COLW[tbl][key] = w;
-    var col = document.querySelector('#tableWrap col[data-colwrap="' + key + '"]');
+    var col = document.querySelector('#' + (wrapId || 'tableWrap') + ' col[data-colwrap="' + key + '"]');
     if (col) col.style.width = w + 'px';
-    syncTableWidth();
+    syncTableWidth(wrapId);
   }
-  function syncTableWidth() {
-    var t = document.querySelector('#tableWrap table');
+  function syncTableWidth(wrapId) {
+    var t = document.querySelector('#' + (wrapId || 'tableWrap') + ' table');
     if (!t) return;
     var cols = t.querySelectorAll('colgroup col'), sum = 0, i, w;
     for (i = 0; i < cols.length; i++) {
@@ -1462,10 +2628,15 @@ var LIVE = (function () {
       t.style.minWidth = sum + 'px';
     }
   }
-  function resetColWidth() {
-    COLW = { lot: {}, log: {} };
-    try { localStorage.removeItem(COLW_KEY); } catch (e) { }
-    renderTable();
+  /* 현재 화면(모드)의 표들만 기본 너비로 되돌린다 */
+  function resetColWidth(mode) {
+    var tables = mode === 'fg' ? ['fpG', 'fpL', 'fpP']
+      : (mode === 'acc' ? ['accV', 'accR', 'accE', 'accM'] : ['lot', 'log']);
+    tables.forEach(function (t) { COLW[t] = {}; });
+    saveColW();
+    if (mode === 'fg') renderFgTable();
+    else if (mode === 'acc') renderAccTable();
+    else renderTable();
     toast('열 너비를 기본값으로 되돌렸습니다.', 'ok');
   }
   /* 글자 폭 계산 (열 더블클릭 = 내용에 맞춤) */
@@ -1477,17 +2648,18 @@ var LIVE = (function () {
       return MEASURE.measureText(String(txt || '')).width;
     } catch (e) { return String(txt || '').length * 12; }
   }
-  function autoFitCol(tbl, key) {
+  function autoFitCol(tbl, key, wrapId) {
+    var wrap = wrapId || 'tableWrap';
     var cols = key === '_act' ? null : colsOfTable(tbl);
     var idx = -1, i;
     if (cols) {
       for (i = 0; i < cols.length; i++) if (cols[i].k === key) idx = i;
       if (idx < 0) return;
     }
-    var th = document.querySelector('#tableWrap th[data-col="' + key + '"]');
+    var th = document.querySelector('#' + wrap + ' th[data-col="' + key + '"]');
     var label = th ? (th.querySelector('.ht') ? th.querySelector('.ht').textContent : th.textContent) : '';
     var max = textWidth(label, '700 11.5px -apple-system,BlinkMacSystemFont,"Malgun Gothic","Noto Sans KR",sans-serif') + 46;
-    var cells = document.querySelectorAll('#tableWrap tbody tr.lot td, #tableWrap tbody tr.hrow td');
+    var cells = document.querySelectorAll('#' + wrap + ' tbody tr td');
     var seen = 0;
     for (i = 0; i < cells.length; i++) {
       var td = cells[i];
@@ -1499,11 +2671,15 @@ var LIVE = (function () {
       var w = textWidth(td.textContent.trim()) + 22;
       if (w > max) max = w;
     }
-    setColWidth(tbl, key, Math.max(COL_MIN, Math.ceil(max) + 2));
+    setColWidth(tbl, key, Math.max(COL_MIN, Math.ceil(max) + 2), wrap);
     saveColW();
   }
   function colsOfTable(tbl) {
-    return tbl === 'lot' ? ERP.lotCols(cur.tab === 'C' ? 'C' : 'F') : ERP.LOG_COLS;
+    if (tbl === 'lot') return ERP.lotCols(cur.tab === 'C' ? 'C' : 'F');
+    if (tbl === 'log') return ERP.LOG_COLS;
+    if (tbl === 'fpG' || tbl === 'fpL' || tbl === 'fpP') return ERP.fpCols(tbl.charAt(2));
+    if (tbl === 'accV' || tbl === 'accR' || tbl === 'accE' || tbl === 'accM') return ERP.accCols(tbl.charAt(3));
+    return ERP.LOG_COLS;
   }
 
   function esc(v) {
@@ -1590,6 +2766,17 @@ var LIVE = (function () {
   function kpi(id, val, dp) {
     var el = $(id);
     var txt = dp === 0 ? fmtInt(val) : fmt(val);
+    if (prev[id] !== undefined && prev[id] !== txt) {
+      el.classList.remove('flash');
+      void el.offsetWidth;
+      el.classList.add('flash');
+    }
+    el.textContent = txt;
+    prev[id] = txt;
+  }
+  function kpiRaw(id, txt) {
+    var el = $(id);
+    if (!el) return;
     if (prev[id] !== undefined && prev[id] !== txt) {
       el.classList.remove('flash');
       void el.offsetWidth;
@@ -1833,27 +3020,43 @@ var LIVE = (function () {
 
   /* ---------- 기간 바 ---------- */
   function rangeTarget() {
+    if (cur.erp === 'fg') return cur.fgRange;
+    if (cur.erp === 'acc') return cur.accRange;
     if (cur.tab === 'H') return cur.hist;
     return cur.stock;
+  }
+  function rangeUI() {
+    if (cur.erp === 'fg') return { presets: 'fgPresets', from: 'fgFrom', to: 'fgTo', display: 'fgRangeDisplay', sum: 'fgRangeSum' };
+    if (cur.erp === 'acc') return { presets: 'accPresets', from: 'accFrom', to: 'accTo', display: 'accRangeDisplay', sum: 'accRangeSum' };
+    return { presets: 'rangePresets', from: 'rangeFrom', to: 'rangeTo', display: 'rangeDisplay', sum: 'rangeSum' };
+  }
+  function afterRange() {
+    renderRangeBar();
+    if (cur.erp === 'fg') renderFgTable();
+    else if (cur.erp === 'acc') renderAccTable();
+    else renderTable();
   }
   function rangeLabel(r) {
     if (!r.from && !r.to) return '전체 기간';
     return (r.from || '처음') + ' ~ ' + (r.to || '오늘');
   }
   function renderRangeBar() {
-    var isH = cur.tab === 'H';
-    $('dateFieldWrap').classList.toggle('hidden', isH);
-    var soon = document.querySelector('#rangePresets [data-preset="soon"]');
-    if (soon) soon.classList.toggle('hidden', isH);
-    var r = rangeTarget();
-    var btns = document.querySelectorAll('#rangePresets .pr');
+    var ui = rangeUI(), r = rangeTarget();
+    if (cur.erp === 'meat') {
+      var isH = cur.tab === 'H';
+      $('dateFieldWrap').classList.toggle('hidden', isH);
+      var soon = document.querySelector('#rangePresets [data-preset="soon"]');
+      if (soon) soon.classList.toggle('hidden', isH);
+      if (!isH) $('dateField').value = cur.stock.field || 'in';
+    }
+    var btns = document.querySelectorAll('#' + ui.presets + ' .pr');
     for (var i = 0; i < btns.length; i++) {
       btns[i].classList.toggle('active', btns[i].getAttribute('data-preset') === r.preset);
     }
-    $('rangeFrom').value = r.from || '';
-    $('rangeTo').value = r.to || '';
-    if (!isH) $('dateField').value = cur.stock.field || 'in';
-    var disp = $('rangeDisplay');
+    var fEl = $(ui.from), tEl = $(ui.to);
+    if (fEl) fEl.value = r.from || '';
+    if (tEl) tEl.value = r.to || '';
+    var disp = $(ui.display);
     if (disp) {
       disp.textContent = rangeLabel(r);
       disp.classList.toggle('set', !!(r.from || r.to));
@@ -1866,20 +3069,16 @@ var LIVE = (function () {
     var rg = ERP.rangeOf(key, today());
     r.from = rg.from;
     r.to = rg.to;
-    cur.hLimit = 250;
-    renderRangeBar();
-    renderTable();
+    cur.hLimit = 250; cur.fgLimit = 300; cur.accLimit = 300;
+    afterRange();
   }
-  function setCustomRange() {
+  function setCustomRange(fromId, toId) {
     var r = rangeTarget();
     r.preset = 'custom';
-    r.from = $('rangeFrom').value || '';
-    r.to = $('rangeTo').value || '';
-    cur.hLimit = 250;
-    var btns = document.querySelectorAll('#rangePresets .pr');
-    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('active');
-    renderRangeBar();
-    renderTable();
+    r.from = $(fromId || rangeUI().from).value || '';
+    r.to = $(toId || rangeUI().to).value || '';
+    cur.hLimit = 250; cur.fgLimit = 300; cur.accLimit = 300;
+    afterRange();
   }
 
   /* ---------- 기간 선택 팝업 (그림과 같은 2개월 달력) ----------
@@ -1999,10 +3198,9 @@ var LIVE = (function () {
     r.from = rngm.from;
     r.to = rngm.to;
     r.preset = 'custom';
-    cur.hLimit = 250;
+    cur.hLimit = 250; cur.fgLimit = 300; cur.accLimit = 300;
     closeRange();
-    renderRangeBar();
-    renderTable();
+    afterRange();
     toast('기간 적용: ' + rangeLabel(r), 'ok');
   }
 
@@ -2016,20 +3214,56 @@ var LIVE = (function () {
         major: cur.major, dateField: cur.stock.field, from: cur.stock.from, to: cur.stock.to, cols: cols
       });
     }
-    return ERP.filterLogs(st, {
-      q: cur.search, type: cur.hFilter, major: cur.major, from: cur.hist.from, to: cur.hist.to, cols: cols
-    });
+    if (tbl === 'log') {
+      return ERP.filterLogs(st, {
+        q: cur.search, type: cur.hFilter, major: cur.major, from: cur.hist.from, to: cur.hist.to, cols: cols
+      });
+    }
+    if (tbl === 'fpL') {
+      return ERP.fpFilteredLogs(st.fpLogs, {
+        q: cur.fgSearch, type: cur.fgTypeF, cat: cur.fgCat, from: cur.fgRange.from, to: cur.fgRange.to, cols: cols
+      });
+    }
+    if (tbl === 'fpG' || tbl === 'fpP') {
+      return ERP.fpFilteredProducts(st.fps, st.fpLogs, {
+        q: cur.fgSearch, cat: cur.fgCat, showZero: cur.fgShowZero,
+        from: cur.fgRange.from, to: cur.fgRange.to, cols: cols
+      });
+    }
+    if (tbl === 'accV') {
+      return ERP.accFilterVouchers(acc(), {
+        q: cur.accSearch, type: cur.accType, from: cur.accRange.from, to: cur.accRange.to, cols: cols
+      });
+    }
+    if (tbl === 'accE') {
+      return ERP.accFilterExpenses(acc(), {
+        q: cur.accSearch, type: cur.accType, from: cur.accRange.from, to: cur.accRange.to, cols: cols
+      });
+    }
+    if (tbl === 'accR') return accLedgerList();
+    return [];
   }
   function filterStore(tbl) {
-    return tbl === 'lot' ? cur.fLot : cur.fLog;
+    if (tbl === 'lot') return cur.fLot;
+    if (tbl === 'log') return cur.fLog;
+    if (tbl === 'fpG') return cur.fFgG;
+    if (tbl === 'fpL') return cur.fFgL;
+    if (tbl === 'fpP') return cur.fFgP;
+    if (tbl === 'accV') return cur.fAccV;
+    if (tbl === 'accE') return cur.fAccE;
+    if (tbl === 'accR') return cur.fAccR;
+    return cur.fLog;
   }
   function cellOf(tbl) {
-    return tbl === 'lot'
-      ? function (l, k) { return ERP.lotCell(l, k, cur.tab); }
-      : function (e, k) { return ERP.logCell(e, k); };
+    if (tbl === 'lot') return function (l, k) { return ERP.lotCell(l, k, cur.tab); };
+    if (tbl === 'log') return function (e, k) { return ERP.logCell(e, k); };
+    if (tbl === 'fpG' || tbl === 'fpP') return function (p, k) { return ERP.fpCell(p, k); };
+    if (tbl === 'fpL') return function (g, k) { return ERP.fpLogCell(g, k); };
+    if (tbl === 'accR') return function (r, k) { return ERP.accCell(r, k); };
+    return function (e, k) { return ERP.accCell(e, k); };
   }
   function colLabel(tbl, key) {
-    var list = tbl === 'lot' ? ERP.LOT_COLS : ERP.LOG_COLS;
+    var list = colsOfTable(tbl);
     for (var i = 0; i < list.length; i++) if (list[i].k === key) return list[i].t;
     return key;
   }
@@ -2094,7 +3328,7 @@ var LIVE = (function () {
     }
     if (!off) delete store[fpop.key];
     else store[fpop.key] = on;
-    renderTable();
+    renderCurrent();
     if (fpop.open) $('fpop').classList.remove('hidden');
   }
 
@@ -2321,7 +3555,15 @@ var LIVE = (function () {
     renderTable();
     syncLotViews();
     fillDatalists();
+    fillFgDatalists();
+    fillAccDatalists();
     renderRangeBar();
+    renderFgKPI();
+    renderFgCatBar();
+    renderFgTable();
+    renderAccKPI();
+    renderAccTable();
+    renderAccReflect();
     updatePriceHint();
     if (xls.kind) renderXls();
   }
@@ -2332,12 +3574,19 @@ var LIVE = (function () {
     if (loading) { again = true; return Promise.resolve(); }
     loading = true;
     if (!opts.silent) setSync('wait', '불러오는 중…');
-    return SB.db.loadAll().then(function (res) {
+    return Promise.all([SB.db.loadAll(), SB.db.loadAllV4()]).then(function (pair) {
+      var res = pair[0], v4 = pair[1] || {};
       st = ERP.stateFrom(res.lots, res.logs);
+      var f = ERP.fpStateFrom(v4.fps, v4.fpLogs);
+      var a = ERP.accStateFrom(v4.vouchers, v4.payments, v4.expenses);
+      st.fps = f.fps; st.fpLogs = f.fpLogs;
+      st.vouchers = a.vouchers; st.payments = a.payments; st.expenses = a.expenses;
+      cur.v4ok = v4.v4 !== false;
       refresh();
       if (!opts.silent) setSync('ok', '동기화 ' + clock());
       hideBanner();
-      $('baseLabel').textContent = 'Supabase 실시간 공유 · 로트 ' + st.lots.length + '개 · 이력 ' + st.logs.length + '건';
+      $('baseLabel').textContent = 'Supabase 실시간 공유 · 원료육 로트 ' + st.lots.length + ' · 완제품 ' + st.fps.length +
+        ' · 회계 전표 ' + st.vouchers.length;
       if (!st.lots.length) {
         showBanner('아직 재고 데이터가 없습니다. Supabase SQL Editor에서 <b>supabase_setup.sql</b>을 실행했는지 확인해 주세요.');
       }
@@ -2362,9 +3611,17 @@ var LIVE = (function () {
     $('appView').classList.remove('hidden');
     $('whoami').innerHTML = '<b>' + esc(ses.name) + '</b><span>' + esc(ses.email) + '</span>';
     var d = today();
-    ['inDate', 'inInDate', 'thDate', 'reDate', 'outDate'].forEach(function (id) { if (!$(id).value) $(id).value = d; });
+    ['inDate', 'inInDate', 'thDate', 'reDate', 'outDate', 'fgDate', 'accVDate', 'accPDate', 'accEDate'].forEach(function (id) {
+      if ($(id) && !$(id).value) $(id).value = d;
+    });
+    if ($('accReflectFrom')) { $('accReflectFrom').value = d.slice(0, 8) + '01'; $('accReflectTo').value = d; }
+    if ($('fgNewCat') && !$('fgNewCat').value) $('fgNewCat').value = '완제품';
     if (!$('inMajor').value) $('inMajor').value = '원료육';
     setInWh('F'); setOutWh('C'); setDest('site'); setMode('in');
+    var savedMode = 'meat';
+    try { savedMode = localStorage.getItem(MODE_KEY) || 'meat'; } catch (e) { }
+    setErpMode(savedMode);
+    setFgType('IN');
     reload().then(function () {
       LIVE.start(function () { reload({ silent: true }); }, liveLabel);
       if (pollTimer) clearInterval(pollTimer);
@@ -2380,6 +3637,7 @@ var LIVE = (function () {
     closeFilter();
     closeRange();
     closeEdit(); closeLot();
+    closeFgNew(); closeFgPrice(); closeUpload(); closeAccVoucher(); closeAccPay(); closeAccExpense();
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
     SB.auth.signOut().then(function () {
       $('appView').classList.add('hidden');
@@ -2827,8 +4085,24 @@ var LIVE = (function () {
 
   /* ---------- 이벤트 ---------- */
   /* ---------- 검색 버튼 · Enter ---------- */
-  function doSearch() {
-    cur.search = $('search').value || '';
+  function doSearch(id) {
+    var sumId = typeof id === 'string' ? id : 'search';
+    var el = $(sumId);
+    if (sumId === 'fgSearch') {
+      cur.fgSearch = el ? el.value || '' : '';
+      cur.fgLimit = 300;
+      renderFgTable();
+      toast('완제품 ' + (cur.fgSearch ? '검색: ' + cur.fgSearch : '검색') + ' · ' + ($('fgRangeSum').textContent || '결과'), 'ok');
+      return;
+    }
+    if (sumId === 'accSearch') {
+      cur.accSearch = el ? el.value || '' : '';
+      cur.accLimit = 300;
+      renderAccTable();
+      toast('회계 ' + (cur.accSearch ? '검색: ' + cur.accSearch : '검색') + ' · ' + ($('accRangeSum').textContent || '결과'), 'ok');
+      return;
+    }
+    cur.search = el ? el.value || '' : '';
     cur.hLimit = 250;
     renderTable();
     var sum = $('rangeSum') ? $('rangeSum').textContent : '';
@@ -2889,12 +4163,1703 @@ var LIVE = (function () {
     }, true);
   }
 
+  /* ==========================================================================
+     v4 화면 — 🥩 원료육 | 📦 완제품 | 💰 회계 3모드
+     ========================================================================== */
+  function acc() {
+    return { vouchers: st.vouchers || [], payments: st.payments || [], expenses: st.expenses || [] };
+  }
+  function fmtQty(v) {
+    var n = Math.round((Number(v) || 0) * 1000) / 1000;
+    var neg = n < 0;
+    var s2 = Math.abs(n).toString();
+    var parts = s2.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return (neg ? '-' : '') + parts.join('.');
+  }
+  function won(n) { return fmtInt(n) + '원'; }
+  function downloadXlsxFile(sheets, filename) {
+    var bytes = ERP.xlsxBytes(sheets);
+    var blob = new Blob([new Uint8Array(bytes)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      URL.revokeObjectURL(a.href);
+      if (a.parentNode) a.parentNode.removeChild(a);
+    }, 600);
+  }
+  function ymdTag() { return today().replace(/-/g, ''); }
+
+  /* ---------- 모드 전환 ---------- */
+  var MODE_KEY = 'meatERP.erpMode.v1';
+  function setErpMode(m) {
+    if (m !== 'meat' && m !== 'fg' && m !== 'acc') m = 'meat';
+    cur.erp = m;
+    try { localStorage.setItem(MODE_KEY, m); } catch (e) { }
+    var isM = m === 'meat', isF = m === 'fg', isA = m === 'acc';
+    $('meatMode').classList.toggle('hidden', !isM);
+    $('fgMode').classList.toggle('hidden', !isF);
+    $('accMode').classList.toggle('hidden', !isA);
+    $('meatKpi').classList.toggle('hidden', !isM);
+    $('fgKpi').classList.toggle('hidden', !isF);
+    $('accKpi').classList.toggle('hidden', !isA);
+    var sw = document.querySelectorAll('#modeSwitch .mswitch');
+    for (var i = 0; i < sw.length; i++) {
+      var on = sw[i].getAttribute('data-erpmode') === m;
+      sw[i].classList.toggle('active', on);
+      sw[i].setAttribute('aria-selected', on ? 'true' : 'false');
+    }
+    var om = document.querySelectorAll('.only-meat');
+    for (var j = 0; j < om.length; j++) om[j].classList.toggle('hidden', !isM);
+    closeFilter();
+    closeRange();
+    updateQuickLabels();
+    if (!$('appView').classList.contains('hidden')) {
+      renderRangeBar();
+      if (isM) renderTable();
+      if (isF) { renderFgKPI(); renderFgCatBar(); renderFgTable(); }
+      if (isA) { renderAccKPI(); renderAccTable(); renderAccReflect(); }
+      try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+    }
+  }
+  function updateQuickLabels() {
+    var f = $('qbForm'), l = $('qbList');
+    if (!f) return;
+    if (cur.erp === 'fg') { f.textContent = '📝 입출고 입력'; l.textContent = '📋 재고·이력'; }
+    else if (cur.erp === 'acc') { f.textContent = '📝 회계 입력'; l.textContent = '📋 전표·장부'; }
+    else { f.textContent = '📝 입출고 입력'; l.textContent = '📋 재고·이력'; }
+  }
+  function scrollPanel(which) {
+    var id;
+    if (cur.erp === 'fg') id = which === 'form' ? 'fgFormPanel' : 'fgListPanel';
+    else if (cur.erp === 'acc') id = which === 'form' ? 'accQuick' : 'accListPanel';
+    else id = which === 'form' ? 'meatFormPanel' : 'meatListPanel';
+    var el = $(id);
+    if (!el) return;
+    try { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { el.scrollIntoView(); }
+    $('qbForm').classList.toggle('active', which === 'form');
+    $('qbList').classList.toggle('active', which === 'list');
+  }
+  function renderCurrent() {
+    if (cur.erp === 'fg') renderFgTable();
+    else if (cur.erp === 'acc') renderAccTable();
+    else renderTable();
+  }
+
+  /* ---------- 표 머리글 (정렬만, 필터 없음) ---------- */
+  function thPlain(c, sort) {
+    var on = !!(sort && sort.k === c.k);
+    var arrow = on ? (sort.dir === -1 ? '▼' : '▲') : '';
+    return '<th class="' + (c.num ? 'num' : '') + '" data-col="' + c.k + '">' +
+      '<div class="hdbox"><button type="button" class="hdsort' + (on ? ' on' : '') + '" data-sort="' + c.k + '" title="' + esc(c.t) + ' 정렬">' +
+      '<span class="ht">' + esc(c.t) + '</span><span class="harrow">' + arrow + '</span></button></div>' +
+      '<span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
+  }
+  function setFgSum(n, qty, amt) {
+    var el = $('fgRangeSum');
+    if (el) el.textContent = n + (qty !== null && qty !== undefined ? ' · ' + fmtQty(qty) + '개' : '') + (amt ? ' · ' + fmtInt(amt) + '원' : '');
+  }
+  function setAccSum(text) {
+    var el = $('accRangeSum');
+    if (el) el.textContent = text || '';
+  }
+  function noV4(text) {
+    return '<div class="setuptip">' + text + '</div>';
+  }
+
+  /* ==========================================================================
+     📦 완제품 ERP
+     ========================================================================== */
+  var FG_CATS_KEY = 'meatERP.fgCats.v1';
+  function loadFgCats() {
+    try {
+      var raw = localStorage.getItem(FG_CATS_KEY);
+      var arr = raw ? JSON.parse(raw) : [];
+      cur.fgCats = [];
+      for (var i = 0; i < (arr || []).length; i++) if (typeof arr[i] === 'string' && arr[i]) cur.fgCats.push(arr[i]);
+    } catch (e) { cur.fgCats = []; }
+  }
+  function saveFgCats() {
+    try { localStorage.setItem(FG_CATS_KEY, JSON.stringify(cur.fgCats)); } catch (e) { }
+  }
+  function addFgCat() {
+    var wrap = $('fgCatExtra');
+    if (!wrap) return;
+    if (wrap.getAttribute('data-on') === '1') return;
+    wrap.setAttribute('data-on', '1');
+    wrap.innerHTML = '<input id="fgCatNew" class="catchip-input" placeholder="대분류 이름" maxlength="12">' +
+      '<button class="catchip add" id="fgCatNewGo" type="button">추가</button>';
+    var inp = $('fgCatNew');
+    try { inp.focus(); } catch (e) { }
+    function done() {
+      var v = (inp.value || '').replace(/^\s+|\s+$/g, '');
+      wrap.removeAttribute('data-on');
+      wrap.innerHTML = '';
+      if (!v) return;
+      if (ERP.FP_CATS.indexOf(v) < 0 && cur.fgCats.indexOf(v) < 0) cur.fgCats.push(v);
+      saveFgCats();
+      renderFgCatBar();
+      cur.fgCat = v;
+      renderFgCatBar();
+      renderFgTable();
+      toast('대분류 "' + v + '" 로 봅니다.', 'ok');
+    }
+    $('fgCatNewGo').addEventListener('click', done);
+    inp.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); done(); }
+      if (ev.key === 'Escape') { wrap.removeAttribute('data-on'); wrap.innerHTML = ''; }
+    });
+  }
+  function fgCatsAll() {
+    var out = ERP.FP_CATS.slice(), i;
+    for (i = 0; i < cur.fgCats.length; i++) if (out.indexOf(cur.fgCats[i]) < 0) out.push(cur.fgCats[i]);
+    for (i = 0; i < st.fps.length; i++) if (st.fps[i].cat && out.indexOf(st.fps[i].cat) < 0) out.push(st.fps[i].cat);
+    return out;
+  }
+  function renderFgCatBar() {
+    var bar = $('fgCatBar');
+    if (!bar) return;
+    var counts = {}, total = 0, i, p;
+    for (i = 0; i < st.fps.length; i++) {
+      p = st.fps[i];
+      counts[p.cat] = (counts[p.cat] || 0) + 1;
+      total++;
+    }
+    var chips = bar.querySelectorAll('[data-fgcat]');
+    for (i = 0; i < chips.length; i++) {
+      var c = cur.fgCat === 'all' ? 'all' : cur.fgCat;
+      chips[i].classList.toggle('active', chips[i].getAttribute('data-fgcat') === c);
+    }
+    if ($('fgCatAll')) $('fgCatAll').textContent = total + '품목';
+    for (i = 1; i <= 5; i++) if ($('fgCat' + i)) $('fgCat' + i).textContent = (counts[ERP.FP_CATS[i - 1]] || 0) + '개';
+    var extra = $('fgCatExtra');
+    if (extra) {
+      var html = [], list = cur.fgCats.slice();
+      for (i = 0; i < st.fps.length; i++) if (list.indexOf(st.fps[i].cat) < 0 && ERP.FP_CATS.indexOf(st.fps[i].cat) < 0) list.push(st.fps[i].cat);
+      for (i = 0; i < list.length; i++) {
+        html.push('<button class="catchip' + (cur.fgCat === list[i] ? ' active' : '') + '" data-fgcat="' + esc(list[i]) + '" type="button"><b>' +
+          esc(list[i]) + '</b><span>' + (counts[list[i]] || 0) + '개</span></button>');
+      }
+      if (extra.getAttribute('data-on') !== '1') extra.innerHTML = html.join('');
+    }
+  }
+
+  function renderFgKPI() {
+    if (!$('kFgStock')) return;
+    var t = ERP.fpTotals(st.fps);
+    var td = ERP.fpToday(st.fps, st.fpLogs, today());
+    kpiRaw('kFgStock', fmtQty(t.stock));
+    kpi('kFgHold', t.hold, 0);
+    kpi('kFgValue', t.amount, 0);
+    kpi('kFgToday', td.cnt, 0);
+    kpi('kFgNoPrice', t.noPrice, 0);
+    $('kFgStockSub').textContent = '보유 품목 ' + t.hold + '개';
+    $('kFgHoldSub').textContent = '전체 ' + t.total + '품목 중';
+    $('kFgValueSub').textContent = '입고단가 있는 ' + (t.total - t.noPrice) + '품목 기준';
+    $('kFgTodaySub').textContent = '오늘 금액 ' + fmtInt(td.amount) + '원';
+    if ($('fgCountBadge')) $('fgCountBadge').textContent = String(t.hold);
+    if ($('cntFg')) $('cntFg').textContent = String(t.total);
+    if ($('cntFgLog')) $('cntFgLog').textContent = String(st.fpLogs.length);
+    if ($('cntFgPrice')) $('cntFgPrice').textContent = String(t.total - t.noPrice);
+  }
+
+  function fgCellHtml(p, k) {
+    if (k === 'cat') return '<td><span class="cat-tag">' + esc(p.cat || '-') + '</span></td>';
+    if (k === 'code') return '<td class="code-cell">' + esc(p.code) + '</td>';
+    if (k === 'n') return '<td class="ellip" title="' + esc(p.n) + '"><b>' + esc(p.n) + '</b>' + (p.active ? '' : ' <span class="ttag">비활성</span>') + '</td>';
+    if (k === 'spec') return '<td class="ellip">' + esc(p.spec || '-') + '</td>';
+    if (k === 'unit') return '<td>' + esc(p.unit || '-') + '</td>';
+    if (k === 'stock') return '<td class="num' + (p.stock <= 0.0004 ? ' zero' : '') + '">' + fmtQty(p.stock) + '</td>';
+    if (k === 'inp') return '<td class="num">' + (p.inp > 0 ? fmtInt(p.inp) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'outp') return '<td class="num">' + (p.outp > 0 ? fmtInt(p.outp) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'amt') return '<td class="num" title="' + (p.inp > 0 ? fmtInt(p.amt) + '원' : '단가 미입력') + '">' +
+      (p.inp > 0 ? fmtInt(p.amt) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'e') return '<td>' + esc(p.e || '-') + ddayHtml(p.e) + '</td>';
+    return '<td class="ellip">' + esc(ERP.fpCell(p, k) || '-') + '</td>';
+  }
+  function fgLogCellHtml(g, k) {
+    if (k === 'd') return '<td>' + esc(g.d || '-') + '</td>';
+    if (k === 't') return '<td><span class="badge ' + (g.t === 'IN' ? 'in' : 'out') + '">' + ERP.fpTypeName(g.t) + '</span></td>';
+    if (k === 'code') return '<td class="code-cell">' + esc(g.code) + '</td>';
+    if (k === 'n') return '<td class="ellip" title="' + esc(g.n) + '"><b>' + esc(g.n) + '</b></td>';
+    if (k === 'spec') return '<td class="ellip">' + esc(g.spec || '-') + '</td>';
+    if (k === 'unit') return '<td>' + esc(g.unit || '-') + '</td>';
+    if (k === 'q') return '<td class="num">' + (g.t === 'IN' ? '+' : '-') + fmtQty(g.q) + '</td>';
+    if (k === 'inp') return '<td class="num">' + (g.t === 'IN' && g.inp > 0 ? fmtInt(g.inp) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'outp') return '<td class="num">' + (g.t === 'OUT' && g.outp > 0 ? fmtInt(g.outp) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'amt') return '<td class="num">' + (g.amt > 0 ? fmtInt(g.amt) : '<span class="ttag">-</span>') + '</td>';
+    if (k === 'e') return '<td>' + esc(g.e || '-') + '</td>';
+    if (k === 'p') {
+      var t = [g.p, g.note].filter(function (v) { return !!v; }).join(' · ');
+      return '<td class="ellip" title="' + esc(t) + '">' + (t ? (g.p ? esc(g.p) : '') + (g.note ? ' <span class="ttag">' + esc(g.note) + '</span>' : '') : '<span class="ttag">-</span>') + '</td>';
+    }
+    if (k === 'worker') return '<td class="ellip">' + (g.worker ? '<span class="worker">' + esc(g.worker) + '</span>' : '<span class="ttag">-</span>') + '</td>';
+    return '<td class="ellip">' + esc(ERP.fpLogCell(g, k) || '-') + '</td>';
+  }
+  function fgFiltered(kind) {
+    if (kind === 'L') {
+      return ERP.fpFilteredLogs(st.fpLogs, {
+        q: cur.fgSearch, type: cur.fgTypeF, cat: cur.fgCat,
+        from: cur.fgRange.from, to: cur.fgRange.to, cols: cur.fFgL,
+        sortKey: cur.fgSortL.k, sortDir: cur.fgSortL.dir
+      });
+    }
+    return ERP.fpFilteredProducts(st.fps, st.fpLogs, {
+      q: cur.fgSearch, cat: cur.fgCat, showZero: cur.fgShowZero,
+      from: cur.fgRange.from, to: cur.fgRange.to, cols: kind === 'P' ? cur.fFgP : cur.fFgG,
+      sortKey: kind === 'P' ? cur.fgSortP.k : cur.fgSortG.k,
+      sortDir: kind === 'P' ? cur.fgSortP.dir : cur.fgSortG.dir
+    });
+  }
+  function renderFgStock() {
+    var wrap = $('fgTableWrap');
+    var cols = ERP.fpCols('G');
+    var list = fgFiltered('G');
+    var qty = 0, amt = 0, i;
+    for (i = 0; i < list.length; i++) { qty += list[i].stock; amt += list[i].amt; }
+    setFgSum(list.length + '품목', qty, amt);
+    if (!st.fps.length) {
+      wrap.innerHTML = (cur.v4ok ? '' : noV4('완제품 표가 아직 없습니다. Supabase SQL Editor에서 <b>supabase_migrate_v4.sql</b>을 실행해 주세요.')) +
+        '<table><tbody><tr class="empty-row"><td>등록된 완제품이 없습니다. 왼쪽 <b>＋ 새 상품 등록</b>으로 시작하세요.</td></tr></tbody></table>';
+      return;
+    }
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>조건에 맞는 품목이 없습니다. 대분류·검색·기간을 넓혀 보세요.</td></tr></tbody></table>';
+      return;
+    }
+    var page = list.slice(0, cur.fgLimit);
+    var html = [tableOpen('t-fg', 'fpG', cols, ACT_DEF.fpG), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.fgSortG, cur.fFgG));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < page.length; i++) {
+      var p = page[i];
+      html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
+      for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
+      html.push('<td><div class="acts"><button class="act edit" data-fgprice="' + esc(p.code) + '">단가</button>' +
+        '<button class="act" data-fgedit="' + esc(p.code) + '">수정</button></div></td></tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > cur.fgLimit) {
+      html.push('<button class="more" id="btnFgMore">더 보기 (' + (list.length - cur.fgLimit) + '품목 남음)</button>');
+    }
+    wrap.innerHTML = html.join('');
+    var more = $('btnFgMore');
+    if (more) more.addEventListener('click', function () { cur.fgLimit += 300; renderFgStock(); });
+  }
+  function renderFgLogs() {
+    var wrap = $('fgTableWrap');
+    var cols = ERP.fpCols('L');
+    var list = fgFiltered('L');
+    var qty = 0, amt = 0, i;
+    for (i = 0; i < list.length; i++) { qty += list[i].q; amt += list[i].amt; }
+    setFgSum(list.length + '건', null, amt);
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>조건에 맞는 이력이 없습니다. 기간·구분·검색을 넓혀 보세요.</td></tr></tbody></table>';
+      return;
+    }
+    var page = list.slice(0, cur.fgLimit);
+    var html = [tableOpen('t-fg', 'fpL', cols, ACT_DEF.fpL), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.fgSortL, cur.fFgL));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < page.length; i++) {
+      var g = page[i];
+      html.push('<tr class="fgrow' + (g.undone ? ' undone' : '') + '" data-fgcode="' + esc(g.code) + '">');
+      for (c = 0; c < cols.length; c++) html.push(fgLogCellHtml(g, cols[c].k));
+      html.push('<td><div class="acts">' + (g.undone
+        ? '<span class="ttag">취소됨</span>'
+        : '<button class="cancel" data-fgundo="' + g.id + '">취소</button>') + '</div></td></tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > cur.fgLimit) {
+      html.push('<button class="more" id="btnFgLogMore">더 보기 (' + (list.length - cur.fgLimit) + '건 남음)</button>');
+    }
+    wrap.innerHTML = html.join('');
+    var more = $('btnFgLogMore');
+    if (more) more.addEventListener('click', function () { cur.fgLimit += 300; renderFgLogs(); });
+  }
+  function renderFgPrices() {
+    var wrap = $('fgTableWrap');
+    var cols = ERP.fpCols('P');
+    var list = fgFiltered('P');
+    setFgSum(list.length + '품목', null, null);
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>조건에 맞는 품목이 없습니다.</td></tr></tbody></table>';
+      return;
+    }
+    var page = list.slice(0, cur.fgLimit);
+    var html = [tableOpen('t-fg', 'fpP', cols, ACT_DEF.fpP), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.fgSortP, cur.fFgP));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (var i = 0; i < page.length; i++) {
+      var p = page[i];
+      html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
+      for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
+      html.push('<td><div class="acts"><button class="act edit" data-fgprice="' + esc(p.code) + '">수정</button></div></td></tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > cur.fgLimit) {
+      html.push('<button class="more" id="btnFgPriceMore">더 보기 (' + (list.length - cur.fgLimit) + '품목 남음)</button>');
+    }
+    wrap.innerHTML = html.join('');
+    var more = $('btnFgPriceMore');
+    if (more) more.addEventListener('click', function () { cur.fgLimit += 300; renderFgPrices(); });
+  }
+  function renderFgTable() {
+    if (!$('fgTableWrap')) return;
+    var isL = cur.fgTab === 'L', isP = cur.fgTab === 'P';
+    $('fgZeroWrap').classList.toggle('hidden', isL);
+    $('fgLogFilter').classList.toggle('hidden', !isL);
+    $('fgNoteBar').textContent = isL
+      ? '기간·검색은 이력 표에 적용됩니다. 왼쪽 위 [날짜]와 [기간선택]으로 조회하세요.'
+      : '기간을 고르면 그 기간에 입출고가 있었던 품목만 보여줍니다.';
+    var anyF = hasCols(cur.fFgG) || hasCols(cur.fFgL) || hasCols(cur.fFgP);
+    $('btnFgResetFilters').classList.toggle('hidden', !anyF);
+    if (isL) { renderFgLogs(); return; }
+    if (isP) { renderFgPrices(); return; }
+    renderFgStock();
+  }
+
+  /* ---------- 완제품 상품 선택 · 입력 ---------- */
+  function fgPickProduct(silent) {
+    var q = $('fgQuery').value || '';
+    var head = String(q).split('·')[0].replace(/^\s+|\s+$/g, '');
+    var p = ERP.fpFind(st.fps, q) || ERP.fpFind(st.fps, head);
+    cur.fgCode = p ? p.code : '';
+    if (p) {
+      $('fgQuery').value = p.code + ' · ' + p.n;
+      $('fgSpec').value = p.spec || '';
+      $('fgUnit').value = p.unit || '개';
+      $('fgPrice').placeholder = (cur.fgType === 'IN' ? p.inp : p.outp) > 0
+        ? fmtInt(cur.fgType === 'IN' ? p.inp : p.outp) : '비우면 상품단가';
+    }
+    renderFgInfo();
+    if (!silent && !p && q) toast('일치하는 상품이 없습니다. 새 상품이면 [＋ 새 상품 등록]을 눌러 주세요.', 'warn');
+    fgSyncAmount();
+  }
+  function renderFgInfo() {
+    var box = $('fgInfo');
+    if (!box) return;
+    var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
+    cur.fgStockRef = p;
+    var q = ($('fgQuery').value || '').replace(/^\s+|\s+$/g, '');
+    if (!p) {
+      box.className = 'lotinfo empty';
+      box.innerHTML = q ? '일치하는 상품이 없습니다. 목록에서 정확한 상품을 골라 주세요.' : '상품을 고르면 현재고·단가가 보입니다.';
+      return;
+    }
+    box.className = 'lotinfo';
+    box.innerHTML = '<b>' + esc(p.n) + '</b> · ' + esc(p.cat || '-') + (p.spec ? ' · ' + esc(p.spec) : '') +
+      '<br>상품코드 ' + esc(p.code) + ' · 현재고 <b>' + fmtQty(p.stock) + esc(p.unit || '개') + '</b>' +
+      '<br>입고단가 <b>' + (p.inp > 0 ? won(p.inp) : '미입력') + '</b> · 출고단가 <b>' + (p.outp > 0 ? won(p.outp) : '미입력') + '</b>' +
+      (p.e ? '<br>유통기한 ' + esc(p.e) + ddayHtml(p.e) : '') +
+      (p.sup ? ' · 매입처 ' + esc(p.sup) : '');
+  }
+  function fgSyncAmount() {
+    var q = Number($('fgQty').value || 0);
+    var p = currentFgPrice();
+    $('fgAmount').value = q > 0 && p > 0 ? String(Math.round(q * p)) : '';
+  }
+  function currentFgPrice() {
+    var v = $('fgPrice').value;
+    if (v !== '' && Number(v) >= 0) return Number(v);
+    var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
+    if (!p) return 0;
+    return cur.fgType === 'IN' ? p.inp : p.outp;
+  }
+  function setFgType(t) {
+    cur.fgType = t === 'OUT' ? 'OUT' : 'IN';
+    $('fgTypeIN').classList.toggle('active', cur.fgType === 'IN');
+    $('fgTypeOUT').classList.toggle('active', cur.fgType === 'OUT');
+    $('fgQtyLabel').innerHTML = (cur.fgType === 'IN' ? '입고 수량' : '출고 수량') + ' <span class="req">*</span>';
+    $('fgPriceLabel').textContent = cur.fgType === 'IN' ? '입고단가(원)' : '출고단가(원)';
+    $('btnFgSave').textContent = cur.fgType === 'IN' ? '입고 저장' : '출고 저장';
+    $('fgNegWrap').classList.toggle('hidden', cur.fgType !== 'OUT');
+    var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
+    if (p) $('fgPrice').placeholder = (cur.fgType === 'IN' ? p.inp : p.outp) > 0 ? fmtInt(cur.fgType === 'IN' ? p.inp : p.outp) : '비우면 상품단가';
+    fgSyncAmount();
+  }
+  function fgSubmit() {
+    var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
+    if (!p) { $('fgMsg').textContent = '상품을 먼저 정확히 골라 주세요.'; toast('상품을 골라 주세요.', 'warn'); return; }
+    var qty = Number($('fgQty').value || 0);
+    if (!(qty > 0)) { $('fgMsg').textContent = '수량을 입력하세요.'; $('fgQty').focus(); return; }
+    if (cur.fgType === 'OUT' && !$('fgNeg').checked && qty > p.stock + 0.0004) {
+      $('fgMsg').textContent = '재고(' + fmtQty(p.stock) + p.unit + ')보다 많이 출고할 수 없습니다. 필요하면 아래 [재고보다 많이 출고 허용]을 켜세요.';
+      toast('재고보다 많이 출고할 수 없습니다.', 'warn');
+      return;
+    }
+    $('fgMsg').textContent = '';
+    var b = $('btnFgSave');
+    b.disabled = true;
+    var label = b.textContent;
+    b.textContent = '저장 중…';
+    SB.db.fpApply({
+      code: p.code, type: cur.fgType, qty: qty, date: $('fgDate').value || today(),
+      price: $('fgPrice').value === '' ? null : Number($('fgPrice').value),
+      expiry: $('fgExpiry').value || null, partner: $('fgPartner').value || '',
+      note: $('fgNote').value || '', allowNegative: $('fgNeg').checked
+    }).then(function (row) {
+      toast('완제품 ' + ERP.fpTypeName(cur.fgType) + ' 완료: ' + (row && row.name || p.n) + ' ' + fmtQty(qty) + p.unit +
+        (row && Number(row.amount) ? ' · ' + won(row.amount) : ''), cur.fgType === 'IN' ? 'in' : 'out');
+      $('fgQty').value = ''; $('fgNote').value = ''; $('fgPrice').value = ''; $('fgAmount').value = '';
+      cur.fgLimit = 300;
+      return reload({ silent: true });
+    }).then(function () {
+      b.disabled = false; b.textContent = label;
+      fgPickProduct(true);
+    }, function (e) {
+      b.disabled = false; b.textContent = label;
+      $('fgMsg').textContent = e.message;
+      toast(e.message, 'err');
+    });
+  }
+  function fgUndo(id, btn) {
+    if (!window.confirm('이 완제품 입출고를 취소할까요?\n재고가 입력 전으로 돌아가고, 이력에는 취소 표시가 남습니다.')) return;
+    if (btn) btn.disabled = true;
+    SB.db.fpUndo(id).then(function (row) {
+      toast('취소됨: ' + (row && row.name ? row.name + ' ' + fmtQty(row.qty) + (row.unit || '') : '완제품 이력'), 'ok');
+      return reload({ silent: true });
+    }).then(function () { if (btn) btn.disabled = false; }, function (e) {
+      if (btn) btn.disabled = false;
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 새 상품 등록 / 수정 ---------- */
+  var fgNewEditing = null;
+  function openFgNew(code) {
+    fgNewEditing = null;
+    $('fgNewMsg').textContent = '';
+    if (code) {
+      var p = ERP.fpProductOf(st.fps, code);
+      if (!p) return;
+      fgNewEditing = p;
+      $('fgNewTitle').textContent = '상품 정보 수정';
+      $('fgNewSub').textContent = '이 상품의 이름·규격·단가를 고칩니다. 재고는 입출고로만 바뀝니다.';
+      $('fgNewCode').value = p.code; $('fgNewCode').disabled = true;
+      $('fgNewCat').value = p.cat; $('fgNewName').value = p.n;
+      $('fgNewSpec').value = p.spec; $('fgNewUnit').value = p.unit || '개';
+      $('fgNewIn').value = p.inp > 0 ? p.inp : ''; $('fgNewOut').value = p.outp > 0 ? p.outp : '';
+      $('fgNewExpiry').value = p.e || ''; $('fgNewSupplier').value = p.sup; $('fgNewBarcode').value = p.bc;
+      $('fgNewStockWrap').classList.add('hidden');
+      $('fgNewHint').textContent = '단가를 비워 두면 기존 단가가 그대로 남습니다.';
+      $('fgNewSave').textContent = '수정 저장';
+    } else {
+      $('fgNewTitle').textContent = '＋ 새 상품 등록';
+      $('fgNewSub').textContent = '상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.';
+      $('fgNewCode').value = ERP.fpNextCode(st.fps); $('fgNewCode').disabled = false;
+      $('fgNewCat').value = cur.fgCat !== 'all' ? cur.fgCat : '완제품';
+      $('fgNewName').value = ''; $('fgNewSpec').value = ($('fgSpec') && $('fgSpec').value) || '';
+      $('fgNewUnit').value = '개'; $('fgNewIn').value = ''; $('fgNewOut').value = '';
+      $('fgNewExpiry').value = ''; $('fgNewSupplier').value = ''; $('fgNewBarcode').value = '';
+      $('fgNewStock').value = '';
+      $('fgNewStockWrap').classList.remove('hidden');
+      $('fgNewHint').innerHTML = '초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.';
+      $('fgNewSave').textContent = '등록';
+    }
+    $('fgNewModal').classList.remove('hidden');
+    setTimeout(function () { try { $('fgNewName').focus(); } catch (e) { } }, 60);
+  }
+  function closeFgNew() { $('fgNewModal').classList.add('hidden'); fgNewEditing = null; }
+  function saveFgNew() {
+    var code = ($('fgNewCode').value || '').replace(/^\s+|\s+$/g, '');
+    var name = ($('fgNewName').value || '').replace(/^\s+|\s+$/g, '');
+    if (!code) { $('fgNewMsg').textContent = '상품코드를 입력하세요.'; return; }
+    if (!name) { $('fgNewMsg').textContent = '상품명을 입력하세요.'; return; }
+    var p = {
+      code: code, cat: ($('fgNewCat').value || '완제품').replace(/^\s+|\s+$/g, '') || '완제품',
+      name: name, spec: $('fgNewSpec').value || '', unit: $('fgNewUnit').value || '개',
+      inp: Number($('fgNewIn').value || 0), outp: Number($('fgNewOut').value || 0),
+      expiry: $('fgNewExpiry').value || null, sup: $('fgNewSupplier').value || '',
+      bc: $('fgNewBarcode').value || '', active: true
+    };
+    var stock = Number($('fgNewStock').value || 0);
+    var b = $('fgNewSave');
+    b.disabled = true; b.textContent = '저장 중…';
+    SB.db.fpProductSave(p).then(function () {
+      if (!fgNewEditing && stock > 0) {
+        return SB.db.fpApply({
+          code: p.code, type: 'IN', qty: stock, date: today(),
+          price: p.inp > 0 ? p.inp : null, expiry: p.expiry, partner: p.sup, note: '초기재고'
+        });
+      }
+      return null;
+    }).then(function () {
+      b.disabled = false;
+      closeFgNew();
+      toast((fgNewEditing ? '상품 정보를 고쳤습니다: ' : '새 상품 등록: ') + name, 'ok');
+      cur.fgLimit = 300;
+      return reload({ silent: true }).then(function () {
+        $('fgQuery').value = p.code + ' · ' + name;
+        fgPickProduct(true);
+      });
+    }, function (e) {
+      b.disabled = false; b.textContent = fgNewEditing ? '수정 저장' : '등록';
+      $('fgNewMsg').textContent = e.message;
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 단가 수정 ---------- */
+  var fgPriceCode = '';
+  function openFgPrice(code) {
+    var p = ERP.fpProductOf(st.fps, code);
+    if (!p) return;
+    fgPriceCode = code;
+    $('fgPriceSub').textContent = p.n + ' · ' + p.code + (p.spec ? ' · ' + p.spec : '');
+    $('fgPriceIn').value = p.inp > 0 ? p.inp : '';
+    $('fgPriceOut').value = p.outp > 0 ? p.outp : '';
+    $('fgPriceMsg').textContent = '';
+    $('fgPriceModal').classList.remove('hidden');
+    setTimeout(function () { try { $('fgPriceIn').focus(); } catch (e) { } }, 60);
+  }
+  function closeFgPrice() { $('fgPriceModal').classList.add('hidden'); fgPriceCode = ''; }
+  function saveFgPrice() {
+    var p = ERP.fpProductOf(st.fps, fgPriceCode);
+    if (!p) { closeFgPrice(); return; }
+    var b = $('fgPriceSave');
+    b.disabled = true; b.textContent = '저장 중…';
+    SB.db.fpProductSave({
+      code: p.code, cat: p.cat, name: p.n, spec: p.spec, unit: p.unit,
+      inp: Number($('fgPriceIn').value || 0), outp: Number($('fgPriceOut').value || 0),
+      expiry: p.e || null, sup: p.sup, bc: p.bc, active: p.active
+    }).then(function () {
+      b.disabled = false; b.textContent = '저장';
+      closeFgPrice();
+      toast('단가를 저장했습니다: ' + p.n, 'ok');
+      return reload({ silent: true });
+    }, function (e) {
+      b.disabled = false; b.textContent = '저장';
+      $('fgPriceMsg').textContent = e.message;
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 완제품 엑셀 ---------- */
+  function fgTxTemplate() {
+    downloadXlsxFile([{ name: '입출고', rows: ERP.fpTxRows(st.fps, { today: today(), sampleCode: ERP.fpNextCode(st.fps), sampleName: '예시 상품 — 지우고 쓰세요' }), widths: [12, 8, 14, 30, 12, 8, 9, 10, 10, 12, 18, 24] }],
+      '완제품_입출고_양식_' + ymdTag() + '.xlsx');
+    toast('입출고 양식을 내려받았습니다.', 'ok');
+  }
+  function fgPriceTemplate() {
+    downloadXlsxFile([{ name: '단가표', rows: ERP.fpPriceRows(st.fps), widths: [14, 30, 12, 8, 11, 11, 10] }],
+      '완제품_단가표_' + ymdTag() + '.xlsx');
+    toast('단가표 양식(' + st.fps.length + '품목)을 내려받았습니다. 단가 칸만 채워 올려 주세요.', 'ok');
+  }
+  function fgStockXls() {
+    var list = fgFiltered('G');
+    downloadXlsxFile([{ name: '완제품재고', rows: ERP.fpStockRows(list), widths: [12, 14, 34, 14, 8, 10, 11, 11, 13, 12, 18] }],
+      '완제품_재고_' + ymdTag() + '.xlsx');
+    toast('완제품 재고 ' + list.length + '품목을 엑셀로 내려받았습니다.', 'ok');
+  }
+  function fgLogXls() {
+    var list = ERP.fpFilteredLogs(st.fpLogs, { q: '', type: 'all', cat: 'all', from: cur.fgRange.from, to: cur.fgRange.to });
+    downloadXlsxFile([{ name: '완제품입출고', rows: ERP.fpLogRows(list), widths: [12, 8, 14, 32, 12, 8, 9, 10, 10, 12, 12, 18, 24, 10, 8] }],
+      '완제품_입출고이력_' + ymdTag() + '.xlsx');
+    toast('완제품 입출고 이력 ' + list.length + '건을 엑셀로 내려받았습니다.', 'ok');
+  }
+
+  /* ---------- 엑셀 올리기 ---------- */
+  var upload = { kind: '', rows: null };
+  var UPLOAD_INFO = {
+    fp_tx: {
+      title: '완제품 입출고 엑셀 올리기',
+      sub: '열 이름: 날짜 · 구분(입고/출고) · 상품코드 · 상품명 · 규격 · 단위 · 수량 · 입고단가 · 출고단가 · 소비기한 · 거래처 · 비고. 코드가 비면 상품명으로 찾습니다.',
+      neg: true
+    },
+    fp_price: {
+      title: '완제품 단가표 올리기',
+      sub: '열 이름: 상품코드 · 상품명 · 규격 · 단위 · 입고단가 · 출고단가. 코드가 있으면 코드로, 없으면 상품명으로 찾습니다.',
+      neg: false
+    },
+    acc_expense: {
+      title: '통장·카드 내역 올리기',
+      sub: '열 이름: 날짜 · 적요(내용) · 거래처 · 출금 · 입금 · 항목. 출금은 경비, 입금은 수입으로 들어갑니다.',
+      neg: false
+    }
+  };
+  function openUpload(kind) {
+    upload.kind = kind;
+    upload.rows = null;
+    var info = UPLOAD_INFO[kind];
+    $('uploadTitle').textContent = info.title;
+    $('uploadSub').textContent = info.sub;
+    $('uploadNegWrap').classList.toggle('hidden', !info.neg);
+    $('uploadNeg').checked = false;
+    $('uploadFile').value = '';
+    $('uploadPreview').innerHTML = '';
+    $('uploadGo').disabled = true;
+    $('uploadModal').classList.remove('hidden');
+  }
+  function closeUpload() {
+    $('uploadModal').classList.add('hidden');
+    upload.kind = ''; upload.rows = null;
+  }
+  function readFileRows(file, cb) {
+    var name = String(file.name || '').toLowerCase();
+    var isText = /\.(csv|txt)$/.test(name);
+    var rdr = new FileReader();
+    rdr.onload = function (ev) {
+      try {
+        var rows = isText ? ERP.csvRows(String(ev.target.result || '')) : ERP.xlsxRows(new Uint8Array(ev.target.result));
+        cb(null, rows);
+      } catch (err) {
+        cb(new Error('엑셀을 읽지 못했습니다. .xlsx 또는 .csv 파일인지 확인해 주세요. (' + (err.message || err) + ')'));
+      }
+    };
+    rdr.onerror = function () { cb(new Error('파일을 읽지 못했습니다.')); };
+    if (isText) rdr.readAsText(file, 'utf-8');
+    else rdr.readAsArrayBuffer(file);
+  }
+  function renderUploadPreview(parsed) {
+    var box = $('uploadPreview');
+    if (parsed.error || !parsed.rows.length) {
+      box.innerHTML = '<div class="uerr">' + esc(parsed.error || '올릴 줄이 없습니다.') + '</div>';
+      $('uploadGo').disabled = true;
+      upload.rows = null;
+      return;
+    }
+    var rows = parsed.rows, lines = [], i, inN = 0, outN = 0, qty = 0, amt = 0, expN = 0, incN = 0;
+    for (i = 0; i < rows.length; i++) {
+      var r = rows[i];
+      if (upload.kind === 'fp_tx') {
+        if (r.type === 'IN') inN++; else outN++;
+        qty += r.qty; amt += r.qty * (Number(r.price) || 0);
+      } else if (upload.kind === 'acc_expense') {
+        if (r.type === 'income') incN++; else expN++;
+        amt += r.amount;
+      }
+    }
+    var head = '<div class="usum">' + rows.length + '줄 인식' + (parsed.skipped ? ' · 건너뜀 ' + parsed.skipped + '줄' : '');
+    if (upload.kind === 'fp_tx') head += ' · 입고 ' + inN + ' / 출고 ' + outN + ' · 수량 합 ' + fmtQty(qty) + (amt ? ' · 금액 ' + won(amt) : '');
+    if (upload.kind === 'acc_expense') head += ' · 경비 ' + expN + ' / 수입 ' + incN + ' · 합계 ' + won(amt);
+    head += '</div>';
+    for (i = 0; i < Math.min(8, rows.length); i++) {
+      var x = rows[i];
+      if (upload.kind === 'fp_tx') lines.push('<div class="urow"><span>' + esc(x.code || x.name) + ' · ' + ERP.fpTypeName(x.type) + '</span><b>' + fmtQty(x.qty) + '</b></div>');
+      else if (upload.kind === 'fp_price') lines.push('<div class="urow"><span>' + esc(x.code || x.name) + (x.spec ? ' · ' + esc(x.spec) : '') + '</span><b>' + fmtInt(x.in_price || 0) + '원</b></div>');
+      else lines.push('<div class="urow"><span>' + esc(x.date) + ' · ' + esc(x.note || x.partner) + '</span><b>' + won(x.amount) + '</b></div>');
+    }
+    if (rows.length > 8) lines.push('<div class="urow"><span>… 외 ' + (rows.length - 8) + '줄</span><span></span></div>');
+    box.innerHTML = head + lines.join('');
+    upload.rows = rows;
+    $('uploadGo').disabled = false;
+  }
+  function handleUploadFile() {
+    var f = $('uploadFile').files && $('uploadFile').files[0];
+    if (!f) return;
+    $('uploadPreview').innerHTML = '<div class="urow"><span>읽는 중…</span></div>';
+    $('uploadGo').disabled = true;
+    readFileRows(f, function (err, rows) {
+      if (err) {
+        $('uploadPreview').innerHTML = '<div class="uerr">' + esc(err.message) + '</div>';
+        return;
+      }
+      renderUploadPreview(ERP.parseSheet(rows, upload.kind));
+    });
+  }
+  function doUpload() {
+    if (!upload.rows || !upload.rows.length) return;
+    var kind = upload.kind, b = $('uploadGo');
+    b.disabled = true; b.textContent = '올리는 중…';
+    function finish(text, ok) {
+      b.disabled = false; b.textContent = '올리기';
+      $('uploadPreview').innerHTML = text;
+      toast(ok ? '엑셀 업로드 완료' : '엑셀 업로드에 실패한 줄이 있습니다', ok ? 'ok' : 'warn');
+      cur.fgLimit = 300;
+      return reload({ silent: true });
+    }
+    if (kind === 'fp_tx') {
+      SB.db.fpBatch(upload.rows, $('uploadNeg').checked).then(function (res) {
+        var errs = (res && res.errors) || [];
+        var html = '<div class="usum">완료: 성공 ' + (res.ok || 0) + '건' + (res.fail ? ' · 실패 ' + res.fail + '건' : '') +
+          (res.amount ? ' · 금액 ' + won(res.amount) : '') + '</div>';
+        for (var i = 0; i < Math.min(10, errs.length); i++) {
+          html += '<div class="urow uerr"><span>행 ' + esc(errs[i].row) + ' · ' + esc(errs[i].code || errs[i].name || '') + '</span><span>' + esc(errs[i].msg || '') + '</span></div>';
+        }
+        return finish(html, !res.fail);
+      }, function (e) { b.disabled = false; b.textContent = '올리기'; $('uploadPreview').innerHTML = '<div class="uerr">' + esc(e.message) + '</div>'; toast(e.message, 'err'); });
+    } else if (kind === 'fp_price') {
+      SB.db.fpBatchPrice(upload.rows).then(function (res) {
+        var html = '<div class="usum">완료: 성공 ' + (res.ok || 0) + '건' + (res.fail ? ' · 실패 ' + res.fail + '건' : '') + '</div>';
+        var errs = (res && res.errors) || [];
+        for (var i = 0; i < Math.min(8, errs.length); i++) html += '<div class="urow uerr"><span>' + esc(errs[i].code || errs[i].name || '') + '</span><span>' + esc(errs[i].msg || '') + '</span></div>';
+        return finish(html, !res.fail);
+      }, function (e) { b.disabled = false; b.textContent = '올리기'; $('uploadPreview').innerHTML = '<div class="uerr">' + esc(e.message) + '</div>'; toast(e.message, 'err'); });
+    } else {
+      var rows = upload.rows.slice(), ok = 0, fail = 0, errs2 = [], idx = 0;
+      function step() {
+        if (idx >= rows.length) {
+          var html = '<div class="usum">완료: 성공 ' + ok + '건' + (fail ? ' · 실패 ' + fail + '건' : '') + '</div>';
+          for (var i = 0; i < Math.min(8, errs2.length); i++) html += '<div class="urow uerr"><span>' + esc(errs2[i]) + '</span></div>';
+          return finish(html, !fail);
+        }
+        var r = rows[idx++];
+        SB.db.accExpenseSave({
+          date: r.date || today(), type: r.type, cat: r.category || '기타', partner: r.partner || '',
+          amount: r.amount, tax: r.tax_type || 'free', vatIncluded: true, method: r.method || '', note: r.note || ''
+        }).then(function () { ok++; step(); }, function (e) {
+          fail++;
+          if (errs2.length < 30) errs2.push((r.date || '') + ' ' + (r.note || r.partner || '') + ' — ' + e.message);
+          step();
+        });
+      }
+      step();
+    }
+  }
+
+  /* ==========================================================================
+     💰 회계 ERP
+     ========================================================================== */
+  function renderAccKPI() {
+    if (!$('kAccRecv')) return;
+    var a = acc();
+    var bal = ERP.accBalance(a);
+    var tax = ERP.accTaxPending(a, '', '');
+    var mon = ERP.accTotals(a, today().slice(0, 7));
+    kpi('kAccRecv', bal.receivable, 0);
+    kpi('kAccPay', bal.payable, 0);
+    kpi('kAccTax', tax.saleCnt + tax.buyCnt, 0);
+    kpi('kAccSale', mon.sale, 0);
+    kpi('kAccBuy', mon.purchase + mon.expense, 0);
+    kpi('kAccProfit', mon.profit, 0);
+    $('kAccTaxSub').textContent = '미발행 ' + tax.saleCnt + '건 · 미수령 ' + tax.buyCnt + '건';
+    $('kAccSaleSub').textContent = today().slice(0, 7) + ' · 공급가액 기준';
+    $('kAccBuySub').textContent = '매입 ' + fmtInt(mon.purchase) + ' · 경비 ' + fmtInt(mon.expense);
+    if ($('accBadge')) $('accBadge').textContent = String(a.vouchers.length);
+    if ($('cntAccV')) $('cntAccV').textContent = a.vouchers.length;
+    if ($('cntAccR')) $('cntAccR').textContent = ERP.accLedger(a, '', '', '').length;
+    if ($('cntAccE')) $('cntAccE').textContent = a.expenses.length;
+    if ($('cntAccM')) $('cntAccM').textContent = ERP.accMonthly(a, '', '').length;
+    $('accBadge').classList.toggle('neg', mon.profit < 0);
+  }
+  function accLedgerList() {
+    return ERP.accLedger(acc(), cur.accRange.from, cur.accRange.to, cur.accSearch);
+  }
+  function accCellHtml(r, k, tab) {
+    if (k === 'd') return '<td>' + esc(r.d || '-') + '</td>';
+    if (k === 't') {
+      var cls = r.t === 'sale' ? 'in' : (r.t === 'purchase' ? 'out' : (r.t === 'income' ? 'in' : 'out'));
+      return '<td><span class="badge ' + cls + '">' + esc(ERP.accCell(r, 't')) + '</span></td>';
+    }
+    if (k === 'partner') {
+      var sub = r.note ? ' <span class="ttag">' + esc(r.note) + '</span>' : '';
+      return '<td class="ellip" title="' + esc(r.partner + (r.note ? ' · ' + r.note : '')) + '"><b>' + esc(r.partner || '-') + '</b>' + sub + '</td>';
+    }
+    if (k === 'tax') return '<td><span class="tax-tag ' + (r.tax === 'tax' ? 'tax' : 'free') + '">' + esc(ERP.ACC_TAX[r.tax] || '-') + '</span></td>';
+    if (k === 'doc') {
+      var label = ERP.accDocName(r.t, r.doc);
+      return '<td><button class="docbtn' + (r.doc === 'none' ? ' none' : '') + '" data-doc="' + r.id + '" title="누르면 발행/수령 상태를 바꿉니다">' + esc(label) + '</button></td>';
+    }
+    if (k === 'src') {
+      var src = r.src === 'meat' ? '원료육' : (r.src === 'fp' ? '완제품' : '직접');
+      return '<td><span class="src-tag ' + esc(r.src) + '">' + esc(src) + '</span></td>';
+    }
+    if (k === 'note') return '<td class="ellip" title="' + esc(r.note) + '">' + esc(r.note || '-') + '</td>';
+    if (k === 'cat') return '<td><span class="cat-tag">' + esc(r.cat || '-') + '</span></td>';
+    if (k === 'method') return '<td>' + esc(r.method || '-') + '</td>';
+    if (k === 'ym') return '<td><b>' + esc(r.ym) + '</b></td>';
+    if (k === 'balance') {
+      var v = Number(r.balance) || 0;
+      return '<td class="num ' + (v > 0 ? 'pos' : (v < 0 ? 'neg' : '')) + '">' + fmtInt(v) + '</td>';
+    }
+    if (k === 'profit') {
+      var p = Number(r.profit) || 0;
+      return '<td class="num ' + (p < 0 ? 'neg' : 'pos') + '"><b>' + fmtInt(p) + '</b></td>';
+    }
+    if (k === 'sale' || k === 'purchase' || k === 'expense' || k === 'received' || k === 'paid' ||
+        k === 'receivable' || k === 'payable' || k === 'supply' || k === 'vat' || k === 'total' ||
+        k === 'amount' || k === 'income') {
+      var n = Number(r[k]) || 0;
+      if (!n) return '<td class="num zero">-</td>';
+      return '<td class="num">' + fmtInt(n) + '</td>';
+    }
+    return '<td class="ellip">' + esc(ERP.accCell(r, k) || '-') + '</td>';
+  }
+  function renderAccVouchers() {
+    var wrap = $('accTableWrap');
+    var cols = ERP.accCols('V');
+    var list = ERP.accFilterVouchers(acc(), {
+      q: cur.accSearch, type: cur.accType, from: cur.accRange.from, to: cur.accRange.to,
+      cols: cur.fAccV, sortKey: cur.accSortV.k, sortDir: cur.accSortV.dir
+    });
+    var sale = 0, buy = 0, i;
+    for (i = 0; i < list.length; i++) { if (list[i].t === 'sale') sale += list[i].total; else buy += list[i].total; }
+    setAccSum(list.length + '건 · 매출 ' + fmtInt(sale) + '원 · 매입 ' + fmtInt(buy) + '원');
+    if (!list.length) {
+      wrap.innerHTML = (cur.v4ok ? '' : noV4('회계 표가 아직 없습니다. Supabase SQL Editor에서 <b>supabase_migrate_v4.sql</b>을 실행해 주세요.')) +
+        '<table><tbody><tr class="empty-row"><td>전표가 없습니다. 위 <b>＋ 매출·매입 전표</b>로 넣거나 <b>⚡ 입출고 일괄 반영</b>을 눌러 보세요.</td></tr></tbody></table>';
+      return;
+    }
+    var page = list.slice(0, cur.accLimit);
+    var html = [tableOpen('t-acc', 'accV', cols, ACT_DEF.accV), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.accSortV, cur.fAccV));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < page.length; i++) {
+      var v = page[i];
+      html.push('<tr class="accrow" data-vrow="' + v.id + '">');
+      for (c = 0; c < cols.length; c++) html.push(accCellHtml(v, cols[c].k, 'V'));
+      html.push('<td><div class="acts"><button class="act edit" data-vedit="' + v.id + '">수정</button>' +
+        '<button class="cancel" data-vdel="' + v.id + '">삭제</button></div></td></tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > cur.accLimit) {
+      html.push('<button class="more" id="btnAccMore">더 보기 (' + (list.length - cur.accLimit) + '건 남음)</button>');
+    }
+    wrap.innerHTML = html.join('');
+    var moreV = $('btnAccMore');
+    if (moreV) moreV.addEventListener('click', function () { cur.accLimit += 300; renderAccVouchers(); });
+  }
+  function renderAccLedger() {
+    var wrap = $('accTableWrap');
+    var cols = ERP.accCols('R');
+    var list = accLedgerList();
+    var sk = cur.accSortR.k, dir = cur.accSortR.dir === -1 ? -1 : 1;
+    if (sk) {
+      list = list.slice().sort(function (a, b) {
+        var av = ERP.accCell(a, sk), bv = ERP.accCell(b, sk);
+        var an = Number(av), bn = Number(bv);
+        var c = (av !== '' && bv !== '' && isFinite(an) && isFinite(bn)) ? (an - bn) : String(av).localeCompare(String(bv), 'ko');
+        return c * dir;
+      });
+    }
+    var recv = 0, pay = 0, i;
+    for (i = 0; i < list.length; i++) { recv += list[i].receivable; pay += list[i].payable; }
+    setAccSum(list.length + '거래처 · 미수 ' + fmtInt(recv) + '원 · 미지급 ' + fmtInt(pay) + '원');
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>거래처별 원장이 비어 있습니다. 전표를 넣으면 자동으로 모입니다.</td></tr></tbody></table>';
+      return;
+    }
+    var html = [tableOpen('t-acc', 'accR', cols, ACT_DEF.accR), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thPlain(cols[c], cur.accSortR));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < list.length; i++) {
+      var r = list[i];
+      html.push('<tr class="accrow" data-partner="' + esc(r.partner) + '">');
+      for (c = 0; c < cols.length; c++) html.push(accCellHtml(r, cols[c].k, 'R'));
+      html.push('<td><div class="acts">' +
+        '<button class="act in" data-payin="' + esc(r.partner) + '">수금</button>' +
+        '<button class="act out" data-payout="' + esc(r.partner) + '">지급</button>' +
+        '<button class="act" data-paylist="' + esc(r.partner) + '">내역</button></div></td></tr>');
+      if (cur.payOpen[r.partner]) {
+        var pays = [], k;
+        for (k = 0; k < st.payments.length; k++) {
+          var pm = st.payments[k];
+          if (pm.partner !== r.partner) continue;
+          if (!ERP.inPeriod(pm.d, cur.accRange.from, cur.accRange.to)) continue;
+          pays.push(pm);
+        }
+        pays.sort(function (a, b) { return a.d < b.d ? 1 : (a.d > b.d ? -1 : b.id - a.id); });
+        var lines = [];
+        if (!pays.length) lines.push('<div class="payrow empty">수금·지급 기록이 없습니다.</div>');
+        for (k = 0; k < pays.length; k++) {
+          var q = pays[k];
+          lines.push('<div class="payrow"><span>' + esc(q.d) + '</span>' +
+            '<span class="' + (q.t === 'in' ? 'pos' : 'neg') + '">' + (q.t === 'in' ? '수금' : '지급') + '</span>' +
+            '<b>' + fmtInt(q.amount) + '원</b>' +
+            '<span class="ttag">' + esc(q.method || '-') + (q.note ? ' · ' + esc(q.note) : '') + '</span>' +
+            '<button class="cancel" data-pdel="' + q.id + '">삭제</button></div>');
+        }
+        html.push('<tr class="subrow"><td colspan="' + (cols.length + 1) + '"><div class="sublist">' +
+          '<div class="subhead">' + esc(r.partner) + ' 수금·지급 기록 (' + pays.length + '건)</div>' + lines.join('') + '</div></td></tr>');
+      }
+    }
+    html.push('</tbody></table>');
+    wrap.innerHTML = html.join('');
+  }
+  function renderAccExpenses() {
+    var wrap = $('accTableWrap');
+    var cols = ERP.accCols('E');
+    var list = ERP.accFilterExpenses(acc(), {
+      q: cur.accSearch, type: cur.accType, from: cur.accRange.from, to: cur.accRange.to, cols: cur.fAccE
+    });
+    var exp = 0, inc = 0, i;
+    for (i = 0; i < list.length; i++) { if (list[i].t === 'income') inc += list[i].amount; else exp += list[i].amount; }
+    setAccSum(list.length + '건 · 경비 ' + fmtInt(exp) + '원 · 수입 ' + fmtInt(inc) + '원');
+    if (!list.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>경비·수입 기록이 없습니다. 위 <b>＋ 경비·수입</b>으로 넣거나 통장·카드 엑셀을 올려 보세요.</td></tr></tbody></table>';
+      return;
+    }
+    var html = [tableOpen('t-acc', 'accE', cols, ACT_DEF.accE), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.accSortE, cur.fAccE));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < list.length; i++) {
+      var e = list[i];
+      html.push('<tr class="accrow" data-erow="' + e.id + '">');
+      for (c = 0; c < cols.length; c++) html.push(accCellHtml(e, cols[c].k, 'E'));
+      html.push('<td><div class="acts"><button class="act edit" data-eedit="' + e.id + '">수정</button>' +
+        '<button class="cancel" data-edel="' + e.id + '">삭제</button></div></td></tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > cur.accLimit) {
+      html.push('<button class="more" id="btnAccMore">더 보기 (' + (list.length - cur.accLimit) + '건 남음)</button>');
+    }
+    wrap.innerHTML = html.join('');
+    var moreE = $('btnAccMore');
+    if (moreE) moreE.addEventListener('click', function () { cur.accLimit += 300; renderAccExpenses(); });
+  }
+  function renderAccMonths() {
+    var wrap = $('accTableWrap');
+    var cols = ERP.accCols('M');
+    var list = ERP.accMonthly(acc(), cur.accRange.from, cur.accRange.to);
+    var q = cur.accSearch.toLowerCase(), shown = [], i;
+    for (i = 0; i < list.length; i++) if (!q || list[i].ym.indexOf(q) >= 0) shown.push(list[i]);
+    var sum = 0, i2;
+    for (i2 = 0; i2 < shown.length; i2++) sum += shown[i2].profit;
+    setAccSum(shown.length + '개월 · 순이익 합 ' + fmtInt(sum) + '원');
+    if (!shown.length) {
+      wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>표시할 손익이 없습니다. 전표·경비를 넣으면 월별로 모입니다.</td></tr></tbody></table>';
+      return;
+    }
+    var html = [tableOpen('t-acc', 'accM', cols, 0), '<thead><tr>'], c;
+    for (c = 0; c < cols.length; c++) html.push(thPlain(cols[c], { k: '', dir: 1 }));
+    html.push('</tr></thead><tbody>');
+    for (i = 0; i < shown.length; i++) {
+      var m = shown[i];
+      html.push('<tr class="accrow">');
+      for (c = 0; c < cols.length; c++) html.push(accCellHtml(m, cols[c].k, 'M'));
+      html.push('</tr>');
+    }
+    html.push('</tbody></table>');
+    wrap.innerHTML = html.join('');
+  }
+  function renderAccTable() {
+    if (!$('accTableWrap')) return;
+    var tab = cur.accTab;
+    var isV = tab === 'V', isR = tab === 'R', isE = tab === 'E';
+    $('accTypeFilter').classList.toggle('hidden', isR || tab === 'M');
+    $('accTypeFilter').innerHTML = isE
+      ? '<option value="all">전체 구분</option><option value="expense">경비</option><option value="income">수입</option>'
+      : '<option value="all">전체 구분</option><option value="sale">매출</option><option value="purchase">매입</option>';
+    if (cur.accType !== 'all' && (isR || tab === 'M')) cur.accType = 'all';
+    $('accTypeFilter').value = cur.accType;
+    var anyF = hasCols(cur.fAccV) || hasCols(cur.fAccE);
+    $('btnAccResetFilters').classList.toggle('hidden', !anyF);
+    $('accNoteBar').textContent = isR
+      ? '거래처별로 매출·수금·미수, 매입·지급·미지급을 모아 보여줍니다. [수금]·[지급]을 누르면 바로 등록됩니다.'
+      : (tab === 'M' ? '월별 매출 − 매입원가 − 일반경비 = 순이익입니다. (부가세 제외, 공급가액 기준)'
+        : '기간·검색은 전표·원장·경비·손익 표에 함께 적용됩니다.');
+    if (isV) { renderAccVouchers(); return; }
+    if (isR) { renderAccLedger(); return; }
+    if (isE) { renderAccExpenses(); return; }
+    renderAccMonths();
+  }
+
+  /* ---------- 입출고 → 전표 일괄 반영 ---------- */
+  function reflectCandidates() {
+    var out = [], i, e, g, v;
+    var from = cur.accRange.from || '', to = cur.accRange.to || '';
+    var done = {};
+    for (i = 0; i < st.vouchers.length; i++) {
+      v = st.vouchers[i];
+      if (v.srcId !== null && v.srcId !== undefined) done[v.srcKind + ':' + v.srcId] = 1;
+    }
+    for (i = 0; i < st.logs.length; i++) {
+      e = st.logs[i];
+      /* 회계로 넘기는 원료육 이력은 입고(매입)와 업체 출고(매출)만 */
+      if (e.t !== 'in' && !(e.t === 'out' && ERP.destKey(e.dt) === 'vendor')) continue;
+      if (!(Number(e.amt) > 0)) continue;
+      if (!ERP.inPeriod(e.d, from, to)) continue;
+      if (done['meat:' + e.dbid]) continue;
+      out.push({
+        kind: 'meat', id: e.dbid, d: e.d, type: e.t === 'in' ? 'purchase' : 'sale',
+        partner: e.t === 'in' ? e.v : (e.p || ''), label: e.n + ' ' + fmt(e.k) + 'kg',
+        amt: Number(e.amt) || 0
+      });
+    }
+    for (i = 0; i < st.fpLogs.length; i++) {
+      g = st.fpLogs[i];
+      if (g.undone) continue;
+      if (!(Number(g.amt) > 0)) continue;
+      if (!ERP.inPeriod(g.d, from, to)) continue;
+      if (done['fp:' + g.id]) continue;
+      out.push({
+        kind: 'fp', id: g.id, d: g.d, type: g.t === 'IN' ? 'purchase' : 'sale',
+        partner: g.p || '', label: g.n + ' ' + fmtQty(g.q) + (g.unit || ''),
+        amt: Number(g.amt) || 0
+      });
+    }
+    out.sort(function (a, b) { return a.d < b.d ? 1 : (a.d > b.d ? -1 : 0); });
+    return out;
+  }
+  function renderAccReflect() {
+    var box = $('accReflectList');
+    if (!box) return;
+    if (!cur.reflectOpen) { $('accReflectBox').classList.add('hidden'); return; }
+    $('accReflectBox').classList.remove('hidden');
+    var list = reflectCandidates();
+    if ($('accReflectFrom') && !$('accReflectFrom').value) $('accReflectFrom').value = today().slice(0, 8) + '01';
+    if ($('accReflectTo') && !$('accReflectTo').value) $('accReflectTo').value = today();
+    if (!list.length) {
+      box.innerHTML = '<div class="rempty">반영할 입출고가 없습니다. (금액이 입력된 입고·출고만 전표가 됩니다. 기간을 넓혀 보세요.)</div>';
+      return;
+    }
+    var html = ['<div class="reflect-row head"><span class="chk"></span><span>날짜</span><span>구분</span><span>거래처</span><span>품목</span><span class="num">금액</span></div>'];
+    for (var i = 0; i < Math.min(200, list.length); i++) {
+      var c = list[i];
+      html.push('<label class="reflect-row"><input type="checkbox" data-reflect="' + c.kind + ':' + c.id + '"' +
+        (cur.reflectSel[c.kind + ':' + c.id] ? ' checked' : '') + '>' +
+        '<span>' + esc(c.d) + '</span>' +
+        '<span><span class="src-tag ' + esc(c.kind) + '">' + (c.kind === 'meat' ? '원료육' : '완제품') + '</span> ' +
+        (c.type === 'sale' ? '매출' : '매입') + '</span>' +
+        '<span class="ellip">' + esc(c.partner || '거래처 미입력') + '</span>' +
+        '<span class="ellip">' + esc(c.label) + '</span>' +
+        '<span class="num">' + fmtInt(c.amt) + '</span></label>');
+    }
+    if (list.length > 200) html.push('<div class="rempty">… 외 ' + (list.length - 200) + '건 (기간을 좁히면 모두 볼 수 있습니다)</div>');
+    box.innerHTML = html.join('');
+  }
+  function toggleReflect(kind, id, on) {
+    var k = kind + ':' + id;
+    if (on) cur.reflectSel[k] = 1; else delete cur.reflectSel[k];
+  }
+  function accReflectGo() {
+    var items = [], k, parts;
+    for (k in cur.reflectSel) {
+      if (!Object.prototype.hasOwnProperty.call(cur.reflectSel, k)) continue;
+      if (!cur.reflectSel[k]) continue;
+      parts = k.split(':');
+      items.push({ kind: parts[0], id: Number(parts[1]) });
+    }
+    if (!items.length) { toast('반영할 줄을 먼저 체크하세요.', 'warn'); return; }
+    var b = $('accReflectGo');
+    b.disabled = true; b.textContent = '반영 중…';
+    SB.db.accReflect(items, $('accReflectTax').value || 'auto').then(function (res) {
+      b.disabled = false; b.textContent = '선택 반영';
+      var msg = '전표 ' + (res.ok || 0) + '건 반영';
+      if (res.skip) msg += ' · 이미 반영 ' + res.skip + '건';
+      if (res.zero) msg += ' · 금액 없음 ' + res.zero + '건';
+      if (res.miss) msg += ' · 찾을 수 없음 ' + res.miss + '건';
+      toast(msg, res.ok ? 'ok' : 'warn');
+      cur.reflectSel = {};
+      return reload({ silent: true });
+    }, function (e) {
+      b.disabled = false; b.textContent = '선택 반영';
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 회계 전표 모달 ---------- */
+  var accV = { id: null, type: 'sale' };
+  function updateAccVDoc() {
+    var isSale = accV.type === 'sale';
+    $('accVoucherTitle').textContent = isSale ? '매출 전표 (받을 돈)' : '매입 전표 (줄 돈)';
+    $('accVDoc').innerHTML = isSale
+      ? '<option value="none">미발행</option><option value="issued">발행완료</option>'
+      : '<option value="none">미수령</option><option value="received">수령완료</option>';
+    $('accVHint').textContent = isSale
+      ? '매출은 거래처별 원장의 [총 매출]에 더해지고, 수금을 등록하면 미수금이 줄어듭니다.'
+      : '매입은 거래처별 원장의 [총 매입]에 더해지고, 지급을 등록하면 미지급금이 줄어듭니다.';
+  }
+  function accVatPreview() {
+    var amount = Number($('accVAmount').value || 0);
+    var tax = $('accVTaxSeg').querySelector('.active').getAttribute('data-vtax');
+    var inc = $('accVVatIncluded').checked;
+    var v = ERP.accVat(amount, tax, inc);
+    $('accVVat').value = v.vat ? fmtInt(v.vat) + '원 (합계 ' + fmtInt(v.total) + '원)' : '0원';
+  }
+  function openAccVoucher(type, row) {
+    accV = { id: row ? row.id : null, type: row ? row.t : (type || 'sale') };
+    $('accVDate').value = row ? row.d : today();
+    $('accVPartner').value = row ? row.partner : '';
+    $('accVAmount').value = row ? row.supply : '';
+    $('accVNote').value = row ? row.note : '';
+    $('accVVatIncluded').checked = false;
+    $('accVMsg').textContent = '';
+    var segs = $('accVoucherSeg').querySelectorAll('button');
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-vtype') === accV.type);
+    var tsegs = $('accVTaxSeg').querySelectorAll('button');
+    for (var j = 0; j < tsegs.length; j++) tsegs[j].classList.toggle('active', tsegs[j].getAttribute('data-vtax') === (row ? row.tax : 'tax'));
+    updateAccVDoc();
+    $('accVDoc').value = row ? row.doc : 'none';
+    accVatPreview();
+    $('accVoucherModal').classList.remove('hidden');
+    setTimeout(function () { try { $('accVPartner').focus(); } catch (e) { } }, 60);
+  }
+  function closeAccVoucher() { $('accVoucherModal').classList.add('hidden'); accV = { id: null, type: 'sale' }; }
+  function saveAccVoucher() {
+    var partner = ($('accVPartner').value || '').replace(/^\s+|\s+$/g, '');
+    var amount = Number($('accVAmount').value || 0);
+    if (!partner) { $('accVMsg').textContent = '거래처를 입력하세요.'; return; }
+    if (!(amount > 0)) { $('accVMsg').textContent = '금액을 입력하세요.'; return; }
+    var b = $('accVoucherSave');
+    b.disabled = true; b.textContent = '저장 중…';
+    SB.db.accVoucherSave({
+      id: accV.id, date: $('accVDate').value || today(), type: accV.type, partner: partner,
+      tax: $('accVTaxSeg').querySelector('.active').getAttribute('data-vtax'),
+      amount: amount, vatIncluded: $('accVVatIncluded').checked,
+      doc: $('accVDoc').value || 'none', note: $('accVNote').value || ''
+    }).then(function (row) {
+      b.disabled = false; b.textContent = '저장';
+      closeAccVoucher();
+      toast((accV.id ? '전표를 고쳤습니다: ' : '전표 등록: ') + partner + ' ' + won(row && row.total_amount || amount), 'ok');
+      return reload({ silent: true });
+    }, function (e) {
+      b.disabled = false; b.textContent = '저장';
+      $('accVMsg').textContent = e.message;
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 수금 · 지급 ---------- */
+  var accP = { id: null, type: 'in' };
+  function openAccPay(type, partner) {
+    accP = { id: null, type: type === 'out' ? 'out' : 'in' };
+    $('accPayTitle').textContent = accP.type === 'out' ? '지급(출금)' : '수금(입금)';
+    $('accPDate').value = today();
+    $('accPPartner').value = partner || '';
+    $('accPAmount').value = ''; $('accPMethod').value = '계좌이체'; $('accPNote').value = '';
+    $('accPMsg').textContent = '';
+    var segs = $('accPaySeg').querySelectorAll('button');
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-ptype') === accP.type);
+    $('accPayModal').classList.remove('hidden');
+    setTimeout(function () { try { $('accPAmount').focus(); } catch (e) { } }, 60);
+  }
+  function closeAccPay() { $('accPayModal').classList.add('hidden'); accP = { id: null, type: 'in' }; }
+  function saveAccPay() {
+    var partner = ($('accPPartner').value || '').replace(/^\s+|\s+$/g, '');
+    var amount = Number($('accPAmount').value || 0);
+    if (!partner) { $('accPMsg').textContent = '거래처를 입력하세요.'; return; }
+    if (!(amount > 0)) { $('accPMsg').textContent = '금액을 입력하세요.'; return; }
+    var b = $('accPaySave');
+    b.disabled = true; b.textContent = '저장 중…';
+    SB.db.accPaymentSave({
+      id: accP.id, date: $('accPDate').value || today(), partner: partner, type: accP.type,
+      amount: amount, method: $('accPMethod').value || '', note: $('accPNote').value || ''
+    }).then(function () {
+      b.disabled = false; b.textContent = '저장';
+      var t = accP.type;
+      closeAccPay();
+      toast((t === 'in' ? '수금' : '지급') + ' 등록: ' + partner + ' ' + won(amount), 'ok');
+      return reload({ silent: true });
+    }, function (e) {
+      b.disabled = false; b.textContent = '저장';
+      $('accPMsg').textContent = e.message;
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 경비 · 수입 ---------- */
+  var accE = { id: null, type: 'expense' };
+  function updateAccECats() {
+    var list = accE.type === 'income' ? ERP.ACC_INCOME_CATS : ERP.ACC_EXPENSE_CATS;
+    datalist('dlAccCats', list);
+    if (!accE.id) $('accECat').value = list[0];
+  }
+  function openAccExpense(row) {
+    accE = { id: row ? row.id : null, type: row ? row.t : 'expense' };
+    $('accExpTitle').textContent = row ? '경비·수입 수정' : '경비 · 수입';
+    $('accEDate').value = row ? row.d : today();
+    $('accEAmount').value = row ? row.amount : '';
+    $('accEPartner').value = row ? row.partner : '';
+    $('accENote').value = row ? row.note : '';
+    $('accEMethod').value = row ? row.method : '카드';
+    $('accETax').value = row ? row.tax : 'free';
+    $('accEVatIncluded').checked = true;
+    $('accEMsg').textContent = '';
+    var segs = $('accExpSeg').querySelectorAll('button');
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-etype') === accE.type);
+    updateAccECats();
+    if (row) $('accECat').value = row.cat;
+    $('accExpModal').classList.remove('hidden');
+    setTimeout(function () { try { $('accEAmount').focus(); } catch (e) { } }, 60);
+  }
+  function closeAccExpense() { $('accExpModal').classList.add('hidden'); accE = { id: null, type: 'expense' }; }
+  function saveAccExpense() {
+    var amount = Number($('accEAmount').value || 0);
+    if (!(amount > 0)) { $('accEMsg').textContent = '금액을 입력하세요.'; return; }
+    var b = $('accESave');
+    b.disabled = true; b.textContent = '저장 중…';
+    SB.db.accExpenseSave({
+      id: accE.id, date: $('accEDate').value || today(), type: accE.type,
+      cat: $('accECat').value || '기타', partner: $('accEPartner').value || '',
+      amount: amount, tax: $('accETax').value, vatIncluded: $('accEVatIncluded').checked,
+      method: $('accEMethod').value || '', note: $('accENote').value || ''
+    }).then(function () {
+      b.disabled = false; b.textContent = '저장';
+      var t = accE.type;
+      closeAccExpense();
+      toast((t === 'income' ? '수입' : '경비') + ' 등록: ' + won(amount), 'ok');
+      return reload({ silent: true });
+    }, function (e) {
+      b.disabled = false; b.textContent = '저장';
+      $('accEMsg').textContent = e.message;
+      toast(e.message, 'err');
+    });
+  }
+
+  /* ---------- 회계 삭제 / 상태 토글 ---------- */
+  function accDelete(kind, id) {
+    var msg = kind === 'v' ? '이 전표를 삭제할까요?\n(원료육·완제품에서 넘어온 전표는 다시 반영할 수 있습니다)'
+      : (kind === 'e' ? '이 경비·수입 기록을 삭제할까요?' : '이 기록을 삭제할까요?');
+    if (!window.confirm(msg)) return;
+    var p = kind === 'v' ? SB.db.accVoucherDelete(id) : (kind === 'e' ? SB.db.accExpenseDelete(id) : SB.db.accPaymentDelete(id));
+    p.then(function () {
+      toast('삭제했습니다.', 'ok');
+      return reload({ silent: true });
+    }, function (e) { toast(e.message, 'err'); });
+  }
+  function toggleAccDoc(id) {
+    var v = null, i;
+    for (i = 0; i < st.vouchers.length; i++) if (st.vouchers[i].id === id) v = st.vouchers[i];
+    if (!v) return;
+    var next = v.doc === 'none' ? (v.t === 'sale' ? 'issued' : 'received') : 'none';
+    SB.db.accVoucherSave({
+      id: v.id, date: v.d, type: v.t, partner: v.partner, tax: v.tax,
+      amount: v.supply, vatIncluded: false, doc: next, note: v.note
+    }).then(function () {
+      toast('세금계산서 상태: ' + ERP.accDocName(v.t, next), 'ok');
+      return reload({ silent: true });
+    }, function (e) { toast(e.message, 'err'); });
+  }
+
+  /* ---------- 회계 엑셀 ---------- */
+  function accXls() {
+    var tab = cur.accTab, rows, name;
+    if (tab === 'V') {
+      rows = ERP.accVoucherRows(ERP.accFilterVouchers(acc(), { q: cur.accSearch, type: cur.accType, from: cur.accRange.from, to: cur.accRange.to }));
+      name = '회계_전표_';
+    } else if (tab === 'R') {
+      rows = ERP.accLedgerRows(accLedgerList());
+      name = '회계_거래처원장_';
+    } else if (tab === 'E') {
+      rows = ERP.accExpenseRows(ERP.accFilterExpenses(acc(), { q: cur.accSearch, type: cur.accType, from: cur.accRange.from, to: cur.accRange.to }));
+      name = '회계_경비_';
+    } else {
+      rows = ERP.accMonthRows(ERP.accMonthly(acc(), cur.accRange.from, cur.accRange.to));
+      name = '회계_월별손익_';
+    }
+    downloadXlsxFile([{ name: '회계', rows: rows, widths: [12, 10, 20, 10, 13, 13, 14, 12, 10, 26] }], name + ymdTag() + '.xlsx');
+    toast('회계 ' + tab + ' 표를 엑셀로 내려받았습니다.', 'ok');
+    return;
+  }
+
+  /* ---------- 자동완성 (완제품 · 회계) ---------- */
+  function fillFgDatalists() {
+    var names = [], partners = [], cats = ERP.FP_CATS.slice(), units = ERP.FP_UNITS.slice(), specs = [], i, p, seen = {};
+    for (i = 0; i < st.fps.length; i++) {
+      p = st.fps[i];
+      if (p.n && !seen['n' + p.n]) { seen['n' + p.n] = 1; names.push(p.n); }
+      if (p.code) names.push(p.code);
+      if (p.sup && !seen['p' + p.sup]) { seen['p' + p.sup] = 1; partners.push(p.sup); }
+      if (p.cat && cats.indexOf(p.cat) < 0) cats.push(p.cat);
+      if (p.unit && units.indexOf(p.unit) < 0) units.push(p.unit);
+      if (p.spec && specs.indexOf(p.spec) < 0) specs.push(p.spec);
+    }
+    for (i = 0; i < st.fpLogs.length; i++) {
+      p = st.fpLogs[i];
+      if (p.p && !seen['p' + p.p]) { seen['p' + p.p] = 1; partners.push(p.p); }
+      if (p.spec && specs.indexOf(p.spec) < 0) specs.push(p.spec);
+    }
+    datalist('dlFgNames', names);
+    datalist('dlFgPartners', partners);
+    datalist('dlFgCats', cats);
+    datalist('dlFgUnits', units);
+    datalist('dlFgSpecs', specs);
+  }
+  function fillAccDatalists() {
+    var partners = [], seen = {}, i, v;
+    var srcs = [st.vouchers, st.payments, st.expenses, st.fps, st.logs];
+    for (var s2 = 0; s2 < srcs.length; s2++) {
+      for (i = 0; i < srcs[s2].length; i++) {
+        v = srcs[s2][i];
+        var name = v.partner || v.sup || v.v || '';
+        if (name && !seen[name]) { seen[name] = 1; partners.push(name); }
+      }
+    }
+    datalist('dlAccPartners', partners);
+    datalist('dlAccMethods', ERP.ACC_METHODS);
+    datalist('dlAccCats', ERP.ACC_EXPENSE_CATS);
+  }
+
+  /* ==========================================================================
+     v4 이벤트
+     ========================================================================== */
+  function bindResize(wrapId, tableOf) {
+    var wrapEl = $(wrapId);
+    if (!wrapEl) return;
+    var drag = null;
+    wrapEl.addEventListener('pointerdown', function (ev) {
+      var h = ev.target.closest ? ev.target.closest('.colrz') : null;
+      if (!h) return;
+      var key = h.getAttribute('data-rz');
+      var col = wrapEl.querySelector('col[data-colwrap="' + key + '"]');
+      if (!col) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      var w0 = parseFloat(col.style.width) || col.getBoundingClientRect().width;
+      drag = { key: key, tbl: tableOf(), col: col, x: ev.clientX, w: w0, cur: w0, h: h };
+      try { h.setPointerCapture(ev.pointerId); } catch (e) { }
+      h.classList.add('on');
+      document.body.classList.add('colresizing');
+    });
+    document.addEventListener('pointermove', function (ev) {
+      if (!drag) return;
+      var w = Math.round(drag.w + (ev.clientX - drag.x));
+      w = Math.max(COL_MIN, Math.min(COL_MAX, w));
+      if (w === drag.cur) return;
+      drag.cur = w;
+      drag.col.style.width = w + 'px';
+      syncTableWidth(wrapId);
+    });
+    function endDrag() {
+      if (!drag) return;
+      if (!COLW[drag.tbl]) COLW[drag.tbl] = {};
+      COLW[drag.tbl][drag.key] = Math.round(drag.cur);
+      saveColW();
+      drag.h.classList.remove('on');
+      drag = null;
+      document.body.classList.remove('colresizing');
+    }
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', endDrag);
+    wrapEl.addEventListener('dblclick', function (ev) {
+      var h = ev.target.closest ? ev.target.closest('.colrz') : null;
+      if (!h) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      autoFitCol(tableOf(), h.getAttribute('data-rz'), wrapId);
+    });
+    wrapEl.addEventListener('click', function (ev) {
+      if (ev.target.closest && ev.target.closest('.colrz')) {
+        ev.preventDefault();
+        ev.stopImmediatePropagation();
+      }
+    }, true);
+  }
+  function fgTableOf() { return cur.fgTab === 'L' ? 'fpL' : (cur.fgTab === 'P' ? 'fpP' : 'fpG'); }
+  function accTableOf() {
+    return cur.accTab === 'R' ? 'accR' : (cur.accTab === 'E' ? 'accE' : (cur.accTab === 'M' ? 'accM' : 'accV'));
+  }
+  function bindTableClicks(wrapId, handler) {
+    var el = $(wrapId);
+    if (!el) return;
+    el.addEventListener('click', function (ev) {
+      var t = ev.target;
+      var sortBtn = t.closest ? t.closest('[data-sort]') : null;
+      if (sortBtn) {
+        ev.preventDefault();
+        var k = sortBtn.getAttribute('data-sort');
+        var sort;
+        if (wrapId === 'fgTableWrap') sort = cur.fgTab === 'L' ? cur.fgSortL : (cur.fgTab === 'P' ? cur.fgSortP : cur.fgSortG);
+        else sort = cur.accTab === 'E' ? cur.accSortE : (cur.accTab === 'R' ? cur.accSortR : cur.accSortV);
+        if (sort.k !== k) { sort.k = k; sort.dir = 1; }
+        else if (sort.dir === 1) sort.dir = -1;
+        else { sort.k = ''; sort.dir = 1; }
+        renderCurrent();
+        return;
+      }
+      var filtBtn = t.closest ? t.closest('[data-filter]') : null;
+      if (filtBtn) {
+        ev.preventDefault();
+        openFilter(wrapId === 'fgTableWrap' ? fgTableOf() : accTableOf(), filtBtn.getAttribute('data-filter'), filtBtn);
+        return;
+      }
+      handler(ev, t);
+    });
+  }
+
+  function bindV4Events() {
+    /* 모드 */
+    ['modeMeat', 'modeFg', 'modeAcc'].forEach(function (id) {
+      var el = $(id);
+      if (el) el.addEventListener('click', function () { setErpMode(this.getAttribute('data-erpmode')); });
+    });
+    if ($('qbForm')) $('qbForm').addEventListener('click', function () { scrollPanel('form'); });
+    if ($('qbList')) $('qbList').addEventListener('click', function () { scrollPanel('list'); });
+
+    /* 완제품 탭 */
+    var ftabs = document.querySelectorAll('#fgTabs .tab');
+    for (var i = 0; i < ftabs.length; i++) {
+      ftabs[i].addEventListener('click', function () {
+        cur.fgTab = this.getAttribute('data-ftab');
+        cur.fgLimit = 300;
+        for (var k = 0; k < ftabs.length; k++) ftabs[k].classList.toggle('active', ftabs[k] === this);
+        closeFilter();
+        renderRangeBar();
+        renderFgTable();
+        $('fgTableWrap').scrollTop = 0;
+        $('fgTableWrap').scrollLeft = 0;
+      });
+    }
+    var fm = document.querySelectorAll('#fgFormPanel .fmode');
+    for (var j = 0; j < fm.length; j++) {
+      fm[j].addEventListener('click', function () { setFgType(this.getAttribute('data-ftype')); });
+    }
+    if ($('fgForm')) $('fgForm').addEventListener('submit', function (e) { e.preventDefault(); fgSubmit(); });
+    if ($('btnFgFind')) $('btnFgFind').addEventListener('click', function () { fgPickProduct(false); });
+    if ($('fgQuery')) {
+      $('fgQuery').addEventListener('change', function () { fgPickProduct(false); });
+      $('fgQuery').addEventListener('input', function () { cur.fgCode = ''; renderFgInfo(); });
+    }
+    if ($('fgQty')) $('fgQty').addEventListener('input', fgSyncAmount);
+    if ($('fgPrice')) $('fgPrice').addEventListener('input', fgSyncAmount);
+    if ($('btnFgNew')) $('btnFgNew').addEventListener('click', function () { openFgNew(null); });
+    if ($('fgNewClose')) $('fgNewClose').addEventListener('click', closeFgNew);
+    if ($('fgNewCancel')) $('fgNewCancel').addEventListener('click', closeFgNew);
+    if ($('fgNewSave')) $('fgNewSave').addEventListener('click', saveFgNew);
+    if ($('fgNewModal')) $('fgNewModal').addEventListener('click', function (ev) { if (ev.target === this) closeFgNew(); });
+    if ($('btnFgCatAdd')) $('btnFgCatAdd').addEventListener('click', addFgCat);
+    var chips = document.querySelectorAll('#fgCatBar [data-fgcat]');
+    for (var c = 0; c < chips.length; c++) {
+      chips[c].addEventListener('click', function () {
+        cur.fgCat = this.getAttribute('data-fgcat');
+        cur.fgLimit = 300;
+        renderFgCatBar();
+        renderFgTable();
+      });
+    }
+    if ($('fgCatBar')) $('fgCatBar').addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('[data-fgcat]') : null;
+      if (!b || b.id === 'btnFgCatAdd') return;
+      cur.fgCat = b.getAttribute('data-fgcat');
+      cur.fgLimit = 300;
+      renderFgCatBar();
+      renderFgTable();
+    });
+    if ($('fgSearch')) {
+      $('fgSearch').addEventListener('input', function () { cur.fgSearch = this.value; cur.fgLimit = 300; renderFgTable(); });
+      $('fgSearch').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); doSearch('fgSearch'); } });
+    }
+    if ($('fgShowZero')) $('fgShowZero').addEventListener('change', function () { cur.fgShowZero = this.checked; cur.fgLimit = 300; renderFgTable(); });
+    if ($('fgLogFilter')) $('fgLogFilter').addEventListener('change', function () { cur.fgTypeF = this.value; cur.fgLimit = 300; renderFgTable(); });
+    if ($('btnFgResetFilters')) $('btnFgResetFilters').addEventListener('click', function () {
+      cur.fFgG = {}; cur.fFgL = {}; cur.fFgP = {}; renderFgTable();
+    });
+    if ($('btnFgColReset')) $('btnFgColReset').addEventListener('click', function () { resetColWidth('fg'); });
+    if ($('fgBtnSearch')) $('fgBtnSearch').addEventListener('click', function () { doSearch('fgSearch'); });
+    if ($('fgRangeClear')) $('fgRangeClear').addEventListener('click', function () { setPreset('all'); });
+    if ($('fgBtnPeriod')) $('fgBtnPeriod').addEventListener('click', openRange);
+    if ($('fgRangeDisplay')) $('fgRangeDisplay').addEventListener('click', openRange);
+    ['fgFrom', 'fgTo'].forEach(function (id) {
+      $(id).addEventListener('change', function () { setCustomRange('fgFrom', 'fgTo'); });
+      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
+      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
+    });
+    var fpresets = document.querySelectorAll('#fgPresets .pr');
+    for (var p1 = 0; p1 < fpresets.length; p1++) {
+      fpresets[p1].addEventListener('click', function () { setPreset(this.getAttribute('data-preset')); });
+    }
+    if ($('btnFgTpl')) $('btnFgTpl').addEventListener('click', fgTxTemplate);
+    if ($('btnFgPriceTpl')) $('btnFgPriceTpl').addEventListener('click', fgPriceTemplate);
+    if ($('btnFgStockXls')) $('btnFgStockXls').addEventListener('click', fgStockXls);
+    if ($('btnFgLogXls')) $('btnFgLogXls').addEventListener('click', fgLogXls);
+    if ($('btnFgUpload')) $('btnFgUpload').addEventListener('click', function () { openUpload('fp_tx'); });
+    if ($('btnFgPriceUpload')) $('btnFgPriceUpload').addEventListener('click', function () { openUpload('fp_price'); });
+    if ($('uploadClose')) $('uploadClose').addEventListener('click', closeUpload);
+    if ($('uploadCancel')) $('uploadCancel').addEventListener('click', closeUpload);
+    if ($('uploadFile')) $('uploadFile').addEventListener('change', handleUploadFile);
+    if ($('uploadGo')) $('uploadGo').addEventListener('click', doUpload);
+    if ($('uploadModal')) $('uploadModal').addEventListener('click', function (ev) { if (ev.target === this) closeUpload(); });
+    if ($('fgPriceClose')) $('fgPriceClose').addEventListener('click', closeFgPrice);
+    if ($('fgPriceCancel')) $('fgPriceCancel').addEventListener('click', closeFgPrice);
+    if ($('fgPriceSave')) $('fgPriceSave').addEventListener('click', saveFgPrice);
+    if ($('fgPriceModal')) $('fgPriceModal').addEventListener('click', function (ev) { if (ev.target === this) closeFgPrice(); });
+
+    bindResize('fgTableWrap', fgTableOf);
+    bindTableClicks('fgTableWrap', function (ev, t) {
+      var price = t.closest ? t.closest('[data-fgprice]') : null;
+      if (price) { openFgPrice(price.getAttribute('data-fgprice')); return; }
+      var edit = t.closest ? t.closest('[data-fgedit]') : null;
+      if (edit) { openFgNew(edit.getAttribute('data-fgedit')); return; }
+      var undoBtn = t.closest ? t.closest('[data-fgundo]') : null;
+      if (undoBtn) { fgUndo(Number(undoBtn.getAttribute('data-fgundo')), undoBtn); return; }
+      var row = t.closest ? t.closest('tr.fgrow') : null;
+      if (row) {
+        var code = row.getAttribute('data-fgcode');
+        if (code && cur.fgTab !== 'L') {
+          var pr = ERP.fpProductOf(st.fps, code);
+          if (pr && !pr.undone) {
+            $('fgQuery').value = pr.code + ' · ' + pr.n;
+            cur.fgCode = pr.code;
+            renderFgInfo();
+            fgSyncAmount();
+            scrollPanel('form');
+          }
+        }
+      }
+    });
+
+    /* 회계 탭 */
+    var atabs = document.querySelectorAll('#accTabs .tab');
+    for (var a1 = 0; a1 < atabs.length; a1++) {
+      atabs[a1].addEventListener('click', function () {
+        cur.accTab = this.getAttribute('data-atab');
+        cur.accLimit = 300;
+        for (var k = 0; k < atabs.length; k++) atabs[k].classList.toggle('active', atabs[k] === this);
+        closeFilter();
+        renderRangeBar();
+        renderAccTable();
+        $('accTableWrap').scrollTop = 0;
+        $('accTableWrap').scrollLeft = 0;
+      });
+    }
+    if ($('accSearch')) {
+      $('accSearch').addEventListener('input', function () { cur.accSearch = this.value; cur.accLimit = 300; renderAccTable(); });
+      $('accSearch').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); doSearch('accSearch'); } });
+    }
+    if ($('accTypeFilter')) $('accTypeFilter').addEventListener('change', function () { cur.accType = this.value; cur.accLimit = 300; renderAccTable(); });
+    if ($('btnAccResetFilters')) $('btnAccResetFilters').addEventListener('click', function () {
+      cur.fAccV = {}; cur.fAccE = {}; renderAccTable();
+    });
+    if ($('btnAccColReset')) $('btnAccColReset').addEventListener('click', function () { resetColWidth('acc'); });
+    if ($('accBtnSearch')) $('accBtnSearch').addEventListener('click', function () { doSearch('accSearch'); });
+    if ($('accRangeClear')) $('accRangeClear').addEventListener('click', function () { setPreset('all'); });
+    if ($('accBtnPeriod')) $('accBtnPeriod').addEventListener('click', openRange);
+    if ($('accRangeDisplay')) $('accRangeDisplay').addEventListener('click', openRange);
+    ['accFrom', 'accTo'].forEach(function (id) {
+      $(id).addEventListener('change', function () { setCustomRange('accFrom', 'accTo'); });
+      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
+      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
+    });
+    var apresets = document.querySelectorAll('#accPresets .pr');
+    for (var p2 = 0; p2 < apresets.length; p2++) {
+      apresets[p2].addEventListener('click', function () { setPreset(this.getAttribute('data-preset')); });
+    }
+    if ($('btnAccSale')) $('btnAccSale').addEventListener('click', function () { openAccVoucher('sale'); });
+    if ($('btnAccBuy')) $('btnAccBuy').addEventListener('click', function () { openAccVoucher('purchase'); });
+    if ($('btnAccPayIn')) $('btnAccPayIn').addEventListener('click', function () { openAccPay('in', ''); });
+    if ($('btnAccPayOut')) $('btnAccPayOut').addEventListener('click', function () { openAccPay('out', ''); });
+    if ($('btnAccExpense')) $('btnAccExpense').addEventListener('click', function () { openAccExpense(null); });
+    if ($('btnAccXls')) $('btnAccXls').addEventListener('click', accXls);
+
+    /* 전표 모달 */
+    if ($('accVoucherSeg')) {
+      var vs = $('accVoucherSeg').querySelectorAll('button');
+      for (var v1 = 0; v1 < vs.length; v1++) vs[v1].addEventListener('click', function () {
+        accV.type = this.getAttribute('data-vtype');
+        for (var q = 0; q < vs.length; q++) vs[q].classList.toggle('active', vs[q] === this);
+        updateAccVDoc();
+      });
+    }
+    if ($('accVTaxSeg')) {
+      var ts = $('accVTaxSeg').querySelectorAll('button');
+      for (var v2 = 0; v2 < ts.length; v2++) ts[v2].addEventListener('click', function () {
+        for (var q = 0; q < ts.length; q++) ts[q].classList.toggle('active', ts[q] === this);
+        accVatPreview();
+      });
+    }
+    ['accVAmount', 'accVVatIncluded'].forEach(function (id) {
+      if ($(id)) { $(id).addEventListener('input', accVatPreview); $(id).addEventListener('change', accVatPreview); }
+    });
+    if ($('accVoucherClose')) $('accVoucherClose').addEventListener('click', closeAccVoucher);
+    if ($('accVoucherCancel')) $('accVoucherCancel').addEventListener('click', closeAccVoucher);
+    if ($('accVoucherSave')) $('accVoucherSave').addEventListener('click', saveAccVoucher);
+    if ($('accVoucherModal')) $('accVoucherModal').addEventListener('click', function (ev) { if (ev.target === this) closeAccVoucher(); });
+
+    /* 수금·지급 모달 */
+    if ($('accPaySeg')) {
+      var ps = $('accPaySeg').querySelectorAll('button');
+      for (var p3 = 0; p3 < ps.length; p3++) ps[p3].addEventListener('click', function () {
+        accP.type = this.getAttribute('data-ptype');
+        for (var q = 0; q < ps.length; q++) ps[q].classList.toggle('active', ps[q] === this);
+        $('accPayTitle').textContent = accP.type === 'out' ? '지급(출금)' : '수금(입금)';
+      });
+    }
+    if ($('accPayClose')) $('accPayClose').addEventListener('click', closeAccPay);
+    if ($('accPayCancel')) $('accPayCancel').addEventListener('click', closeAccPay);
+    if ($('accPaySave')) $('accPaySave').addEventListener('click', saveAccPay);
+    if ($('accPayModal')) $('accPayModal').addEventListener('click', function (ev) { if (ev.target === this) closeAccPay(); });
+
+    /* 경비 모달 */
+    if ($('accExpSeg')) {
+      var es = $('accExpSeg').querySelectorAll('button');
+      for (var e1 = 0; e1 < es.length; e1++) es[e1].addEventListener('click', function () {
+        accE.type = this.getAttribute('data-etype');
+        for (var q = 0; q < es.length; q++) es[q].classList.toggle('active', es[q] === this);
+        updateAccECats();
+      });
+    }
+    if ($('accExpClose')) $('accExpClose').addEventListener('click', closeAccExpense);
+    if ($('accECancel')) $('accECancel').addEventListener('click', closeAccExpense);
+    if ($('accESave')) $('accESave').addEventListener('click', saveAccExpense);
+    if ($('accExpModal')) $('accExpModal').addEventListener('click', function (ev) { if (ev.target === this) closeAccExpense(); });
+
+    /* 일괄 반영 */
+    if ($('btnAccReflect')) $('btnAccReflect').addEventListener('click', function () {
+      cur.reflectOpen = !cur.reflectOpen;
+      cur.reflectSel = {};
+      renderAccReflect();
+      if (cur.reflectOpen) { try { $('accReflectBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { } }
+    });
+    if ($('accReflectClose')) $('accReflectClose').addEventListener('click', function () {
+      cur.reflectOpen = false; renderAccReflect();
+    });
+    if ($('accReflectList')) $('accReflectList').addEventListener('change', function (ev) {
+      var cb = ev.target.closest ? ev.target.closest('[data-reflect]') : null;
+      if (!cb) return;
+      var parts = cb.getAttribute('data-reflect').split(':');
+      toggleReflect(parts[0], parts[1], cb.checked);
+    });
+    if ($('accReflectAll')) $('accReflectAll').addEventListener('click', function () {
+      var list = reflectCandidates(), i;
+      var allOn = true;
+      for (i = 0; i < list.length; i++) if (!cur.reflectSel[list[i].kind + ':' + list[i].id]) allOn = false;
+      cur.reflectSel = {};
+      if (!allOn) for (i = 0; i < list.length; i++) cur.reflectSel[list[i].kind + ':' + list[i].id] = 1;
+      renderAccReflect();
+    });
+    if ($('accReflectGo')) $('accReflectGo').addEventListener('click', accReflectGo);
+    ['accReflectFrom', 'accReflectTo'].forEach(function (id) {
+      if ($(id)) $(id).addEventListener('change', function () {
+        cur.accRange.from = $('accReflectFrom').value || '';
+        cur.accRange.to = $('accReflectTo').value || '';
+        cur.accRange.preset = 'custom';
+        renderAccReflect();
+        renderRangeBar();
+      });
+    });
+
+    /* 회계 표 클릭 */
+    bindResize('accTableWrap', accTableOf);
+    bindTableClicks('accTableWrap', function (ev, t) {
+      var docBtn = t.closest ? t.closest('[data-doc]') : null;
+      if (docBtn) { toggleAccDoc(Number(docBtn.getAttribute('data-doc'))); return; }
+      var ve = t.closest ? t.closest('[data-vedit]') : null;
+      if (ve) {
+        var id = Number(ve.getAttribute('data-vedit'));
+        var v = null;
+        for (var i = 0; i < st.vouchers.length; i++) if (st.vouchers[i].id === id) v = st.vouchers[i];
+        if (v) openAccVoucher(v.t, v);
+        return;
+      }
+      var vd = t.closest ? t.closest('[data-vdel]') : null;
+      if (vd) { accDelete('v', Number(vd.getAttribute('data-vdel'))); return; }
+      var ee = t.closest ? t.closest('[data-eedit]') : null;
+      if (ee) {
+        var eid = Number(ee.getAttribute('data-eedit'));
+        var e = null;
+        for (var i2 = 0; i2 < st.expenses.length; i2++) if (st.expenses[i2].id === eid) e = st.expenses[i2];
+        if (e) openAccExpense(e);
+        return;
+      }
+      var ed = t.closest ? t.closest('[data-edel]') : null;
+      if (ed) { accDelete('e', Number(ed.getAttribute('data-edel'))); return; }
+      var pi = t.closest ? t.closest('[data-payin]') : null;
+      if (pi) { openAccPay('in', pi.getAttribute('data-payin')); return; }
+      var po = t.closest ? t.closest('[data-payout]') : null;
+      if (po) { openAccPay('out', po.getAttribute('data-payout')); return; }
+      var pl = t.closest ? t.closest('[data-paylist]') : null;
+      if (pl) {
+        var pn = pl.getAttribute('data-paylist');
+        cur.payOpen[pn] = !cur.payOpen[pn];
+        renderAccLedger();
+        return;
+      }
+      var pd = t.closest ? t.closest('[data-pdel]') : null;
+      if (pd) { accDelete('p', Number(pd.getAttribute('data-pdel'))); return; }
+    });
+  }
+
   function bindAppEvents() {
     var modes = document.querySelectorAll('.mode');
     for (var i = 0; i < modes.length; i++) {
       modes[i].addEventListener('click', function () { setMode(this.getAttribute('data-mode')); });
     }
-    var tabs = document.querySelectorAll('.tab');
+    var tabs = document.querySelectorAll('#meatTabs .tab');
     for (var j = 0; j < tabs.length; j++) {
       tabs[j].addEventListener('click', function () {
         cur.tab = this.getAttribute('data-tab');
@@ -3172,6 +6137,12 @@ var LIVE = (function () {
       if (!$('xlsModal').classList.contains('hidden')) { closeXls(); return; }
       if (!$('editModal').classList.contains('hidden')) { closeEdit(); return; }
       if (!$('lotModal').classList.contains('hidden')) { closeLot(); return; }
+      if (!$('fgNewModal').classList.contains('hidden')) { closeFgNew(); return; }
+      if (!$('fgPriceModal').classList.contains('hidden')) { closeFgPrice(); return; }
+      if (!$('uploadModal').classList.contains('hidden')) { closeUpload(); return; }
+      if (!$('accVoucherModal').classList.contains('hidden')) { closeAccVoucher(); return; }
+      if (!$('accPayModal').classList.contains('hidden')) { closeAccPay(); return; }
+      if (!$('accExpModal').classList.contains('hidden')) { closeAccExpense(); return; }
       if (fpop.open) closeFilter();
     });
     var xlsSegs = document.querySelectorAll('#xlsRangeSeg button');
@@ -3275,8 +6246,10 @@ var LIVE = (function () {
   /* ---------- 시작 ---------- */
   function boot() {
     loadColW();
+    loadFgCats();
     bindLoginEvents();
     bindAppEvents();
+    bindV4Events();
     setSync('wait', '확인 중');
     var ses = SB.auth.restore();
     if (ses) {
