@@ -470,16 +470,6 @@ tbody tr.sel,tbody tr.on{display:table-row !important}
 /* ---------- 좁은 화면에서도 머리글·작업 열이 잘리지 않게 ---------- */
 .hdfilt .ht{white-space:normal;word-break:keep-all;line-height:1.25;text-align:left}
 th.num .hdfilt .ht{text-align:right}
-/* 작업(수정/취소/해동/출고) 열은 오른쪽에 고정 */
-#tableWrap table.fixed thead th:last-child,
-#tableWrap table.fixed tbody tr td:last-child{
-  position:sticky;right:0;background:#fff;z-index:4;
-  border-left:1px solid var(--line);
-}
-#tableWrap table.fixed thead th:last-child{background:#f7f9fc;z-index:7}
-#tableWrap table.fixed tbody tr.lot:hover td:last-child{background:#f6f9ff}
-#tableWrap table.fixed tbody tr.lot.sel td:last-child{background:#eef4ff}
-#tableWrap table.fixed tbody tr.group td:last-child{position:static;box-shadow:none;background:#f2f5fa;z-index:auto}
 /* 묶음 줄은 스크롤과 겹치지 않게 일반 흐름으로 */
 tr.group td{position:static}
 .acts{flex-wrap:nowrap}
@@ -836,39 +826,33 @@ tr.subrow td{background:#f8faff;padding:0}
 /* 1) 칸 내용이 옆 칸으로 넘쳐 작업 열 아래로 들어가지 않게 자른다 */
 .table-wrap tbody td{overflow:hidden}
 .table-wrap tbody td .acts{overflow:visible}
-/* 2) 작업 열은 오른쪽에 고정하되, 항상 불투명 배경 + 경계선 + 그림자로 확실히 분리 */
-.table-wrap table.fixed thead th:last-child,
-.table-wrap table.fixed tbody tr td:last-child{
-  position:sticky;right:0;z-index:4;background:#fff;
-  border-left:1px solid var(--line);
-  box-shadow:-7px 0 8px -7px rgba(16,24,40,.22);
+/* 2) 작업 열은 오른쪽에 고정(sticky) — 항상 불투명 배경 + 경계선 + 그림자로
+      스크롤해도 뒤쪽 숫자·글자가 비치거나 겹쳐 보이지 않게 한다.
+      (원료육·완제품·회계 세 모드의 표 tbody·thead 에 모두 같은 규칙) */
+thead th.actcol{
+  position:sticky;right:0;top:0;z-index:9;background:#f7f9fc;
+  border-left:1px solid var(--line);box-shadow:-4px 0 8px rgba(15,23,42,.05);
 }
-.table-wrap table.fixed thead th:last-child{background:#f7f9fc;z-index:7}
-.table-wrap table.fixed tbody tr:hover td:last-child{background:#f6f9ff}
-.table-wrap table.fixed tbody tr.fgrow:hover td:last-child{background:#f4f9ff}
-.table-wrap table.fixed tbody tr.accrow:hover td:last-child{background:#f7faff}
-.table-wrap table.fixed tbody tr.sel td:last-child{background:#eef4ff}
-.table-wrap table.fixed tbody tr.undone td:last-child{background:#fff}
-.table-wrap table.fixed tbody tr.subrow td:last-child{position:static;background:#f8faff;border:0;box-shadow:none}
+td.actcol{
+  position:sticky;right:0;z-index:4;background:#fff;
+  border-left:1px solid var(--line);box-shadow:-4px 0 8px rgba(15,23,42,.05);
+}
+tbody tr:hover td.actcol{background:#f8faff}
+tbody tr.sel td.actcol{background:#eef4ff}
+/* 줄 종류별 배경이 작업 열에만 비치지 않도록 같은 색으로 덮어 쓴다 */
+tbody tr.undone td.actcol{background:#fff}
+tbody tr.group td.actcol,
+tbody tr.subrow td.actcol{position:static;box-shadow:none;border-left:0;background:#f2f5fa}
 /* 3) 숫자 칸은 폭을 넘으면 말줄임(툴팁으로 전체 값 확인) */
 .table-wrap tbody td.num{text-overflow:ellipsis}
 /* 4) 선택 행이 다른 표시(테두리)로도 보이게 */
 tbody tr.lot.sel>td{background:#eef4ff}
 @media (max-width:768px){
   .table-wrap tbody td{padding:8px 8px}
-  .table-wrap table.fixed tbody tr td:last-child{box-shadow:-5px 0 6px -5px rgba(16,24,40,.2)}
+  td.actcol{box-shadow:-5px 0 6px -5px rgba(16,24,40,.2)}
 }
 
-/* 작업 열은 표의 마지막 열로 자연스럽게 둔다 (sticky 로 숫자·버튼이 겹치는 문제 제거) */
-#tableWrap table.fixed thead th:last-child,
-#tableWrap table.fixed tbody tr td:last-child,
-#tableWrap th.actcol,
-.table-wrap table.fixed thead th:last-child,
-.table-wrap table.fixed tbody tr td:last-child,
-.table-wrap th.actcol{
-  position:static;right:auto;left:auto;box-shadow:none;
-  border-left:1px solid var(--line);
-}
+/* 작업 열은 오른쪽 고정(sticky) — 위 "표 겹침 방지" 규칙의 .actcol 사양을 따른다 */
 
 /* ---------- v4 보정 ---------- */
 .kpis.acc{grid-template-columns:repeat(6,minmax(0,1fr))}

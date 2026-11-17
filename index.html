@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="통합 ERP">
 <meta name="application-name" content="통합 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20261118_7">
 </head>
 <body>
 
@@ -152,14 +152,14 @@
   <!-- ===================== 회계 요약 ===================== -->
   <section class="kpis acc hidden" id="accKpi">
     <div class="kpi accrecv">
-      <span class="kpi-label">📥 총 받을 돈</span>
+      <span class="kpi-label">📥 총 미수금</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccRecv">0</span><span class="kpi-unit">원</span></div>
-      <span class="kpi-sub">외상매출금 (매출 − 수금)</span>
+      <span class="kpi-sub">미수금 = 매출 − 수금</span>
     </div>
     <div class="kpi accpay">
-      <span class="kpi-label">📤 총 줄 돈</span>
+      <span class="kpi-label">📤 총 미지급금</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccPay">0</span><span class="kpi-unit">원</span></div>
-      <span class="kpi-sub">외상매입금 (매입 − 지급)</span>
+      <span class="kpi-sub">미지급금 = 매입 − 지급</span>
     </div>
     <div class="kpi acctax">
       <span class="kpi-label">🧾 세금계산서</span>
@@ -850,8 +850,8 @@
       <p class="modal-sub" id="accVoucherSub">부가세는 과세일 때 10%로 자동 계산합니다.</p>
       <label class="field"><span>전표 종류</span>
         <div class="seg" id="accVoucherSeg">
-          <button type="button" data-vtype="sale" class="active">매출 (받을 돈)</button>
-          <button type="button" data-vtype="purchase">매입 (줄 돈)</button>
+          <button type="button" data-vtype="sale" class="active">매출 (미수금)</button>
+          <button type="button" data-vtype="purchase">매입 (미지급금)</button>
         </div>
       </label>
       <div class="grid2">
@@ -894,8 +894,8 @@
       <p class="modal-sub">등록하면 거래처 원장의 <b>남은 미수금·미지급금</b>에서 바로 빠집니다.</p>
       <label class="field"><span>구분</span>
         <div class="seg" id="accPaySeg">
-          <button type="button" data-ptype="in" class="active">수금 (받을 돈)</button>
-          <button type="button" data-ptype="out">지급 (줄 돈)</button>
+          <button type="button" data-ptype="in" class="active">수금 (미수금)</button>
+          <button type="button" data-ptype="out">지급 (미지급금)</button>
         </div>
       </label>
       <div class="grid2">
@@ -971,6 +971,6 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=20261118_7"></script>
 </body>
 </html>

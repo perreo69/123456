@@ -1682,7 +1682,7 @@ var ERP = (function () {
       { k: 'purchase', t: '총 매입', w: 116, num: true },
       { k: 'paid', t: '총 지급', w: 116, num: true },
       { k: 'payable', t: '남은 미지급금', w: 130, num: true },
-      { k: 'balance', t: '받을−줄', w: 116, num: true }
+      { k: 'balance', t: '미수금−미지급금', w: 130, num: true }
     ],
     E: [
       { k: 'd', t: '날짜', w: 104 },
@@ -1798,7 +1798,7 @@ var ERP = (function () {
     return rows;
   }
   function accLedgerRows(list) {
-    var rows = [['거래처', '총 매출', '총 수금', '남은 미수금', '총 매입', '총 지급', '남은 미지급금', '받을−줄']];
+    var rows = [['거래처', '총 매출', '총 수금', '남은 미수금', '총 매입', '총 지급', '남은 미지급금', '미수금−미지급금']];
     for (var i = 0; i < (list || []).length; i++) {
       var r = list[i];
       rows.push([r.partner, r.sale, r.received, r.receivable, r.purchase, r.paid, r.payable, r.balance]);
@@ -3031,7 +3031,7 @@ var LIVE = (function () {
         for (var c = 0; c < cols.length; c++) {
           html.push(lotCellHtml(lot, cols[c].k, wh, qv));
         }
-        html.push('<td class="actcell"><button type="button" class="actmenu' + (qv <= ERP.EPS ? ' dis' : '') +
+        html.push('<td class="actcell actcol"><button type="button" class="actmenu' + (qv <= ERP.EPS ? ' dis' : '') +
           '" data-menu="lot" data-lot="' + lot.id + '" data-wh="' + wh + '"' + (qv <= ERP.EPS ? ' disabled' : '') +
           ' title="해동·출고·수정">작업 ▾</button></td>');
         html.push('</tr>');
@@ -3119,7 +3119,7 @@ var LIVE = (function () {
       var e = page[i];
       html.push('<tr class="hrow">');
       for (var c = 0; c < cols.length; c++) html.push(logCellHtml(e, cols[c].k));
-      html.push('<td class="actcell">' +
+      html.push('<td class="actcell actcol">' +
         (e.act
           ? '<button type="button" class="actmenu" data-menu="log" data-log="' + e.dbid + '" title="수정·취소">작업 ▾</button>'
           : '<span class="ttag">원본</span>') +
@@ -4939,7 +4939,7 @@ var LIVE = (function () {
       var p = page[i];
       html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
-      html.push('<td class="actcell"><button type="button" class="actmenu" data-menu="fg" data-fgcode="' + esc(p.code) + '" title="상품·단가 수정">작업 ▾</button></td></tr>');
+      html.push('<td class="actcell actcol"><button type="button" class="actmenu" data-menu="fg" data-fgcode="' + esc(p.code) + '" title="상품·단가 수정">작업 ▾</button></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -4968,7 +4968,7 @@ var LIVE = (function () {
       var g = page[i];
       html.push('<tr class="fgrow' + (g.undone ? ' undone' : '') + '" data-fgcode="' + esc(g.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgLogCellHtml(g, cols[c].k));
-      html.push('<td><div class="acts">' + (g.undone
+      html.push('<td class="actcell actcol"><div class="acts">' + (g.undone
         ? '<span class="ttag">취소됨</span>'
         : '<button class="cancel" data-fgundo="' + g.id + '">취소</button>') + '</div></td></tr>');
     }
@@ -4997,7 +4997,7 @@ var LIVE = (function () {
       var p = page[i];
       html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
-      html.push('<td><div class="acts"><button class="act edit" data-fgprice="' + esc(p.code) + '">수정</button></div></td></tr>');
+      html.push('<td class="actcell actcol"><div class="acts"><button class="act edit" data-fgprice="' + esc(p.code) + '">수정</button></div></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -5545,7 +5545,7 @@ var LIVE = (function () {
       var v = page[i];
       html.push('<tr class="accrow" data-vrow="' + v.id + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(v, cols[c].k, 'V'));
-      html.push('<td><div class="acts"><button class="act edit" data-vedit="' + v.id + '">수정</button>' +
+      html.push('<td class="actcell actcol"><div class="acts"><button class="act edit" data-vedit="' + v.id + '">수정</button>' +
         '<button class="cancel" data-vdel="' + v.id + '">삭제</button></div></td></tr>');
     }
     html.push('</tbody></table>');
@@ -5583,7 +5583,7 @@ var LIVE = (function () {
       var r = list[i];
       html.push('<tr class="accrow" data-partner="' + esc(r.partner) + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(r, cols[c].k, 'R'));
-      html.push('<td><div class="acts">' +
+      html.push('<td class="actcell actcol"><div class="acts">' +
         '<button class="act in" data-payin="' + esc(r.partner) + '">수금</button>' +
         '<button class="act out" data-payout="' + esc(r.partner) + '">지급</button>' +
         '<button class="act" data-paylist="' + esc(r.partner) + '">내역</button></div></td></tr>');
@@ -5633,7 +5633,7 @@ var LIVE = (function () {
       var e = list[i];
       html.push('<tr class="accrow" data-erow="' + e.id + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(e, cols[c].k, 'E'));
-      html.push('<td><div class="acts"><button class="act edit" data-eedit="' + e.id + '">수정</button>' +
+      html.push('<td class="actcell actcol"><div class="acts"><button class="act edit" data-eedit="' + e.id + '">수정</button>' +
         '<button class="cancel" data-edel="' + e.id + '">삭제</button></div></td></tr>');
     }
     html.push('</tbody></table>');
@@ -5800,7 +5800,7 @@ var LIVE = (function () {
   var accV = { id: null, type: 'sale' };
   function updateAccVDoc() {
     var isSale = accV.type === 'sale';
-    $('accVoucherTitle').textContent = isSale ? '매출 전표 (받을 돈)' : '매입 전표 (줄 돈)';
+    $('accVoucherTitle').textContent = isSale ? '매출 전표 (미수금)' : '매입 전표 (미지급금)';
     $('accVDoc').innerHTML = isSale
       ? '<option value="none">미발행</option><option value="issued">발행완료</option>'
       : '<option value="none">미수령</option><option value="received">수령완료</option>';
