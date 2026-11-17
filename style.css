@@ -354,23 +354,18 @@ td.zero{color:#b3bccb;font-weight:600}
 thead th{padding:0 7px 0 0}
 thead th .th-plain{display:block;padding:8px 9px;font-size:11.5px;font-weight:750;color:#5f6b80}
 .hdbox{display:flex;align-items:stretch;justify-content:space-between;gap:0;min-width:0}
-.hdsort{
-  flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:3px;justify-content:flex-start;
-  border:0;background:transparent;padding:8px 2px 8px 9px;font-size:11.5px;font-weight:750;color:#5f6b80;
-  border-radius:6px 0 0 6px;text-align:left;
-}
-th.num .hdsort{justify-content:flex-end}
-.hdsort:hover{background:#eef3fb;color:var(--ink)}
-.hdsort.on{color:var(--blue-ink)}
-.hdsort .ht{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.hdsort .harrow{font-size:9px;color:var(--blue-ink);flex:0 0 auto;width:9px}
+/* 머리글 화살표 하나로 정렬 + 값 필터를 함께 연다 (v5) */
 .hdfilt{
-  flex:0 0 auto;border:0;background:transparent;color:#9aa6ba;font-size:10px;font-weight:800;
-  padding:0 7px 0 3px;border-radius:0 6px 6px 0;line-height:1;
+  flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:4px;justify-content:flex-start;
+  border:0;background:transparent;padding:8px 7px 8px 9px;font-size:11.5px;font-weight:750;color:#5f6b80;
+  border-radius:6px;text-align:left;line-height:1.25;
 }
-.hdfilt:hover{background:#eef3fb;color:var(--blue-ink)}
+th.num .hdfilt{justify-content:flex-end}
+.hdfilt:hover{background:#eef3fb;color:var(--ink)}
 .hdfilt.on{color:var(--blue-ink);background:#e3edff}
-thead th.num .hdfilt{order:2}
+.hdfilt .ht{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hdfilt .harrow{font-size:9px;color:#9aa6ba;flex:0 0 auto;width:10px;text-align:center}
+.hdfilt.on .harrow{color:var(--blue-ink)}
 
 /* ---------- 대분류 배지 ---------- */
 .mj{display:inline-block;font-size:11px;font-weight:750;padding:2px 7px;border-radius:6px;background:#eef1f6;color:#41506a;white-space:nowrap}
@@ -467,14 +462,14 @@ tbody tr.sel,tbody tr.on{display:table-row !important}
 @media (max-width:705px){
   .rangebar{padding:7px 10px;gap:6px}
   .range-sum{margin-left:0;width:100%}
-  thead th .th-plain, .hdsort{font-size:11px;padding:7px 2px 7px 7px}
-  .hdfilt{padding:0 5px 0 2px}
+  thead th .th-plain{font-size:11px;padding:7px 2px 7px 7px}
+  .hdfilt{font-size:11px;padding:7px 4px 7px 7px}
   .toolbar input[type=search]{min-width:120px}
 }
 
 /* ---------- 좁은 화면에서도 머리글·작업 열이 잘리지 않게 ---------- */
-.hdsort .ht{white-space:normal;word-break:keep-all;line-height:1.25;text-align:left}
-th.num .hdsort .ht{text-align:right}
+.hdfilt .ht{white-space:normal;word-break:keep-all;line-height:1.25;text-align:left}
+th.num .hdfilt .ht{text-align:right}
 /* 작업(수정/취소/해동/출고) 열은 오른쪽에 고정 */
 #tableWrap table.fixed thead th:last-child,
 #tableWrap table.fixed tbody tr td:last-child{
@@ -722,12 +717,11 @@ td.neg,.neg{color:#b42318}
   .field>span{font-size:12px}
   .field input,.field select{padding:11px 11px;border-radius:10px}
   .seg button{padding:10px 6px;font-size:14px;border-radius:9px}
-  .btn,.act,.cancel,.docbtn{padding:9px 11px;font-size:13.5px;border-radius:9px}
+  .btn,.act,.cancel,.docbtn,.actmenu{padding:9px 11px;font-size:13.5px;border-radius:9px}
   .btn.tiny{padding:8px 10px;font-size:13px}
   .btn-row .btn{padding:11px 8px;font-size:14px}
   .accbtn{padding:13px 8px;font-size:14px}
-  .hdsort{font-size:12px;padding:10px 2px 10px 8px}
-  .hdfilt{padding:0 8px 0 3px}
+  .hdfilt{font-size:12px;padding:10px 6px 10px 8px}
   .pr{padding:7px 11px;font-size:13px}
   .rng input,.rng select{padding:8px 8px;font-size:15px}
 
@@ -894,3 +888,85 @@ tbody tr.lot.sel>td{background:#eef4ff}
   .tabs::-webkit-scrollbar{display:none}
   .tab{flex:0 0 auto}
 }
+
+/* ============================ v5 추가 ============================ */
+/* ---------- 행 작업 메뉴 (작업 ▾) ---------- */
+th.actcol{white-space:nowrap}
+td.actcell{text-align:center;white-space:nowrap}
+.actmenu{
+  border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 6px;
+  font-size:11.5px;font-weight:750;color:#41506a;white-space:nowrap;line-height:1.2;
+}
+.actmenu:hover,.actmenu.on{border-color:#9db6f5;background:#f4f8ff;color:var(--blue-ink)}
+.actmenu:disabled,.actmenu.dis{opacity:.45;cursor:not-allowed;background:#fbfcfe}
+.rowmenu{
+  position:fixed;z-index:97;min-width:118px;background:#fff;border:1px solid #d7e0ee;
+  border-radius:10px;box-shadow:0 14px 34px rgba(9,17,30,.2);padding:4px;overflow:hidden;
+}
+.rowmenu button{
+  display:block;width:100%;text-align:left;border:0;background:transparent;
+  padding:8px 10px;border-radius:7px;font-size:12.5px;font-weight:700;color:#37435b;white-space:nowrap;
+}
+.rowmenu button:hover{background:#f2f7ff;color:var(--blue-ink)}
+.rowmenu button.danger{color:#b42318}
+.rowmenu button.danger:hover{background:#fff3f2}
+.rowmenu .rm-sep{height:1px;background:var(--line2);margin:3px 6px}
+
+/* ---------- 머리글 팝오버의 정렬 줄 ---------- */
+.fpop-sort{display:flex;gap:4px;padding:8px 10px;border-bottom:1px solid var(--line2);background:#fbfcfe;flex-wrap:wrap}
+.fsort{
+  flex:1 1 auto;border:1px solid #d7e0ee;background:#fff;border-radius:7px;padding:6px 8px;
+  font-size:11.5px;font-weight:750;color:#41506a;white-space:nowrap;
+}
+.fsort:hover{border-color:#9db6f5;color:var(--blue-ink);background:#f4f8ff}
+.fsort.on{background:#e3edff;border-color:#9db6f5;color:var(--blue-ink)}
+.fsort.off{flex:0 0 auto;color:#6b7789}
+
+/* ---------- 입고 사진 업로드 ---------- */
+.btn.photo{background:#fff7ed;border-color:#f6c99b;color:#b45309;font-weight:800}
+.btn.photo:hover{background:#ffefdd;border-color:#efa963}
+.pbadge{
+  display:inline-block;min-width:17px;padding:1px 5px;border-radius:9px;background:#c0392b;color:#fff;
+  font-size:10.5px;font-weight:800;line-height:15px;text-align:center;vertical-align:1px;
+}
+.pbadge.zero{background:#c3ccd9}
+.photorow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.photostate{
+  display:flex;gap:8px;align-items:center;border:1px solid #f6c99b;background:#fffaf4;
+  border-radius:10px;padding:6px 8px;margin-bottom:8px;
+}
+.photostate img{width:62px;height:62px;object-fit:cover;border-radius:7px;border:1px solid #eadfce;background:#fff}
+.photostate .ps-body{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 auto}
+.photostate .ps-body b{font-size:12px;color:#8a4b0a}
+.photostate .ps-sub{font-size:11px;color:#6b7789;font-weight:600}
+.field.whonly{margin-top:0;margin-bottom:8px}
+.field.whonly .seg{width:100%}
+
+/* ---------- 사진 대기함 · 크게 보기 ---------- */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:10px;max-height:56vh;overflow:auto;padding:2px}
+.photo-item{border:1px solid var(--line);border-radius:11px;background:#fff;overflow:hidden;text-align:left;padding:0}
+.photo-item:hover{border-color:#9db6f5;box-shadow:0 4px 14px rgba(16,24,40,.1)}
+.photo-item img{display:block;width:100%;height:104px;object-fit:cover;background:#f2f5fa}
+.photo-item .pi-body{display:block;padding:6px 8px}
+.photo-item .pi-body b{display:block;font-size:12px;color:#2c3a4f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.photo-item .pi-body span{display:block;font-size:11px;color:#6b7789;font-weight:600;margin-top:1px}
+.photo-empty{padding:18px 6px;text-align:center;color:var(--muted2);font-size:12.5px;font-weight:600}
+.photocard{max-width:760px}
+.photo-big{background:#0f172a;border-radius:12px;padding:8px;display:flex;justify-content:center;max-height:52vh;overflow:auto;margin-bottom:10px}
+.photo-big img{max-width:100%;max-height:48vh;object-fit:contain;border-radius:6px}
+
+/* 사진을 작게 띄워 두고 왼쪽 폼을 채울 수 있게 (배경은 클릭 통과) */
+#photoViewModal.mini{background:transparent;pointer-events:none;padding:0;backdrop-filter:none;-webkit-backdrop-filter:none}
+#photoViewModal.mini .modal-card{
+  pointer-events:auto;position:fixed;right:12px;bottom:12px;width:min(390px,94vw);
+  max-height:82vh;overflow:auto;box-shadow:0 18px 44px rgba(9,17,30,.34);border-color:#b9c8de;
+}
+#photoViewModal.mini .photo-big{max-height:38vh}
+#photoViewModal.mini .modal-actions{flex-wrap:wrap}
+
+/* 사진 크게 보기 버튼 줄은 한 줄에 고르게 */
+.photocard .modal-actions{display:flex;flex-wrap:wrap;gap:8px}
+.photocard .modal-actions .btn{flex:0 0 auto}
+.photocard .modal-actions .submit{flex:1 1 220px}
+#photoViewModal.mini .modal-actions .submit{flex:1 1 100%}
+.photostate .ps-body .btn{align-self:flex-start;padding:2px 8px;font-size:10.5px;border-radius:6px}

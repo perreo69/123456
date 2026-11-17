@@ -76,6 +76,7 @@
     </div>
     <div class="top-actions">
       <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
+      <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함">📷 입고대기 <span class="pbadge" id="photoBadge">0</span></button>
       <button class="btn xls only-meat" id="btnXlsSabang" type="button" title="사방넷 풀필먼트 입고 업로드용 엑셀">📥 사방넷 입고 양식</button>
       <button class="btn xls only-meat" id="btnXlsSales" type="button" title="경리나라 매출거래명세표 일괄등록용 엑셀">📥 경리나라 매출 양식</button>
       <button class="btn only-meat" id="btnCsvF" type="button">⬇ 냉동고 재고</button>
@@ -200,20 +201,27 @@
       <form id="entryForm" autocomplete="off">
         <!-- ===== 입고 ===== -->
         <div class="pane" data-pane="in">
+          <div class="photorow">
+            <button type="button" class="btn photo" id="btnPhotoUp">📷 입고 사진 업로드</button>
+            <button type="button" class="btn ghost tiny" id="btnPhotoInbox2">대기함 <b id="photoPending">0</b></button>
+            <input type="file" id="photoFile" accept="image/*" capture="environment" hidden>
+          </div>
+          <div class="photostate hidden" id="photoState">
+            <img id="photoStateImg" alt="입고 전표 사진">
+            <div class="ps-body"><b id="photoStateTitle">사진</b>
+              <span class="ps-sub" id="photoStateSub"></span>
+              <button type="button" class="btn ghost tiny" id="photoStateClear">사진 해제</button>
+            </div>
+          </div>
           <label class="field"><span>받는 창고</span>
             <div class="seg" id="whSegIn">
               <button type="button" data-wh="F" class="active">🧊 냉동고</button>
               <button type="button" data-wh="C">❄️ 냉장고</button>
             </div>
           </label>
+          <label class="field"><span>날짜</span><input type="date" id="inDate"></label>
           <div class="grid2">
-            <label class="field"><span>날짜</span><input type="date" id="inDate"></label>
-            <label class="field"><span>대분류</span>
-              <input id="inMajor" list="dlMajors" placeholder="원료육">
-            </label>
-          </div>
-          <div class="grid2">
-            <label class="field"><span>소분류</span>
+            <label class="field"><span>육류</span>
               <input id="inMeat" list="dlMeats" placeholder="돈육 · 우육 · 계육 …">
             </label>
             <label class="field"><span>제품명 <span class="req">*</span></span><input id="inName" list="dlNames" placeholder="예: 등갈비"></label>
@@ -236,7 +244,7 @@
           </div>
           <div class="pricebox" id="priceHint"></div>
           <label class="field"><span>비고</span><input id="inNote" placeholder="선택 입력"></label>
-          <p class="hint">대분류·제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
+          <p class="hint">제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
         </div>
 
         <!-- ===== 해동 ===== -->
@@ -252,8 +260,9 @@
             <label class="field"><span>단가(원/kg)</span><input type="number" id="thPrice" step="1" min="0" placeholder="0"></label>
             <label class="field"><span>금액(원)</span><input type="number" id="thAmount" step="1" min="0" placeholder="0"></label>
           </div>
+          <label class="field"><span>생산품명</span><input id="thProd" list="dlProducts" placeholder="예: 선진바베큐폭립 (생산품목)"></label>
           <label class="field"><span>비고</span><input id="thNote" placeholder="선택 입력"></label>
-          <p class="hint">냉동고 재고가 차감되고, 같은 로트가 냉장고로 옮겨집니다. 단가는 그 로트의 기준단가가 채워지며 바꿀 수 있습니다.</p>
+          <p class="hint">냉동고 재고가 차감되고, 같은 로트가 냉장고로 옮겨집니다. 생산품명은 입출고 내역의 <b>생산품목</b> 칸에 그대로 적힙니다.</p>
         </div>
 
         <!-- ===== 재냉동 ===== -->
@@ -275,16 +284,16 @@
 
         <!-- ===== 출고 ===== -->
         <div class="pane hidden" data-pane="out">
-          <label class="field"><span>출발 창고</span>
+          <div class="field whonly">
             <div class="seg" id="whSegOut">
               <button type="button" data-wh="F">🧊 냉동고</button>
               <button type="button" data-wh="C" class="active">❄️ 냉장고</button>
             </div>
-          </label>
+          </div>
           <label class="field"><span>날짜</span><input type="date" id="outDate"></label>
           <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="outLot"></select></label>
           <div class="lotinfo empty" id="outInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
-          <label class="field"><span>출고처 구분 <span class="req">*</span></span>
+          <label class="field"><span>출고처 <span class="req">*</span></span>
             <div class="seg" id="destSeg">
               <button type="button" data-dest="site" class="active" title="현장(생산품목)으로 나감">🏭 현장</button>
               <button type="button" data-dest="vendor" title="업체로 판매·이동">🏢 업체</button>
@@ -301,7 +310,7 @@
             <label class="field"><span>금액(원)</span><input type="number" id="outAmount" step="1" min="0" placeholder="0"></label>
           </div>
           <label class="field"><span>비고</span><input id="outNote" placeholder="선택 입력"></label>
-          <p class="hint" id="destHint">현장은 생산품목으로 적습니다. 출발 창고의 재고가 차감되고, 나간 물량은 재고에서 빠집니다.</p>
+          <p class="hint" id="destHint">현장은 생산품목으로 적습니다. 고른 창고의 재고가 차감되고, 나간 물량은 재고에서 빠집니다.</p>
         </div>
 
         <p class="msg" id="formMsg"></p>
@@ -317,31 +326,21 @@
       </div>
       <div class="toolbar">
         <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색">
-        <label class="filt-sel"><span>대분류</span><select id="majorFilter"><option value="all">전체</option></select></label>
         <label class="check" id="zeroWrap"><input type="checkbox" id="showZero">0kg 소진 로트</label>
         <select id="typeFilter" class="hidden">
           <option value="all">전체 구분</option>
           <option value="in">입고</option>
+          <option value="vendor">출고</option>
           <option value="thaw">해동</option>
-          <option value="re">재냉동</option>
-          <option value="out">출고 (현장/업체/택배/기타)</option>
+          <option value="site">현장</option>
+          <option value="courier">택배</option>
+          <option value="other">기타</option>
         </select>
         <button class="btn ghost tiny hidden" id="btnResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
       </div>
       <div class="rangebar" id="rangeBar">
         <button class="btn tiny period" id="btnPeriod" type="button">📅 기간선택</button>
-        <button class="rangebox" id="rangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
-        <div class="presets" id="rangePresets">
-          <button type="button" class="pr active" data-preset="all">전체</button>
-          <button type="button" class="pr" data-preset="today">오늘</button>
-          <button type="button" class="pr" data-preset="week">이번주</button>
-          <button type="button" class="pr" data-preset="month">이번달</button>
-          <button type="button" class="pr soon hidden" data-preset="soon">유통임박</button>
-        </div>
-        <label class="rng hidden" id="dateFieldWrap"><span>기준</span>
-          <select id="dateField"><option value="in">입고일</option><option value="exp">소비기한</option></select>
-        </label>
         <label class="rng"><input type="date" id="rangeFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="rangeTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="btnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="rangeClear" type="button">초기화</button>
@@ -544,11 +543,55 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- ===================== 행 작업 메뉴 (해동 / 출고 / 수정) ===================== -->
+  <div class="rowmenu hidden" id="rowMenu" role="menu"></div>
+
+  <!-- ===================== 입고 사진 대기함 ===================== -->
+  <div class="modal hidden" id="photoInboxModal">
+    <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="piTitle">
+      <div class="modal-head">
+        <h2 id="piTitle">📷 입고 사진 대기함</h2>
+        <button class="modal-x" id="photoInboxClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="photoInboxSub">전표 사진을 눌러 크게 보고, 확인한 내용으로 입고를 등록하세요. 등록한 사진은 대기함에서 빠집니다.</p>
+      <div class="photo-grid" id="photoGrid"></div>
+      <label class="check"><input type="checkbox" id="photoNotify" checked> 새 사진이 올라오면 알림음·브라우저 알림으로 알려주기</label>
+      <div class="modal-actions">
+        <button class="btn" id="photoInboxUpload" type="button">📷 사진 올리기</button>
+        <button class="btn" id="photoInboxDone" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 입고 사진 크게 보기 ===================== -->
+  <div class="modal hidden" id="photoViewModal">
+    <div class="modal-card photocard" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
+      <div class="modal-head">
+        <h2 id="pvTitle">입고 전표 사진</h2>
+        <button class="modal-x" id="photoViewClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="photoViewSub"></p>
+      <div class="photo-big"><img id="photoBigImg" alt="입고 전표 사진"></div>
+      <label class="field"><span>사진 메모</span><input id="photoMemo" readonly></label>
+      <div class="modal-actions">
+        <button class="btn ghost" id="photoDelete" type="button">삭제</button>
+        <button class="btn ghost" id="photoPin" type="button">🪟 작게 띄우기</button>
+        <button class="btn" id="photoViewClose2" type="button">닫기</button>
+        <button class="submit" id="photoLoad" type="button">입고 폼으로 불러오기</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===================== 컬럼 필터 (엑셀 스타일) ===================== -->
   <div class="fpop hidden" id="fpop">
     <div class="fpop-head">
       <b id="fpopTitle">필터</b>
       <button class="fpop-x" id="fpopClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="fpop-sort" id="fpopSort">
+      <button type="button" class="fsort" id="fpopAsc">↑ 오름차순</button>
+      <button type="button" class="fsort" id="fpopDesc">↓ 내림차순</button>
+      <button type="button" class="fsort off" id="fpopUnsort">정렬 해제</button>
     </div>
     <div class="fpop-body">
       <input type="search" id="fpopSearch" placeholder="값 검색">
@@ -610,11 +653,11 @@
       </div>
       <div class="grid2">
         <label class="field"><span>금액(원)</span><input type="number" id="edAmount" step="1" min="0"></label>
-        <label class="field hidden" id="edDestWrap"><span>출고처 구분</span>
+        <label class="field hidden" id="edDestWrap"><span>출고처</span>
           <select id="edDest"><option value="site">현장</option><option value="vendor">업체</option><option value="courier">택배</option><option value="other">기타</option></select>
         </label>
       </div>
-      <label class="field hidden" id="edDestDetailWrap"><span>출고처 / 생산품목 <span class="req">*</span></span><input id="edDestDetail"></label>
+      <label class="field hidden" id="edDestDetailWrap"><span id="edDestDetailLabel">생산품목</span><input id="edDestDetail"></label>
       <label class="field"><span>비고</span><input id="edNote"></label>
       <p class="msg" id="editMsg"></p>
       <div class="modal-actions">
@@ -632,10 +675,7 @@
         <button class="modal-x" id="lotClose" type="button" aria-label="닫기">✕</button>
       </div>
       <p class="modal-sub" id="lotSub"></p>
-      <div class="grid2">
-        <label class="field"><span>대분류</span><input id="ltMajor" list="dlMajors"></label>
-        <label class="field"><span>소분류</span><input id="ltMeat" list="dlMeats"></label>
-      </div>
+      <label class="field"><span>육류</span><input id="ltMeat" list="dlMeats"></label>
       <label class="field"><span>품목명 <span class="req">*</span></span><input id="ltName" list="dlNames"></label>
       <div class="grid2">
         <label class="field"><span>업체명</span><input id="ltVendor" list="dlVendors"></label>
@@ -900,7 +940,6 @@
   <datalist id="dlProducts"></datalist>
   <datalist id="dlCourier"></datalist>
   <datalist id="dlOther"></datalist>
-  <datalist id="dlMajors"></datalist>
   <datalist id="dlMeats"></datalist>
   <datalist id="dlFgNames"></datalist>
   <datalist id="dlFgPartners"></datalist>
