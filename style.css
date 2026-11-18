@@ -1479,3 +1479,48 @@ table.sp-bottom td.num.b{font-weight:800;font-size:10.5px}
 .acts .act.out:hover{background:#ffe9d6}
 .acts .act.edit{background:#eef2f9;border-color:#d3dded;color:#33475e;font-weight:800}
 .acts .act.edit:hover{background:#e3eaf5}
+
+/* ==========================================================================
+   v9 — 전표 입력창의 재고 연동(원료육·완제품) + 미지급금·미수금 현황
+   ========================================================================== */
+#accVoucherModal .modal-card{max-width:520px}
+.seg.three button{white-space:normal;line-height:1.22;font-size:11.5px;padding:7px 6px}
+.vlinkhint{margin:-3px 0 10px}
+.vlinkbox{
+  border:1px solid #dfe7f3;background:#f8faff;border-radius:11px;
+  padding:10px 11px 11px;margin:2px 0 11px;display:flex;flex-direction:column;gap:9px;
+}
+.vlinkbox .grid2{gap:9px}
+.vlinkhead{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--indigo);padding-left:9px}
+.vlinkhead b{font-size:12.5px;color:var(--ink)}
+.vlinkhead span{font-size:11px;color:var(--muted);line-height:1.45}
+.vlinkbox .lotinfo{margin:0}
+input.autofill{background:#f4f7fc;color:var(--ink);font-weight:750}
+/* 미지급금·미수금 현황 표 */
+.t-bal{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff}
+.t-bal th{
+  background:#f4f7fc;color:#4a5871;font-size:11.5px;font-weight:800;text-align:left;
+  padding:8px 10px;border-bottom:1px solid #e2e9f3;position:sticky;top:0;z-index:2;
+}
+.t-bal th.num{text-align:right}
+.t-bal td{padding:8px 10px;border-bottom:1px solid #eef2f8;vertical-align:middle}
+.t-bal td.num{text-align:right;font-variant-numeric:tabular-nums}
+.t-bal tr:hover td{background:#fafcff}
+.t-bal tr.sumrow td{background:#f4f7fc;border-top:2px solid #dbe4f0}
+.t-bal td.pay b{color:#b4530a}
+.t-bal td.recv b{color:var(--green-ink)}
+.t-bal td.actcell{width:1%;white-space:nowrap;padding:6px 7px}
+.t-bal .acts{gap:3px}
+.t-bal .act{padding:3px 6px;font-size:11px}
+.panel.flash{animation:flashcard 1.35s ease-out}
+@keyframes flashcard{
+  0%{box-shadow:0 0 0 0 rgba(37,99,235,.42)}
+  35%{box-shadow:0 0 0 5px rgba(37,99,235,.16)}
+  100%{box-shadow:0 0 0 0 rgba(37,99,235,0)}
+}
+@media (max-width:560px){
+  #accVoucherModal .modal-card{max-width:100%}
+  .seg.three button{font-size:10.5px;padding:8px 4px;letter-spacing:-.3px}
+  .t-bal{font-size:12px}
+  .t-bal th,.t-bal td{padding:7px 6px}
+}

@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261118_15">
+<link rel="stylesheet" href="style.css?v=20261118_16">
 </head>
 <body>
 
@@ -128,9 +128,10 @@
         </button>
         <div class="v8sub">
           <button class="v8item on" type="button" data-buy="list">🧾 매입 전표 목록</button>
+          <button class="v8item" type="button" data-buy="status">📤 미지급금 현황</button>
           <button class="v8item" type="button" data-buy="new">＋ 매입 전표 직접 입력</button>
           <button class="v8item" type="button" data-buy="reflect">⚡ 미반영 입고 가져오기</button>
-          <button class="v8item" type="button" data-buy="pay">＋ 지급 (미지급금 상환)</button>
+          <button class="v8item" type="button" data-buy="pay">＋ 지급 입력</button>
         </div>
       </section>
 
@@ -140,9 +141,10 @@
         </button>
         <div class="v8sub">
           <button class="v8item on" type="button" data-sale="list">🧾 매출 전표 목록</button>
+          <button class="v8item" type="button" data-sale="status">📥 미수금 현황</button>
           <button class="v8item" type="button" data-sale="new">＋ 매출 전표 직접 입력</button>
           <button class="v8item" type="button" data-sale="reflect">⚡ 미반영 판매출고 가져오기</button>
-          <button class="v8item" type="button" data-sale="pay">＋ 수금 (미수금 회수)</button>
+          <button class="v8item" type="button" data-sale="pay">＋ 수금 입력</button>
           <button class="v8item" type="button" data-sale="stmt">📄 A4 거래명세표</button>
         </div>
       </section>
@@ -537,9 +539,23 @@
 
   <!-- ===================== 3. 구매관리 (매입 · 미지급금 · 지급) ===================== -->
   <main class="v8pane hidden" id="buyPane">
-    <section class="panel v8cards">
+    <section class="panel v8cards" id="buyPayCard">
       <div class="v8cardhead"><h3>📤 거래처별 미지급금</h3><span class="v8cardtotal pay" id="buyPaySum">0원</span></div>
       <div class="v8cardrow" id="buyPayList"></div>
+    </section>
+    <section class="panel list-panel hidden" id="buyPayStatus">
+      <div class="v8panehead">
+        <div><h3>📤 미지급금 현황</h3><span class="v8hint">거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다. 여기서 바로 지급을 입력합니다.</span></div>
+        <div class="v8acts">
+          <button class="accbtn payout" id="btnBuyStatusPay" type="button">＋ 지급 입력</button>
+          <button class="accbtn refl" id="btnBuyStatusLedger" type="button">🏢 거래처별 원장</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="buyPayStatusWrap"></div>
+      <div class="v8panehead">
+        <div><h3>💸 최근 지급 내역</h3><span class="v8hint">지급을 지우면 그 거래처의 미지급금이 다시 늘어납니다.</span></div>
+      </div>
+      <div class="table-wrap" id="buyPayLogWrap"></div>
     </section>
     <section class="panel list-panel">
       <div class="v8panehead">
@@ -547,7 +563,7 @@
         <div class="v8acts">
           <button class="accbtn buy" id="btnBuyNew" type="button">＋ 매입 전표 직접 입력</button>
           <button class="accbtn refl" id="btnBuyReflect" type="button">⚡ 미반영 입고 가져오기</button>
-          <button class="accbtn payout" id="btnBuyPay" type="button">＋ 지급 (미지급금 상환)</button>
+          <button class="accbtn payout" id="btnBuyPay" type="button">＋ 지급 입력</button>
         </div>
       </div>
       <div class="toolbar">
@@ -568,9 +584,23 @@
 
   <!-- ===================== 4. 판매관리 (매출 · 미수금 · 수금 · 명세표) ===================== -->
   <main class="v8pane hidden" id="salePane">
-    <section class="panel v8cards">
+    <section class="panel v8cards" id="saleRecvCard">
       <div class="v8cardhead"><h3>📥 거래처별 미수금</h3><span class="v8cardtotal recv" id="saleRecvSum">0원</span></div>
       <div class="v8cardrow" id="saleRecvList"></div>
+    </section>
+    <section class="panel list-panel hidden" id="saleRecvStatus">
+      <div class="v8panehead">
+        <div><h3>📥 미수금 현황</h3><span class="v8hint">거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다. 여기서 바로 수금을 입력합니다.</span></div>
+        <div class="v8acts">
+          <button class="accbtn payin" id="btnSaleStatusPay" type="button">＋ 수금 입력</button>
+          <button class="accbtn refl" id="btnSaleStatusLedger" type="button">🏢 거래처별 원장</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="saleRecvStatusWrap"></div>
+      <div class="v8panehead">
+        <div><h3>💵 최근 수금 내역</h3><span class="v8hint">수금을 지우면 그 거래처의 미수금이 다시 늘어납니다.</span></div>
+      </div>
+      <div class="table-wrap" id="saleRecvLogWrap"></div>
     </section>
     <section class="panel list-panel">
       <div class="v8panehead">
@@ -578,7 +608,7 @@
         <div class="v8acts">
           <button class="accbtn sale" id="btnSaleNew" type="button">＋ 매출 전표 직접 입력</button>
           <button class="accbtn refl" id="btnSaleReflect" type="button">⚡ 미반영 판매출고 가져오기</button>
-          <button class="accbtn payin" id="btnSalePay" type="button">＋ 수금 (미수금 회수)</button>
+          <button class="accbtn payin" id="btnSalePay" type="button">＋ 수금 입력</button>
           <button class="accbtn stmt" id="btnSaleStmt" type="button">📄 A4 거래명세표</button>
         </div>
       </div>
@@ -708,8 +738,8 @@
       <div class="accbtn-grid">
         <button class="accbtn sale" id="btnAccSale" type="button" title="물건을 팔고 아직 돈을 못 받은 건(미수금)">＋ 매출 전표</button>
         <button class="accbtn buy" id="btnAccBuy" type="button" title="물건을 사고 아직 돈을 안 준 건(미지급금)">＋ 매입 전표</button>
-        <button class="accbtn payin" id="btnAccPayIn" type="button" title="외상으로 판 미수금을 통장으로 받음">＋ 수금 (미수금 회수)</button>
-        <button class="accbtn payout" id="btnAccPayOut" type="button" title="외상으로 산 미지급금을 통장에서 갚음">＋ 지급 (미지급금 상환)</button>
+        <button class="accbtn payin" id="btnAccPayIn" type="button" title="외상으로 판 미수금을 통장으로 받음">＋ 수금 입력</button>
+        <button class="accbtn payout" id="btnAccPayOut" type="button" title="외상으로 산 미지급금을 통장에서 갚음">＋ 지급 입력</button>
         <button class="accbtn inc" id="btnAccExtraIn" type="button" title="장부에 올린 외상과 상관없이 들어온 현금(잡수입·환급·이자)">＋ 기타 입금</button>
         <button class="accbtn exp" id="btnAccExpense" type="button" title="장부에 올린 외상과 상관없이 나간 현금(월세·택배비·식대·유류비)">＋ 일반 출금(경비)</button>
         <button class="accbtn refl" id="btnAccReflect" type="button">⚡ 입출고 일괄 반영</button>
@@ -1062,13 +1092,67 @@
       <p class="modal-sub" id="accVoucherSub">부가세는 과세일 때 10%로 자동 계산합니다.</p>
       <label class="field" id="accVTypeField"><span>전표 종류</span>
         <div class="seg" id="accVoucherSeg">
-          <button type="button" data-vtype="sale" class="active">매출 (미수금)</button>
-          <button type="button" data-vtype="purchase">매입 (미지급금)</button>
+          <button type="button" data-vtype="sale" class="active">매출</button>
+          <button type="button" data-vtype="purchase">매입</button>
         </div>
       </label>
+      <label class="field" id="accVLinkField"><span>연동 대상</span>
+        <div class="seg three" id="accVLinkSeg">
+          <button type="button" data-vlink="meat">🥩 원료육</button>
+          <button type="button" data-vlink="fp">📦 완제품·부자재</button>
+          <button type="button" data-vlink="none" class="active">✏️ 기타(재고 없음)</button>
+        </div>
+      </label>
+      <p class="hint vlinkhint" id="accVLinkHint">원료육·완제품을 고르면 저장할 때 <b>재고 입·출고까지 함께</b> 처리되고, 그 재고 금액으로 전표가 만들어집니다.</p>
       <div class="grid2">
         <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accVDate"></label>
-        <label class="field"><span>거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
+        <label class="field"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
+      </div>
+
+      <!-- v9: 원료육 연동 -->
+      <div class="vlinkbox hidden" id="accVMeatBox">
+        <div class="vlinkhead"><b id="accVMeatTitle">🥩 원료육 입고 → 매입 전표</b><span id="accVMeatSub">입력한 만큼 재고가 늘고, 같은 금액으로 매입 전표가 생깁니다.</span></div>
+        <div class="grid2" id="accVMeatWhRow">
+          <label class="field"><span>받는 창고 <span class="req">*</span></span>
+            <div class="seg" id="accVWhSeg">
+              <button type="button" data-vwh="F" class="active">🧊 냉동고</button>
+              <button type="button" data-vwh="C">❄️ 냉장고</button>
+            </div>
+          </label>
+          <label class="field"><span>육류</span><input id="accVMeat" list="dlMeats" placeholder="돈육 · 우육 · 계육 …"></label>
+        </div>
+        <label class="field"><span id="accVNameLabel">제품명 <span class="req">*</span></span><input id="accVName" placeholder="예: 등갈비"></label>
+        <div class="grid2" id="accVMeatOptRow">
+          <label class="field"><span>원산지</span><input id="accVOrigin" list="dlOrigins" placeholder="예: 국내산"></label>
+          <label class="field"><span>브랜드</span><input id="accVBrand" list="dlBrands" placeholder="선택"></label>
+        </div>
+        <div class="grid2" id="accVMeatDateRow">
+          <label class="field"><span>입고일 <span class="req">*</span></span><input type="date" id="accVInDate"></label>
+          <label class="field"><span>소비기한 <span class="req">*</span></span><input type="date" id="accVExpiry"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span id="accVKgLabel">중량(kg) <span class="req">*</span></span><input type="number" id="accVKg" step="0.01" min="0" placeholder="0.00"></label>
+          <label class="field"><span id="accVPriceLabel">단가(원/kg) <span class="req">*</span></span><input type="number" id="accVPrice" step="1" min="0" placeholder="0"></label>
+        </div>
+        <div class="lotinfo empty" id="accVMeatInfo">입력한 내용으로 새 로트가 생기거나 기존 로트에 합산됩니다.</div>
+        <label class="field hidden" id="accVOutRow"><span>출고처 <span class="req">*</span></span>
+          <div class="seg" id="accVDestSeg">
+            <button type="button" data-vdest="vendor" class="active">🏢 업체</button>
+            <button type="button" data-vdest="courier">📦 택배</button>
+            <button type="button" data-vdest="other">✏️ 기타</button>
+          </div>
+        </label>
+      </div>
+
+      <!-- v9: 완제품·부자재 연동 -->
+      <div class="vlinkbox hidden" id="accVFpBox">
+        <div class="vlinkhead"><b id="accVFpTitle">📦 완제품·부자재 입고 → 매입 전표</b><span id="accVFpSub">입력한 만큼 재고가 늘고, 같은 금액으로 매입 전표가 생깁니다.</span></div>
+        <label class="field"><span>품목 <span class="req">*</span> <span class="tiny-hint">코드 또는 상품명</span></span><input id="accVFpQuery" placeholder="예: 떡갈비 / W00100016"></label>
+        <div class="lotinfo empty" id="accVFpInfo">품목을 고르면 현재고·단가가 보입니다.</div>
+        <div class="grid2">
+          <label class="field"><span id="accVFpQtyLabel">수량 <span class="req">*</span></span><input type="number" id="accVFpQty" step="0.001" min="0" placeholder="0"></label>
+          <label class="field"><span id="accVFpPriceLabel">입고단가(원) <span class="req">*</span></span><input type="number" id="accVFpPrice" step="1" min="0" placeholder="0"></label>
+        </div>
       </div>
       <label class="field"><span>과세 구분</span>
         <div class="seg" id="accVTaxSeg">
@@ -1077,10 +1161,10 @@
         </div>
       </label>
       <div class="grid2">
-        <label class="field"><span>금액(원) <span class="req">*</span></span><input type="number" id="accVAmount" step="1" min="0" placeholder="0"></label>
+        <label class="field"><span>금액(원) <span class="req">*</span> <span class="tiny-hint" id="accVAmountNote"></span></span><input type="number" id="accVAmount" step="1" min="0" placeholder="0"></label>
         <label class="field"><span>부가세</span><input id="accVVat" readonly placeholder="0"></label>
       </div>
-      <label class="check"><input type="checkbox" id="accVVatIncluded">입력한 금액이 부가세 포함 금액입니다</label>
+      <label class="check" id="accVVatIncWrap"><input type="checkbox" id="accVVatIncluded">입력한 금액이 부가세 포함 금액입니다</label>
       <div class="grid2">
         <label class="field"><span>세금계산서</span>
           <select id="accVDoc"><option value="none">미발행</option><option value="issued">발행완료</option><option value="received">수령완료</option></select>
@@ -1106,8 +1190,8 @@
       <p class="modal-sub">등록하면 거래처 원장의 <b>남은 미수금·미지급금</b>에서 바로 빠집니다.</p>
       <label class="field"><span>구분</span>
         <div class="seg" id="accPaySeg">
-          <button type="button" data-ptype="in" class="active">수금 (미수금)</button>
-          <button type="button" data-ptype="out">지급 (미지급금)</button>
+          <button type="button" data-ptype="in" class="active">수금</button>
+          <button type="button" data-ptype="out">지급</button>
         </div>
       </label>
       <div class="grid2">
@@ -1190,8 +1274,8 @@
 
       <div class="helptable">
         <div class="ht-row ht-head"><span>버튼</span><span>언제 쓰나</span><span>들어가는 곳</span><span>미수·미지급</span></div>
-        <div class="ht-row"><span class="ht-b payin">＋ 수금 (미수금 회수)</span><span>팔고 못 받은 돈을 받았을 때</span><span>수금 기록</span><span class="ht-ok">줄어듦</span></div>
-        <div class="ht-row"><span class="ht-b payout">＋ 지급 (미지급금 상환)</span><span>사고 안 준 돈을 보냈을 때</span><span>지급 기록</span><span class="ht-ok">줄어듦</span></div>
+        <div class="ht-row"><span class="ht-b payin">＋ 수금 입력</span><span>팔고 못 받은 돈을 받았을 때</span><span>수금 기록</span><span class="ht-ok">줄어듦</span></div>
+        <div class="ht-row"><span class="ht-b payout">＋ 지급 입력</span><span>사고 안 준 돈을 보냈을 때</span><span>지급 기록</span><span class="ht-ok">줄어듦</span></div>
         <div class="ht-row"><span class="ht-b inc">＋ 기타 입금</span><span>외상과 무관한 현금이 들어왔을 때</span><span>일반 경비·자금 (수입)</span><span class="ht-no">그대로</span></div>
         <div class="ht-row"><span class="ht-b exp">＋ 일반 출금(경비)</span><span>외상과 무관한 현금이 나갔을 때</span><span>일반 경비·자금 (경비)</span><span class="ht-no">그대로</span></div>
       </div>
@@ -1355,7 +1439,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261118_15"></script>
-<script src="app.js?v=20261118_15"></script>
+<script src="partners_data.js?v=20261118_16"></script>
+<script src="app.js?v=20261118_16"></script>
 </body>
 </html>
