@@ -2697,6 +2697,133 @@ var ERP = (function () {
     return { rows: out, skipped: skipped, error: out.length ? '' : '올릴 줄이 없습니다. 양식의 열 이름을 확인해 주세요.' };
   }
 
+  /* ==========================================================================
+     v8.1 — 거래처 DB(2,350) + 스마트 부분검색(공백 토큰 AND)
+       partners_data.js 가 window.MIRS_PARTNERS 에 [열 배열] 로 담아 둔다.
+       검색은 '알전' → '알전각', '자 슈프' → '탐나는피자 슈프림불고기' 처럼
+       공백으로 나눈 모든 토큰이 들어 있으면 맞는 것으로 본다.
+     ========================================================================== */
+  var PARTNER_KEYS = ['no', 'n', 'a', 'k', 'tel', 'hp', 'fax', 'own', 'addr', 'biz', 'item', 'acct', 'email', 'mgr', 'mgrTel'];
+  var PARTNERS = [], PARTNER_BY_NAME = {};
+  function bizDigits(v) { return String(v === null || v === undefined ? '' : v).replace(/[^0-9]/g, ''); }
+  function bizFmt(v) {
+    var d = bizDigits(v);
+    if (d.length === 10) return d.slice(0, 3) + '-' + d.slice(3, 5) + '-' + d.slice(5);
+    return s(v);
+  }
+  function partnerLoad(head, rows) {
+    var keys = (head && head.length) ? head : PARTNER_KEYS;
+    var out = [], map = {}, i, j, r, p, hay;
+    for (i = 0; i < (rows || []).length; i++) {
+      r = rows[i] || [];
+      p = {};
+      for (j = 0; j < keys.length; j++) p[keys[j]] = s(r[j]);
+      if (!p.n && !p.no) continue;
+      p.noFmt = bizFmt(p.no);
+      p.off = /^\(사용안함\)/.test(p.a) || /^\(사용안함\)/.test(p.n);
+      hay = [p.n, p.a, p.own, p.biz, p.item, p.addr, p.tel, p.fax, p.no, p.noFmt].join(' ').toLowerCase();
+      p.hay = hay;
+      out.push(p);
+      if (p.n && !map[p.n]) map[p.n] = p;
+      if (p.a && !map[p.a]) map[p.a] = p;
+    }
+    PARTNERS = out; PARTNER_BY_NAME = map;
+    return out.length;
+  }
+  function partnerList() { return PARTNERS; }
+  function partnerCount() { return PARTNERS.length; }
+  function partnerByName(name) { var t = s(name); return t ? (PARTNER_BY_NAME[t] || null) : null; }
+  /* ---------- 공백 토큰 AND 검색 ---------- */
+  function smartTokens(q) {
+    var t = String(q === null || q === undefined ? '' : q).toLowerCase();
+    t = t.replace(/[·,;:\/\\()\[\]{}"'`]+/g, ' ');
+    var arr = t.split(/\s+/), out = [], i;
+    for (i = 0; i < arr.length; i++) if (arr[i]) out.push(arr[i]);
+    return out;
+  }
+  function smartHit(hay, q) {
+    var toks = smartTokens(q), i, h = String(hay === null || hay === undefined ? '' : hay).toLowerCase();
+    if (!toks.length) return true;
+    for (i = 0; i < toks.length; i++) {
+      if (h.indexOf(toks[i]) >= 0) continue;
+      if (/^[ㄱ-ㅎ]+$/.test(toks[i]) && chosung(h).indexOf(toks[i]) >= 0) continue;
+      return false;
+    }
+    return true;
+  }
+  /* 0 = 정확히 같음 · 1 = 앞에서 시작 · 2 = 통째로 포함 · 3 = 토큰이 단어 앞 · 4 = 토큰 포함 · -1 = 안 맞음 */
+  function smartScore(hay, q, label) {
+    var qq = s(q).toLowerCase();
+    if (!qq) return 0;
+    var h = String(hay === null || hay === undefined ? '' : hay).toLowerCase();
+    var l = String(label === null || label === undefined ? '' : label).toLowerCase();
+    if (l === qq) return 0;
+    if (l.indexOf(qq) === 0) return 1;
+    if (h.indexOf(qq) >= 0) return 2;
+    if (!smartHit(h, q)) return -1;
+    var toks = smartTokens(q), i, atStart = true, tk;
+    for (i = 0; i < toks.length; i++) {
+      tk = toks[i].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (!new RegExp('(^|[\\s·,;:/(\\[-])' + tk).test(h)) { atStart = false; break; }
+    }
+    return atStart ? 3 : 4;
+  }
+  /* items: [{v: 값, t: 제목, s: 보조설명, h: 검색용 문자열}] → 순위 정렬 */
+  function smartPick(items, q, limit) {
+    var qq = s(q), out = [], i, it, sc;
+    var list = items || [];
+    if (!qq) { for (i = 0; i < list.length && (!limit || out.length < limit); i++) out.push(list[i]); return out; }
+    var ranked = [];
+    for (i = 0; i < list.length; i++) {
+      it = list[i];
+      sc = smartScore(it.h || it.v, qq, it.t || it.v);
+      if (sc < 0) continue;
+      ranked.push({ it: it, sc: sc, len: String(it.t || it.v || '').length, ord: i });
+    }
+    ranked.sort(function (a, b) {
+      if (a.sc !== b.sc) return a.sc - b.sc;
+      if (a.len !== b.len) return a.len - b.len;
+      return a.ord - b.ord;
+    });
+    for (i = 0; i < ranked.length && (!limit || out.length < limit); i++) out.push(ranked[i].it);
+    return out;
+  }
+  /* 거래처 이름·별칭·사업자번호로 한 건 찾기 */
+  function partnerOf(q) {
+    var t = s(q);
+    if (!t) return null;
+    var i, p, d = bizDigits(t);
+    if (d.length === 10) for (i = 0; i < PARTNERS.length; i++) if (PARTNERS[i].no === d) return PARTNERS[i];
+    p = partnerByName(t);
+    if (p) return p;
+    var hit = smartPick(partnerItems(), t, 1);
+    return hit.length ? hit[0].p : null;
+  }
+  function partnerItems() {
+    var out = [], i, p;
+    for (i = 0; i < PARTNERS.length; i++) {
+      p = PARTNERS[i];
+      out.push({
+        p: p, v: p.n, t: p.n, h: p.hay,
+        s: [p.a && p.a !== p.n ? p.a : '', p.noFmt, p.own, p.addr].filter(function (x) { return !!x; }).join(' · ')
+          + (p.off ? '  (사용안함)' : '')
+      });
+    }
+    return out;
+  }
+  function partnerSuggest(q, limit) {
+    return smartPick(partnerItems(), q, limit || 12);
+  }
+  /* 명세표 공급받는자 칸 — 거래처 DB에서 등록번호·상호·주소·전화·팩스·대표자를 채운다 */
+  function partnerBuyer(nameOrPartner) {
+    var p = (nameOrPartner && nameOrPartner.n !== undefined) ? nameOrPartner : partnerOf(nameOrPartner);
+    if (!p) return { name: s(nameOrPartner && nameOrPartner.n !== undefined ? nameOrPartner.n : nameOrPartner), bizNo: '', owner: '', addr: '', tel: '', fax: '', found: false };
+    return {
+      name: p.n, alias: p.a, bizNo: p.noFmt, owner: p.own, addr: p.addr,
+      tel: p.tel || p.hp || '', fax: p.fax, biz: p.biz, item: p.item, found: true
+    };
+  }
+
   return {
     EPS: EPS, r2: r2, r0: r0, MAJORS: MAJORS, MAJOR_DEFAULT: MAJOR_DEFAULT, majorName: majorName,
     MEATS: MEATS, meatName: meatName,
@@ -2747,6 +2874,11 @@ var ERP = (function () {
     selfMadeLog: selfMadeLog, isFpSiteUse: isFpSiteUse, siteCostRows: siteCostRows,
     prodRows: prodRows, prodSummary: prodSummary, prodByPeriod: prodByPeriod,
     prodCostItems: prodCostItems, nameMatch: nameMatch,
+    /* v8.1 거래처 DB · 스마트 부분검색 */
+    partnerLoad: partnerLoad, partnerList: partnerList, partnerCount: partnerCount, partnerByName: partnerByName,
+    partnerOf: partnerOf, partnerSuggest: partnerSuggest, partnerBuyer: partnerBuyer, partnerItems: partnerItems,
+    bizFmt: bizFmt, bizDigits: bizDigits,
+    smartTokens: smartTokens, smartHit: smartHit, smartScore: smartScore, smartPick: smartPick,
     linkItemOf: linkItemOf, linkOfMeat: linkOfMeat, linkOfFp: linkOfFp,
     PROD_COLS: PROD_COLS, prodCell: prodCell, voucherCols: voucherCols,
     /* 엑셀 읽기 */
@@ -3235,7 +3367,7 @@ var LIVE = (function () {
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
   var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {} };
   var COL_MIN = 44, COL_MAX = 720;
-  var ACT_DEF = { lot: 78, log: 84, fpG: 112, fpL: 112, fpP: 96, accV: 156, accR: 132, accE: 96, accB: 156, accS: 156 };
+  var ACT_DEF = { lot: 78, log: 84, fpG: 172, fpL: 112, fpP: 96, accV: 156, accR: 132, accE: 96, accB: 156, accS: 156 };
   var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC'];
   var COLW_KEY = 'meatERP.colw.v4';
   function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
@@ -4661,6 +4793,7 @@ var LIVE = (function () {
       st.fps = f.fps; st.fpLogs = f.fpLogs;
       st.vouchers = a.vouchers; st.payments = a.payments; st.expenses = a.expenses;
       cur.v4ok = v4.v4 !== false;
+      acCache = {};          /* v8.1 자동완성 후보를 다시 만든다 */
       refresh();
       if (!opts.silent) setSync('ok', '동기화 ' + clock());
       hideBanner();
@@ -5682,7 +5815,12 @@ var LIVE = (function () {
       var p = page[i];
       html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
-      html.push('<td class="actcell actcol"><button type="button" class="actmenu" data-menu="fg" data-fgcode="' + esc(p.code) + '" title="상품·단가 수정">작업 ▾</button></td></tr>');
+      /* v8.1 — 한눈에 누르는 [입고] [출고] [수정] (그 품목이 선택된 채로 팝업이 열린다) */
+      html.push('<td class="actcell actcol"><div class="acts fpacts">' +
+        '<button type="button" class="act in" data-fgin="' + esc(p.code) + '" title="이 품목으로 입고 등록">입고</button>' +
+        '<button type="button" class="act out" data-fgout="' + esc(p.code) + '" title="이 품목으로 출고 등록">출고</button>' +
+        '<button type="button" class="act edit" data-fgedit="' + esc(p.code) + '" title="이 품목 정보 수정">수정</button>' +
+        '</div></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -5866,6 +6004,18 @@ var LIVE = (function () {
   function closeFgForm() {
     var m = $('fgFormModal');
     if (m) m.classList.add('hidden');
+  }
+  /* v8.1 — 재고 표의 [입고]/[출고]: 그 품목이 선택된 채로 팝업을 연다 */
+  function openFgFor(code, type) {
+    var p = ERP.fpProductOf(st.fps, code);
+    if (!p) { toast('품목을 찾지 못했습니다: ' + code, 'err'); return; }
+    openFgForm(type);
+    $('fgQuery').value = p.code + ' · ' + p.n;
+    cur.fgCode = p.code;
+    renderFgInfo();
+    fgSyncAmount();
+    var f = $('fgQty');
+    if (f) setTimeout(function () { try { f.focus(); } catch (e) { } }, 80);
   }
   function fgFormOpen() {
     var m = $('fgFormModal');
@@ -7019,27 +7169,57 @@ var LIVE = (function () {
   }
 
   /* ==========================================================================
-     v7 — 거래명세표 (A4 인쇄) · 공급자 정보 설정 · 회계 사용법
+     v8.1 — 2부 거래명세표(공급자·공급받는자 보관용) A4 1장 · 공급자 정보 설정
+       · 공급자 기본값 : (주)미르스타푸드 212-86-12646 · 성명 조욱 · 광주공장
+       · 성명 옆에 붉은 직인(stamp.png). 설정에서 바꾸거나 숨길 수 있다.
+       · 공급받는자 등록번호·상호·주소·전화·팩스는 거래처 DB(2,350)에서 자동으로 채운다.
      ========================================================================== */
   var SUP_KEY = 'mirsfood.supplier.v1';
-  var SUP_DEFAULT = { name: '미르스타푸드', bizNo: '', owner: '', addr: '', tel: '', email: '', biz: '', bank: '' };
+  var STAMP_DEFAULT = 'stamp.png?v=20261118_10';
+  var SUP_DEFAULT = {
+    name: '(주)미르스타푸드', bizNo: '212-86-12646', owner: '조욱',
+    addr: '경기도 광주시 초월읍 무들로 84-11 (대쌍령리)',
+    tel: '031-767-5517', fax: '070-4109-5522', email: '',
+    biz: '도소매외', item: '식육가공외', project: '광주공장',
+    bank: '국민은행 348301-04-270779 (주)미르스타푸드',
+    stampOn: '1', stampUrl: STAMP_DEFAULT
+  };
   function loadSup() {
     var o = {};
     try { o = JSON.parse(localStorage.getItem(SUP_KEY) || '{}') || {}; } catch (e) { o = {}; }
     var out = {}, k;
     for (k in SUP_DEFAULT) if (Object.prototype.hasOwnProperty.call(SUP_DEFAULT, k)) out[k] = SUP_DEFAULT[k];
     for (k in o) if (Object.prototype.hasOwnProperty.call(o, k) && k in SUP_DEFAULT) out[k] = String(o[k] === null || o[k] === undefined ? '' : o[k]);
+    /* v7에 '업태 · 종목' 한 칸으로 저장한 값은 두 칸으로 나눠 준다 */
+    if (o.biz && !o.item && String(o.biz).indexOf('·') >= 0) {
+      var sp = String(o.biz).split('·');
+      out.biz = sp[0].replace(/^\s+|\s+$/g, '');
+      out.item = sp.slice(1).join('·').replace(/^\s+|\s+$/g, '');
+    }
     if (!out.name) out.name = SUP_DEFAULT.name;
+    if (!out.stampUrl) out.stampUrl = STAMP_DEFAULT;
     return out;
   }
   function saveSup(o) {
     try { localStorage.setItem(SUP_KEY, JSON.stringify(o)); } catch (e) { }
+  }
+  var supStampTmp = '';   /* 설정에서 고른 직인 이미지(저장 전) */
+  function supStampSrc() {
+    var o = loadSup();
+    return supStampTmp || o.stampUrl || STAMP_DEFAULT;
   }
   function openSupplier() {
     var o = loadSup();
     $('supName').value = o.name; $('supBizNo').value = o.bizNo; $('supOwner').value = o.owner;
     $('supAddr').value = o.addr; $('supTel').value = o.tel; $('supEmail').value = o.email;
     $('supBiz').value = o.biz; $('supBank').value = o.bank;
+    if ($('supItem')) $('supItem').value = o.item;
+    if ($('supFax')) $('supFax').value = o.fax;
+    if ($('supProject')) $('supProject').value = o.project;
+    if ($('supStampOn')) $('supStampOn').checked = o.stampOn !== '0';
+    supStampTmp = '';
+    if ($('supStampImg')) $('supStampImg').src = o.stampUrl || STAMP_DEFAULT;
+    if ($('supStampHint')) $('supStampHint').textContent = '직인을 바꾸려면 흰 배경 PNG를 고르세요.';
     $('supplierMsg').textContent = '';
     $('supplierModal').classList.remove('hidden');
     setTimeout(function () { try { $('supName').focus(); } catch (e) { } }, 60);
@@ -7051,75 +7231,176 @@ var LIVE = (function () {
     var o = {
       name: name, bizNo: $('supBizNo').value || '', owner: $('supOwner').value || '',
       addr: $('supAddr').value || '', tel: $('supTel').value || '', email: $('supEmail').value || '',
-      biz: $('supBiz').value || '', bank: $('supBank').value || ''
+      biz: $('supBiz').value || '', bank: $('supBank').value || '',
+      item: $('supItem') ? ($('supItem').value || '') : '',
+      fax: $('supFax') ? ($('supFax').value || '') : '',
+      project: $('supProject') ? ($('supProject').value || '') : '',
+      stampOn: ($('supStampOn') && !$('supStampOn').checked) ? '0' : '1',
+      stampUrl: supStampTmp || (loadSup().stampUrl || STAMP_DEFAULT)
     };
     saveSup(o);
+    supStampTmp = '';
     closeSupplier();
     toast('공급자 정보를 저장했습니다. 다음 명세표부터 그대로 찍힙니다.', 'ok');
     if (!$('stmtModal').classList.contains('hidden') && stmtNow) renderStmt();
+  }
+  function pickStampFile(ev) {
+    var f = ev.target && ev.target.files && ev.target.files[0];
+    if (!f) return;
+    if (!/^image\//.test(f.type || '')) { toast('이미지 파일(PNG)을 골라 주세요.', 'warn'); return; }
+    var rd = new FileReader();
+    rd.onload = function () {
+      supStampTmp = String(rd.result || '');
+      if ($('supStampImg')) $('supStampImg').src = supStampTmp;
+      if ($('supStampHint')) $('supStampHint').textContent = '새 직인을 골랐습니다. [저장]을 누르면 이 직인이 찍힙니다.';
+      toast('직인 이미지를 골랐습니다. [저장]을 눌러 주세요.', 'ok');
+    };
+    rd.readAsDataURL(f);
+    try { ev.target.value = ''; } catch (e) { }
+  }
+  function resetStamp() {
+    supStampTmp = '';
+    saveSup((function () { var o = loadSup(); o.stampUrl = STAMP_DEFAULT; o.stampOn = '1'; return o; })());
+    if ($('supStampImg')) $('supStampImg').src = STAMP_DEFAULT;
+    if ($('supStampOn')) $('supStampOn').checked = true;
+    if ($('supStampHint')) $('supStampHint').textContent = '기본 직인으로 되돌렸습니다.';
+    if (stmtNow && !$('stmtModal').classList.contains('hidden')) renderStmt();
   }
 
   var stmtNow = null;   /* 지금 열려 있는 명세표 데이터 */
   function stmtEsc(v) { return esc(v === null || v === undefined ? '' : v); }
   function stmtDash(v) { var t = String(v === null || v === undefined ? '' : v).replace(/^\s+|\s+$/g, ''); return t ? t : '—'; }
   function wonOrDash(n) { return Number(n) > 0 ? fmtInt(n) : '—'; }
-
-  /* 화면에 띄울 명세표 한 장 그리기 */
-  function renderStmt() {
-    if (!stmtNow || !$('stmtSheet')) return;
-    var d = stmtNow, sup = loadSup();
-    var head = '<div class="stmt-title">거래명세표</div>' +
-      '<div class="stmt-meta"><span>작성일 <b>' + stmtEsc(d.date || today()) + '</b></span>' +
-      '<span>거래처 <b>' + stmtEsc(stmtDash(d.partner)) + '</b></span>' +
-      '<span>' + stmtEsc(d.source) + '</span></div>';
-
-    var supplier = '<div class="box"><div class="who">공급자</div>' +
-      '<div><b>' + stmtEsc(sup.name) + '</b></div>' +
-      '<div>사업자번호 ' + stmtEsc(stmtDash(sup.bizNo)) + ' · 대표 ' + stmtEsc(stmtDash(sup.owner)) + '</div>' +
-      '<div>주소 ' + stmtEsc(stmtDash(sup.addr)) + '</div>' +
-      '<div>연락처 ' + stmtEsc(stmtDash(sup.tel)) + (sup.email ? ' · ' + stmtEsc(sup.email) : '') + '</div>' +
-      (sup.biz ? '<div>업태·종목 ' + stmtEsc(sup.biz) + '</div>' : '') +
-      '<div class="sig">공급자 서명 <span style="display:inline-block;width:86px;border-bottom:1px solid #333"></span></div></div>';
-    var buyer = '<div class="box"><div class="who">공급받는자</div>' +
-      '<div><b>' + stmtEsc(stmtDash(d.partner || buyerName)) + '</b></div>' +
-      '<div>사업자번호 ' + stmtEsc(stmtDash(d.buyerBiz)) + ' · 대표 ' + stmtEsc(stmtDash(d.buyerOwner)) + '</div>' +
-      '<div>주소 ' + stmtEsc(stmtDash(d.buyerAddr)) + '</div>' +
-      '<div>연락처 ' + stmtEsc(stmtDash(d.buyerTel)) + '</div>' +
-      '<div class="sig">인수자 서명 <span style="display:inline-block;width:86px;border-bottom:1px solid #333"></span></div></div>';
-
-    var rows = ['<table class="stmt-tbl"><colgroup><col style="width:24%"><col style="width:14%"><col style="width:10%">' +
-      '<col style="width:12%"><col style="width:13%"><col style="width:9%"><col style="width:13%"><col style="width:5%">' +
-      '</colgroup><thead><tr><th>품목</th><th>규격</th><th>중량(수량)</th><th>단가</th><th>공급가액</th><th>세액</th><th>합계금액</th><th>비고</th></tr></thead><tbody>'];
-    var i, l, qty;
+  function stmtTime() {
+    var d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) + ' ' +
+      pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function stmtDocNo(d) {
+    var base = String(d.date || today()).replace(/[^0-9]/g, '');
+    var id = Number(d.id || 0);
+    return base + '-' + (id > 0 ? ('000' + id).slice(-3) : '001');
+  }
+  function stmtBuyer(d) {
+    if (d && d.buyer) return d.buyer;
+    return { name: d ? d.partner : '', bizNo: '', owner: '', addr: '', tel: '', fax: '' };
+  }
+  /* 품목 줄 — 월일 · 품목 · 규격 · 수량 · 단가 · 공급가액 · 세액 · 비고 */
+  function stmtItemRows(d) {
+    var rows = [], i, l, pad, mm = ERP.mmdd(d.date);
+    if (mm.length === 4) mm = mm.slice(0, 2) + '-' + mm.slice(2);
     for (i = 0; i < d.lines.length; i++) {
       l = d.lines[i];
-      qty = l.qty > 0 ? (fmtQty(l.qty) + (l.unit ? ' ' + l.unit : '')) : (l.unit || '');
-      rows.push('<tr><td>' + stmtEsc(l.name) + '</td><td class="c">' + stmtEsc(l.spec || '—') + '</td>' +
-        '<td class="num">' + stmtEsc(qty || '—') + '</td>' +
-        '<td class="num">' + wonOrDash(l.price) + '</td>' +
-        '<td class="num">' + wonOrDash(l.supply) + '</td>' +
-        '<td class="num">' + (l.vat ? fmtInt(l.vat) : '—') + '</td>' +
-        '<td class="num">' + wonOrDash(l.total) + '</td>' +
-        '<td>' + stmtEsc(l.note || '') + '</td></tr>');
+      rows.push('<tr><td class="c">' + stmtEsc(mm) + '</td>' +
+        '<td class="nm">' + stmtEsc(l.name || '') + '</td>' +
+        '<td class="c">' + stmtEsc(l.spec || '') + '</td>' +
+        '<td class="r">' + (l.qty > 0 ? stmtEsc(fmtQty(l.qty)) : '') + '</td>' +
+        '<td class="r">' + wonOrDash(l.price) + '</td>' +
+        '<td class="r">' + wonOrDash(l.supply) + '</td>' +
+        '<td class="r">' + (l.vat ? fmtInt(l.vat) : '') + '</td>' +
+        '<td class="c">' + stmtEsc(l.note || '') + '</td></tr>');
     }
-    if (!d.lines.length) rows.push('<tr><td colspan="8" class="c">출고 품목을 찾지 못했습니다. 전표 금액으로 채우려면 [📄 명세표]를 전표에서 여세요.</td></tr>');
-    var pad = Math.max(0, 4 - d.lines.length);
-    for (i = 0; i < pad; i++) rows.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
-    rows.push('<tr class="sum"><td colspan="2" class="c">합계</td><td class="num"></td><td class="num"></td>' +
-      '<td class="num">' + fmtInt(d.supply) + '</td><td class="num">' + fmtInt(d.vat) + '</td>' +
-      '<td class="num">' + fmtInt(d.total) + '</td><td></td></tr></tbody></table>');
-
-    var foot = '<div class="stmt-foot"><div class="note"><b>비고</b> ' + stmtEsc(d.note || (d.tax === 'free' ? '면세 거래(원료육)' : '과세 거래')) +
-      '</div><div style="margin-top:5px">' + (sup.bank ? '입금 계좌 ' + stmtEsc(sup.bank) + ' · ' : '') +
-      '위와 같이 거래하였음을 확인합니다.</div></div>';
-
-    $('stmtSheet').innerHTML = head + '<div class="stmt-sign">' + supplier + buyer + '</div>' + rows.join('') + foot;
+    pad = Math.max(0, 7 - d.lines.length);
+    for (i = 0; i < pad; i++) {
+      rows.push('<tr class="blank"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
+    }
+    return rows.join('');
+  }
+  /* 명세표 한 부 — tone: 'sup'(빨강 공급자 보관용) | 'buy'(파랑 공급 받는자 보관용) */
+  function stmtPartHtml(tone, label, d, sup, buyer) {
+    var qtySum = 0, i;
+    for (i = 0; i < d.lines.length; i++) qtySum += Number(d.lines[i].qty) || 0;
+    var stamp = (sup.stampOn !== '0' && sup.stampUrl)
+      ? '<img class="stmt-stamp" src="' + stmtEsc(sup.stampUrl) + '" alt="직인">' : '';
+    var h = [];
+    h.push('<section class="stmt-part ' + tone + '">');
+    h.push('<div class="sp-head"><div class="sp-title">거래명세표</div>' +
+      '<div class="sp-keep">(' + stmtEsc(label) + ')</div>' +
+      '<div class="sp-page">PAGE&nbsp;&nbsp;1 / 1</div></div>');
+    /* 왼쪽 거래 정보 · 오른쪽 공급자 정보 */
+    h.push('<div class="sp-top"><div class="sp-left">' +
+      '<div class="sp-row"><span class="k">프로젝트/현장</span><span class="v">' + stmtEsc(stmtDash(sup.project)) + '</span></div>' +
+      '<div class="sp-row"><span class="k">일 자</span><span class="v">' + stmtEsc(d.date || '') + '</span>' +
+        '<span class="k w2">출고번호</span><span class="v">' + stmtEsc(stmtDocNo(d)) + '</span></div>' +
+      '<div class="sp-row"><span class="k">거래처</span><span class="v"><b>' + stmtEsc(stmtDash(buyer.name || d.partner)) + '</b>' +
+        (buyer.owner ? ' / ' + stmtEsc(buyer.owner) : '') + '</span></div>' +
+      '<div class="sp-row"><span class="k">등록번호</span><span class="v">' + stmtEsc(stmtDash(buyer.bizNo)) + '</span></div>' +
+      '<div class="sp-row"><span class="k">주 소</span><span class="v">' + stmtEsc(stmtDash(buyer.addr)) + '</span></div>' +
+      '<div class="sp-row"><span class="k">전화</span><span class="v">' + stmtEsc(stmtDash(buyer.tel)) +
+        '<span class="k w2">팩스</span><span class="v">' + stmtEsc(stmtDash(buyer.fax)) + '</span></span></div>' +
+      '<div class="sp-row sign"><span class="k">결재란</span><span class="v"></span></div>' +
+      '</div><div class="sp-right"><div class="sp-sup">' +
+      '<div class="k">등록번호</div><div class="v">' + stmtEsc(stmtDash(sup.bizNo)) + '</div>' +
+      '<div class="k">상 호</div><div class="v">' + stmtEsc(stmtDash(sup.name)) + '</div>' +
+      '<div class="k">성 명</div><div class="v who">' + stmtEsc(stmtDash(sup.owner)) + stamp + '</div>' +
+      '<div class="k">사업장주소</div><div class="v span5">' + stmtEsc(stmtDash(sup.addr)) + '</div>' +
+      '<div class="k">업 태</div><div class="v">' + stmtEsc(stmtDash(sup.biz)) + '</div>' +
+      '<div class="k">종 목</div><div class="v span3">' + stmtEsc(stmtDash(sup.item)) + '</div>' +
+      '<div class="k">전화번호</div><div class="v">' + stmtEsc(stmtDash(sup.tel)) + '</div>' +
+      '<div class="k">팩스번호</div><div class="v span3">' + stmtEsc(stmtDash(sup.fax)) + '</div>' +
+      '</div></div></div>');
+    /* 합계금액 큰 박스 */
+    h.push('<div class="sp-total"><span class="lab">합계금액</span><span class="amt"><span class="won">₩</span>' +
+      fmtInt(d.total) + '</span></div>');
+    /* 품목 표 */
+    h.push('<table class="sp-items"><colgroup><col style="width:7.5%"><col style="width:30%"><col style="width:12%">' +
+      '<col style="width:9%"><col style="width:9.5%"><col style="width:13%"><col style="width:11%"><col style="width:8%">' +
+      '</colgroup><thead><tr><th>월일</th><th>품목</th><th>규격</th><th>수량</th><th>단가</th>' +
+      '<th>공급가액</th><th>세액</th><th>비고</th></tr></thead><tbody>' + stmtItemRows(d) +
+      '<tr class="qsum"><td colspan="3" class="c">수량총계</td><td class="r">' + (qtySum ? fmtQty(qtySum) : '') +
+      '</td><td colspan="4"></td></tr></tbody></table>');
+    /* 하단 합계·입금·미수·인수자 */
+    h.push('<table class="sp-bottom"><tr>' +
+      '<td class="pay" rowspan="3">결제수단란</td>' +
+      '<td class="lb">합 계</td><td class="num">' + wonOrDash(d.supply) + '</td>' +
+      '<td class="lb">세 액</td><td class="num">' + (d.vat ? fmtInt(d.vat) : '—') + '</td></tr><tr>' +
+      '<td class="lb">총합계</td><td class="num b">' + fmtInt(d.total) + '</td>' +
+      '<td class="lb">입금액</td><td class="num">—</td></tr><tr>' +
+      '<td class="lb">총미수잔액</td><td class="num">—</td>' +
+      '<td class="lb">인수자</td><td class="num sg">(서명)</td></tr></table>');
+    h.push('<div class="sp-foot"><span>' + stmtEsc(sup.bank || '') + '</span>' +
+      '<span>Print Date : ' + stmtEsc(d.printedAt || '') + '</span></div>');
+    h.push('</section>');
+    return h.join('');
+  }
+  /* 화면에 띄울 명세표 — A4 한 장에 두 부 */
+  function renderStmt() {
+    if (!stmtNow || !$('stmtSheet')) return;
+    var d = stmtNow, sup = loadSup(), buyer = stmtBuyer(d);
+    if (!d.printedAt) d.printedAt = stmtTime();
+    $('stmtSheet').innerHTML = stmtPartHtml('sup', '공급자 보관용', d, sup, buyer) +
+      '<div class="stmt-cut"><span>✂</span></div>' +
+      stmtPartHtml('buy', '공급 받는자 보관용', d, sup, buyer);
     if ($('stmtSub')) {
-      $('stmtSub').textContent = (d.partner || '거래처') + ' · ' + (d.date || today()) + ' · ' + d.lines.length +
-        '개 품목 · 합계 ' + fmtInt(d.total) + '원 · [🖨️ 인쇄 / PDF 저장]을 누르면 A4로 인쇄됩니다.';
+      $('stmtSub').textContent = (buyer.name || d.partner || '거래처') + ' · ' + (d.date || today()) + ' · ' +
+        d.lines.length + '개 품목 · 합계 ' + fmtInt(d.total) + '원 · A4 한 장에 [공급자 보관용]·[공급 받는자 보관용] 2부가 함께 인쇄됩니다.';
     }
   }
-  var buyerName = '', buyerBiz = '', buyerOwner = '', buyerAddr = '', buyerTel = '';
+  function stmtFillBuyer() {
+    var b = stmtBuyer(stmtNow || {});
+    if ($('stmtBuyerName')) $('stmtBuyerName').value = b.name || '';
+    if ($('stmtBuyerBizNo')) $('stmtBuyerBizNo').value = b.bizNo || '';
+    if ($('stmtBuyerOwner')) $('stmtBuyerOwner').value = b.owner || '';
+    if ($('stmtBuyerTel')) $('stmtBuyerTel').value = b.tel || '';
+    if ($('stmtBuyerAddr')) $('stmtBuyerAddr').value = b.addr || '';
+    if ($('stmtBuyerFax')) $('stmtBuyerFax').value = b.fax || '';
+  }
+  /* 거래처 DB에서 공급받는자 칸을 다시 채운다 */
+  function stmtReloadBuyer() {
+    if (!stmtNow) return;
+    stmtNow.buyer = ERP.partnerBuyer(stmtNow.partner);
+    stmtFillBuyer();
+    renderStmt();
+  }
+  function stmtEditBuyer() {
+    if (!stmtNow) return;
+    stmtNow.buyer = {
+      name: $('stmtBuyerName') ? $('stmtBuyerName').value : '', bizNo: $('stmtBuyerBizNo') ? $('stmtBuyerBizNo').value : '',
+      owner: $('stmtBuyerOwner') ? $('stmtBuyerOwner').value : '', tel: $('stmtBuyerTel') ? $('stmtBuyerTel').value : '',
+      addr: $('stmtBuyerAddr') ? $('stmtBuyerAddr').value : '', fax: $('stmtBuyerFax') ? $('stmtBuyerFax').value : ''
+    };
+    renderStmt();
+  }
   function openStmt(kind, ref) {
     var o = { kind: kind, ref: ref || {}, logs: st.logs, fpLogs: st.fpLogs };
     /* 일괄 반영으로 만든 전표는 원본 출고를 찾아 품목을 채운다 */
@@ -7140,8 +7421,12 @@ var LIVE = (function () {
       data.partner = ref.partner || '';
       data.note = ref.note || '';
     }
+    data.id = (ref && (ref.id || ref.dbid)) || '';
+    data.printedAt = stmtTime();
+    /* v8.1 — 공급받는자 칸을 거래처 DB에서 자동으로 채운다 */
+    data.buyer = ERP.partnerBuyer(data.partner);
     stmtNow = data;
-    buyerName = data.partner; buyerBiz = ''; buyerOwner = ''; buyerAddr = ''; buyerTel = '';
+    stmtFillBuyer();
     $('stmtModal').classList.remove('hidden');
     document.body.classList.add('stmt-open');
     renderStmt();
@@ -7221,6 +7506,228 @@ var LIVE = (function () {
     datalist('dlAccPartners', partners);
     datalist('dlAccMethods', ERP.ACC_METHODS);
     datalist('dlAccCats', ERP.ACC_EXPENSE_CATS);
+  }
+
+  /* ==========================================================================
+     v8.1 — 스마트 자동완성 (공백 토큰 AND · Enter = 1순위 · 폼 전송 없음)
+       입력하는 동안 후보가 아래에 뜨고, ↑↓ 로 고르고 Enter 로 넣는다.
+       Enter 는 후보를 넣기만 하고 폼을 보내지 않는다.
+     ========================================================================== */
+  var acCache = {}, ACEL = null;
+  var acNow = { items: [], idx: 0, open: false, input: null, opts: null, mute: false };
+  function acPopEl() {
+    if (!ACEL) {
+      ACEL = document.createElement('div');
+      ACEL.className = 'acpop hidden';
+      ACEL.setAttribute('role', 'listbox');
+      ACEL.addEventListener('mousedown', function (ev) {
+        var b = ev.target.closest ? ev.target.closest('[data-aci]') : null;
+        if (!b) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        acSelect(Number(b.getAttribute('data-aci')));
+      });
+      document.body.appendChild(ACEL);
+    }
+    return ACEL;
+  }
+  function acHide() {
+    acNow.open = false; acNow.items = []; acNow.idx = 0;
+    if (ACEL) ACEL.classList.add('hidden');
+  }
+  function acPaint() {
+    var el = acPopEl(), h = [], i, it;
+    for (i = 0; i < acNow.items.length; i++) {
+      it = acNow.items[i];
+      h.push('<button type="button" class="acitem' + (i === acNow.idx ? ' on' : '') + '" role="option" data-aci="' + i + '">' +
+        '<b class="act">' + esc(it.t || it.v) + '</b>' +
+        (it.s ? '<span class="acs">' + esc(it.s) + '</span>' : '') +
+        '</button>');
+    }
+    el.innerHTML = h.join('');
+  }
+  function acPlace() {
+    var el = acPopEl(), inp = acNow.input;
+    if (!inp || !inp.getBoundingClientRect) return;
+    var r = inp.getBoundingClientRect();
+    var w = Math.max(240, Math.round(r.width));
+    el.style.width = w + 'px';
+    el.style.left = Math.round(Math.min(r.left, (window.innerWidth || 1200) - w - 8)) + 'px';
+    var top = Math.round(r.bottom + 3);
+    var hgt = el.offsetHeight || 0;
+    if (top + hgt > (window.innerHeight || 800) - 10 && r.top > hgt + 12) top = Math.round(r.top - hgt - 3);
+    el.style.top = top + 'px';
+  }
+  function acMove(d) {
+    if (!acNow.open || !acNow.items.length) return;
+    acNow.idx = (acNow.idx + d + acNow.items.length) % acNow.items.length;
+    acPaint();
+    var on = ACEL ? ACEL.querySelector('.acitem.on') : null;
+    if (on && on.scrollIntoView) { try { on.scrollIntoView({ block: 'nearest' }); } catch (e) { } }
+  }
+  function acSelect(i) {
+    var it = acNow.items[i], inp = acNow.input, opts = acNow.opts;
+    if (!it || !inp) return null;
+    inp.value = it.v;
+    acHide();
+    acNow.mute = true;
+    try { inp.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { }
+    try { inp.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) { }
+    acNow.mute = false;
+    if (opts && opts.onPick) opts.onPick(it, inp);
+    return it;
+  }
+  /* 후보를 만들고 목록을 연다 (force=true 면 검색어가 비어 있어도 강제로) */
+  function acRun(inp, force) {
+    if (!inp || acNow.mute) return [];
+    var opts = inp.__ac;
+    if (!opts) return [];
+    var q = inp.value || '';
+    var cands = opts.cands ? opts.cands() : [];
+    var items = ERP.smartPick(cands, q, 9);
+    if (!items.length) { acHide(); return []; }
+    acNow.items = items; acNow.idx = 0; acNow.open = true; acNow.input = inp; acNow.opts = opts;
+    acPaint(); acPopEl().classList.remove('hidden'); acPlace();
+    return items;
+  }
+  function acAttach(id, cands, onPick) {
+    var inp = $(id);
+    if (!inp) return;
+    inp.removeAttribute('list');     /* 브라우저 기본 목록과 겹치지 않게 */
+    inp.setAttribute('autocomplete', 'off');
+    inp.__ac = { cands: cands, onPick: onPick };
+    /* 실제로 타자를 칠 때만 목록을 연다 — 프로그램이 값을 넣은 경우(붙여넣기 제외)는 열지 않는다 */
+    inp.addEventListener('keydown', function () { inp.__acAt = Date.now(); }, true);
+    inp.addEventListener('input', function () {
+      if (Date.now() - (inp.__acAt || 0) < 500) acRun(inp, false); else acHide();
+    });
+    inp.addEventListener('blur', function () { setTimeout(function () { if (acNow.input === inp) acHide(); }, 140); });
+    inp.addEventListener('keydown', function (ev) {
+      if (ev.key === 'ArrowDown') { if (acNow.open && acNow.input === inp) acMove(1); else acRun(inp, false); ev.preventDefault(); return; }
+      if (ev.key === 'ArrowUp') { if (acNow.open && acNow.input === inp) acMove(-1); ev.preventDefault(); return; }
+      if (ev.key === 'Escape') { if (acNow.open) { acHide(); ev.preventDefault(); } return; }
+      if (ev.key === 'Enter') {
+        var list = (acNow.open && acNow.input === inp && acNow.items.length) ? acNow.items : acRun(inp, false);
+        if (list && list.length) {
+          ev.preventDefault();     /* 폼 전송 금지 — 1순위를 그 자리에 넣는다 */
+          ev.stopPropagation();
+          acSelect(acNow.open ? acNow.idx : 0);
+        }
+      }
+    });
+  }
+  function acShowAll(id) {
+    var inp = $(id);
+    if (inp && inp.__ac) acRun(inp, true);
+  }
+
+  /* ---------- 후보 목록 ---------- */
+  function acCached(key, build) {
+    if (!acCache[key]) acCache[key] = build();
+    return acCache[key];
+  }
+  function acFromList(arr, sub) {
+    var out = [], seen = {}, i, v;
+    for (i = 0; i < arr.length; i++) {
+      v = String(arr[i] === null || arr[i] === undefined ? '' : arr[i]).replace(/^\s+|\s+$/g, '');
+      if (!v || seen[v]) continue;
+      seen[v] = 1;
+      out.push({ v: v, t: v, s: sub || '', h: v });
+    }
+    return out;
+  }
+  function acPartnerCands() {
+    return acCached('partners', function () {
+      var out = [], i, hit = ERP.partnerItems();
+      for (i = 0; i < hit.length; i++) {
+        out.push({ v: hit[i].v, t: hit[i].t, s: hit[i].s, h: hit[i].h });
+      }
+      return out;
+    });
+  }
+  /* 거래처 DB + 지금까지 쓴 거래처(장부·입출고)를 함께 제안 */
+  function acPartnerAll() {
+    return acCached('partnerAll', function () {
+      var out = acPartnerCands().slice(), seen = {}, i, list = [];
+      for (i = 0; i < out.length; i++) seen[out[i].v] = 1;
+      var d = ERP.dict(st);
+      var arrs = [d.vendors, st.vouchers.map(function (v) { return v.partner; }),
+        st.payments.map(function (p) { return p.partner; }), st.expenses.map(function (x) { return x.partner; }),
+        st.fpLogs.map(function (g) { return g.p; })];
+      for (var a = 0; a < arrs.length; a++) {
+        for (i = 0; i < arrs[a].length; i++) {
+          var v = String(arrs[a][i] || '').replace(/^\s+|\s+$/g, '');
+          if (!v || seen[v] || v === '자체생산') continue;
+          seen[v] = 1;
+          list.push(v);
+        }
+      }
+      return out.concat(acFromList(list, '장부·입출고 거래처'));
+    });
+  }
+  function acProductCands() {
+    return acCached('products', function () {
+      var d = ERP.dict(st);
+      return acFromList(d.names, '원료육 품목').concat(acFromList(d.products, '생산품목'))
+        .concat(acFromList(st.fps.map(function (p) { return p.n; }), '완제품·부자재'));
+    });
+  }
+  function acFgCands() {
+    return acCached('fg', function () {
+      var out = [], i, p;
+      for (i = 0; i < st.fps.length; i++) {
+        p = st.fps[i];
+        out.push({
+          v: p.code + ' · ' + p.n, t: p.n, h: p.n + ' ' + p.code + ' ' + (p.spec || '') + ' ' + (p.cat || ''),
+          s: p.code + (p.spec ? ' · ' + p.spec : '') + (p.cat ? ' · ' + p.cat : '') + ' · 재고 ' + fmtQty(p.stock) + (p.unit || '')
+        });
+      }
+      return out;
+    });
+  }
+  function acSiteCands() {
+    /* 현장 출고 = 생산품목, 그 밖의 출고 = 거래처 */
+    var isSite = true;
+    try { isSite = (document.querySelector('#destSeg button.active') || {}).getAttribute('data-dest') === 'site'; } catch (e) { isSite = true; }
+    return isSite ? acProductCands() : acPartnerAll();
+  }
+  /* 목록 밖을 누르거나 화면이 움직이면 닫는다 */
+  function acBindGlobal() {
+    document.addEventListener('pointerdown', function (ev) {
+      if (!acNow.open) return;
+      var t = ev.target;
+      if (t && (t === acNow.input || (t.closest && t.closest('.acpop')))) return;
+      acHide();
+    }, true);
+    window.addEventListener('scroll', function () { if (acNow.open) acPlace(); }, true);
+    window.addEventListener('resize', function () { if (acNow.open) acPlace(); });
+  }
+  function acSetupAll() {
+    acBindGlobal();
+    acAttach('inName', acProductCands, function () { });
+    acAttach('inVendor', acPartnerAll, function () { });
+    acAttach('inBrand', function () { return acCached('brands', function () { return acFromList(ERP.brandList().concat(ERP.dict(st).brands), '표준 브랜드'); }); }, function () { });
+    acAttach('inOrigin', function () { return acCached('origins', function () { return acFromList(ERP.dict(st).origins, '원산지'); }); }, function () { });
+    acAttach('thProd', acProductCands, function () { });
+    acAttach('outDest', acSiteCands, function () { });
+    acAttach('fgQuery', acFgCands, function () { fgPickProduct(true); });
+    acAttach('fgPartner', acPartnerAll, function () { });
+    acAttach('fgNewSupplier', acPartnerAll, function () { });
+    acAttach('accVPartner', acPartnerAll, function () { });
+    acAttach('accPPartner', acPartnerAll, function () { });
+    acAttach('accEPartner', acPartnerAll, function () { });
+    if ($('stmtBuyerName')) {
+      /* 명세표 공급받는자 칸 — 고르면 DB 값으로 다시 채운다 */
+      acAttach('stmtBuyerName', acPartnerCands, function (it) {
+        var p = ERP.partnerOf(it.v);
+        if (p && stmtNow) {
+          stmtNow.partner = p.n;
+          stmtNow.buyer = ERP.partnerBuyer(p);
+          stmtFillBuyer();
+          renderStmt();
+        }
+      });
+    }
   }
 
   /* ==========================================================================
@@ -7472,6 +7979,16 @@ var LIVE = (function () {
     if ($('supplierClose')) $('supplierClose').addEventListener('click', closeSupplier);
     if ($('supplierCancel')) $('supplierCancel').addEventListener('click', closeSupplier);
     if ($('supplierSave')) $('supplierSave').addEventListener('click', saveSupplier);
+    /* v8.1 — 직인 이미지 · 공급받는자 칸 */
+    if ($('supplierModal')) $('supplierModal').addEventListener('click', function (ev) { if (ev.target === this) closeSupplier(); });
+    if ($('stmtModal')) $('stmtModal').addEventListener('click', function (ev) { if (ev.target === this) closeStmt(); });
+    if ($('supStampPick')) $('supStampPick').addEventListener('click', function () { if ($('supStampFile')) $('supStampFile').click(); });
+    if ($('supStampFile')) $('supStampFile').addEventListener('change', pickStampFile);
+    if ($('supStampReset')) $('supStampReset').addEventListener('click', resetStamp);
+    var bEdit = ['stmtBuyerName', 'stmtBuyerBizNo', 'stmtBuyerOwner', 'stmtBuyerTel', 'stmtBuyerAddr', 'stmtBuyerFax'];
+    for (var bi = 0; bi < bEdit.length; bi++) {
+      if ($(bEdit[bi])) $(bEdit[bi]).addEventListener('input', function () { stmtEditBuyer(); });
+    }
     if ($('supplierModal')) $('supplierModal').addEventListener('click', function (ev) { if (ev.target === this) closeSupplier(); });
 
     /* 완제품 탭 */
@@ -7584,6 +8101,10 @@ var LIVE = (function () {
         ]);
         return;
       }
+      var fin = t.closest ? t.closest('[data-fgin]') : null;
+      if (fin) { ev.preventDefault(); openFgFor(fin.getAttribute('data-fgin'), 'IN'); return; }
+      var fout = t.closest ? t.closest('[data-fgout]') : null;
+      if (fout) { ev.preventDefault(); openFgFor(fout.getAttribute('data-fgout'), 'OUT'); return; }
       var price = t.closest ? t.closest('[data-fgprice]') : null;
       if (price) { openFgPrice(price.getAttribute('data-fgprice')); return; }
       var edit = t.closest ? t.closest('[data-fgedit]') : null;
@@ -8366,12 +8887,22 @@ var LIVE = (function () {
   }
 
   /* ---------- 시작 ---------- */
+  /* v8.1 — partners_data.js 의 거래처 2,350건을 CORE에 올린다 */
+  function partnersInit() {
+    try {
+      var head = (typeof window !== 'undefined' && window.MIRS_PARTNER_HEAD) || null;
+      var rows = (typeof window !== 'undefined' && window.MIRS_PARTNERS) || [];
+      return ERP.partnerLoad(head, rows);
+    } catch (e) { return 0; }
+  }
   function boot() {
     loadColW();
     loadFgCats();
+    partnersInit();
     bindLoginEvents();
     bindAppEvents();
     bindV4Events();
+    acSetupAll();
     setSync('wait', '확인 중');
     var ses = SB.auth.restore();
     if (ses) {
