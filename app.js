@@ -5519,6 +5519,28 @@ var LIVE = (function () {
       if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
     }
   }
+  /* v8.4: 그 대메뉴의 하위 메뉴 목록이 지금 펼쳐져 있는지 */
+  function groupOpen(cat) {
+    var g = document.querySelector('#v8Side .v8grp[data-grp="' + cat + '"]');
+    return !!(g && g.classList.contains('open'));
+  }
+  /* v8.4: 대메뉴를 다시 눌렀을 때 — 여섯 대메뉴의 하위 목록을 모두 접는다 */
+  function closeAllGroups() {
+    var grps = document.querySelectorAll('#v8Side .v8grp');
+    for (var i = 0; i < grps.length; i++) {
+      grps[i].classList.remove('open');
+      var b = grps[i].querySelector('.v8cat');
+      if (b) b.setAttribute('aria-expanded', 'false');
+    }
+  }
+  /* 접는 대메뉴가 열어 둔 팝업(허브·입력·전표·명세표 등)도 같이 닫는다 */
+  function closeCatPop(cat) {
+    var key = cur.sidePop || '';
+    if (key !== 'cat:' + cat && key.indexOf(cat + ':') !== 0) return;
+    if (cur.sidePopId) popClose(cur.sidePopId);
+    cur.sidePop = ''; cur.sidePopId = '';
+    markSidePop(null);
+  }
   /* 폰에서는 하위 메뉴가 드롭다운이라, 하나 고르면 접어 준다 */
   function closeMobileGroups() {
     if (window.innerWidth > 768) return;
@@ -7962,10 +7984,22 @@ var LIVE = (function () {
     for (var ci = 0; ci < cats.length; ci++) {
       cats[ci].addEventListener('click', function () {
         var cat = this.getAttribute('data-cat');
+        /* v8.4: 펼쳐진 대메뉴를 한 번 더 누르면 하위 목록이 접히고,
+           그 대메뉴가 열어 둔 팝업(1번 허브 포함)도 함께 닫힌다 */
+        if (groupOpen(cat)) {
+          closeAllGroups();
+          closeCatPop(cat);
+          return;
+        }
         if (cat === 'io') {
           openGroup('io');
-          if (sidePopToggle(this, 'cat:io', 'ioHubModal')) return;   /* 같은 메뉴를 또 눌렀다 → 허브 닫힘 */
-          openIoHub();
+          /* 허브가 아직 없으면 연다(다른 팝업은 접고) */
+          if (!popOpen('ioHubModal')) {
+            popCloseOthers('ioHubModal');
+            cur.sidePop = 'cat:io'; cur.sidePopId = 'ioHubModal';
+            markSidePop(this);
+            openIoHub();
+          }
           return;
         }
         openGroup(cat);
