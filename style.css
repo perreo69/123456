@@ -1437,6 +1437,7 @@ table.sp-bottom td.num.sg{text-align:center;color:#8496ab}
 
 @media print{
   @page{size:A4 portrait;margin:5mm}
+  #toast,.acpop,.quickbar,#rowMenu{display:none !important}
   .stmt-sheet{width:198mm;max-width:none;padding:0}
   .stmt-part{height:141mm;min-height:0;page-break-inside:avoid;break-inside:avoid}
   .stmt-cut{height:3mm}
