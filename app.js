@@ -7992,14 +7992,9 @@ var LIVE = (function () {
           return;
         }
         if (cat === 'io') {
+          /* v8.5: 1번 대메뉴는 다른 대메뉴와 같게 하위 메뉴 목록만 펼친다.
+             입출고 입력 허브(ioHubModal)는 자동으로 띄우지 않는다 */
           openGroup('io');
-          /* 허브가 아직 없으면 연다(다른 팝업은 접고) */
-          if (!popOpen('ioHubModal')) {
-            popCloseOthers('ioHubModal');
-            cur.sidePop = 'cat:io'; cur.sidePopId = 'ioHubModal';
-            markSidePop(this);
-            openIoHub();
-          }
           return;
         }
         openGroup(cat);
