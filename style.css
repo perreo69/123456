@@ -1584,3 +1584,69 @@ table.vsheet-table tfoot td.b{color:#0b3d91}
   #accVoucherModal .modal-card.sheetcard{width:100%;max-width:100%;max-height:92vh}
 }
 .vrowmeta:empty{display:none}
+
+/* ==========================================================================
+   v11 — 💳 받을돈·줄돈 정산 (표에서 바로 수금·지급)
+   ========================================================================== */
+.stlsum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 12px}
+.stlbox{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;display:flex;flex-direction:column;gap:3px;min-width:0}
+.stlbox span{font-size:11.5px;font-weight:800;color:var(--muted);letter-spacing:-.1px}
+.stlbox b{font-size:20px;font-weight:850;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+.stlbox small{font-size:11px;color:var(--muted2);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stlbox.in{background:linear-gradient(180deg,#f4fdf9,#fff);border-color:#bfe7d0}
+.stlbox.in b{color:var(--green-ink)}
+.stlbox.out{background:linear-gradient(180deg,#fffaf3,#fff);border-color:#f2d9bd}
+.stlbox.out b{color:var(--orange-ink)}
+.stlbox.net{background:linear-gradient(180deg,#f7f9ff,#fff);border-color:#d6e0f5}
+.stlsec{border:1px solid var(--line);border-radius:14px;background:#fff;margin-bottom:12px;overflow:hidden}
+.stlsec.in{border-color:#c7e9dc}
+.stlsec.out{border-color:#f0d3b3}
+.stlsec.rec{border-color:var(--line)}
+.stlhead{display:flex;align-items:baseline;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line2);background:#fbfcfe;flex-wrap:wrap}
+.stlsec.in .stlhead{background:#f4fdf9}
+.stlsec.out .stlhead{background:#fffaf3}
+.stlhead h3{margin:0;font-size:14px;font-weight:850;color:var(--ink);letter-spacing:-.2px}
+.stlhead .hint{font-size:11.5px;color:var(--muted);font-weight:600;line-height:1.45;flex:1;min-width:220px}
+.stlhead .hint b{color:var(--ink)}
+.stlwrap{overflow:auto}
+table.stltbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
+table.stltbl thead th{position:sticky;top:0;z-index:2;background:#f7f9fc;color:#5f6b80;font-size:11px;font-weight:800;
+  text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.stltbl tbody td{padding:5px 8px;border-bottom:1px solid #f2f4f8;vertical-align:middle;white-space:nowrap}
+table.stltbl th.num,table.stltbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.stltbl td.stlp{max-width:230px}
+table.stltbl td.stlin{text-align:right}
+table.stltbl td.stlbal .btn{width:100%}
+table.stltbl .stlamt{width:112px;text-align:right;font-variant-numeric:tabular-nums;font-weight:750;padding:5px 7px}
+table.stltbl .stldate{width:132px;padding:4px 6px}
+table.stltbl .stlmethod{width:92px;padding:4px 6px}
+table.stltbl .stlgo .btn,table.stltbl .stlgo .cancel{white-space:nowrap}
+table.stltbl .stlsave{min-width:74px}
+table.stltbl tr.stlrow:hover td{background:#f9fbff}
+.stlsec.in tr.stlrow:hover td{background:#f4fdf9}
+.stlsec.out tr.stlrow:hover td{background:#fffaf3}
+table.stltbl tr.zerorow td{color:#a9b2c0}
+table.stltbl tr.zerorow td .stlleft{font-weight:700}
+table.stltbl tr.stltotal td{background:#f7f9fc;border-top:2px solid #e3e8ef;font-weight:850;color:var(--ink);font-size:12px}
+.stlempty{padding:14px 12px;color:var(--muted);font-size:12.5px;font-weight:650}
+.stlmore{padding:8px 12px;color:var(--muted2);font-size:11.5px;font-weight:650;border-top:1px solid var(--line2)}
+table.stltbl td .badge{font-size:10.5px}
+.paybal{margin:0 0 8px;padding:8px 10px;border:1px dashed var(--line);border-radius:10px;background:#fbfcfe;
+  font-size:12px;font-weight:650;color:var(--muted)}
+.paybal.on{border-style:solid;border-color:#d6e0f5;background:#f7f9ff;color:var(--ink)}
+.paybal b{font-variant-numeric:tabular-nums}
+.payfull{display:flex;align-items:center;gap:8px;margin:-2px 0 8px}
+.payfull .hint{font-size:11px;color:var(--muted2);font-weight:650}
+@media (max-width:900px){
+  .stlsum{grid-template-columns:1fr}
+  .stlhead .hint{min-width:0}
+  table.stltbl{font-size:12px}
+}
+/* v11 — 줄돈은 주황, 저장 버튼은 표 색(받을돈=초록 · 줄돈=주황)에 맞춘다 */
+.num.warn,td.num.warn,.stltbl td.warn{color:var(--orange-ink)}
+.stlsec.in .stlsave{background:#0f766e;border-color:#0f766e;color:#fff}
+.stlsec.in .stlsave:hover{background:#0b615a;border-color:#0b615a}
+.stlsec.out .stlsave{background:#c2410c;border-color:#c2410c;color:#fff}
+.stlsec.out .stlsave:hover{background:#a53509;border-color:#a53509}
+.stlsec.in .stlall{color:#0f766e;border-color:#c7e9dc;background:#f6fdfa}
+.stlsec.out .stlall{color:#c2410c;border-color:#f0d3b3;background:#fffaf3}

@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261118_17">
+<link rel="stylesheet" href="style.css?v=20261118_18">
 </head>
 <body>
 
@@ -165,6 +165,7 @@
         </button>
         <div class="v8sub" id="accMenu">
           <button class="v8item tab active" type="button" data-acc="kpi" data-atab="V">📊 종합 KPI · 전표</button>
+          <button class="v8item tab" type="button" data-acc="settle" data-atab="S">💳 받을돈·줄돈 정산 <span class="cnt" id="cntAccS">0</span></button>
           <button class="v8item tab" type="button" data-acc="expense" data-atab="E">💳 일반 경비·자금 <span class="cnt" id="cntAccE">0</span></button>
           <button class="v8item tab" type="button" data-acc="ledger" data-atab="R">🏢 거래처별 원장 <span class="cnt" id="cntAccR">0</span></button>
           <button class="v8item tab" type="button" data-acc="month" data-atab="M">📈 월별 손익 리포트</button>
@@ -750,6 +751,7 @@
     <section class="panel list-panel" id="accListPanel">
       <div class="tabs" id="accPaneTabs">
         <button class="tab active" data-atab="V" type="button">📋 매입·매출 전표 <span class="cnt" id="cntAccV">0</span></button>
+        <button class="tab" data-atab="S" type="button">💳 받을돈·줄돈 정산</button>
         <button class="tab" data-atab="R" type="button">🏢 거래처별 원장</button>
         <button class="tab" data-atab="E" type="button">💳 일반 경비·자금</button>
         <button class="tab" data-atab="M" type="button">📊 월별 손익</button>
@@ -1185,10 +1187,12 @@
         <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accPDate"></label>
         <label class="field"><span>거래처 <span class="req">*</span></span><input id="accPPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
       </div>
+      <div class="paybal" id="accPBal">거래처를 입력하면 그 거래처의 남은 미수금·미지급금이 여기 표시됩니다.</div>
       <div class="grid2">
         <label class="field"><span>금액(원) <span class="req">*</span></span><input type="number" id="accPAmount" step="1" min="0" placeholder="0"></label>
         <label class="field"><span>수단</span><input id="accPMethod" list="dlAccMethods" placeholder="계좌이체"></label>
       </div>
+      <div class="payfull"><button class="btn tiny" id="accPFull" type="button">전액 채우기</button><span class="hint">남은 금액을 금액칸에 그대로 넣습니다.</span></div>
       <label class="field"><span>메모</span><input id="accPNote" placeholder="선택 입력"></label>
       <p class="msg" id="accPMsg"></p>
       <div class="modal-actions">
@@ -1426,7 +1430,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261118_17"></script>
-<script src="app.js?v=20261118_17"></script>
+<script src="partners_data.js?v=20261118_18"></script>
+<script src="app.js?v=20261118_18"></script>
 </body>
 </html>

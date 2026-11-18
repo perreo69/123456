@@ -3375,6 +3375,7 @@ var LIVE = (function () {
     accRange: { preset: 'all', from: '', to: '' },
     accSortV: { k: '', dir: -1 }, accSortE: { k: '', dir: -1 }, accSortR: { k: '', dir: -1 },
     fAccV: {}, fAccE: {}, fAccR: {},
+    stlDraft: {},
     fgCats: [], v4ok: true, reflectOpen: false, reflectSel: {}, payOpen: {},
     /* v8.3 — 왼쪽 메뉴로 열어 둔 팝업 기억(같은 메뉴를 다시 누르면 닫기) */
     sidePop: '', sidePopId: ''
@@ -5574,6 +5575,10 @@ var LIVE = (function () {
   }
   function updatePageHead() {
     var h = PANE_HEAD[cur.erp] || PANE_HEAD.meat;
+    /* v11 — 회계는 탭마다 머리말이 다르다(받을돈·줄돈 정산) */
+    if (cur.erp === 'acc' && cur.accTab === 'S') {
+      h = ['회계·손익 · 받을돈·줄돈 정산', '거래처별 받을돈·줄돈을 한 표에서 보고, 줄마다 금액을 적어 그 자리에서 수금·지급을 저장합니다.', '6. 회계·손익'];
+    }
     if ($('v8Title')) $('v8Title').textContent = h[0];
     if ($('v8Desc')) $('v8Desc').textContent = h[1];
     if ($('v8Crumb')) $('v8Crumb').textContent = h[2];
@@ -6752,6 +6757,11 @@ var LIVE = (function () {
     if ($('accBadge')) $('accBadge').textContent = String(a.vouchers.length);
     if ($('cntAccV')) $('cntAccV').textContent = a.vouchers.length;
     if ($('cntAccR')) $('cntAccR').textContent = ERP.accLedger(a, '', '', '').length;
+    if ($('cntAccS')) {          /* v11 — 받을돈·줄돈이 남아 있는 거래처 수 */
+      var ledS = ERP.accLedger(a, '', '', ''), openS = 0, iS;
+      for (iS = 0; iS < ledS.length; iS++) if (ledS[iS].receivable > 0.004 || ledS[iS].payable > 0.004) openS++;
+      $('cntAccS').textContent = String(openS);
+    }
     if ($('cntAccE')) $('cntAccE').textContent = a.expenses.length;
     if ($('cntAccM')) $('cntAccM').textContent = ERP.accMonthly(a, '', '').length;
     if ($('accBadge')) $('accBadge').classList.toggle('neg', mon.profit < 0);
@@ -6948,22 +6958,330 @@ var LIVE = (function () {
     html.push('</tbody></table>');
     wrap.innerHTML = html.join('');
   }
+
+  /* ==========================================================================
+     v11 — 💳 받을돈·줄돈 정산: 표에서 그 자리에서 바로 수금(IN)·지급(OUT) 저장
+     ========================================================================== */
+  var STL_LIMIT = 40;
+  function stlKey(t, partner) { return t + '|' + partner; }
+  /* 거래처별 매출·수금·매입·지급을 한 번에 모은다 (기간 무관 — 지금 남은 돈) */
+  function stlPartners() {
+    var map = {}, order = [], i, r, L, P;
+    function get(name) {
+      var k = trimV(name) || '(거래처 없음)';
+      if (!map[k]) { map[k] = { partner: k, sale: 0, received: 0, purchase: 0, paid: 0 }; order.push(k); }
+      return map[k];
+    }
+    for (i = 0; i < st.vouchers.length; i++) {
+      r = st.vouchers[i];
+      L = get(r.partner);
+      if (r.t === 'sale') L.sale += Number(r.total) || 0; else L.purchase += Number(r.total) || 0;
+    }
+    for (i = 0; i < st.payments.length; i++) {
+      r = st.payments[i];
+      P = get(r.partner);
+      if (r.t === 'in') P.received += Number(r.amount) || 0; else P.paid += Number(r.amount) || 0;
+    }
+    var out = [];
+    for (i = 0; i < order.length; i++) {
+      var o = map[order[i]];
+      o.sale = Math.round(o.sale); o.received = Math.round(o.received);
+      o.purchase = Math.round(o.purchase); o.paid = Math.round(o.paid);
+      o.receivable = o.sale - o.received;
+      o.payable = o.purchase - o.paid;
+      out.push(o);
+    }
+    return out;
+  }
+  /* 한 거래처의 지금 남은 받을돈(in) / 줄돈(out) */
+  function stlRemainOf(t, partner) {
+    var sale = 0, received = 0, purchase = 0, paid = 0, i, r, pn = trimV(partner);
+    for (i = 0; i < st.vouchers.length; i++) {
+      r = st.vouchers[i];
+      if (trimV(r.partner) !== pn) continue;
+      if (r.t === 'sale') sale += Number(r.total) || 0; else purchase += Number(r.total) || 0;
+    }
+    for (i = 0; i < st.payments.length; i++) {
+      r = st.payments[i];
+      if (trimV(r.partner) !== pn) continue;
+      if (r.t === 'in') received += Number(r.amount) || 0; else paid += Number(r.amount) || 0;
+    }
+    return Math.round(t === 'out' ? purchase - paid : sale - received);
+  }
+  function stlDraft(t, partner) {
+    var d = cur.stlDraft[stlKey(t, partner)];
+    return d || { amt: '', date: today(), method: '계좌이체' };
+  }
+  function stlDraftSet(t, partner, patch) {
+    var k = stlKey(t, partner);
+    var d = cur.stlDraft[k] || { amt: '', date: today(), method: '계좌이체' };
+    if (patch.amt !== undefined) d.amt = patch.amt;
+    if (patch.date !== undefined) d.date = patch.date;
+    if (patch.method !== undefined) d.method = patch.method;
+    cur.stlDraft[k] = d;
+  }
+  function stlMethodsHtml(t, curMethod) {
+    var out = '', i, m = ERP.ACC_METHODS;
+    for (i = 0; i < m.length; i++) {
+      out += '<option value="' + esc(m[i]) + '"' + (m[i] === curMethod ? ' selected' : '') + '>' + esc(m[i]) + '</option>';
+    }
+    return out;
+  }
+  function stlHeadHtml(t) {
+    var isIn = t !== 'out';
+    return '<thead><tr>' +
+      '<th class="stlp">거래처</th>' +
+      '<th class="num">' + (isIn ? '총 매출' : '총 매입') + '</th>' +
+      '<th class="num">' + (isIn ? '받은 돈' : '보낸 돈') + '</th>' +
+      '<th class="num">' + (isIn ? '남은 받을돈' : '남은 줄돈') + '</th>' +
+      '<th class="num">' + (isIn ? '수금 금액' : '지급 금액') + '</th>' +
+      '<th></th><th>날짜</th><th>수단</th><th></th>' +
+      '</tr></thead>';
+  }
+  function stlRowHtml(t, r) {
+    var isIn = t !== 'out';
+    var left = isIn ? r.receivable : r.payable;
+    var d = stlDraft(t, r.partner);
+    var has = left > 0.004;
+    return '<tr class="stlrow' + (has ? '' : ' zerorow') + '" data-stl="' + t + '" data-partner="' + esc(r.partner) + '">' +
+      '<td class="stlp ellip"><b>' + esc(r.partner) + '</b></td>' +
+      '<td class="num">' + fmtInt(isIn ? r.sale : r.purchase) + '</td>' +
+      '<td class="num">' + fmtInt(isIn ? r.received : r.paid) + '</td>' +
+      '<td class="num ' + (has ? (isIn ? 'pos' : 'warn') : 'zero') + '"><b class="stlleft">' + fmtInt(left) + '</b></td>' +
+      '<td class="stlin"><input type="number" class="stlamt" data-amt="' + t + '" min="0" step="1" placeholder="0" value="' + esc(d.amt) + '"></td>' +
+      '<td class="stlbal"><button class="btn tiny stlall" type="button" data-settle-all="' + t + '"' + (has ? '' : ' disabled') + '>전액</button></td>' +
+      '<td class="stldt"><input type="date" class="stldate" data-date="' + t + '" value="' + esc(d.date) + '"></td>' +
+      '<td class="stlmd"><select class="stlmethod" data-method="' + t + '">' + stlMethodsHtml(t, d.method) + '</select></td>' +
+      '<td class="stlgo"><button class="btn tiny primary stlsave" type="button" data-settle-save="' + t + '">' + (isIn ? '수금 저장' : '지급 저장') + '</button></td>' +
+      '</tr>';
+  }
+  function stlLeftClass(t, v) {
+    if (!(Math.abs(v) > 0.004)) return 'num zero';
+    return 'num ' + (t === 'out' ? 'warn' : 'pos');
+  }
+  function stlTableHtml(t, rows, sum) {
+    var isIn = t !== 'out';
+    var html = ['<div class="stlwrap"><table class="stltbl t-' + (isIn ? 'in' : 'out') + '" id="' + (isIn ? 'stlInTbl' : 'stlOutTbl') + '">',
+      '<colgroup><col><col style="width:112px"><col style="width:112px"><col style="width:122px">' +
+      '<col style="width:132px"><col style="width:70px"><col style="width:152px"><col style="width:108px"><col style="width:102px"></colgroup>',
+      stlHeadHtml(t), '<tbody>'];
+    for (var i = 0; i < rows.length; i++) html.push(stlRowHtml(t, rows[i]));
+    html.push('<tr class="stltotal"><td class="stlp">필터 합계 · ' + rows.length + '곳</td>' +
+      '<td class="num">' + fmtInt(isIn ? sum.sale : sum.purchase) + '</td>' +
+      '<td class="num">' + fmtInt(isIn ? sum.received : sum.paid) + '</td>' +
+      '<td class="num"><b>' + fmtInt(isIn ? sum.receivable : sum.payable) + '</b></td>' +
+      '<td colspan="5"></td></tr>');
+    html.push('</tbody></table></div>');
+    return html.join('');
+  }
+  /* 다시 그려도 입력 중이던 칸의 커서를 잃지 않게 기억한다 */
+  function stlFocusInfo() {
+    var el = document.activeElement;
+    if (!el || !el.getAttribute) return null;
+    var tr = stlRowOf(el);
+    if (!tr) return null;
+    var f = el.hasAttribute('data-amt') ? 'amt' : (el.hasAttribute('data-date') ? 'date' : (el.hasAttribute('data-method') ? 'method' : ''));
+    if (!f) return null;
+    var pos = null;
+    try { pos = el.selectionStart; } catch (e) { pos = null; }
+    return { t: tr.getAttribute('data-stl'), p: tr.getAttribute('data-partner'), f: f, pos: pos };
+  }
+  function stlFocusRestore(f) {
+    if (!f) return;
+    var tbl = $(f.t === 'out' ? 'stlOutTbl' : 'stlInTbl');
+    if (!tbl) return;
+    var rows = tbl.querySelectorAll('tbody tr[data-stl]'), tr = null, i;
+    for (i = 0; i < rows.length; i++) if (rows[i].getAttribute('data-partner') === f.p) tr = rows[i];
+    if (!tr) return;
+    var el = tr.querySelector('[data-' + f.f + ']');
+    if (!el) return;
+    try { el.focus({ preventScroll: true }); } catch (e) { try { el.focus(); } catch (e2) { } }
+    if (f.pos !== null && f.pos !== undefined && f.f === 'amt') {
+      try { el.setSelectionRange(f.pos, f.pos); } catch (e) { }
+    }
+  }
+  function renderAccSettle() {
+    var wrap = $('accTableWrap');
+    if (!wrap) return;
+    var focus = stlFocusInfo();
+    var q = String(cur.accSearch || '').toLowerCase();
+    var list = stlPartners(), i, r;
+    var sumIn = 0, sumOut = 0, cntIn = 0, cntOut = 0;
+    var inRows = [], outRows = [];
+    for (i = 0; i < list.length; i++) {
+      r = list[i];
+      if (r.receivable > 0.004) { sumIn += r.receivable; cntIn++; }
+      if (r.payable > 0.004) { sumOut += r.payable; cntOut++; }
+      if (q && r.partner.toLowerCase().indexOf(q) < 0) continue;
+      if (r.sale > 0 || r.received > 0 || r.receivable !== 0) inRows.push(r);
+      if (r.purchase > 0 || r.paid > 0 || r.payable !== 0) outRows.push(r);
+    }
+    function byLeft(k) {
+      return function (a, b) {
+        var d = Math.abs(Number(b[k]) || 0) - Math.abs(Number(a[k]) || 0);
+        if (d) return d;
+        return String(a.partner).localeCompare(String(b.partner), 'ko');
+      };
+    }
+    inRows.sort(byLeft('receivable'));
+    outRows.sort(byLeft('payable'));
+    var tIn = { sale: 0, received: 0, receivable: 0 }, tOut = { purchase: 0, paid: 0, payable: 0 };
+    for (i = 0; i < inRows.length; i++) { tIn.sale += inRows[i].sale; tIn.received += inRows[i].received; tIn.receivable += inRows[i].receivable; }
+    for (i = 0; i < outRows.length; i++) { tOut.purchase += outRows[i].purchase; tOut.paid += outRows[i].paid; tOut.payable += outRows[i].payable; }
+    setAccSum('받을돈 ' + fmtInt(sumIn) + '원 · 줄돈 ' + fmtInt(sumOut) + '원');
+
+    var html = [];
+    html.push('<div class="stlsum">' +
+      '<div class="stlbox in"><span>📥 받을돈 합계</span><b id="stlSumIn">' + fmtInt(sumIn) + '원</b><small>거래처 ' + cntIn + '곳의 남은 미수금</small></div>' +
+      '<div class="stlbox out"><span>📤 줄돈 합계</span><b id="stlSumOut">' + fmtInt(sumOut) + '원</b><small>거래처 ' + cntOut + '곳의 남은 미지급금</small></div>' +
+      '<div class="stlbox net"><span>⚖️ 받을돈 − 줄돈</span><b id="stlSumNet">' + fmtInt(sumIn - sumOut) + '원</b><small>양수면 받을 돈이 더 많습니다</small></div>' +
+      '</div>');
+
+    html.push('<section class="stlsec in" id="stlInSec">' +
+      '<div class="stlhead"><h3>📥 받을돈 (미수금)</h3>' +
+      '<span class="hint">거래처별 <b>총 매출 − 받은 돈</b>입니다. 줄마다 <b>수금 금액</b>을 적고 <b>[수금 저장]</b>을 누르면 그 자리에서 수금이 기록되고 남은 받을돈·회계 KPI가 바로 줄어듭니다.</span></div>');
+    if (!inRows.length) html.push('<div class="stlempty">받을돈이 없습니다. 판매관리에서 매출 전표를 넣으면 여기에 모입니다.</div>');
+    else html.push(stlTableHtml('in', inRows, tIn));
+    html.push('</section>');
+
+    html.push('<section class="stlsec out" id="stlOutSec">' +
+      '<div class="stlhead"><h3>📤 줄돈 (미지급금)</h3>' +
+      '<span class="hint">거래처별 <b>총 매입 − 보낸 돈</b>입니다. 줄마다 <b>지급 금액</b>을 적고 <b>[지급 저장]</b>을 누르면 그 자리에서 지급이 기록되고 남은 줄돈·회계 KPI가 바로 줄어듭니다.</span></div>');
+    if (!outRows.length) html.push('<div class="stlempty">줄돈이 없습니다. 구매관리에서 매입 전표를 넣으면 여기에 모입니다.</div>');
+    else html.push(stlTableHtml('out', outRows, tOut));
+    html.push('</section>');
+
+    var recent = [], p;
+    for (i = 0; i < st.payments.length; i++) {
+      p = st.payments[i];
+      if (!ERP.inPeriod(p.d, cur.accRange.from, cur.accRange.to)) continue;
+      if (q && String(p.partner || '').toLowerCase().indexOf(q) < 0) continue;
+      recent.push(p);
+    }
+    recent.sort(function (a, b) { return a.d < b.d ? 1 : (a.d > b.d ? -1 : (b.id - a.id)); });
+    html.push('<section class="stlsec rec" id="stlRecSec">' +
+      '<div class="stlhead"><h3>💵 최근 수금·지급 내역</h3>' +
+      '<span class="hint">방금 저장한 건이 맨 위에 나옵니다. <b>[삭제]</b>하면 그 거래처의 남은 받을돈·줄돈이 다시 늘어납니다. (기간·검색이 적용됩니다)</span></div>');
+    if (!recent.length) html.push('<div class="stlempty">수금·지급 기록이 없습니다.</div>');
+    else {
+      html.push('<div class="stlwrap"><table class="stltbl t-rec" id="stlRecTbl">' +
+        '<colgroup><col style="width:114px"><col style="width:78px"><col><col style="width:126px">' +
+        '<col style="width:104px"><col><col style="width:74px"></colgroup>' +
+        '<thead><tr>' +
+        '<th>날짜</th><th>구분</th><th class="stlp">거래처</th><th class="num">금액</th><th>수단</th><th>메모</th><th></th>' +
+        '</tr></thead><tbody>');
+      var shown = recent.length > STL_LIMIT ? recent.slice(0, STL_LIMIT) : recent;
+      for (i = 0; i < shown.length; i++) {
+        p = shown[i];
+        html.push('<tr class="stlrec" data-payrow="' + p.id + '">' +
+          '<td>' + esc(p.d) + '</td>' +
+          '<td><span class="badge ' + (p.t === 'in' ? 'in' : 'out') + '">' + (p.t === 'in' ? '수금' : '지급') + '</span></td>' +
+          '<td class="stlp ellip"><b>' + esc(p.partner) + '</b></td>' +
+          '<td class="num"><b>' + fmtInt(p.amount) + '</b></td>' +
+          '<td>' + esc(p.method || '-') + '</td>' +
+          '<td class="ellip">' + esc(p.note || '-') + '</td>' +
+          '<td class="stlgo"><button class="cancel" type="button" data-pdel="' + p.id + '">삭제</button></td></tr>');
+      }
+      html.push('</tbody></table></div>');
+      if (recent.length > STL_LIMIT) html.push('<div class="stlmore">최근 ' + STL_LIMIT + '건만 보입니다. (전체 ' + recent.length + '건)</div>');
+    }
+    html.push('</section>');
+    wrap.innerHTML = html.join('');
+    stlFocusRestore(focus);
+  }
+  function stlRowOf(el) { return el && el.closest ? el.closest('tr[data-stl]') : null; }
+  /* 같은 줄의 남은 받을돈·줄돈 칸을 입력한 금액만큼 미리 줄여 보여 준다 */
+  function stlPreview(tr, t, partner) {
+    if (!tr) return;
+    var leftEl = tr.querySelector('.stlleft'), amtEl = tr.querySelector('[data-amt]');
+    if (!leftEl || !amtEl) return;
+    var base = stlRemainOf(t, partner);
+    var n = Number(amtEl.value || 0) || 0;
+    leftEl.textContent = fmtInt(base - n);
+    var td = leftEl.parentNode;
+    if (td && td.className) td.className = stlLeftClass(t, base - n);
+  }
+  function stlFillAll(btn) {
+    var tr = stlRowOf(btn);
+    if (!tr) return;
+    var t = tr.getAttribute('data-stl'), partner = tr.getAttribute('data-partner');
+    var amtEl = tr.querySelector('[data-amt]');
+    var left = stlRemainOf(t, partner);
+    if (amtEl) amtEl.value = left > 0.004 ? String(left) : '';
+    stlDraftSet(t, partner, { amt: amtEl ? amtEl.value : '' });
+    stlPreview(tr, t, partner);
+  }
+  function stlSaveRow(btn) {
+    var tr = stlRowOf(btn);
+    if (!tr) return;
+    var t = tr.getAttribute('data-stl'), partner = tr.getAttribute('data-partner');
+    var amtEl = tr.querySelector('[data-amt]'), dateEl = tr.querySelector('[data-date]'), mEl = tr.querySelector('[data-method]');
+    var amount = Math.round(Number((amtEl && amtEl.value) || 0));
+    var date = (dateEl && dateEl.value) || today();
+    var method = (mEl && mEl.value) || '계좌이체';
+    if (!(amount > 0)) { toast('금액을 입력하세요.', 'err'); if (amtEl) { try { amtEl.focus(); } catch (e) { } } return; }
+    var left = stlRemainOf(t, partner);
+    if (left > 0.004 && amount > left) {
+      if (!window.confirm('남은 ' + (t === 'out' ? '줄돈' : '받을돈') + ' ' + fmtInt(left) + '원보다 큰 금액입니다.\n' +
+        fmtInt(amount) + '원으로 저장할까요?\n(선수금·선지급이면 남은 금액이 마이너스로 바뀝니다)')) return;
+    }
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '저장 중…';
+    SB.db.accPaymentSave({
+      id: null, date: date, partner: partner, type: t, amount: amount, method: method, note: ''
+    }).then(function () {
+      btn.disabled = false; btn.textContent = label;
+      delete cur.stlDraft[stlKey(t, partner)];
+      toast((t === 'in' ? '수금' : '지급') + ' 저장: ' + partner + ' ' + won(amount), 'ok');
+      return reload({ silent: true });
+    }, function (e) {
+      btn.disabled = false; btn.textContent = label;
+      toast(e.message, 'err');
+    });
+  }
+  /* 받을돈·줄돈 표 클릭 — 전액 채우기 / 바로 저장 (return true면 처리됨) */
+  function settleClick(t) {
+    var allBtn = t.closest ? t.closest('[data-settle-all]') : null;
+    if (allBtn) { stlFillAll(allBtn); return true; }
+    var saveBtn = t.closest ? t.closest('[data-settle-save]') : null;
+    if (saveBtn) { stlSaveRow(saveBtn); return true; }
+    return false;
+  }
+  /* 받을돈·줄돈 표 입력 — 적은 값을 기억해 두고 남은 금액을 미리 보여 준다 */
+  function settleInput(ev) {
+    var t = ev.target;
+    if (!t || !t.getAttribute) return;
+    var tr = stlRowOf(t);
+    if (!tr) return;
+    var ty = tr.getAttribute('data-stl'), partner = tr.getAttribute('data-partner');
+    var patch = {};
+    if (t.hasAttribute('data-amt')) patch.amt = t.value;
+    else if (t.hasAttribute('data-date')) patch.date = t.value;
+    else if (t.hasAttribute('data-method')) patch.method = t.value;
+    else return;
+    stlDraftSet(ty, partner, patch);
+    if (patch.amt !== undefined) stlPreview(tr, ty, partner);
+  }
   function renderAccTable() {
     if (!$('accTableWrap')) return;
     var tab = cur.accTab;
-    var isV = tab === 'V', isR = tab === 'R', isE = tab === 'E';
-    $('accTypeFilter').classList.toggle('hidden', isR || tab === 'M');
+    var isV = tab === 'V', isR = tab === 'R', isE = tab === 'E', isS = tab === 'S';
+    $('accTypeFilter').classList.toggle('hidden', isR || isS || tab === 'M');
     $('accTypeFilter').innerHTML = isE
       ? '<option value="all">전체 구분</option><option value="expense">경비</option><option value="income">수입</option>'
       : '<option value="all">전체 구분</option><option value="sale">매출</option><option value="purchase">매입</option>';
-    if (cur.accType !== 'all' && (isR || tab === 'M')) cur.accType = 'all';
+    if (cur.accType !== 'all' && (isR || isS || tab === 'M')) cur.accType = 'all';
     $('accTypeFilter').value = cur.accType;
     var anyF = hasCols(cur.fAccV) || hasCols(cur.fAccE);
     $('btnAccResetFilters').classList.toggle('hidden', !anyF);
-    $('accNoteBar').textContent = isR
-      ? '거래처별로 매출·수금·미수, 매입·지급·미지급을 모아 보여줍니다. [수금]·[지급]을 누르면 바로 등록됩니다.'
-      : (tab === 'M' ? '월별 매출 − 매입원가 − 일반경비 = 순이익입니다. (부가세 제외, 공급가액 기준)'
-        : '기간·검색은 전표·원장·경비·손익 표에 함께 적용됩니다.');
+    $('accNoteBar').textContent = isS
+      ? '받을돈·줄돈은 기간과 상관없이 지금 남은 금액입니다. 검색은 거래처 이름에, 기간은 맨 아래 최근 수금·지급 내역에 적용됩니다.'
+      : (isR
+        ? '거래처별로 매출·수금·미수, 매입·지급·미지급을 모아 보여줍니다. [수금]·[지급]을 누르면 바로 등록됩니다.'
+        : (tab === 'M' ? '월별 매출 − 매입원가 − 일반경비 = 순이익입니다. (부가세 제외, 공급가액 기준)'
+          : '기간·검색은 전표·원장·경비·손익 표에 함께 적용됩니다.'));
+    if (isS) { renderAccSettle(); return; }
     if (isV) { renderAccVouchers(); return; }
     if (isR) { renderAccLedger(); return; }
     if (isE) { renderAccExpenses(); return; }
@@ -7924,6 +8242,26 @@ var LIVE = (function () {
 
   /* ---------- 수금 · 지급 ---------- */
   var accP = { id: null, type: 'in' };
+  /* v11 — 모달에서 거래처의 지금 남은 미수금(in)·미지급금(out) */
+  function accPayRemain(type, partner) {
+    var p = trimV(partner);
+    if (!p) return 0;
+    return stlRemainOf(type === 'out' ? 'out' : 'in', p);
+  }
+  function accPayBalRefresh() {
+    var p = trimV($('accPPartner') ? $('accPPartner').value : '');
+    var isOut = accP.type === 'out';
+    var el = $('accPBal'), full = $('accPFull');
+    var r = p ? accPayRemain(accP.type, p) : 0;
+    if (el) {
+      el.innerHTML = !p
+        ? '거래처를 입력하거나 고르면 그 거래처의 남은 ' + (isOut ? '미지급금' : '미수금') + '이 여기 표시됩니다.'
+        : '이 거래처의 남은 ' + (isOut ? '미지급금(줄돈)' : '미수금(받을돈)') +
+          ' <b class="' + (Math.abs(r) > 0.004 ? (isOut ? 'neg' : 'pos') : 'zero') + '">' + fmtInt(r) + '원</b>';
+      el.classList.toggle('on', !!p);
+    }
+    if (full) full.disabled = !(r > 0.004);
+  }
   function openAccPay(type, partner) {
     popCloseOthers('accPayModal');
     accP = { id: null, type: type === 'out' ? 'out' : 'in' };
@@ -7934,6 +8272,7 @@ var LIVE = (function () {
     $('accPMsg').textContent = '';
     var segs = $('accPaySeg').querySelectorAll('button');
     for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-ptype') === accP.type);
+    accPayBalRefresh();
     $('accPayModal').classList.remove('hidden');
     setTimeout(function () { try { $('accPAmount').focus(); } catch (e) { } }, 60);
   }
@@ -9293,6 +9632,7 @@ var LIVE = (function () {
         for (var k = 0; k < atabs.length; k++) atabs[k].classList.toggle('active', atabs[k] === this);
         closeFilter();
         renderRangeBar();
+        updatePageHead();
         renderAccTable();
         markSide('acc', { key: 'data-atab', val: cur.accTab });
         $('accTableWrap').scrollTop = 0;
@@ -9414,8 +9754,19 @@ var LIVE = (function () {
         accP.type = this.getAttribute('data-ptype');
         for (var q = 0; q < ps.length; q++) ps[q].classList.toggle('active', ps[q] === this);
         $('accPayTitle').textContent = accP.type === 'out' ? '＋ 지급 입력' : '＋ 수금 입력';
+        accPayBalRefresh();
       });
     }
+    /* v11 — 거래처를 넣으면 남은 미수금·미지급금 표시 · [전액 채우기] */
+    if ($('accPPartner')) {
+      $('accPPartner').addEventListener('input', accPayBalRefresh);
+      $('accPPartner').addEventListener('change', accPayBalRefresh);
+    }
+    if ($('accPFull')) $('accPFull').addEventListener('click', function () {
+      var r = accPayRemain(accP.type, $('accPPartner').value);
+      if (r > 0.004) $('accPAmount').value = String(r);
+      try { $('accPAmount').focus(); } catch (e) { }
+    });
     if ($('accPayClose')) $('accPayClose').addEventListener('click', closeAccPay);
     if ($('accPayCancel')) $('accPayCancel').addEventListener('click', closeAccPay);
     if ($('accPaySave')) $('accPaySave').addEventListener('click', saveAccPay);
@@ -9467,6 +9818,7 @@ var LIVE = (function () {
     /* 회계 표 클릭 */
     bindResize('accTableWrap', accTableOf);
     bindTableClicks('accTableWrap', function (ev, t) {
+      if (settleClick(t)) return;     /* v11 — 전액 · 바로 수금/지급 저장 */
       var docBtn = t.closest ? t.closest('[data-doc]') : null;
       if (docBtn) { toggleAccDoc(Number(docBtn.getAttribute('data-doc'))); return; }
       var ve = t.closest ? t.closest('[data-vedit]') : null;
@@ -9511,6 +9863,11 @@ var LIVE = (function () {
       var pd = t.closest ? t.closest('[data-pdel]') : null;
       if (pd) { accDelete('p', Number(pd.getAttribute('data-pdel'))); return; }
     });
+    /* v11 — 받을돈·줄돈 표의 금액·날짜·수단 입력을 기억하고 남은 금액을 미리 보여 준다 */
+    if ($('accTableWrap')) {
+      $('accTableWrap').addEventListener('input', settleInput);
+      $('accTableWrap').addEventListener('change', settleInput);
+    }
 
     /* v8: 구매·판매·생산 표 */
     bindResize('buyTableWrap', function () { return 'accB'; });
