@@ -1650,3 +1650,13 @@ table.stltbl td .badge{font-size:10.5px}
 .stlsec.out .stlsave:hover{background:#a53509;border-color:#a53509}
 .stlsec.in .stlall{color:#0f766e;border-color:#c7e9dc;background:#f6fdfa}
 .stlsec.out .stlall{color:#c2410c;border-color:#f0d3b3;background:#fffaf3}
+
+/* ===== v12: 완제품 로트 · 원료육 창고 버튼 · 명세서형 다중 입출고 ===== */
+.lotno{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;font-weight:750;color:#1d4ed8;letter-spacing:.2px}
+#meatWhTabs{padding-bottom:2px}
+#meatWhTabs .v8mini[data-wh="F"].active{background:#eaf3ff;border-color:#9dc2f7;color:#0b4aa2}
+#meatWhTabs .v8mini[data-wh="C"].active{background:#eafaf7;border-color:#8fd9d0;color:#0b615a}
+table.vsheet-table.iosheet{min-width:1000px}
+table.vsheet-table.iosheet td:first-child select{font-weight:750}
+#ioSheetModal .vhead{grid-template-columns:1fr 1fr 1.1fr 1fr}
+@media(max-width:768px){#ioSheetModal .vhead{grid-template-columns:1fr 1fr}}
