@@ -7189,7 +7189,12 @@ var LIVE = (function () {
     try { o = JSON.parse(localStorage.getItem(SUP_KEY) || '{}') || {}; } catch (e) { o = {}; }
     var out = {}, k;
     for (k in SUP_DEFAULT) if (Object.prototype.hasOwnProperty.call(SUP_DEFAULT, k)) out[k] = SUP_DEFAULT[k];
-    for (k in o) if (Object.prototype.hasOwnProperty.call(o, k) && k in SUP_DEFAULT) out[k] = String(o[k] === null || o[k] === undefined ? '' : o[k]);
+    /* 저장된 값이 비어 있으면 내장 기본값을 그대로 둔다(v7에서 상호만 넣어 둔 경우에도 등록번호·계좌가 살아 있다) */
+    for (k in o) {
+      if (!Object.prototype.hasOwnProperty.call(o, k) || !(k in SUP_DEFAULT)) continue;
+      var sv = String(o[k] === null || o[k] === undefined ? '' : o[k]);
+      if (sv !== '') out[k] = sv;
+    }
     /* v7에 '업태 · 종목' 한 칸으로 저장한 값은 두 칸으로 나눠 준다 */
     if (o.biz && !o.item && String(o.biz).indexOf('·') >= 0) {
       var sp = String(o.biz).split('·');
