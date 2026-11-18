@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261118_16">
+<link rel="stylesheet" href="style.css?v=20261118_17">
 </head>
 <body>
 
@@ -1082,95 +1082,81 @@
     </div>
   </div>
 
-  <!-- ===================== 회계 전표 입력 ===================== -->
+  <!-- ===================== v10: 명세서형 다중 품목 매입·매출 전표 ===================== -->
   <div class="modal hidden" id="accVoucherModal">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accVoucherTitle">
+    <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="accVoucherTitle">
       <div class="modal-head">
-        <h2 id="accVoucherTitle">매출 전표</h2>
+        <h2 id="accVoucherTitle">매출 전표 입력</h2>
         <button class="modal-x" id="accVoucherClose" type="button" aria-label="닫기">✕</button>
       </div>
-      <p class="modal-sub" id="accVoucherSub">부가세는 과세일 때 10%로 자동 계산합니다.</p>
-      <label class="field" id="accVTypeField"><span>전표 종류</span>
-        <div class="seg" id="accVoucherSeg">
-          <button type="button" data-vtype="sale" class="active">매출</button>
-          <button type="button" data-vtype="purchase">매입</button>
-        </div>
-      </label>
-      <label class="field" id="accVLinkField"><span>연동 대상</span>
-        <div class="seg three" id="accVLinkSeg">
-          <button type="button" data-vlink="meat">🥩 원료육</button>
-          <button type="button" data-vlink="fp">📦 완제품·부자재</button>
-          <button type="button" data-vlink="none" class="active">✏️ 기타(재고 없음)</button>
-        </div>
-      </label>
-      <p class="hint vlinkhint" id="accVLinkHint">원료육·완제품을 고르면 저장할 때 <b>재고 입·출고까지 함께</b> 처리되고, 그 재고 금액으로 전표가 만들어집니다.</p>
-      <div class="grid2">
-        <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accVDate"></label>
-        <label class="field"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
-      </div>
+      <p class="modal-sub" id="accVoucherSub">한 장에 여러 품목을 적으면 재고·전표·거래명세표가 한 번에 처리됩니다.</p>
 
-      <!-- v9: 원료육 연동 -->
-      <div class="vlinkbox hidden" id="accVMeatBox">
-        <div class="vlinkhead"><b id="accVMeatTitle">🥩 원료육 입고 → 매입 전표</b><span id="accVMeatSub">입력한 만큼 재고가 늘고, 같은 금액으로 매입 전표가 생깁니다.</span></div>
-        <div class="grid2" id="accVMeatWhRow">
-          <label class="field"><span>받는 창고 <span class="req">*</span></span>
-            <div class="seg" id="accVWhSeg">
-              <button type="button" data-vwh="F" class="active">🧊 냉동고</button>
-              <button type="button" data-vwh="C">❄️ 냉장고</button>
-            </div>
-          </label>
-          <label class="field"><span>육류</span><input id="accVMeat" list="dlMeats" placeholder="돈육 · 우육 · 계육 …"></label>
-        </div>
-        <label class="field"><span id="accVNameLabel">제품명 <span class="req">*</span></span><input id="accVName" placeholder="예: 등갈비"></label>
-        <div class="grid2" id="accVMeatOptRow">
-          <label class="field"><span>원산지</span><input id="accVOrigin" list="dlOrigins" placeholder="예: 국내산"></label>
-          <label class="field"><span>브랜드</span><input id="accVBrand" list="dlBrands" placeholder="선택"></label>
-        </div>
-        <div class="grid2" id="accVMeatDateRow">
-          <label class="field"><span>입고일 <span class="req">*</span></span><input type="date" id="accVInDate"></label>
-          <label class="field"><span>소비기한 <span class="req">*</span></span><input type="date" id="accVExpiry"></label>
-        </div>
-        <div class="grid2">
-          <label class="field"><span id="accVKgLabel">중량(kg) <span class="req">*</span></span><input type="number" id="accVKg" step="0.01" min="0" placeholder="0.00"></label>
-          <label class="field"><span id="accVPriceLabel">단가(원/kg) <span class="req">*</span></span><input type="number" id="accVPrice" step="1" min="0" placeholder="0"></label>
-        </div>
-        <div class="lotinfo empty" id="accVMeatInfo">입력한 내용으로 새 로트가 생기거나 기존 로트에 합산됩니다.</div>
-        <label class="field hidden" id="accVOutRow"><span>출고처 <span class="req">*</span></span>
-          <div class="seg" id="accVDestSeg">
-            <button type="button" data-vdest="vendor" class="active">🏢 업체</button>
-            <button type="button" data-vdest="courier">📦 택배</button>
-            <button type="button" data-vdest="other">✏️ 기타</button>
+      <!-- 상단 공통 영역 -->
+      <div class="vhead">
+        <label class="field" id="accVTypeField"><span>전표 종류</span>
+          <div class="seg" id="accVoucherSeg">
+            <button type="button" data-vtype="sale" class="active">매출</button>
+            <button type="button" data-vtype="purchase">매입</button>
           </div>
         </label>
-      </div>
-
-      <!-- v9: 완제품·부자재 연동 -->
-      <div class="vlinkbox hidden" id="accVFpBox">
-        <div class="vlinkhead"><b id="accVFpTitle">📦 완제품·부자재 입고 → 매입 전표</b><span id="accVFpSub">입력한 만큼 재고가 늘고, 같은 금액으로 매입 전표가 생깁니다.</span></div>
-        <label class="field"><span>품목 <span class="req">*</span> <span class="tiny-hint">코드 또는 상품명</span></span><input id="accVFpQuery" placeholder="예: 떡갈비 / W00100016"></label>
-        <div class="lotinfo empty" id="accVFpInfo">품목을 고르면 현재고·단가가 보입니다.</div>
-        <div class="grid2">
-          <label class="field"><span id="accVFpQtyLabel">수량 <span class="req">*</span></span><input type="number" id="accVFpQty" step="0.001" min="0" placeholder="0"></label>
-          <label class="field"><span id="accVFpPriceLabel">입고단가(원) <span class="req">*</span></span><input type="number" id="accVFpPrice" step="1" min="0" placeholder="0"></label>
-        </div>
-      </div>
-      <label class="field"><span>과세 구분</span>
-        <div class="seg" id="accVTaxSeg">
-          <button type="button" data-vtax="tax" class="active">과세 (10%)</button>
-          <button type="button" data-vtax="free">면세</button>
-        </div>
-      </label>
-      <div class="grid2">
-        <label class="field"><span>금액(원) <span class="req">*</span> <span class="tiny-hint" id="accVAmountNote"></span></span><input type="number" id="accVAmount" step="1" min="0" placeholder="0"></label>
-        <label class="field"><span>부가세</span><input id="accVVat" readonly placeholder="0"></label>
-      </div>
-      <label class="check" id="accVVatIncWrap"><input type="checkbox" id="accVVatIncluded">입력한 금액이 부가세 포함 금액입니다</label>
-      <div class="grid2">
+        <label class="field"><span>전표일자 <span class="req">*</span></span><input type="date" id="accVDate"></label>
+        <label class="field"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
         <label class="field"><span>세금계산서</span>
           <select id="accVDoc"><option value="none">미발행</option><option value="issued">발행완료</option><option value="received">수령완료</option></select>
         </label>
-        <label class="field"><span>적요</span><input id="accVNote" placeholder="예: 11월 납품분"></label>
+        <label class="field"><span>비고</span><input id="accVNote" placeholder="예: 11월 납품분"></label>
       </div>
+
+      <!-- 가운데 명세서 표 (여러 줄) -->
+      <div class="vsheet" id="accVSheetWrap">
+        <div class="vsheetbar">
+          <b>명세서 품목</b>
+          <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · Enter = 1순위 · 기본 3줄</span>
+          <button type="button" class="btn vadd" id="accVAddRow">＋ 줄 추가</button>
+        </div>
+        <div class="vsheet-scroll">
+          <table class="vsheet-table" id="accVSheet">
+            <colgroup>
+              <col style="width:144px"><col style="width:168px"><col style="width:188px"><col style="width:126px">
+              <col style="width:92px"><col style="width:100px"><col style="width:76px">
+              <col style="width:104px"><col style="width:88px"><col style="width:104px"><col style="width:34px">
+            </colgroup>
+            <thead><tr>
+              <th>구분</th><th>창고/로트</th><th>품목명</th><th>소비기한/규격</th>
+              <th>수량(kg/개)</th><th>단가(원)</th><th>과세</th>
+              <th>공급가액</th><th>세액</th><th>합계</th><th aria-label="줄 삭제"></th>
+            </tr></thead>
+            <tbody id="accVSheetBody"></tbody>
+            <tfoot>
+              <tr class="vsum">
+                <td colspan="4" class="c">합계</td>
+                <td class="r" id="accVSumQty">0</td>
+                <td></td><td></td>
+                <td class="r" id="accVSumSupply">0</td>
+                <td class="r" id="accVSumVat">0</td>
+                <td class="r b" id="accVSumTotal">0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- 기존 전표를 고칠 때는 단일 전표 화면(재고는 건드리지 않는다) -->
+      <div class="vsimple hidden" id="accVSimpleBox">
+        <label class="field"><span>과세 구분</span>
+          <div class="seg" id="accVTaxSeg">
+            <button type="button" data-vtax="tax" class="active">과세 (10%)</button>
+            <button type="button" data-vtax="free">면세</button>
+          </div>
+        </label>
+        <div class="grid2">
+          <label class="field"><span>금액(원) <span class="req">*</span> <span class="tiny-hint" id="accVAmountNote"></span></span><input type="number" id="accVAmount" step="1" min="0" placeholder="0"></label>
+          <label class="field"><span>부가세</span><input id="accVVat" readonly placeholder="0"></label>
+        </div>
+        <label class="check" id="accVVatIncWrap"><input type="checkbox" id="accVVatIncluded">입력한 금액이 부가세 포함 금액입니다</label>
+      </div>
+
       <p class="hint" id="accVHint"></p>
       <p class="msg" id="accVMsg"></p>
       <div class="modal-actions">
@@ -1179,6 +1165,7 @@
       </div>
     </div>
   </div>
+
 
   <!-- ===================== 회계 수금·지급 ===================== -->
   <div class="modal hidden" id="accPayModal">
@@ -1439,7 +1426,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261118_16"></script>
-<script src="app.js?v=20261118_16"></script>
+<script src="partners_data.js?v=20261118_17"></script>
+<script src="app.js?v=20261118_17"></script>
 </body>
 </html>

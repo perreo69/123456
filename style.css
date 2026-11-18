@@ -1524,3 +1524,63 @@ input.autofill{background:#f4f7fc;color:var(--ink);font-weight:750}
   .t-bal{font-size:12px}
   .t-bal th,.t-bal td{padding:7px 6px}
 }
+
+/* ============================ v10: 명세서형 다중 품목 전표 ============================ */
+.modal-card.sheetcard{max-width:1240px;width:min(1240px,calc(100vw - 36px));padding:16px 18px 15px}
+.vhead{display:grid;grid-template-columns:168px 150px minmax(170px,1fr) 124px minmax(140px,1fr);gap:8px;align-items:start}
+.vhead .field{margin-top:0}
+.vhead .field>span{font-size:11px;font-weight:750;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vhead input,.vhead select{width:100%}
+.vhead .seg button{padding:6px 6px;font-size:11.5px}
+.vsheet{margin-top:11px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:#fff}
+.vsheetbar{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f4f7fc;border-bottom:1px solid var(--line2)}
+.vsheetbar b{font-size:12px;font-weight:800;color:#33477a;white-space:nowrap}
+.vsheetbar .tiny-hint{font-size:10.5px;color:var(--muted);font-weight:650;line-height:1.35}
+.vsheetbar .vadd{margin-left:auto;padding:5px 10px;font-size:11.5px;border-radius:8px;white-space:nowrap;border-color:#b9cdf0;background:#f2f7ff;color:#1d4ed8;font-weight:750}
+.vsheetbar .vadd:hover{background:#e8f0ff;border-color:#9db9f2}
+.vsheet-scroll{overflow-x:auto}
+table.vsheet-table{width:100%;border-collapse:collapse;font-size:12px;min-width:1100px}
+table.vsheet-table th{background:#eef2f9;color:#3b4a63;font-size:10.5px;font-weight:800;padding:5px 4px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:center}
+table.vsheet-table td{padding:3px 4px;border-bottom:1px solid #eef1f6;vertical-align:middle}
+table.vsheet-table td.c{text-align:center}
+table.vsheet-table td.r{text-align:right}
+table.vsheet-table input,table.vsheet-table select{width:100%;border:1px solid #d8dfea;border-radius:7px;padding:5px 5px;font-size:12px;background:#fff;color:var(--ink);font-family:inherit}
+table.vsheet-table td:first-child select{font-size:11.5px;font-weight:750}
+table.vsheet-table input:focus,table.vsheet-table select:focus{outline:2px solid #bcd0f7;outline-offset:0;border-color:#9db9f2}
+table.vsheet-table input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+table.vsheet-table td.num{font-variant-numeric:tabular-nums;font-weight:700;color:#243247;white-space:nowrap}
+table.vsheet-table td.num.b{font-weight:800;color:#0f172a}
+table.vsheet-table td .vdel{border:0;background:#f7f2f1;color:#b42318;width:24px;height:24px;border-radius:7px;font-weight:800;font-size:13px;line-height:1;cursor:pointer;padding:0}
+table.vsheet-table td .vdel:hover{background:#fbe6e3}
+table.vsheet-table td .vdel:disabled{opacity:.35;cursor:default}
+table.vsheet-table tbody tr[data-kind="etc"] td{background:#fcfcfd}
+table.vsheet-table tbody tr:focus-within td{background:#f7faff}
+.vrowmeta{display:block;font-size:10px;color:var(--muted);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vlotro{display:block;font-size:11.5px;font-weight:750;color:#33477a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vlotro.muted{color:#98a2b3;font-weight:600}
+.vlotstock{display:block;font-size:10px;color:var(--muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.vsheet-table tfoot td{background:#f7fafe;border-top:2px solid #d6e0ee;font-size:12.5px;font-weight:800;color:#1b2431;padding:7px 4px;font-variant-numeric:tabular-nums}
+table.vsheet-table tfoot td.c{text-align:center;font-size:11px;color:var(--muted);font-weight:750}
+table.vsheet-table tfoot td.b{color:#0b3d91}
+.vsimple{margin-top:8px}
+@media (max-width:1100px){
+  .modal-card.sheetcard{width:calc(100vw - 24px)}
+  .vhead{grid-template-columns:1fr 1fr}
+}
+@media (max-width:768px){
+  .modal-card.sheetcard{max-width:100%;max-height:92vh}
+  .vhead{grid-template-columns:1fr 1fr}
+  .vsheetbar{flex-wrap:wrap}
+  .vsheetbar .tiny-hint{display:none}
+  .vsheetbar .vadd{margin-left:0;width:100%}
+}
+
+/* v10 — 명세서형 다중 품목 입력창은 넓게(v9의 좁은 전표 창 규칙보다 우선) */
+#accVoucherModal .modal-card.sheetcard{width:min(1240px,calc(100vw - 36px));max-width:1240px}
+@media (max-width:1100px){
+  #accVoucherModal .modal-card.sheetcard{width:calc(100vw - 24px);max-width:calc(100vw - 24px)}
+}
+@media (max-width:768px){
+  #accVoucherModal .modal-card.sheetcard{width:100%;max-width:100%;max-height:92vh}
+}
+.vrowmeta:empty{display:none}

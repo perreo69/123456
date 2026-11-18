@@ -810,6 +810,26 @@ var ERP = (function () {
     };
   }
 
+  /* v10 — 한 거래(전표 여러 건)의 품목 줄들을 한 장의 거래명세표로 묶는다 */
+  function stmtGroupData(v, lines) {
+    v = v || {};
+    var out = [], sum, i, l, tax = 'free';
+    for (i = 0; i < (lines || []).length; i++) {
+      l = lines[i] || {};
+      out.push(stmtLine({
+        name: l.name, spec: l.spec, qty: l.qty, unit: l.unit, price: l.price,
+        supply: l.supply, vat: l.vat, tax: l.tax === 'free' ? 'free' : 'tax', note: l.note
+      }));
+      if (out[out.length - 1].vat > 0) tax = 'tax';
+    }
+    sum = stmtSum(out);
+    return {
+      date: s(v.d), partner: s(v.partner), tax: tax, lines: out,
+      supply: sum.supply, vat: sum.vat, total: sum.total,
+      source: '전표', note: s(v.note)
+    };
+  }
+
   /* ---------- CSV ---------- */
   function csvQuote(rows) {
     var out = [], r, c, cells, v;
@@ -2843,6 +2863,7 @@ var ERP = (function () {
     BRANDS: BRANDS, brandNorm: brandNorm, brandTerms: brandTerms, brandStandard: brandStandard,
     brandKoOf: brandKoOf, brandList: brandList, chosung: chosung, romanizeKo: romanizeKo,
     textHit: textHit, stmtLine: stmtLine, stmtSum: stmtSum, stmtMerge: stmtMerge, stmtData: stmtData,
+    stmtGroupData: stmtGroupData,
     sortLogsDesc: sortLogsDesc, sortLogsAsc: sortLogsAsc, filterLogs: filterLogs,
     priceStats: priceStats, priceCompare: priceCompare,
     CHG_COLS: CHG_COLS, chgRows: chgRows, chgCell: chgCell, filterChg: filterChg, siteInput: siteInput,
@@ -7086,55 +7107,104 @@ var LIVE = (function () {
   }
 
   /* ==========================================================================
-     v9 — 매입·매출 전표 입력창에서 실제 품목(원료육·완제품)까지 함께 처리
-       · 연동 대상: 원료육 / 완제품·부자재 / 기타(재고 없음)
-       · 저장 순서: 재고 입·출고(tx_apply·fp_tx_apply) → acc_reflect 로 전표 생성
-         (source_kind + source_id 로 같은 이력이 두 번 들어가지 않는다)
+     v10 — 명세서형 다중 품목 매입·매출 전표 입력창
+       · 상단 공통: 전표 종류 · 전표일자 · 거래처 · 세금계산서 · 비고
+       · 가운데 명세서 표: 구분(원료육 / 완제품·부자재 / 기타) · 창고/로트 · 품목명 ·
+         소비기한/규격 · 수량(kg/개) · 단가(원) · 과세 · 공급가액 · 세액 · 합계
+         (기본 3줄 · ＋ 줄 추가 · × 줄 삭제 · 아래 합계 줄은 실시간 합산)
+       · 저장: 줄마다 재고 입·출고(tx_apply / fp_tx_apply)
+               → acc_reflect 로 그 재고 이력에 묶인 전표(줄마다 1건 · source_kind+source_id 중복 방지)
+               → 같은 거래에서 적은 줄들이 한 장의 2부 거래명세표(openStmt)에 그대로 찍힌다
+       · 기존 전표를 고칠 때는 예전처럼 단일 전표 화면(재고는 건드리지 않는다)
      ========================================================================== */
-  var accV = { id: null, type: 'sale', mode: '', link: 'none', whIn: 'F', destOut: 'vendor',
-               lotId: null, lotWh: '', lotLabel: '', fpCode: '' };
+  var accV = { id: null, type: 'sale', mode: '', rows: [], seq: 0 };
+  var ACCV_ROWS_MAX = 30;
   function trimV(v) { return String(v === null || v === undefined ? '' : v).replace(/^\s+|\s+$/g, ''); }
-  function accVLink() { return accV.id ? 'none' : (accV.link || 'none'); }
-  function accVMsg(text) {
-    $('accVMsg').textContent = text || '';
-    if (text) toast(text, 'warn');
+  function accVIsBuy() { return accV.type === 'purchase'; }
+  function accVKindName(k) { return k === 'fp' ? '완제품·부자재' : (k === 'etc' ? '기타' : '원료육'); }
+  function accVKindTax(k) { return k === 'meat' ? 'free' : 'tax'; }
+  function accVRow(i) { return accV.rows[i] || null; }
+
+  /* ---------- 줄(행) 모델 ---------- */
+  function accVNewRow(kind) {
+    accV.seq += 1;
+    kind = (kind === 'fp' || kind === 'etc') ? kind : 'meat';
+    return {
+      key: accV.seq, kind: kind, wh: 'F', lotId: null, lotWh: '', code: '',
+      name: '', meat: '', origin: '', brand: '', expiry: '', spec: '',
+      qty: '', price: '', tax: accVKindTax(kind)
+    };
   }
-  function accVCurTax() {
-    var b = $('accVTaxSeg') ? $('accVTaxSeg').querySelector('.active') : null;
-    return b ? b.getAttribute('data-vtax') : 'tax';
+  function accVResetRows(n) {
+    accV.rows = [];
+    for (var i = 0; i < (n || 3); i++) accV.rows.push(accVNewRow('meat'));
   }
-  function setAccVTax(v) {
-    var segs = $('accVTaxSeg') ? $('accVTaxSeg').querySelectorAll('button') : [];
-    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-vtax') === v);
-  }
-  function accVSaveLabel() {
-    var lk = accVLink();
-    if (lk === 'none') return '저장';
-    var kind = accV.type === 'purchase' ? '매입' : '매출';
-    return '저장 (재고 + ' + kind + ' 전표)';
-  }
-  function accVBusy(on) {
-    var b = $('accVoucherSave');
-    if (!b) return;
-    b.disabled = !!on;
-    b.textContent = on ? '저장 중…' : accVSaveLabel();
+  /* 수량 × 단가 = 공급가액 · 과세면 세액 10% · 합계 */
+  function accVRowNums(r) {
+    var qty = Number(r && r.qty || 0), price = Number(r && r.price || 0);
+    var supply = 0;
+    if (qty > 0 && price > 0) supply = Math.round(qty * price);
+    else if (r && r.kind === 'etc' && price > 0) supply = Math.round(price);
+    var vat = (r && r.tax === 'tax') ? Math.round(supply * ERP.VAT_RATE * 100) / 100 : 0;
+    return { qty: qty > 0 ? qty : 0, price: price, supply: supply, vat: vat, total: supply + vat };
   }
 
-  /* 원료육 매출 — 지금 재고가 있는 로트를 창고별로 고른다 (소비기한 빠른 순) */
-  function accVMeatLotCands() {
+  /* ---------- 후보(자동완성) ---------- */
+  /* 원료육 품목 — 로트·이력에서 육류·원산지·브랜드·최근 단가·소비기한 기본값을 모은다 */
+  function accVMeatMeta(name) {
+    var q = trimV(name), i, L, m = null;
+    if (!q) return null;
+    for (i = 0; i < st.lots.length; i++) {
+      L = st.lots[i];
+      if (trimV(L.n) !== q) continue;
+      if (!m) m = { mt: '', o: '', b: '', price: 0, e: '' };
+      if (!m.mt && L.mt) m.mt = L.mt;
+      if (!m.o && L.o) m.o = L.o;
+      if (!m.b && L.b) m.b = L.b;
+      if (!(m.price > 0) && Number(L.price) > 0) m.price = Number(L.price);
+      if ((L.e || '') > (m.e || '')) m.e = L.e || '';
+    }
+    return m;
+  }
+  function accVMeatProductCands() {
+    return acCached('vmeatprod', function () {
+      var map = {}, out = [], i, L, m, k;
+      for (i = 0; i < st.lots.length; i++) {
+        L = st.lots[i];
+        k = trimV(L.n);
+        if (!k) continue;
+        if (!map[k]) {
+          m = { v: k, t: k, h: [k, L.mt, L.o, L.b].join(' '), mt: '', o: '', b: '', price: 0, e: '' };
+          map[k] = m; out.push(m);
+        }
+        m = map[k];
+        if (!m.mt && L.mt) m.mt = L.mt;
+        if (!m.o && L.o) m.o = L.o;
+        if (!m.b && L.b) m.b = L.b;
+        if (!(m.price > 0) && Number(L.price) > 0) m.price = Number(L.price);
+        if ((L.e || '') > (m.e || '')) m.e = L.e || '';
+      }
+      for (i = 0; i < out.length; i++) {
+        out[i].s = [out[i].mt, out[i].o, out[i].b,
+          out[i].price > 0 ? fmtInt(out[i].price) + '원/kg' : ''].filter(function (x) { return !!x; }).join(' · ');
+      }
+      return out;
+    });
+  }
+  /* 매출 — 지금 재고가 있는 원료육 로트(창고별). 소비기한이 빠른 순 */
+  function accVLotCands() {
     var out = [], i, w, L, q, wh;
     for (i = 0; i < st.lots.length; i++) {
       L = st.lots[i];
       for (w = 0; w < 2; w++) {
         wh = w === 0 ? 'F' : 'C';
         q = wh === 'F' ? L.fq : L.cq;
-        if (q <= ERP.EPS) continue;
+        if (!(q > ERP.EPS)) continue;
         out.push({
           v: L.n, t: L.n,
-          h: [L.n, L.v, L.b, L.mt, L.e, wh === 'F' ? '냉동고' : '냉장고'].join(' '),
-          s: (wh === 'F' ? '🧊 냉동 ' : '❄️ 냉장 ') + fmt(q) + 'kg' +
-            (L.v ? ' · ' + L.v : '') + (L.e ? ' · ~' + L.e : '') +
-            (L.price > 0 ? ' · ' + fmtInt(L.price) + '원/kg' : ''),
+          h: [L.n, L.mt, L.o, L.b, L.e, wh === 'F' ? '냉동고' : '냉장고'].join(' '),
+          s: (wh === 'F' ? '🧊 냉동 ' : '❄️ 냉장 ') + fmtQty(q) + 'kg' +
+            (L.e ? ' · ~' + L.e : '') + (L.price > 0 ? ' · ' + fmtInt(L.price) + '원/kg' : ''),
           lot: L, wh: wh
         });
       }
@@ -7146,381 +7216,702 @@ var LIVE = (function () {
     });
     return out;
   }
-  function accVLotOf(dbid) {
-    for (var i = 0; i < st.lots.length; i++) if (Number(st.lots[i].dbid) === Number(dbid)) return st.lots[i];
+  /* 창고/로트 칸의 로트 목록 (매출) */
+  function accVLotList() {
+    return acCached('vlotlist', function () {
+      var out = [], i, w, L, q, wh;
+      for (i = 0; i < st.lots.length; i++) {
+        L = st.lots[i];
+        for (w = 0; w < 2; w++) {
+          wh = w === 0 ? 'F' : 'C';
+          q = wh === 'F' ? L.fq : L.cq;
+          if (!(q > ERP.EPS)) continue;
+          out.push({
+            id: Number(L.dbid), wh: wh, lot: L, q: q,
+            label: (wh === 'F' ? '냉동' : '냉장') + ' · ' + L.n + (L.e ? ' · ~' + L.e : '') + ' · ' + fmtQty(q) + 'kg'
+          });
+        }
+      }
+      out.sort(function (a, b) {
+        var ae = a.lot.e || '9999-99-99', be = b.lot.e || '9999-99-99';
+        if (ae !== be) return ae < be ? -1 : 1;
+        return a.lot.n < b.lot.n ? -1 : (a.lot.n > b.lot.n ? 1 : 0);
+      });
+      return out;
+    });
+  }
+  function accVLotOf(r) {
+    if (!r || !(Number(r.lotId) > 0)) return null;
+    for (var i = 0; i < st.lots.length; i++) {
+      if (Number(st.lots[i].dbid) === Number(r.lotId)) {
+        return { lot: st.lots[i], wh: r.lotWh === 'C' ? 'C' : 'F' };
+      }
+    }
     return null;
   }
-  function accVResolveLot() {
-    var q = trimV($('accVName') ? $('accVName').value : '');
+  function accVResolveLot(r) {
+    var pk = accVLotOf(r);
+    if (pk) return pk;
+    var q = trimV(r && r.name);
     if (!q) return null;
-    if (accV.lotId) {
-      var L = accVLotOf(accV.lotId);
-      if (L && (q === accV.lotLabel || q === L.n)) return { lot: L, wh: accV.lotWh || (L.fq > ERP.EPS ? 'F' : 'C') };
-    }
-    var hit = ERP.smartPick(accVMeatLotCands(), q, 1);
+    var hit = ERP.smartPick(accVLotCands(), q, 1);
     return hit.length ? { lot: hit[0].lot, wh: hit[0].wh } : null;
   }
-  function accVMeatInfoPaint() {
-    var box = $('accVMeatInfo');
-    if (!box) return;
-    if (accV.type === 'purchase') {
-      box.className = 'lotinfo';
-      box.innerHTML = '입력한 내용으로 <b>새 로트</b>가 생기거나, 제품명·업체명·입고일·소비기한이 같은 기존 로트에 합산됩니다.';
-      return;
+  /* 완제품·부자재 — 코드 또는 상품명으로 찾는다 */
+  function accVRowProduct(r) {
+    if (!r) return null;
+    var q = trimV(r.name);
+    if (r.code) {
+      var p0 = ERP.fpProductOf(st.fps, r.code);
+      if (p0) return p0;
     }
-    var pk = accVResolveLot();
-    if (!pk) {
-      box.className = 'lotinfo empty';
-      box.innerHTML = '출고할 <b>재고 로트</b>의 제품명을 입력하거나 목록에서 고르세요. 재고가 있는 로트만 나옵니다.';
-      return;
-    }
-    var L = pk.lot, q = pk.wh === 'F' ? L.fq : L.cq;
-    box.className = 'lotinfo';
-    box.innerHTML = '<b>' + esc(L.n) + '</b> · ' + (pk.wh === 'F' ? '🧊 냉동고' : '❄️ 냉장고') +
-      ' <b>' + fmt(q) + 'kg</b> 보유' + (L.v ? ' · ' + esc(L.v) : '') + (L.e ? ' · 소비기한 ' + esc(L.e) : '') +
-      (L.price > 0 ? ' · 기준단가 ' + fmtInt(L.price) + '원/kg' : '');
-  }
-  function accVPickLot(it) {
-    if (!it || !it.lot) return;
-    accV.lotId = it.lot.dbid; accV.lotWh = it.wh; accV.lotLabel = $('accVName').value;
-    if (it.lot.price > 0) $('accVPrice').value = String(Math.round(it.lot.price));
-    accVMeatInfoPaint();
-    syncAccVLinked();
-  }
-  function accVFpProduct() {
-    var raw = trimV($('accVFpQuery') ? $('accVFpQuery').value : '');
-    if (!raw) return null;
-    if (accV.fpCode) {
-      var p0 = ERP.fpProductOf(st.fps, accV.fpCode);
-      if (p0 && (raw.indexOf(p0.code) >= 0 || raw === p0.n || raw === p0.code + ' · ' + p0.n)) return p0;
-    }
-    var p = ERP.fpFind(st.fps, raw);
+    if (!q) return null;
+    var p = ERP.fpFind(st.fps, q);
     if (p) return p;
-    /* '코드 · 상품명' 형태로 적어도 찾는다 */
-    var parts = raw.split('·');
-    for (var i = 0; i < parts.length; i++) {
+    var parts = q.split('·'), i;
+    for (i = 0; i < parts.length; i++) {
       p = ERP.fpFind(st.fps, parts[i]);
       if (p) return p;
     }
-    var m = /[A-Za-z]\d{4,}/.exec(raw);
-    if (m) { p = ERP.fpProductOf(st.fps, m[0].toUpperCase()); if (p) return p; }
     return null;
   }
-  function accVFpPaint() {
-    var box = $('accVFpInfo');
-    if (!box) return;
-    var p = accVFpProduct();
-    if (!p) {
-      box.className = 'lotinfo empty';
-      box.innerHTML = '품목을 고르면 현재고·단가가 보입니다.';
-      return;
-    }
-    box.className = 'lotinfo';
-    box.innerHTML = '<b>' + esc(p.n) + '</b>' + (p.spec ? ' · ' + esc(p.spec) : '') +
-      ' · 현재고 <b>' + fmtQty(p.stock) + esc(p.unit) + '</b> · ' +
-      (accV.type === 'purchase' ? '입고단가 ' + fmtInt(p.inp) : '출고단가 ' + fmtInt(p.outp)) + '원';
-  }
-  function accVPickFp(it) {
-    if (!it) return;
-    var p = ERP.fpFind(st.fps, it.v);
-    if (p) {
-      accV.fpCode = p.code;
-      var pr = accV.type === 'purchase' ? p.inp : p.outp;
-      if (pr > 0) $('accVFpPrice').value = String(Math.round(pr));
-    }
-    accVFpPaint();
-    syncAccVLinked();
-  }
-  /* 수량 × 단가 → 금액(자동). 연동 모드에서는 금액칸을 직접 고치지 않는다 */
-  function syncAccVLinked() {
-    var el = $('accVAmount');
-    if (!el) return;
-    var lk = accVLink();
-    if (lk === 'none') {
-      el.readOnly = false;
-      el.classList.remove('autofill');
-      if ($('accVAmountNote')) $('accVAmountNote').textContent = '';
-      accVatPreview();
-      return;
-    }
-    el.readOnly = true;
-    el.classList.add('autofill');
-    var q = lk === 'meat' ? Number(($('accVKg') || {}).value || 0) : Number(($('accVFpQty') || {}).value || 0);
-    var pr = lk === 'meat' ? Number(($('accVPrice') || {}).value || 0) : Number(($('accVFpPrice') || {}).value || 0);
-    var amt = (q > 0 && pr > 0) ? Math.round(q * pr) : 0;
-    el.value = amt ? String(amt) : '';
-    if ($('accVAmountNote')) {
-      $('accVAmountNote').textContent = amt
-        ? fmtQty(q) + (lk === 'meat' ? 'kg' : '') + ' × ' + fmtInt(pr) + '원 (자동)'
-        : '수량·단가를 넣으면 자동';
-    }
-    accVatPreview();
+  function accVNameCands(r) {
+    if (!r) return [];
+    if (r.kind === 'fp') return acFgCands();
+    if (r.kind === 'meat') return accVIsBuy() ? accVMeatProductCands() : accVLotCands();
+    return [];
   }
 
+  /* ---------- 명세서 표 그리기 ---------- */
+  function accVOpts(field, cur, list) {
+    var h = ['<select data-f="' + field + '">'], i, o;
+    for (i = 0; i < list.length; i++) {
+      o = list[i];
+      h.push('<option value="' + esc(o[0]) + '"' + (String(o[0]) === String(cur === null || cur === undefined ? '' : cur) ? ' selected' : '') +
+        '>' + esc(o[1]) + '</option>');
+    }
+    h.push('</select>');
+    return h.join('');
+  }
+  /* 창고/로트 칸 — 입력칸(창고 select · 로트 select)은 그대로 두고 안내 글만 따로 그린다 */
+  function accVLotInfoHtml(r) {
+    if (r.kind === 'meat') {
+      if (accVIsBuy()) return '';
+      var n = accVLotList().length;
+      return n ? '' : '<span class="vlotstock">보유 로트가 없습니다</span>';
+    }
+    if (r.kind === 'fp') {
+      var p = accVRowProduct(r);
+      return '<span class="vlotro">완제품창고</span>' +
+        '<span class="vlotstock">' + (p ? '현재고 ' + fmtQty(p.stock) + esc(p.unit) : '품목을 고르면 현재고') + '</span>';
+    }
+    return '<span class="vlotro muted">재고 없음</span><span class="vlotstock">전표만</span>';
+  }
+  function accVLotCellHtml(r) {
+    var i, opts;
+    if (r.kind === 'meat') {
+      if (accVIsBuy()) return accVOpts('wh', r.wh, [['F', '🧊 냉동고'], ['C', '❄️ 냉장고']]);
+      var list = accVLotList();
+      opts = [['', '로트 선택']];
+      for (i = 0; i < list.length; i++) opts.push([String(list[i].id) + '|' + list[i].wh, list[i].label]);
+      return accVOpts('lot', r.lotId ? String(r.lotId) + '|' + (r.lotWh || 'F') : '', opts) +
+        '<div data-cell="lotro">' + accVLotInfoHtml(r) + '</div>';
+    }
+    return '<div data-cell="lotro">' + accVLotInfoHtml(r) + '</div>';
+  }
+  function accVNameCellHtml(r) {
+    var ph = r.kind === 'fp' ? '예: 떡갈비 / W00100016'
+      : (r.kind === 'meat' ? (accVIsBuy() ? '예: 등갈비' : '예: 등갈비 (보유 로트)') : '예: 운송비');
+    var meta = r.kind === 'meat' ? [r.meat, r.origin, r.brand].filter(function (x) { return !!x; }).join(' · ') : '';
+    return '<input data-f="name" class="vnamein" value="' + esc(r.name) + '" placeholder="' + esc(ph) + '" autocomplete="off">' +
+      '<span class="vrowmeta" data-cell="meta">' + esc(meta) + '</span>';
+  }
+  function accVExpInfoHtml(r) {
+    if (r.kind === 'meat') {
+      var pk = accVLotOf(r);
+      return '<span class="vlotro">' + (pk ? esc(pk.lot.e || '—') : '—') + '</span>' +
+        '<span class="vlotstock">' + (pk ? (pk.wh === 'F' ? '냉동고' : '냉장고') + ' 재고 ' + fmtQty(pk.wh === 'F' ? pk.lot.fq : pk.lot.cq) + 'kg'
+          : (accVIsBuy() ? '소비기한' : '로트를 고르세요')) + '</span>';
+    }
+    if (r.kind === 'fp') {
+      var p = accVRowProduct(r);
+      return '<span class="vlotro">' + esc(p ? (p.spec || '—') : '—') + '</span>' +
+        '<span class="vlotstock">' + (p ? '단위 ' + esc(p.unit) : '규격') + '</span>';
+    }
+    return '<span class="vlotro muted">—</span>';
+  }
+  function accVExpCellHtml(r) {
+    if (r.kind === 'meat' && accVIsBuy()) {
+      return '<input type="date" data-f="expiry" value="' + esc(r.expiry) + '" title="소비기한">';
+    }
+    return '<div data-cell="exp">' + accVExpInfoHtml(r) + '</div>';
+  }
+  function accVRowHtml(r, i) {
+    var n = accVRowNums(r);
+    return '<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '">' +
+      '<td class="c">' + accVOpts('kind', r.kind, [['meat', '원료육'], ['fp', '완제품·부자재'], ['etc', '기타']]) + '</td>' +
+      '<td>' + accVLotCellHtml(r) + '</td>' +
+      '<td>' + accVNameCellHtml(r) + '</td>' +
+      '<td>' + accVExpCellHtml(r) + '</td>' +
+      '<td class="r"><input type="number" data-f="qty" step="0.001" min="0" value="' + esc(r.qty) + '" placeholder="0"></td>' +
+      '<td class="r"><input type="number" data-f="price" step="1" min="0" value="' + esc(r.price) + '" placeholder="0"></td>' +
+      '<td class="c">' + accVOpts('tax', r.tax, [['tax', '과세'], ['free', '면세']]) + '</td>' +
+      '<td class="r num" data-num="supply">' + (n.supply ? fmtInt(n.supply) : '') + '</td>' +
+      '<td class="r num" data-num="vat">' + (n.vat ? fmtInt(n.vat) : '') + '</td>' +
+      '<td class="r num b" data-num="total">' + (n.total ? fmtInt(n.total) : '') + '</td>' +
+      '<td class="c"><button type="button" class="vdel" data-delrow="' + i + '" aria-label="줄 삭제" title="줄 삭제">×</button></td>' +
+      '</tr>';
+  }
+  /* 입력칸은 그대로 두고 안내 글(육류·원산지·브랜드 · 소비기한 · 현재고)과 빈 단가만 채운다 */
+  function accVRowRefresh(i) {
+    var r = accVRow(i);
+    var tr = document.querySelector('#accVSheetBody tr[data-r="' + i + '"]');
+    if (!r || !tr) return;
+    var ni = tr.querySelector('[data-f="name"]');
+    if (ni && ni.value !== r.name && (document.activeElement !== ni)) ni.value = r.name;
+    var meta = tr.querySelector('[data-cell="meta"]');
+    if (meta) meta.textContent = r.kind === 'meat' ? [r.meat, r.origin, r.brand].filter(function (x) { return !!x; }).join(' · ') : '';
+    var lc = tr.querySelector('[data-cell="lotro"]');
+    if (lc) lc.innerHTML = accVLotInfoHtml(r);
+    var ec = tr.querySelector('[data-cell="exp"]');
+    if (ec) ec.innerHTML = accVExpInfoHtml(r);
+    var ei = tr.querySelector('[data-f="expiry"]');
+    if (ei && !ei.value && r.expiry) ei.value = r.expiry;
+    var pi = tr.querySelector('[data-f="price"]');
+    if (pi && !pi.value && r.price !== '' && r.price !== null && r.price !== undefined) pi.value = r.price;
+    var ls = tr.querySelector('[data-f="lot"]');
+    if (ls && r.lotId) {
+      var v = String(r.lotId) + '|' + (r.lotWh || 'F'), found = false;
+      for (var k = 0; k < ls.options.length; k++) if (ls.options[k].value === v) { found = true; break; }
+      if (found) ls.value = v;
+    }
+    accVSheetPaint();
+  }
+  function accVSheetPaint() {
+    var sumQ = 0, sumS = 0, sumV = 0, sumT = 0, i, r, n, tr, cell;
+    for (i = 0; i < accV.rows.length; i++) {
+      r = accV.rows[i]; n = accVRowNums(r);
+      tr = document.querySelector('#accVSheetBody tr[data-r="' + i + '"]');
+      if (tr) {
+        cell = tr.querySelector('[data-num="supply"]'); if (cell) cell.textContent = n.supply ? fmtInt(n.supply) : '';
+        cell = tr.querySelector('[data-num="vat"]'); if (cell) cell.textContent = n.vat ? fmtInt(n.vat) : '';
+        cell = tr.querySelector('[data-num="total"]'); if (cell) cell.textContent = n.total ? fmtInt(n.total) : '';
+      }
+      sumQ += n.qty; sumS += n.supply; sumV += n.vat; sumT += n.total;
+    }
+    var saveBtn = $('accVoucherSave');
+    if (saveBtn && !saveBtn.disabled) {
+      var lab = accVSaveLabel();
+      if (saveBtn.textContent !== lab) saveBtn.textContent = lab;
+    }
+    if ($('accVSumQty')) $('accVSumQty').textContent = sumQ ? fmtQty(sumQ) : '0';
+    if ($('accVSumSupply')) $('accVSumSupply').textContent = fmtInt(sumS);
+    if ($('accVSumVat')) $('accVSumVat').textContent = fmtInt(sumV);
+    if ($('accVSumTotal')) $('accVSumTotal').textContent = fmtInt(sumT);
+  }
+  function accVRowBind(i) {
+    var tr = document.querySelector('#accVSheetBody tr[data-r="' + i + '"]');
+    if (!tr) return;
+    var r = accVRow(i), inp = tr.querySelector('[data-f="name"]');
+    if (!r || !inp) return;
+    acWire(inp, function () { return accVNameCands(r); }, function (it) { accVPickItem(i, it); });
+  }
+  function accVBindAll() {
+    for (var i = 0; i < accV.rows.length; i++) accVRowBind(i);
+  }
+  function accVSheetRender() {
+    var body = $('accVSheetBody');
+    if (!body) return;
+    var h = [], i;
+    for (i = 0; i < accV.rows.length; i++) h.push(accVRowHtml(accV.rows[i], i));
+    body.innerHTML = h.join('');
+    accVBindAll();
+    accVSheetPaint();
+  }
+  function accVRowRepaint(i) {
+    var tr = document.querySelector('#accVSheetBody tr[data-r="' + i + '"]');
+    if (!tr || !accVRow(i)) return;
+    tr.outerHTML = accVRowHtml(accV.rows[i], i);
+    accVRowBind(i);
+    accVSheetPaint();
+  }
+  /* 품목명·로트를 고르면 육류·원산지·브랜드·단가·소비기한 기본값을 채운다 */
+  function accVPickItem(i, it) {
+    var r = accVRow(i);
+    if (!r || !it) return;
+    if (r.kind === 'fp') {
+      var p = it.p || ERP.fpFind(st.fps, it.v);
+      if (p) {
+        r.code = p.code; r.name = p.n; r.spec = p.spec || '';
+        var pr = accVIsBuy() ? p.inp : p.outp;
+        if (!(Number(r.price) > 0) && pr > 0) r.price = String(Math.round(pr));
+      } else { r.name = it.v; }
+    } else if (r.kind === 'meat') {
+      if (!accVIsBuy() && it.lot) {
+        r.lotId = it.lot.dbid; r.lotWh = it.wh; r.name = it.lot.n;
+        if (!(Number(r.price) > 0) && it.lot.price > 0) r.price = String(Math.round(it.lot.price));
+      } else {
+        r.name = it.v;
+        var m = accVMeatMeta(it.v);
+        if (m) {
+          if (!r.meat && m.mt) r.meat = m.mt;
+          if (!r.origin && m.o) r.origin = m.o;
+          if (!r.brand && m.b) r.brand = m.b;
+          if (!(Number(r.price) > 0) && m.price > 0) r.price = String(Math.round(m.price));
+          if (!r.expiry && m.e) r.expiry = m.e;
+        }
+      }
+    } else { r.name = it.v; }
+    accVRowRefresh(i);
+  }
+  /* 품목명을 직접 치고 칸을 나올 때 — 아는 품목이면 같은 자동 채움 */
+  function accVRowResolve(i) {
+    var r = accVRow(i);
+    if (!r) return;
+    var q = trimV(r.name);
+    if (!q) return;
+    if (r.kind === 'fp') {
+      var p = accVRowProduct(r);
+      if (p) {
+        r.code = p.code; r.name = p.n; r.spec = p.spec || '';
+        if (!(Number(r.price) > 0)) {
+          var pr = accVIsBuy() ? p.inp : p.outp;
+          if (pr > 0) r.price = String(Math.round(pr));
+        }
+      }
+    } else if (r.kind === 'meat') {
+      if (!accVIsBuy() && !accVLotOf(r)) {
+        var pk = accVResolveLot(r);
+        if (pk) {
+          r.lotId = pk.lot.dbid; r.lotWh = pk.wh;
+          if (!(Number(r.price) > 0) && pk.lot.price > 0) r.price = String(Math.round(pk.lot.price));
+        }
+      } else {
+        var m = accVMeatMeta(q);
+        if (m) {
+          if (!r.meat && m.mt) r.meat = m.mt;
+          if (!r.origin && m.o) r.origin = m.o;
+          if (!r.brand && m.b) r.brand = m.b;
+          if (!(Number(r.price) > 0) && m.price > 0) r.price = String(Math.round(m.price));
+          if (!r.expiry && m.e) r.expiry = m.e;
+        }
+      }
+    }
+    accVRowRefresh(i);
+  }
+  function accVRowDelete(i) {
+    if (accV.rows.length <= 1) {
+      accV.rows[0] = accVNewRow('meat');
+    } else {
+      accV.rows.splice(i, 1);
+    }
+    accVSheetRender();
+  }
+  function accVAddLine() {
+    if (accV.rows.length >= ACCV_ROWS_MAX) { toast('한 번에 ' + ACCV_ROWS_MAX + '줄까지 입력할 수 있습니다.', 'warn'); return; }
+    var last = accV.rows[accV.rows.length - 1];
+    accV.rows.push(accVNewRow(last ? last.kind : 'meat'));
+    accVSheetRender();
+    var tr = document.querySelector('#accVSheetBody tr[data-r="' + (accV.rows.length - 1) + '"]');
+    if (tr) { var inp = tr.querySelector('[data-f="name"]'); if (inp) { try { inp.focus(); } catch (e) { } } }
+  }
+
+  /* ---------- 저장 ---------- */
+  function accVSaveLabel() {
+    if (accV.id) return '저장';
+    var rows = 0, i, r;
+    for (i = 0; i < accV.rows.length; i++) {
+      r = accV.rows[i];
+      if (trimV(r.name) && (Number(r.qty) > 0)) rows += 1;
+    }
+    return rows > 1
+      ? '저장 (재고 + ' + (accVIsBuy() ? '매입' : '매출') + ' 전표 ' + rows + '건)'
+      : '저장 (재고 + ' + (accVIsBuy() ? '매입' : '매출') + ' 전표)';
+  }
+  function accVBusy(on) {
+    var b = $('accVoucherSave');
+    if (!b) return;
+    b.disabled = !!on;
+    b.textContent = on ? '저장 중…' : accVSaveLabel();
+  }
+  function accVMsg(text) {
+    if ($('accVMsg')) $('accVMsg').textContent = text || '';
+    if (text) toast(text, 'warn');
+  }
+  function accVLineSpec(L) {
+    var r = L.row;
+    if (L.kind === 'meat') {
+      var pk = L.lot || accVLotOf(r);
+      var wh = accVIsBuy() ? (r.wh === 'C' ? 'C' : 'F') : (pk ? pk.wh : '');
+      return [wh ? ERP.whName(wh) : '', trimV(r.meat)].filter(function (x) { return !!x; }).join(' · ');
+    }
+    if (L.kind === 'fp') {
+      var p = L.prod || accVRowProduct(r);
+      return (p && p.spec) || r.spec || '';
+    }
+    return r.spec || '';
+  }
+  function accVLineUnit(L) {
+    if (L.kind === 'meat') return 'kg';
+    if (L.kind === 'fp') { var p = L.prod || accVRowProduct(L.row); return (p && p.unit) || '개'; }
+    return '';
+  }
+  function accVLineLabel(L) {
+    var u = accVLineUnit(L);
+    return L.name + ' ' + fmtQty(L.qty) + u;
+  }
+  /* 입력한 줄을 검사하고 저장할 줄만 골라낸다 */
+  function accVSheetLines() {
+    var lines = [], i, r, name, qty, price, n, no;
+    for (i = 0; i < accV.rows.length; i++) {
+      r = accV.rows[i];
+      name = trimV(r.name); qty = Number(r.qty || 0); price = Number(r.price || 0);
+      if (!name && !trimV(r.qty) && !trimV(r.price)) continue;   /* 빈 줄은 건너뛴다 */
+      no = (i + 1) + '번째 줄';
+      if (!name && r.kind !== 'etc') return { err: no + ': 품목명을 입력하세요.' };
+      if (r.kind === 'meat') {
+        if (accVIsBuy()) {
+          if (!r.expiry) return { err: no + ': 소비기한을 입력하세요. (원료육 입고는 재고 로트에 꼭 들어갑니다)' };
+        } else {
+          var pk = accVResolveLot(r);
+          if (!pk) return { err: no + ': 출고할 원료육 로트를 고르세요. (재고가 있는 로트만 됩니다)' };
+          var have = pk.wh === 'F' ? pk.lot.fq : pk.lot.cq;
+          if (qty > have + ERP.EPS) {
+            return { err: no + ': ' + (pk.wh === 'F' ? '냉동고' : '냉장고') + ' 재고(' + fmt(have) + 'kg)보다 많이 출고할 수 없습니다.' };
+          }
+        }
+      } else if (r.kind === 'fp') {
+        var p = accVRowProduct(r);
+        if (!p) return { err: no + ': \'' + name + '\'을(를) 완제품·부자재에서 찾을 수 없습니다. (품목 등록 후 다시 입력하세요)' };
+        if (!accVIsBuy() && qty > p.stock + 0.0004) {
+          return { err: no + ': 현재고(' + fmtQty(p.stock) + p.unit + ')보다 많이 출고할 수 없습니다.' };
+        }
+      }
+      if (r.kind === 'etc') {
+        if (!(price > 0) && !(qty > 0 && price > 0)) return { err: no + ': 금액(단가)을 입력하세요.' };
+        if (!name) { name = '기타'; r.name = name; }
+      } else {
+        if (!(qty > 0)) return { err: no + ': 수량(' + (r.kind === 'meat' ? 'kg' : '개') + ')을 입력하세요.' };
+        if (!(price > 0)) return { err: no + ': 단가를 입력하세요. (전표 금액이 됩니다)' };
+      }
+      n = accVRowNums(r);
+      if (!(n.supply > 0)) return { err: no + ': 공급가액이 0원입니다. 수량·단가를 확인하세요.' };
+      lines.push({
+        i: i, kind: r.kind, row: r, name: name, qty: qty, price: price, tax: r.tax,
+        supply: n.supply, vat: n.vat, total: n.total,
+        lot: r.kind === 'meat' ? accVResolveLot(r) : null,
+        prod: r.kind === 'fp' ? accVRowProduct(r) : null
+      });
+    }
+    if (!lines.length) return { err: '명세서에 품목을 한 줄 이상 입력하세요.' };
+    return { lines: lines };
+  }
+  function accVStockMeat(L, head) {
+    var r = L.row;
+    if (accVIsBuy()) {
+      return SB.db.apply({
+        date: head.date, type: 'in', wh: r.wh === 'C' ? 'C' : 'F',
+        name: L.name, meat: trimV(r.meat), origin: trimV(r.origin), brand: trimV(r.brand),
+        vendor: head.partner, in_date: head.date, exp_date: r.expiry,
+        kg: L.qty, price: L.price, amount: L.supply, note: head.note
+      }).then(function (row) { return row && Number(row.id); });
+    }
+    var pk = L.lot || accVResolveLot(r);
+    if (!pk) throw new Error((L.i + 1) + '번째 줄: 출고할 원료육 로트를 고르세요.');
+    return SB.db.apply({
+      date: head.date, type: 'out', wh: pk.wh, lot_id: Number(pk.lot.dbid),
+      dest_type: 'vendor', dest: head.partner, kg: L.qty, price: L.price,
+      amount: L.supply, note: head.note
+    }).then(function (row) { return row && Number(row.id); });
+  }
+  function accVStockFp(L, head) {
+    var p = L.prod || accVRowProduct(L.row);
+    if (!p) throw new Error((L.i + 1) + '번째 줄: 완제품·부자재 품목을 찾을 수 없습니다.');
+    return SB.db.fpApply({
+      code: p.code, type: accVIsBuy() ? 'IN' : 'OUT', qty: L.qty, date: head.date,
+      price: L.price, expiry: null, partner: head.partner, note: head.note,
+      allowNegative: false, source: 'manual'
+    }).then(function (row) { return row && Number(row.id); });
+  }
+  /* 저장된 줄 → 거래명세표에 찍을 줄 (같은 거래의 줄을 한 장에 모은다) */
+  function accVStmtLines(saved) {
+    var out = [], i, s, L;
+    for (i = 0; i < saved.length; i++) {
+      s = saved[i]; L = s.L;
+      if (!s.vid) continue;
+      out.push({
+        vid: Number(s.vid), name: L.name, spec: accVLineSpec(L), unit: accVLineUnit(L),
+        qty: L.qty, price: L.price, supply: L.supply, vat: L.vat, tax: L.tax, note: ''
+      });
+    }
+    return out;
+  }
+  function saveAccVSheet() {
+    var partner = trimV($('accVPartner').value);
+    var date = $('accVDate').value || today();
+    var head = { partner: partner, date: date, doc: $('accVDoc').value || 'none', note: trimV($('accVNote').value) };
+    if (!partner) { accVMsg('거래처를 입력하세요.'); return; }
+    var chk = accVSheetLines();
+    if (chk.err) { accVMsg(chk.err); return; }
+    var lines = chk.lines, saved = [], failed = null;
+    accVBusy(true);
+    $('accVMsg').textContent = '';
+    var chain = Promise.resolve();
+    lines.forEach(function (L) {
+      chain = chain.then(function () {
+        if (L.kind === 'meat') {
+          return accVStockMeat(L, head).then(function (id) { saved.push({ L: L, kind: 'meat', id: Number(id) || 0, vid: 0 }); });
+        }
+        if (L.kind === 'fp') {
+          return accVStockFp(L, head).then(function (id) { saved.push({ L: L, kind: 'fp', id: Number(id) || 0, vid: 0 }); });
+        }
+        saved.push({ L: L, kind: 'etc', id: 0, vid: 0 });
+        return null;
+      }).catch(function (e) {
+        if (!failed) { failed = e; e.savedRows = saved.length; e.lineNo = L.i + 1; }
+        throw e;
+      });
+    });
+    chain.then(function () {
+      /* ① 재고 이력 → acc_reflect (과세구분별로 묶어 줄마다 전표 1건, 중복 방지) */
+      var groups = { free: [], tax: [] }, i;
+      for (i = 0; i < saved.length; i++) {
+        if (saved[i].kind === 'etc') continue;
+        groups[saved[i].L.tax === 'free' ? 'free' : 'tax'].push(saved[i]);
+      }
+      var p = Promise.resolve();
+      ['free', 'tax'].forEach(function (tx) {
+        if (!groups[tx].length) return;
+        p = p.then(function () {
+          var items = groups[tx].map(function (s) { return { kind: s.kind, id: Number(s.id) }; });
+          return SB.db.accReflect(items, tx).then(function (res) {
+            var ids = (res && res.ids) || [];
+            for (var k = 0; k < groups[tx].length; k++) {
+              groups[tx][k].vid = (ids.length === groups[tx].length) ? Number(ids[k]) || 0 : 0;
+            }
+            return res;
+          });
+        });
+      });
+      return p;
+    }).then(function () {
+      /* ② 기타(재고 없음) 줄은 전표만 만든다 */
+      var p = Promise.resolve();
+      saved.forEach(function (s) {
+        if (s.kind !== 'etc') return;
+        p = p.then(function () {
+          return SB.db.accVoucherSave({
+            id: null, date: head.date, type: accV.type, partner: head.partner, tax: s.L.tax,
+            amount: s.L.supply, vatIncluded: false, doc: head.doc, note: head.note || s.L.name
+          }).then(function (row) { s.vid = Number(row && row.id) || 0; });
+        });
+      });
+      return p;
+    }).then(function () {
+      /* ③ 세금계산서 상태·적요를 전표에 반영 (실패해도 전표는 남긴다) */
+      var p = Promise.resolve();
+      saved.forEach(function (s) {
+        if (!s.vid || s.kind === 'etc') return;
+        if (head.doc === 'none' && !head.note) return;
+        p = p.then(function () {
+          return SB.db.accVoucherSave({
+            id: s.vid, date: head.date, type: accV.type, partner: head.partner, tax: s.L.tax,
+            amount: s.L.supply, vatIncluded: false, doc: head.doc, note: head.note || accVLineLabel(s.L)
+          }).then(function () { }, function () { });
+        });
+      });
+      return p;
+    }).then(function () {
+      var stl = accVStmtLines(saved);
+      accVRememberGroup(stl);
+      var sum = 0, i;
+      for (i = 0; i < stl.length; i++) sum += stl[i].supply + stl[i].vat;
+      var kindName = accVIsBuy() ? '매입' : '매출';
+      var moved = 0, k2;
+      for (k2 = 0; k2 < saved.length; k2++) if (saved[k2].kind !== 'etc') moved += 1;
+      accVBusy(false);
+      closeAccVoucher();
+      toast((moved ? '재고 + ' : '') + kindName + ' 전표 ' + stl.length + '건 + 거래명세표 1장: ' + head.partner + ' ' + won(sum), 'ok', 6000);
+      return reload({ silent: true });
+    }, function (e) {
+      accVBusy(false);
+      var msg = e && e.message ? e.message : '저장하지 못했습니다.';
+      $('accVMsg').textContent = msg;
+      toast(msg, 'err', 8000);
+      if (saved.length) {
+        /* 앞의 줄은 이미 저장됐다 — 같은 저장을 다시 눌러 재고가 두 번 들어가지 않게 창을 닫는다 */
+        closeAccVoucher();
+        reload({ silent: true });
+        toast('앞의 ' + saved.length + '줄은 이미 저장됐습니다. 남은 줄은 다시 입력해 주세요.', 'warn', 9000);
+      }
+    });
+  }
+
+  /* ---------- 거래명세표용 줄 기억 (같은 거래 = 한 장) ---------- */
+  var VGROUP_KEY = 'mirsfood.vstmt.v1';
+  function accVGroups() {
+    var a = [];
+    try { a = JSON.parse(localStorage.getItem(VGROUP_KEY) || '[]') || []; } catch (e) { a = []; }
+    return Object.prototype.toString.call(a) === '[object Array]' ? a : [];
+  }
+  function accVGroupsSave(a) {
+    try { localStorage.setItem(VGROUP_KEY, JSON.stringify(a)); } catch (e) { }
+  }
+  function accVRememberGroup(stl) {
+    if (!stl || !stl.length) return;
+    var lines = {}, i, ln;
+    for (i = 0; i < stl.length; i++) {
+      ln = stl[i];
+      lines[ln.vid] = { name: ln.name, spec: ln.spec, qty: ln.qty, unit: ln.unit, price: ln.price,
+        supply: ln.supply, vat: ln.vat, tax: ln.tax, note: ln.note };
+    }
+    var all = accVGroups();
+    all.push({ t: Date.now(), lines: lines });
+    if (all.length > 400) all = all.slice(all.length - 400);
+    accVGroupsSave(all);
+  }
+  /* 전표 하나에 찍을 줄들 — 같은 거래의 줄이면 여러 줄, 아니면 null(원래 방식대로) */
+  function accVGroupLines(vid) {
+    var id = Number(vid);
+    if (!(id > 0)) return null;
+    var all = accVGroups(), i, k, out, g;
+    for (i = 0; i < all.length; i++) {
+      g = all[i];
+      if (!g || !g.lines || !g.lines[id]) continue;
+      out = [];
+      for (k in g.lines) {
+        if (!Object.prototype.hasOwnProperty.call(g.lines, k)) continue;
+        if (!voucherOf(k)) continue;        /* 지워진 전표는 빼고 */
+        out.push(g.lines[k]);
+      }
+      return out.length ? out : null;
+    }
+    return null;
+  }
+  /* 전표 금액을 고치거나 지우면 그 전표의 줄은 잊는다(명세표가 옛 금액을 찍지 않게) */
+  function accVGroupDrop(vid) {
+    var id = Number(vid), all = accVGroups(), keep = [], i, g, k, hit;
+    if (!(id > 0)) return;
+    for (i = 0; i < all.length; i++) {
+      g = all[i];
+      if (!g || !g.lines) continue;
+      hit = false;
+      for (k in g.lines) if (Object.prototype.hasOwnProperty.call(g.lines, k) && Number(k) === id) hit = true;
+      if (hit) { delete g.lines[id]; }
+      var any = false;
+      for (k in g.lines) if (Object.prototype.hasOwnProperty.call(g.lines, k)) any = true;
+      if (any) keep.push(g);
+    }
+    accVGroupsSave(keep);
+  }
+
+  /* ---------- 전표 입력창 열기 / 닫기 ---------- */
   function updateAccVDoc() {
     var isSale = accV.type === 'sale';
-    var isBuy = !isSale;
-    var lk = accVLink();
-    /* v8.6 — 구매관리·판매관리에서 열면 그 메뉴 전용(반대쪽 전표 종류 버튼 숨김)으로 띄운다
-       v9 — 제목에서 (미수금)·(미지급금) 문구를 뺀다 */
-    $('accVoucherTitle').textContent = accV.id
-      ? (isSale ? '매출 전표 수정' : '매입 전표 수정')
-      : (accV.mode === 'buy' ? '매입 전표 입력'
-        : (accV.mode === 'sale' ? '매출 전표 입력' : (isSale ? '매출 전표' : '매입 전표')));
+    var edit = !!accV.id;
+    if ($('accVoucherTitle')) {
+      $('accVoucherTitle').textContent = edit
+        ? (isSale ? '매출 전표 수정' : '매입 전표 수정')
+        : (accV.mode === 'buy' ? '매입 전표 입력'
+          : (accV.mode === 'sale' ? '매출 전표 입력' : (isSale ? '매출 전표 입력' : '매입 전표 입력')));
+    }
     var segs = $('accVoucherSeg') ? $('accVoucherSeg').querySelectorAll('button') : [];
     for (var i = 0; i < segs.length; i++) {
       var vt = segs[i].getAttribute('data-vtype');
+      segs[i].classList.toggle('active', vt === accV.type);
       segs[i].classList.toggle('hidden',
         (accV.mode === 'buy' && vt !== 'purchase') || (accV.mode === 'sale' && vt !== 'sale'));
     }
-    $('accVDoc').innerHTML = isSale
-      ? '<option value="none">미발행</option><option value="issued">발행완료</option>'
-      : '<option value="none">미수령</option><option value="received">수령완료</option>';
-
-    /* v9 연동 대상 — 기존 전표를 고칠 때는 전표만 고치므로 숨긴다 */
-    if ($('accVLinkField')) $('accVLinkField').classList.toggle('hidden', !!accV.id);
-    if ($('accVLinkHint')) $('accVLinkHint').classList.toggle('hidden', !!accV.id || lk !== 'none');
-    var lsegs = $('accVLinkSeg') ? $('accVLinkSeg').querySelectorAll('button') : [];
-    for (var k = 0; k < lsegs.length; k++) lsegs[k].classList.toggle('active', lsegs[k].getAttribute('data-vlink') === lk);
-    if ($('accVMeatBox')) $('accVMeatBox').classList.toggle('hidden', lk !== 'meat');
-    if ($('accVFpBox')) $('accVFpBox').classList.toggle('hidden', lk !== 'fp');
-
-    if ($('accVMeatTitle')) $('accVMeatTitle').textContent = isBuy ? '🥩 원료육 입고 → 매입 전표' : '🥩 원료육 출고 → 매출 전표';
-    if ($('accVMeatSub')) {
-      $('accVMeatSub').textContent = isBuy
-        ? '입력한 만큼 냉동고·냉장고 재고가 늘고, 같은 금액으로 매입 전표가 생깁니다.'
-        : '고른 로트에서 재고가 빠지고, 같은 금액으로 매출 전표·거래명세표가 연결됩니다.';
+    if ($('accVDoc')) {
+      $('accVDoc').innerHTML = isSale
+        ? '<option value="none">미발행</option><option value="issued">발행완료</option>'
+        : '<option value="none">미수령</option><option value="received">수령완료</option>';
     }
-    if ($('accVNameLabel')) $('accVNameLabel').innerHTML = (isBuy ? '제품명' : '로트 선택 (제품명)') + ' <span class="req">*</span>';
-    if ($('accVName')) $('accVName').placeholder = isBuy ? '예: 등갈비' : '보유 로트의 제품명 (예: 등갈비)';
-    if ($('accVKgLabel')) $('accVKgLabel').innerHTML = (isBuy ? '중량(kg)' : '출고 중량(kg)') + ' <span class="req">*</span>';
-    if ($('accVPriceLabel')) $('accVPriceLabel').innerHTML = (isBuy ? '단가(원/kg)' : '출고단가(원/kg)') + ' <span class="req">*</span>';
-    ['accVMeatWhRow', 'accVMeatOptRow', 'accVMeatDateRow'].forEach(function (id) {
-      if ($(id)) $(id).classList.toggle('hidden', !isBuy);
-    });
-    if ($('accVOutRow')) $('accVOutRow').classList.toggle('hidden', isBuy);
-
-    if ($('accVFpTitle')) $('accVFpTitle').textContent = isBuy ? '📦 완제품·부자재 입고 → 매입 전표' : '📦 완제품·부자재 출고 → 매출 전표';
-    if ($('accVFpSub')) {
-      $('accVFpSub').textContent = isBuy
-        ? '입력한 만큼 완제품·부자재 재고가 늘고, 같은 금액으로 매입 전표가 생깁니다.'
-        : '완제품·부자재 재고가 빠지고, 같은 금액으로 매출 전표·거래명세표가 연결됩니다.';
+    /* 신규 입력 = 명세서형 다중 품목 / 기존 전표 수정 = 단일 전표 화면 */
+    var vcard = $('accVoucherModal') ? $('accVoucherModal').querySelector('.modal-card') : null;
+    if (vcard) vcard.classList.toggle('sheetcard', !edit);   /* 명세서형은 넓게, 수정은 예전 폭으로 */
+    if ($('accVSheetWrap')) $('accVSheetWrap').classList.toggle('hidden', edit);
+    if ($('accVSimpleBox')) $('accVSimpleBox').classList.toggle('hidden', !edit);
+    if ($('accVTypeField')) $('accVTypeField').classList.toggle('hidden', edit);
+    if ($('accVoucherSub')) {
+      $('accVoucherSub').textContent = edit
+        ? '전표 금액만 고칩니다. 재고는 입출고 내역에서 따로 고칩니다.'
+        : '한 장에 여러 품목을 적으면 재고·전표·거래명세표가 한 번에 처리됩니다.';
     }
-    if ($('accVFpQtyLabel')) $('accVFpQtyLabel').innerHTML = '수량 <span class="req">*</span>';
-    if ($('accVFpPriceLabel')) $('accVFpPriceLabel').innerHTML = (isBuy ? '입고단가(원)' : '출고단가(원)') + ' <span class="req">*</span>';
-
-    if ($('accVPartnerLabel')) {
-      $('accVPartnerLabel').innerHTML = (lk === 'meat' ? (isBuy ? '거래처(매입처)' : '거래처(출고처)') : '거래처') + ' <span class="req">*</span>';
+    if ($('accVPartnerLabel')) $('accVPartnerLabel').innerHTML = (isSale ? '거래처(출고처)' : '거래처(매입처)') + ' <span class="req">*</span>';
+    if ($('accVPartner')) $('accVPartner').placeholder = isSale ? '예: 미트박스' : '예: 도드람푸드';
+    if ($('accVHint')) {
+      $('accVHint').innerHTML = edit
+        ? '기존 전표는 <b>전표 금액만</b> 고칩니다. 재고 수량은 <b>입출고 내역</b>에서 고치세요.'
+        : (isSale
+          ? '원료육은 <b>보유 로트에서 차감</b>, 완제품·부자재는 <b>재고에서 차감</b>되고 같은 금액으로 매출 전표·거래명세표가 만들어집니다. (원료육 기본 면세 · 완제품 기본 과세)'
+          : '원료육은 <b>냉동고·냉장고 재고가 늘고</b>, 완제품·부자재는 <b>재고가 늘고</b> 같은 금액으로 매입 전표가 만들어집니다. (원료육 기본 면세 · 완제품 기본 과세)');
     }
-    if ($('accVPartner')) {
-      $('accVPartner').placeholder = lk === 'meat' && !isBuy ? '예: 미트박스 (출고처)'
-        : (lk === 'meat' ? '예: 도드람푸드 (매입처)' : '예: 미트박스');
-    }
-    $('accVHint').textContent = lk === 'none'
-      ? (isSale
-        ? '매출은 거래처별 원장의 [총 매출]에 더해지고, 수금을 입력하면 미수금이 줄어듭니다.'
-        : '매입은 거래처별 원장의 [총 매입]에 더해지고, 지급을 입력하면 미지급금이 줄어듭니다.')
-      : (lk === 'meat'
-        ? '🥩 원료육으로 저장하면 재고 입·출고와 ' + (isSale ? '매출 전표·거래명세표' : '매입 전표') + '가 한 번에 만들어집니다. (면세 기본)'
-        : '📦 완제품·부자재로 저장하면 재고 입·출고와 ' + (isSale ? '매출 전표·거래명세표' : '매입 전표') + '가 한 번에 만들어집니다. (과세 기본)');
-    /* 연동 모드에서는 금액이 공급가액으로 자동 계산되므로 '부가세 포함'을 쓰지 않는다 */
-    if ($('accVVatIncWrap')) $('accVVatIncWrap').classList.toggle('hidden', lk !== 'none');
-    if (lk !== 'none' && $('accVVatIncluded').checked) $('accVVatIncluded').checked = false;
     if ($('accVoucherSave')) $('accVoucherSave').textContent = accVSaveLabel();
-    accVMeatInfoPaint();
-    accVFpPaint();
-    syncAccVLinked();
+  }
+  function accVCurTax() {
+    var b = $('accVTaxSeg') ? $('accVTaxSeg').querySelector('.active') : null;
+    return b ? b.getAttribute('data-vtax') : 'tax';
+  }
+  function setAccVTax(v) {
+    var segs = $('accVTaxSeg') ? $('accVTaxSeg').querySelectorAll('button') : [];
+    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-vtax') === v);
   }
   function accVatPreview() {
-    var amount = Number($('accVAmount').value || 0);
-    var tax = accVCurTax();
-    var inc = $('accVVatIncluded').checked;
-    var v = ERP.accVat(amount, tax, inc);
-    $('accVVat').value = v.vat ? fmtInt(v.vat) + '원 (합계 ' + fmtInt(v.total) + '원)' : '0원';
+    var amount = Number(($('accVAmount') || {}).value || 0);
+    var v = ERP.accVat(amount, accVCurTax(), $('accVVatIncluded') ? $('accVVatIncluded').checked : false);
+    if ($('accVVat')) $('accVVat').value = v.vat ? fmtInt(v.vat) + '원 (합계 ' + fmtInt(v.total) + '원)' : '0원';
   }
   function openAccVoucher(type, row, mode) {
     var d = today();
     popCloseOthers('accVoucherModal');
-    accV = { id: row ? row.id : null, type: row ? row.t : (type || 'sale'), mode: row ? '' : (mode || ''),
-             link: 'none', whIn: 'F', destOut: 'vendor', lotId: null, lotWh: '', lotLabel: '', fpCode: '' };
+    accV = { id: row ? row.id : null, type: row ? row.t : (type === 'purchase' ? 'purchase' : 'sale'),
+             mode: row ? '' : (mode || ''), rows: [], seq: 0 };
+    accVResetRows(3);
     $('accVDate').value = row ? row.d : d;
     $('accVPartner').value = row ? row.partner : '';
-    $('accVAmount').value = row ? row.supply : '';
     $('accVNote').value = row ? row.note : '';
+    $('accVAmount').value = row ? row.supply : '';
     $('accVVatIncluded').checked = false;
     $('accVMsg').textContent = '';
-    ['accVMeat', 'accVName', 'accVOrigin', 'accVBrand', 'accVExpiry', 'accVKg', 'accVPrice',
-     'accVFpQuery', 'accVFpQty', 'accVFpPrice'].forEach(function (id) { if ($(id)) $(id).value = ''; });
-    $('accVInDate').value = d;
-    var segs = $('accVoucherSeg').querySelectorAll('button');
-    for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('active', segs[i].getAttribute('data-vtype') === accV.type);
-    var tsegs = $('accVTaxSeg').querySelectorAll('button');
-    for (var j = 0; j < tsegs.length; j++) tsegs[j].classList.toggle('active', tsegs[j].getAttribute('data-vtax') === (row ? row.tax : 'tax'));
-    var wsegs = $('accVWhSeg').querySelectorAll('button');
-    for (var w = 0; w < wsegs.length; w++) wsegs[w].classList.toggle('active', wsegs[w].getAttribute('data-vwh') === 'F');
-    var dsegs = $('accVDestSeg').querySelectorAll('button');
-    for (var s2 = 0; s2 < dsegs.length; s2++) dsegs[s2].classList.toggle('active', dsegs[s2].getAttribute('data-vdest') === 'vendor');
+    setAccVTax(row ? (row.tax === 'free' ? 'free' : 'tax') : 'tax');
     updateAccVDoc();
-    $('accVDoc').value = row ? row.doc : 'none';
+    $('accVDoc').value = row ? (row.doc || 'none') : 'none';
     accVatPreview();
+    accVSheetRender();
     $('accVoucherModal').classList.remove('hidden');
     setTimeout(function () { try { $('accVPartner').focus(); } catch (e) { } }, 60);
   }
   function closeAccVoucher() {
     $('accVoucherModal').classList.add('hidden');
-    accV = { id: null, type: 'sale', mode: '', link: 'none', whIn: 'F', destOut: 'vendor',
-             lotId: null, lotWh: '', lotLabel: '', fpCode: '' };
+    accV = { id: null, type: 'sale', mode: '', rows: [], seq: 0 };
   }
-  /* 연동 대상 선택 — 기본 과세구분(원료육=면세, 완제품=과세)도 함께 맞춘다 */
-  function accVLinkSet(v) {
-    if (accV.id) v = 'none';
-    accV.link = (v === 'meat' || v === 'fp') ? v : 'none';
-    accV.lotId = null; accV.lotWh = ''; accV.lotLabel = ''; accV.fpCode = '';
-    if (accV.link === 'meat') setAccVTax('free');
-    else if (accV.link === 'fp') setAccVTax('tax');
-    $('accVMsg').textContent = '';
+  /* 전표 종류를 바꾸면 재고 방향이 반대가 되므로 줄을 새로 시작한다 */
+  function accVTypeSet(v) {
+    var t = v === 'purchase' ? 'purchase' : 'sale';
+    if (t === accV.type) return;
+    accV.type = t;
+    accVResetRows(3);
+    accVSheetRender();
     updateAccVDoc();
-  }
-  /* 재고 이력 id → 전표 (acc_reflect: source_kind+source_id 중복 방지) */
-  function accVLinkVoucher(kind, id, info) {
-    if (!(Number(id) > 0)) {
-      return Promise.reject(new Error('재고 저장 결과를 받지 못했습니다. 새로고침 후 구매·판매관리에서 [⚡ 미반영 가져오기]를 눌러 주세요.'));
-    }
-    return SB.db.accReflect([{ kind: kind, id: Number(id) }], info.tax).then(function (res) {
-      var vid = (res && res.ids && res.ids.length) ? Number(res.ids[0]) : 0;
-      if (!vid) {
-        throw new Error('재고는 저장됐지만 전표를 만들지 못했습니다. 구매·판매관리에서 [⚡ 미반영 가져오기]를 눌러 주세요.');
-      }
-      if (info.doc === 'none' && !info.note) return { voucherId: vid };
-      return SB.db.accVoucherSave({
-        id: vid, date: info.date, type: info.type, partner: info.partner, tax: info.tax,
-        amount: info.amount, vatIncluded: false, doc: info.doc, note: info.note || info.label || ''
-      }).then(function () { return { voucherId: vid }; },
-        function () { return { voucherId: vid, docWarn: true }; });
-    });
-  }
-  function saveAccVLinked(lk) {
-    var isBuy = accV.type === 'purchase';
-    var partner = trimV($('accVPartner').value);
-    var date = $('accVDate').value || today();
-    var note = trimV($('accVNote').value);
-    var doc = $('accVDoc').value || 'none';
-    var tax = accVCurTax();
-    var kindName = accV.type === 'purchase' ? '매입' : '매출';
-    if (!partner) { accVMsg('거래처를 입력하세요.'); return; }
-    var saved = { moved: false };
-    var job;
-    if (lk === 'meat') {
-      if (isBuy) {
-        var name = trimV($('accVName').value);
-        var kg = Number($('accVKg').value || 0);
-        var price = Number($('accVPrice').value || 0);
-        var exp = $('accVExpiry').value;
-        var inDate = $('accVInDate').value || date;
-        if (!name) { accVMsg('제품명을 입력하세요.'); return; }
-        if (!exp) { accVMsg('소비기한을 입력하세요.'); return; }
-        if (!(kg > 0)) { accVMsg('중량(kg)을 입력하세요.'); return; }
-        if (!(price > 0)) { accVMsg('단가(원/kg)를 입력하세요. (매입 전표 금액이 됩니다)'); return; }
-        var amt = Math.round(kg * price);
-        job = SB.db.apply({
-          date: date, type: 'in', wh: accV.whIn === 'C' ? 'C' : 'F',
-          name: name, meat: trimV($('accVMeat').value), origin: trimV($('accVOrigin').value),
-          brand: trimV($('accVBrand').value), vendor: partner, in_date: inDate, exp_date: exp,
-          kg: kg, price: price, amount: amt, note: note
-        }).then(function (row) {
-          saved.moved = true;
-          toast('🥩 ' + (accV.whIn === 'C' ? '냉장고' : '냉동고') + ' 입고 + 매입 전표: ' + name + ' ' + fmtQty(kg) + 'kg · ' + won(amt), 'ok');
-          return accVLinkVoucher('meat', row && row.id, {
-            type: 'purchase', partner: partner, tax: tax, amount: amt, date: date, doc: doc,
-            note: note, label: name + ' ' + fmtQty(kg) + 'kg'
-          });
-        });
-      } else {
-        var pk = accVResolveLot();
-        if (!pk) { accVMsg('출고할 원료육 로트를 골라 주세요. (재고가 있는 로트만 됩니다)'); return; }
-        var kg2 = Number($('accVKg').value || 0);
-        var price2 = Number($('accVPrice').value || 0);
-        var have = pk.wh === 'F' ? pk.lot.fq : pk.lot.cq;
-        if (!(kg2 > 0)) { accVMsg('출고 중량(kg)을 입력하세요.'); return; }
-        if (kg2 > have + ERP.EPS) {
-          accVMsg((pk.wh === 'F' ? '냉동고' : '냉장고') + ' 재고(' + fmt(have) + 'kg)보다 많이 출고할 수 없습니다.');
-          return;
-        }
-        if (!(price2 > 0)) { accVMsg('출고단가(원/kg)를 입력하세요. (매출 전표 금액이 됩니다)'); return; }
-        var amt2 = Math.round(kg2 * price2);
-        var dest = accV.destOut || 'vendor';
-        job = SB.db.apply({
-          date: date, type: 'out', wh: pk.wh, lot_id: Number(pk.lot.dbid),
-          dest_type: dest, dest: partner, kg: kg2, price: price2, amount: amt2, note: note
-        }).then(function (row) {
-          saved.moved = true;
-          toast('🥩 원료육 출고 + 매출 전표: ' + pk.lot.n + ' ' + fmtQty(kg2) + 'kg · ' + won(amt2), 'ok');
-          return accVLinkVoucher('meat', row && row.id, {
-            type: 'sale', partner: partner, tax: tax, amount: amt2, date: date, doc: doc,
-            note: note, label: pk.lot.n + ' ' + fmtQty(kg2) + 'kg'
-          });
-        });
-      }
-    } else {
-      var prod = accVFpProduct();
-      if (!prod) { accVMsg('품목을 골라 주세요. (코드 또는 상품명)'); return; }
-      var qty = Number($('accVFpQty').value || 0);
-      var up = Number($('accVFpPrice').value || 0);
-      if (!(qty > 0)) { accVMsg('수량을 입력하세요.'); return; }
-      if (!isBuy && qty > prod.stock + 0.0004) {
-        accVMsg('현재고(' + fmtQty(prod.stock) + prod.unit + ')보다 많이 출고할 수 없습니다.');
-        return;
-      }
-      if (!(up > 0)) { accVMsg((isBuy ? '입고단가' : '출고단가') + '를 입력하세요. (전표 금액이 됩니다)'); return; }
-      var amt3 = Math.round(qty * up);
-      job = SB.db.fpApply({
-        code: prod.code, type: isBuy ? 'IN' : 'OUT', qty: qty, date: date, price: up,
-        expiry: null, partner: partner, note: note, allowNegative: false, source: 'manual'
-      }).then(function (row) {
-        saved.moved = true;
-        toast('📦 완제품·부자재 ' + (isBuy ? '입고' : '출고') + ' + ' + kindName + ' 전표: ' +
-          prod.n + ' ' + fmtQty(qty) + prod.unit + ' · ' + won(amt3), 'ok');
-        return accVLinkVoucher('fp', row && row.id, {
-          type: isBuy ? 'purchase' : 'sale', partner: partner, tax: tax, amount: amt3, date: date,
-          doc: doc, note: note, label: prod.n + ' ' + fmtQty(qty) + prod.unit
-        });
-      });
-    }
-    accVBusy(true);
-    $('accVMsg').textContent = '';
-    job.then(function (out) {
-      accVBusy(false);
-      if (out && out.docWarn) toast('전표는 만들어졌지만 세금계산서·적요 저장이 실패했습니다. 전표 표에서 수정해 주세요.', 'warn', 7000);
-      closeAccVoucher();
-      reload({ silent: true });
-    }, function (e) {
-      accVBusy(false);
-      $('accVMsg').textContent = e.message;
-      toast(e.message, 'err', 8000);
-      if (saved.moved) {
-        /* 재고는 이미 저장됐다 — 창을 닫고 목록을 새로 고쳐, 같은 저장을 다시 눌러 재고가 두 번 들어가지 않게 한다 */
-        closeAccVoucher();
-        reload({ silent: true });
-      }
-    });
+    $('accVDoc').value = 'none';
   }
   function saveAccVoucher() {
-    var lk = accVLink();
-    if (!accV.id && lk !== 'none') { saveAccVLinked(lk); return; }
-    var partner = ($('accVPartner').value || '').replace(/^\s+|\s+$/g, '');
+    if (!accV.id) { saveAccVSheet(); return; }
+    var partner = trimV($('accVPartner').value);
     var amount = Number($('accVAmount').value || 0);
     if (!partner) { $('accVMsg').textContent = '거래처를 입력하세요.'; return; }
     if (!(amount > 0)) { $('accVMsg').textContent = '금액을 입력하세요.'; return; }
     var b = $('accVoucherSave');
-    var wasEdit = !!accV.id;
+    var wasEdit = !!accV.id, vid = accV.id;
     b.disabled = true; b.textContent = '저장 중…';
     SB.db.accVoucherSave({
       id: accV.id, date: $('accVDate').value || today(), type: accV.type, partner: partner,
-      tax: accVCurTax(),
-      amount: amount, vatIncluded: $('accVVatIncluded').checked,
+      tax: accVCurTax(), amount: amount, vatIncluded: $('accVVatIncluded').checked,
       doc: $('accVDoc').value || 'none', note: $('accVNote').value || ''
     }).then(function (row) {
       accVBusy(false);
+      accVGroupDrop(vid);        /* 금액이 바뀌었으니 거래명세표 줄은 다시 만들지 않는다 */
       closeAccVoucher();
       toast((wasEdit ? '전표를 고쳤습니다: ' : '전표 등록: ') + partner + ' ' + won(row && row.total_amount || amount), 'ok');
       return reload({ silent: true });
@@ -7632,6 +8023,7 @@ var LIVE = (function () {
     if (!window.confirm(msg)) return;
     var p = kind === 'v' ? SB.db.accVoucherDelete(id) : (kind === 'e' ? SB.db.accExpenseDelete(id) : SB.db.accPaymentDelete(id));
     p.then(function () {
+      if (kind === 'v') accVGroupDrop(id);
       toast('삭제했습니다.', 'ok');
       return reload({ silent: true });
     }, function (e) { toast(e.message, 'err'); });
@@ -7910,6 +8302,24 @@ var LIVE = (function () {
     renderStmt();
   }
   function openStmt(kind, ref) {
+    /* v10 — 같은 거래에서 여러 품목을 적었으면 그 줄들을 한 장에 모두 찍는다 */
+    if (kind === 'voucher' && ref && ref.id) {
+      var glines = accVGroupLines(ref.id);
+      if (glines) {
+        var gd = ERP.stmtGroupData(ref, glines);
+        gd.id = ref.id;
+        gd.printedAt = stmtTime();
+        gd.buyer = ERP.partnerBuyer(gd.partner);
+        stmtNow = gd;
+        stmtFillBuyer();
+        $('stmtModal').classList.remove('hidden');
+        document.body.classList.add('stmt-open');
+        renderStmt();
+        var gsheet = document.querySelector('.stmt-scroll');
+        if (gsheet) gsheet.scrollTop = 0;
+        return;
+      }
+    }
     var o = { kind: kind, ref: ref || {}, logs: st.logs, fpLogs: st.fpLogs };
     /* 일괄 반영으로 만든 전표는 원본 출고를 찾아 품목을 채운다 */
     if (kind === 'voucher' && ref) {
@@ -8098,8 +8508,8 @@ var LIVE = (function () {
     acPaint(); acPopEl().classList.remove('hidden'); acPlace();
     return items;
   }
-  function acAttach(id, cands, onPick) {
-    var inp = $(id);
+  /* 입력칸에 스마트 자동완성을 붙인다 (줄마다 새로 만들어지는 입력칸도 acWire 로 붙인다) */
+  function acWire(inp, cands, onPick) {
     if (!inp) return;
     inp.removeAttribute('list');     /* 브라우저 기본 목록과 겹치지 않게 */
     inp.setAttribute('autocomplete', 'off');
@@ -8123,6 +8533,9 @@ var LIVE = (function () {
         }
       }
     });
+  }
+  function acAttach(id, cands, onPick) {
+    acWire($(id), cands, onPick);
   }
   function acShowAll(id) {
     var inp = $(id);
@@ -8222,14 +8635,6 @@ var LIVE = (function () {
     acAttach('fgPartner', acPartnerAll, function () { });
     acAttach('fgNewSupplier', acPartnerAll, function () { });
     acAttach('accVPartner', acPartnerAll, function () { });
-    /* v9 — 전표 입력창의 품목칸: 원료육(매입=품목명 / 매출=보유 로트) · 완제품·부자재 */
-    acAttach('accVName', function () {
-      return accV.type === 'purchase' ? acProductCands() : accVMeatLotCands();
-    }, function (it) {
-      if (accV.type !== 'purchase') accVPickLot(it);
-      else { accVMeatInfoPaint(); syncAccVLinked(); }
-    });
-    acAttach('accVFpQuery', acFgCands, function (it) { accVPickFp(it); });
     acAttach('accPPartner', acPartnerAll, function () { });
     acAttach('accEPartner', acPartnerAll, function () { });
     if ($('stmtBuyerName')) {
@@ -8924,51 +9329,68 @@ var LIVE = (function () {
     if ($('btnAccXls')) $('btnAccXls').addEventListener('click', accXls);
     if ($('btnAccUpload')) $('btnAccUpload').addEventListener('click', function () { openUpload('acc_expense'); });
 
-    /* 전표 모달 */
+    /* 전표 모달 — v10 명세서형 다중 품목 */
     if ($('accVoucherSeg')) {
       var vs = $('accVoucherSeg').querySelectorAll('button');
       for (var v1 = 0; v1 < vs.length; v1++) vs[v1].addEventListener('click', function () {
-        accV.type = this.getAttribute('data-vtype');
-        accV.lotId = null; accV.lotWh = ''; accV.lotLabel = ''; accV.fpCode = '';
-        for (var q = 0; q < vs.length; q++) vs[q].classList.toggle('active', vs[q] === this);
-        if (accV.link === 'meat') setAccVTax('free');
-        else if (accV.link === 'fp') setAccVTax('tax');
-        updateAccVDoc();
+        accVTypeSet(this.getAttribute('data-vtype'));
       });
     }
-    /* v9 — 연동 대상(원료육 / 완제품·부자재 / 기타) · 창고 · 출고처 */
-    if ($('accVLinkSeg')) {
-      var lks = $('accVLinkSeg').querySelectorAll('button');
-      for (var lk1 = 0; lk1 < lks.length; lk1++) lks[lk1].addEventListener('click', function () {
-        accVLinkSet(this.getAttribute('data-vlink'));
+    if ($('accVAddRow')) $('accVAddRow').addEventListener('click', accVAddLine);
+    if ($('accVSheet')) {
+      var sheet = $('accVSheet');
+      sheet.addEventListener('input', function (ev) {
+        var t = ev.target, tr = t.closest ? t.closest('tr[data-r]') : null;
+        if (!tr) return;
+        var f = t.getAttribute('data-f'), r = accVRow(Number(tr.getAttribute('data-r')));
+        if (!r || !f) return;
+        if (f === 'name') {
+          r.name = t.value;
+          if (r.kind === 'meat' && !accVIsBuy()) { r.lotId = null; r.lotWh = ''; }
+          if (r.kind === 'fp') r.code = '';
+          accVSheetPaint();
+        } else if (f === 'qty' || f === 'price') {
+          r[f] = t.value;
+          accVSheetPaint();
+        } else if (f === 'expiry') {
+          r.expiry = t.value;
+        }
       });
-    }
-    if ($('accVWhSeg')) {
-      var whs = $('accVWhSeg').querySelectorAll('button');
-      for (var wh1 = 0; wh1 < whs.length; wh1++) whs[wh1].addEventListener('click', function () {
-        accV.whIn = this.getAttribute('data-vwh') === 'C' ? 'C' : 'F';
-        for (var q = 0; q < whs.length; q++) whs[q].classList.toggle('active', whs[q] === this);
+      sheet.addEventListener('change', function (ev) {
+        var t = ev.target, tr = t.closest ? t.closest('tr[data-r]') : null;
+        if (!tr) return;
+        var i = Number(tr.getAttribute('data-r')), r = accVRow(i), f = t.getAttribute('data-f');
+        if (!r || !f) return;
+        if (f === 'kind') {
+          r.kind = (t.value === 'fp' || t.value === 'etc') ? t.value : 'meat';
+          r.tax = accVKindTax(r.kind);
+          r.lotId = null; r.lotWh = ''; r.code = ''; r.spec = '';
+          accVRowRepaint(i);
+          return;
+        }
+        if (f === 'tax') { r.tax = t.value === 'free' ? 'free' : 'tax'; accVSheetPaint(); return; }
+        if (f === 'wh') { r.wh = t.value === 'C' ? 'C' : 'F'; return; }
+        if (f === 'lot') {
+          var parts = String(t.value || '').split('|');
+          r.lotId = parts[0] ? Number(parts[0]) : null;
+          r.lotWh = parts[1] === 'C' ? 'C' : 'F';
+          var pk = accVLotOf(r);
+          if (pk) {
+            r.name = pk.lot.n;
+            if (!(Number(r.price) > 0) && pk.lot.price > 0) r.price = String(Math.round(pk.lot.price));
+          }
+          accVRowRepaint(i);
+          return;
+        }
+        if (f === 'expiry') { r.expiry = t.value; return; }
+        if (f === 'name') { accVRowResolve(i); return; }
       });
-    }
-    if ($('accVDestSeg')) {
-      var vds = $('accVDestSeg').querySelectorAll('button');
-      for (var vd1 = 0; vd1 < vds.length; vd1++) vds[vd1].addEventListener('click', function () {
-        var d = this.getAttribute('data-vdest');
-        accV.destOut = (d === 'courier' || d === 'other') ? d : 'vendor';
-        for (var q = 0; q < vds.length; q++) vds[q].classList.toggle('active', vds[q] === this);
+      sheet.addEventListener('click', function (ev) {
+        var b = ev.target.closest ? ev.target.closest('[data-delrow]') : null;
+        if (!b) return;
+        ev.preventDefault();
+        accVRowDelete(Number(b.getAttribute('data-delrow')));
       });
-    }
-    ['accVKg', 'accVPrice', 'accVFpQty', 'accVFpPrice'].forEach(function (id) {
-      if ($(id)) { $(id).addEventListener('input', syncAccVLinked); $(id).addEventListener('change', syncAccVLinked); }
-    });
-    if ($('accVName')) {
-      $('accVName').addEventListener('input', function () {
-        if (accV.type === 'sale') { accV.lotId = null; accV.lotWh = ''; accV.lotLabel = ''; }
-        accVMeatInfoPaint(); syncAccVLinked();
-      });
-    }
-    if ($('accVFpQuery')) {
-      $('accVFpQuery').addEventListener('input', function () { accV.fpCode = ''; accVFpPaint(); syncAccVLinked(); });
     }
     if ($('accVTaxSeg')) {
       var ts = $('accVTaxSeg').querySelectorAll('button');
