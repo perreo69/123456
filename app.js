@@ -458,8 +458,8 @@ var ERP = (function () {
       var base = opt.dateField === 'exp' ? l.e : l.i;
       if (!inRange(base, opt.from, opt.to)) continue;
       if (qq) {
-        var hay = [l.n, l.v, l.o, l.i, l.b, l.e, l.mt].join(' ').toLowerCase();
-        if (hay.indexOf(qq) < 0) continue;
+        /* v7: 파텔 ↔ PATEL 처럼 한↔영 브랜드를 서로 찾는다 */
+        if (!textHit([l.n, l.v, l.o, l.i, l.b, l.e, l.mt].join(' '), q)) continue;
       }
       if (!passCols(opt.cols, function (k) { return lotCell(l, k, wh); })) continue;
       rows.push(l);
@@ -537,9 +537,8 @@ var ERP = (function () {
       if (opt.type && opt.type !== 'all' && kindKey(e) !== opt.type) continue;
       if (!inRange(e.d, opt.from, opt.to)) continue;
       if (qq) {
-        var hay = [e.n, e.v, e.b, e.p, e.note, e.i, e.d, e.worker, kindName(e),
-          e.t === 'out' ? destName(e.dt) : '', e.mt].join(' ').toLowerCase();
-        if (hay.indexOf(qq) < 0) continue;
+        if (!textHit([e.n, e.v, e.b, e.p, e.note, e.i, e.d, e.worker, kindName(e),
+          e.t === 'out' ? destName(e.dt) : '', e.mt].join(' '), opt.q)) continue;
       }
       if (!passCols(opt.cols, function (k) { return logCell(e, k); })) continue;
       out.push(e);
@@ -555,6 +554,260 @@ var ERP = (function () {
       out = sortLogsDesc(out);
     }
     return out;
+  }
+
+  /* ==========================================================================
+     v7 — 축산 브랜드 한↔영 사전 + 한글 검색 보조(초성·음역)
+     같은 브랜드를 파텔로 쳐도 PATEL 로, PATEL 로 쳐도 파텔로 찾는다.
+     ========================================================================== */
+  var BRANDS = [
+    { en: 'PATEL', ko: '파텔' },
+    { en: 'SWIFT', ko: '스위프트' },
+    { en: 'KILCOY', ko: '킬코이' },
+    { en: 'TYSON', ko: '타이슨' },
+    { en: 'IBP', ko: '아이비피' },
+    { en: 'ABP', ko: '에이비피' },
+    { en: 'CARGILL', ko: '카길' },
+    { en: 'DANISH CROWN', ko: '데니쉬크라운', alt: ['데니시크라운'] },
+    { en: "PILGRIM'S", ko: '필그림', alt: ['PILGRIMS', '필그림스'] },
+    { en: 'RIBASAM', ko: '리바삼' },
+    { en: 'SEARA', ko: '씨에라', alt: ['시에라'] },
+    { en: 'SADIA', ko: '사디아' },
+    { en: 'AURORA', ko: '오로라' },
+    { en: 'BRF', ko: '비알에프' },
+    { en: 'DODRAM', ko: '도드람', alt: ['도드람푸드'] },
+    { en: 'HARIM', ko: '하림' },
+    { en: 'JBS', ko: '제이비에스' },
+    { en: 'VION', ko: '비온' },
+    { en: 'TONNIES', ko: '퇴니스', alt: ['TÖNNIES'] },
+    { en: 'EL POZO', ko: '엘포소' },
+    { en: 'TEYS', ko: '테이스', alt: ['티스'] },
+    { en: 'SILVER FERN', ko: '실버펀', alt: ['실버펀팜스'] },
+    { en: 'GREENLEA', ko: '그린리' },
+    { en: 'SMITHFIELD', ko: '스미스필드' },
+    { en: 'CHERRYBRO', ko: '체리부로' },
+    { en: 'MANIKER', ko: '마니커' },
+    /* 실무에서 함께 쓰는 브랜드 */
+    { en: 'KEKEN', ko: '케켄' },
+    { en: 'AGROSUPER', ko: '아그로슈퍼' },
+    { en: 'SEABOARD', ko: '씨보드' },
+    { en: 'ROSIDER', ko: '로시데르' },
+    { en: 'CRV', ko: '씨알브이' },
+    { en: 'AMH', ko: '에이엠에이치' },
+    { en: 'IFT', ko: '아이에프티' },
+    { en: 'HKFOODS', ko: '에이치케이푸즈', alt: ['HK FOODS'] },
+    { en: 'RALPHS', ko: '랄프스' },
+    { en: 'GREEN MOUNTAIN', ko: '그린마운틴' },
+    { en: 'INDIANA', ko: '인디아나' },
+    { en: 'WESTPORT', ko: '웨스트포트' }
+  ];
+  /* 비교용 정규화: 대문자 + 공백·따옴표·가운뎃점·붙임표 제거 ('Pilgrim\'s' → 'PILGRIMS') */
+  function brandNorm(v) {
+    return s(v).toUpperCase().replace(/[\s'`´’".,·\-_()]/g, '');
+  }
+  var BRAND_INDEX = {};      /* 정규화 토큰 → 사전 항목 */
+  var BRAND_EN = [];         /* 표준 영문 브랜드 목록 (자동완성) */
+  (function () {
+    for (var i = 0; i < BRANDS.length; i++) {
+      var b = BRANDS[i];
+      b.tokens = [b.en, b.ko].concat(b.alt || []);
+      b.keys = [];
+      for (var j = 0; j < b.tokens.length; j++) {
+        var k = brandNorm(b.tokens[j]);
+        if (!k) continue;
+        b.keys.push(k);
+        if (!BRAND_INDEX[k]) BRAND_INDEX[k] = b;
+      }
+      BRAND_EN.push(b.en);
+    }
+  })();
+  /* 검색어를 브랜드 사전으로 넓힌다: '파텔' → [파텔, PATEL] / 'patel' → [PATEL, 파텔] */
+  function brandTerms(q) {
+    var out = [], seen = {}, push = function (v) {
+      var t = brandNorm(v);
+      if (!t || seen[t]) return;
+      seen[t] = 1; out.push(t);
+    };
+    var raw = s(q);
+    if (!raw) return out;
+    push(raw);
+    var n = brandNorm(raw);
+    if (!n) return out;
+    var hit = BRAND_INDEX[n];
+    if (hit) { for (var i = 0; i < hit.keys.length; i++) push(hit.keys[i]); return out; }
+    if (n.length >= 2) {
+      for (var j = 0; j < BRANDS.length; j++) {
+        var keys = BRANDS[j].keys, on = false;
+        for (var k = 0; k < keys.length; k++) {
+          if (keys[k].length >= 2 && (keys[k].indexOf(n) >= 0 || n.indexOf(keys[k]) >= 0)) { on = true; break; }
+        }
+        if (on) for (var m = 0; m < keys.length; m++) push(keys[m]);
+      }
+    }
+    return out;
+  }
+  /* 표준 영문 브랜드명 (모르면 입력값 그대로) */
+  function brandStandard(v) {
+    var raw = s(v);
+    if (!raw) return '';
+    var part = raw.split('/')[0];
+    var hit = BRAND_INDEX[brandNorm(raw)] || BRAND_INDEX[brandNorm(part)];
+    return hit ? hit.en : raw;
+  }
+  function brandKoOf(v) {
+    var hit = BRAND_INDEX[brandNorm(String(v).split('/')[0])] || BRAND_INDEX[brandNorm(v)];
+    return hit ? hit.ko : '';
+  }
+  function brandList() { return BRAND_EN.slice(); }
+
+  /* ---------- 한글 검색 보조 ---------- */
+  var CHO = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+  /* 문자열의 초성만: '파텔' → 'ㅍㅌ' */
+  function chosung(v) {
+    var t = s(v), out = '', i, c;
+    for (i = 0; i < t.length; i++) {
+      c = t.charCodeAt(i);
+      if (c >= 0xAC00 && c <= 0xD7A3) out += CHO[Math.floor((c - 0xAC00) / 588)];
+      else if (c >= 0x3131 && c <= 0x314E) out += t.charAt(i);
+      else out += ' ';
+    }
+    return out;
+  }
+  /* 한글 → 로마자(국어의 로마자 표기법 축약) : 사전에 없는 브랜드도 '파텔'→'patel' 로 맞춰 본다 */
+  var R_CHO = ['g', 'kk', 'n', 'd', 'tt', 'r', 'm', 'b', 'pp', 's', 'ss', '', 'j', 'jj', 'ch', 'k', 't', 'p', 'h'];
+  var R_JUNG = ['a', 'ae', 'ya', 'yae', 'eo', 'e', 'yeo', 'ye', 'o', 'wa', 'wae', 'oe', 'yo', 'u', 'wo', 'we', 'wi', 'yu', 'eu', 'ui', 'i'];
+  var R_JONG = ['', 'k', 'k', 'ks', 'n', 'nj', 'nh', 't', 'l', 'lk', 'lm', 'lb', 'ls', 'lt', 'lp', 'lh', 'm', 'p', 'ps', 't', 't', 'ng', 't', 't', 'k', 't', 'p', 'h'];
+  function romanizeKo(v) {
+    var t = s(v), out = '', i, c;
+    for (i = 0; i < t.length; i++) {
+      c = t.charCodeAt(i);
+      if (c >= 0xAC00 && c <= 0xD7A3) {
+        var n = c - 0xAC00;
+        out += R_CHO[Math.floor(n / 588)] + R_JUNG[Math.floor((n % 588) / 28)] + R_JONG[n % 28];
+      } else out += t.charAt(i);
+    }
+    return out;
+  }
+  /* 검색어 하나가 글뭉치에 걸리는지 — 직접 포함 + 브랜드 사전 + 초성 + 음역 */
+  function textHit(hay, q) {
+    var qq = s(q);
+    if (!qq) return true;
+    var h = s(hay);
+    if (!h) return false;
+    var hl = h.toLowerCase(), ql = qq.toLowerCase();
+    if (hl.indexOf(ql) >= 0) return true;
+    var hn = brandNorm(h).toLowerCase(), qn = brandNorm(qq).toLowerCase();
+    if (hn && qn && hn.indexOf(qn) >= 0) return true;
+    var terms = brandTerms(qq), i;
+    for (i = 0; i < terms.length; i++) {
+      var tk = terms[i].toLowerCase();
+      if (tk !== qn && (hl.indexOf(tk) >= 0 || hn.indexOf(tk) >= 0)) return true;
+    }
+    if (/^[ㄱ-ㅎ]+$/.test(qq) && chosung(h).indexOf(qq) >= 0) return true;
+    if (/[가-힣]/.test(qq)) {
+      var rq = romanizeKo(qq).replace(/[^a-z0-9]/gi, '').toLowerCase();
+      if (rq.length >= 3 && hn.indexOf(rq) >= 0) return true;
+    }
+    return false;
+  }
+
+  /* ==========================================================================
+     v7 — 거래명세표 (A4 인쇄)
+       o = { kind:'meat'|'fp'|'voucher', ref, logs, fpLogs }
+     ref 의 날짜 + 거래처가 같은 출고를 묶어 품목 줄을 만들고,
+     직접 입력한 매출 전표는 전표 금액 한 줄로 채운다.
+     ========================================================================== */
+  var STMT_MERGE = true;
+  function stmtLine(o) {
+    var qty = Math.round((Number(o.qty) || 0) * 1000) / 1000;
+    var price = r0(o.price);
+    var supply = r0(o.supply);
+    if (!supply && qty > 0 && price > 0) supply = Math.round(qty * price);
+    var vat = 0;
+    if (o.tax === 'tax') vat = (o.vat === undefined || o.vat === null) ? Math.round(supply * VAT_RATE) : r0(o.vat);
+    return {
+      name: s(o.name), spec: s(o.spec), qty: qty, unit: s(o.unit) || 'kg',
+      price: price, supply: supply, vat: vat, total: r0(supply + vat), note: s(o.note)
+    };
+  }
+  function stmtSum(lines) {
+    var supply = 0, vat = 0, total = 0, i;
+    for (i = 0; i < lines.length; i++) { supply += lines[i].supply; vat += lines[i].vat; total += lines[i].total; }
+    return { supply: r0(supply), vat: r0(vat), total: r0(total) };
+  }
+  /* 같은 품목·규격·단가는 한 줄로 합친다 (로트가 여러 개여도 명세표는 한 줄) */
+  function stmtMerge(lines) {
+    if (!STMT_MERGE) return lines;
+    var out = [], map = {}, i, k, l;
+    for (i = 0; i < lines.length; i++) {
+      l = lines[i];
+      k = [l.name, l.spec, l.price, l.unit].join('\u0001');
+      if (!map[k]) { map[k] = { name: l.name, spec: l.spec, qty: 0, unit: l.unit, price: l.price, supply: 0, vat: 0, total: 0, note: l.note }; out.push(map[k]); }
+      var t = map[k];
+      t.qty = Math.round((t.qty + l.qty) * 1000) / 1000;
+      t.supply += l.supply; t.vat += l.vat; t.total += l.total;
+      if (!t.note && l.note) t.note = l.note;
+    }
+    for (i = 0; i < out.length; i++) { out[i].supply = r0(out[i].supply); out[i].vat = r0(out[i].vat); out[i].total = r0(out[i].total); }
+    return out;
+  }
+  function stmtMeat(o) {
+    var ref = o.ref || {}, d = s(ref.d), partner = s(ref.p), rows = [], i, e;
+    for (i = 0; i < (o.logs || []).length; i++) {
+      e = o.logs[i];
+      if (e.t !== 'out') continue;
+      if (d && s(e.d) !== d) continue;
+      if (partner && s(e.p) !== partner) continue;
+      rows.push(stmtLine({
+        name: e.n, spec: whName(e.w) + (e.mt ? ' · ' + e.mt : ''), qty: e.k, unit: 'kg',
+        price: e.price, supply: e.amt, tax: 'free', note: noteOf(e)
+      }));
+    }
+    return rows;
+  }
+  function stmtFp(o) {
+    var ref = o.ref || {}, d = s(ref.d), partner = s(ref.p), rows = [], i, g;
+    for (i = 0; i < (o.fpLogs || []).length; i++) {
+      g = o.fpLogs[i];
+      if (g.undone || g.t !== 'OUT') continue;
+      if (d && s(g.d) !== d) continue;
+      if (partner && s(g.p) !== partner) continue;
+      rows.push(stmtLine({
+        name: g.n, spec: g.spec, qty: g.q, unit: g.unit || '개',
+        price: g.outp, supply: g.amt, tax: 'tax', note: g.note
+      }));
+    }
+    return rows;
+  }
+  function stmtVoucher(o) {
+    var v = o.ref || {};
+    return [stmtLine({
+      name: v.note || (v.t === 'purchase' ? '매입' : '매출'), spec: '',
+      qty: 0, unit: '', price: 0, supply: v.supply, vat: v.vat, tax: v.tax === 'free' ? 'free' : 'tax',
+      note: v.note || ''
+    })];
+  }
+  /* kind = 'meat' | 'fp' | 'voucher' */
+  function stmtData(o) {
+    o = o || {};
+    var kind = o.kind || 'meat', ref = o.ref || {};
+    var lines = [], date = '', partner = '', srcName = '출고';
+    if (kind === 'meat') {
+      lines = stmtMeat(o); date = s(ref.d); partner = s(ref.p); srcName = '원료육 출고';
+    } else if (kind === 'fp') {
+      lines = stmtFp(o); date = s(ref.d); partner = s(ref.p); srcName = '완제품 출고';
+    } else {
+      lines = stmtVoucher(o); date = s(ref.d); partner = s(ref.partner); srcName = '전표';
+    }
+    lines = stmtMerge(lines);
+    var sum = stmtSum(lines);
+    var tax = 'free';
+    for (var i = 0; i < lines.length; i++) if (lines[i].vat > 0) tax = 'tax';
+    return {
+      date: date, partner: partner, tax: tax, lines: lines,
+      supply: sum.supply, vat: sum.vat, total: sum.total,
+      source: srcName, note: s(ref.note)
+    };
   }
 
   /* ---------- CSV ---------- */
@@ -871,8 +1124,7 @@ var ERP = (function () {
       r = list[i];
       if (!inRange(r.d, opt.from, opt.to)) continue;
       if (qq) {
-        var hay = [r.n, r.mt, r.v, r.d, String(r.prev), String(r.last)].join(' ').toLowerCase();
-        if (hay.indexOf(qq) < 0) continue;
+        if (!textHit([r.n, r.mt, r.v, r.d, String(r.prev), String(r.last)].join(' '), opt.q)) continue;
       }
       if (!passCols(opt.cols, function (k) { return chgCell(r, k); })) continue;
       out.push(r);
@@ -1312,8 +1564,8 @@ var ERP = (function () {
 
   function fpMatch(p, q) {
     if (!q) return true;
-    var hay = [p.code, p.n, p.cat, p.spec, p.unit, p.sup, p.bc].join(' ').toLowerCase();
-    return hay.indexOf(q) >= 0;
+    if (!q) return true;
+    return textHit([p.code, p.n, p.cat, p.spec, p.unit, p.sup, p.bc].join(' '), q);
   }
   function fpMoveCodes(fpLogs, from, to) {
     var m = {}, i, g;
@@ -1362,8 +1614,7 @@ var ERP = (function () {
       if (o.from && g.d < o.from) continue;
       if (o.to && g.d > o.to) continue;
       if (q) {
-        var hay = [g.d, fpTypeName(g.t), g.code, g.n, g.cat, g.spec, g.p, g.note, g.worker].join(' ').toLowerCase();
-        if (hay.indexOf(q) < 0) continue;
+        if (!textHit([g.d, fpTypeName(g.t), g.code, g.n, g.cat, g.spec, g.p, g.note, g.worker].join(' '), o.q)) continue;
       }
       var skip = false;
       for (var k in cols) {
@@ -1566,7 +1817,7 @@ var ERP = (function () {
       r.receivable = r2(r.sale - r.received);
       r.payable = r2(r.purchase - r.paid);
       r.balance = r2(r.receivable - r.payable);
-      if (qq && r.partner.toLowerCase().indexOf(qq) < 0) continue;
+      if (qq && !textHit(r.partner, q)) continue;
       out.push(r);
     }
     out.sort(function (a, b) {
@@ -1740,8 +1991,7 @@ var ERP = (function () {
       if (o.type && o.type !== 'all' && v.t !== o.type) continue;
       if (!inPeriod(v.d, o.from, o.to)) continue;
       if (q) {
-        var hay = [v.d, accTypeName(v.t), v.partner, ACC_TAX[v.tax], v.note, accDocName(v.t, v.doc)].join(' ').toLowerCase();
-        if (hay.indexOf(q) < 0) continue;
+        if (!textHit([v.d, accTypeName(v.t), v.partner, ACC_TAX[v.tax], v.note, accDocName(v.t, v.doc)].join(' '), o.q)) continue;
       }
       var skip = false;
       for (var k in cols) {
@@ -1769,8 +2019,7 @@ var ERP = (function () {
       if (o.type && o.type !== 'all' && v.t !== o.type) continue;
       if (!inPeriod(v.d, o.from, o.to)) continue;
       if (q) {
-        var hay = [v.d, v.cat, v.partner, v.note, v.method, v.t === 'income' ? '수입' : '경비'].join(' ').toLowerCase();
-        if (hay.indexOf(q) < 0) continue;
+        if (!textHit([v.d, v.cat, v.partner, v.note, v.method, v.t === 'income' ? '수입' : '경비'].join(' '), o.q)) continue;
       }
       var skip = false;
       for (var k in cols) {
@@ -2221,6 +2470,10 @@ var ERP = (function () {
     fmtKorMonth: fmtKorMonth, WEEK_NAMES: WEEK_NAMES, monthMatrix: monthMatrix,
     PERIOD_QUICK: PERIOD_QUICK, periodRange: periodRange, periodKeyOf: periodKeyOf,
     grouped: grouped, filterLots: filterLots, countLive: countLive,
+    /* v7 브랜드 한↔영 · 거래명세표 */
+    BRANDS: BRANDS, brandNorm: brandNorm, brandTerms: brandTerms, brandStandard: brandStandard,
+    brandKoOf: brandKoOf, brandList: brandList, chosung: chosung, romanizeKo: romanizeKo,
+    textHit: textHit, stmtLine: stmtLine, stmtSum: stmtSum, stmtMerge: stmtMerge, stmtData: stmtData,
     sortLogsDesc: sortLogsDesc, sortLogsAsc: sortLogsAsc, filterLogs: filterLogs,
     priceStats: priceStats, priceCompare: priceCompare,
     CHG_COLS: CHG_COLS, chgRows: chgRows, chgCell: chgCell, filterChg: filterChg, siteInput: siteInput,
@@ -2727,7 +2980,7 @@ var LIVE = (function () {
   var COLW_KEY = 'meatERP.colw.v3';
   var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {} };
   var COL_MIN = 44, COL_MAX = 720;
-  var ACT_DEF = { lot: 84, log: 84, fpG: 112, fpL: 84, fpP: 96, accV: 108, accR: 132, accE: 96 };
+  var ACT_DEF = { lot: 84, log: 84, fpG: 112, fpL: 112, fpP: 96, accV: 156, accR: 132, accE: 96 };
   var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM'];
   function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
   function loadColW() {
@@ -3510,11 +3763,12 @@ var LIVE = (function () {
   }
   function renderFpop() {
     var list = $('fpopList');
-    var q = fpop.q.toLowerCase();
+    var q = fpop.q;
     var shown = 0, html = [], i;
     for (i = 0; i < fpop.all.length; i++) {
       var v = fpop.all[i];
-      if (q && v.toLowerCase().indexOf(q) < 0) continue;
+      /* v7: 값 목록에서도 파텔 ↔ PATEL 로 찾는다 */
+      if (q && !ERP.textHit(v, q)) continue;
       shown++;
       html.push('<label class="fitem"><input type="checkbox" data-val="' + esc(v) + '"' +
         (fpop.sel[v] ? ' checked' : '') + '><span>' + esc(v) + '</span></label>');
@@ -3600,10 +3854,13 @@ var LIVE = (function () {
     return items;
   }
   function logMenuItems(e) {
-    return [
-      { label: '✏️ 수정', act: 'edit', id: e.dbid },
-      { label: '↩️ 취소', act: 'undo', id: e.dbid, danger: true }
-    ];
+    var items = [];
+    /* v7: 출고 건은 거래명세표를 바로 인쇄할 수 있다 */
+    if (e.t === 'out') items.push({ label: '📄 명세표', act: 'stmt', id: e.dbid });
+    if (items.length) items.push({ sep: true });
+    items.push({ label: '✏️ 수정', act: 'edit', id: e.dbid });
+    items.push({ label: '↩️ 취소', act: 'undo', id: e.dbid, danger: true });
+    return items;
   }
 
   /* ==========================================================================
@@ -3658,6 +3915,11 @@ var LIVE = (function () {
     if (p) p.textContent = n;
     var btn = $('btnPhotoInbox');
     if (btn) btn.classList.toggle('has', n > 0);
+    /* v7: 왼쪽 세로 메뉴의 대기함 */
+    var sp = $('sidePhotoCnt');
+    if (sp) sp.textContent = n;
+    var sb = $('sidePhotoInbox');
+    if (sb) sb.classList.toggle('has', n > 0);
   }
   function fmtWhen(v) {
     var t = String(v || '');
@@ -3724,7 +3986,12 @@ var LIVE = (function () {
     if ($('photoPin')) $('photoPin').textContent = '🪟 작게 띄우기';
     $('photoViewModal').classList.remove('hidden');
   }
-  function closePhoto() { $('photoViewModal').classList.add('hidden'); $('photoViewModal').classList.remove('mini'); photo.open = null; }
+  function closePhoto() {
+    $('photoViewModal').classList.add('hidden');
+    $('photoViewModal').classList.remove('mini');
+    document.body.classList.remove('photo-beside');
+    photo.open = null;
+  }
   function pinPhoto(on) {
     var m = $('photoViewModal');
     if (!m) return;
@@ -3736,7 +4003,7 @@ var LIVE = (function () {
     var p = photo.open;
     if (!p) return;
     if (cur.erp !== 'meat') setErpMode('meat');
-    setMode('in');
+    openMeatForm('in');
     cur.photoId = p.id;
     if ($('photoState')) {
       $('photoState').classList.remove('hidden');
@@ -3746,9 +4013,12 @@ var LIVE = (function () {
     }
     if (p.memo && $('inNote') && !$('inNote').value) $('inNote').value = p.memo;
     pinPhoto(true);
+    /* 사진은 오른쪽에 작게, 입력 팝업은 왼쪽에 — 서로 가리지 않는다 */
+    document.body.classList.add('photo-beside');
     closePhotoInbox();
-    scrollPanel('form');
-    toast('사진을 입고 폼에 붙였습니다. 내용을 보고 [입고 저장]을 누르세요.', 'ok');
+    var card = $('meatFormPanel');
+    if (card) card.scrollTop = 0;
+    toast('사진을 오른쪽에 띄웠습니다. 사진을 보며 입고 내용을 적고 [입고 저장]을 누르세요.', 'ok');
   }
   function clearPhotoPick() {
     cur.photoId = null;
@@ -3955,18 +4225,49 @@ var LIVE = (function () {
     if (cur.mode === 're') return '재냉동 저장 (냉장 → 냉동)';
     return '출고 저장';
   }
+  /* v7: 입력 팝업 제목·안내 (왼쪽 사이드바에서 연다) */
+  var MEAT_FORM_INFO = {
+    in: { t: '📥 입고 등록', s: '입고할 로트를 적고 저장하면 재고와 입출고 내역에 바로 쌓입니다.' },
+    thaw: { t: '❄️ 해동 이동', s: '냉동고 재고를 냉장고로 옮깁니다. 로트를 고르면 단가가 채워집니다.' },
+    re: { t: '🧊 재냉동 이동', s: '해동한 로트를 다시 냉동고로 되돌립니다. 사유를 비고에 남기세요.' },
+    out: { t: '🚚 출고 등록', s: '창고 재고를 줄이고 출고처(현장·업체·택배·기타)를 남깁니다.' }
+  };
   function setMode(mode) {
     cur.mode = mode;
-    var btns = document.querySelectorAll('.mode');
+    var btns = document.querySelectorAll('#meatFormPanel .mode');
     for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-mode') === mode);
-    var panes = document.querySelectorAll('[data-pane]');
+    var panes = document.querySelectorAll('#meatFormPanel [data-pane]');
     for (var j = 0; j < panes.length; j++) panes[j].classList.toggle('hidden', panes[j].getAttribute('data-pane') !== mode);
     var sub = $('btnSave');
     sub.className = 'submit ' + (mode === 'in' ? '' : (mode === 'thaw' ? 't-thaw' : (mode === 're' ? 't-re' : 't-out')));
     sub.textContent = submitLabel();
     $('formMsg').textContent = '';
+    var info = MEAT_FORM_INFO[mode] || MEAT_FORM_INFO.in;
+    if ($('meatFormTitle')) $('meatFormTitle').textContent = info.t;
+    if ($('meatFormSub')) $('meatFormSub').textContent = info.s;
     updatePriceHint();
     return mode;
+  }
+  /* ---------- v7: 입력 팝업 열기/닫기 ---------- */
+  function openMeatForm(mode) {
+    if (cur.erp !== 'meat') setErpMode('meat');
+    setMode(mode || 'in');
+    var m = $('meatFormModal');
+    if (m) m.classList.remove('hidden');
+    var card = $('meatFormPanel');
+    if (card) card.scrollTop = 0;
+    if ($('meatFormTitle')) {
+      try { $('meatFormTitle').scrollIntoView({ block: 'start' }); } catch (e) { }
+    }
+  }
+  function closeMeatForm() {
+    var m = $('meatFormModal');
+    if (m) m.classList.add('hidden');
+    document.body.classList.remove('photo-beside');
+  }
+  function meatFormOpen() {
+    var m = $('meatFormModal');
+    return !!m && !m.classList.contains('hidden');
   }
   function setOutWh(wh) {
     cur.whOut = wh;
@@ -3978,6 +4279,16 @@ var LIVE = (function () {
     var btns = document.querySelectorAll('#whSegIn button');
     for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-wh') === wh);
     if (cur.mode === 'in') $('btnSave').textContent = submitLabel();
+  }
+  /* v7: 브랜드를 한글로 적어도 표준 영문명으로 바꿔 준다 (파텔 → PATEL) */
+  function normalizeBrandInput(el) {
+    if (!el) return;
+    var v = el.value || '';
+    if (!v.replace(/\s+/g, '')) return;
+    var std = ERP.brandStandard(v);
+    if (!std || std === v) return;
+    el.value = std;
+    toast('브랜드를 표준 영문명 ' + std + ' 로 맞췄습니다.', 'ok');
   }
   function setDest(d) {
     cur.dest = ERP.destKey(d);
@@ -4134,6 +4445,7 @@ var LIVE = (function () {
     closeEdit(); closeLot();
     closeFgNew(); closeFgPrice(); closeUpload(); closeAccVoucher(); closeAccPay(); closeAccExpense();
     closeRowMenu(); closePhoto(); closePhotoInbox();
+    closeMeatForm(); closeFgForm(); closeStmt(); closeSupplier(); closeAccHelp();
     photo.list = []; photo.count = 0; photo.loaded = false; photo.open = null;
     clearPhotoPick();
     if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
@@ -4303,6 +4615,7 @@ var LIVE = (function () {
         toast(msg, cur.mode);
         clearAfterSave();
         cur.hLimit = 250;
+        closeMeatForm();
         return reload({ silent: true });
       });
     }).then(function () {
@@ -4580,7 +4893,8 @@ var LIVE = (function () {
     datalist('dlNames', d.names);
     datalist('dlVendors', d.vendors);
     datalist('dlOrigins', d.origins);
-    datalist('dlBrands', d.brands);
+    /* v7: 표준 영문 브랜드를 먼저 보여 주고, DB에 있는 브랜드도 함께 제안한다 */
+    datalist('dlBrands', ERP.brandList().concat(d.brands));
     datalist('dlProducts', d.products);
     datalist('dlCourier', h.courier);
     datalist('dlOther', h.other);
@@ -4720,6 +5034,8 @@ var LIVE = (function () {
     for (var j = 0; j < om.length; j++) om[j].classList.toggle('hidden', !isM);
     closeFilter();
     closeRange();
+    closeMeatForm();
+    closeFgForm();
     updateQuickLabels();
     if (!$('appView').classList.contains('hidden')) {
       renderRangeBar();
@@ -4735,6 +5051,12 @@ var LIVE = (function () {
     if (cur.erp === 'fg') { f.textContent = '📝 입출고 입력'; l.textContent = '📋 재고·이력'; }
     else if (cur.erp === 'acc') { f.textContent = '📝 회계 입력'; l.textContent = '📋 전표·장부'; }
     else { f.textContent = '📝 입출고 입력'; l.textContent = '📋 재고·이력'; }
+  }
+  /* v7: 폰 퀵 바 [입력하기] — 지금 모드의 입력 팝업을 연다 */
+  function openMeatQuick() {
+    if (cur.erp === 'fg') { openFgForm(cur.fgType || 'IN'); return; }
+    if (cur.erp === 'acc') { openAccVoucher('sale'); return; }
+    openMeatForm(cur.mode || 'in');
   }
   function scrollPanel(which) {
     var id;
@@ -4970,7 +5292,8 @@ var LIVE = (function () {
       for (c = 0; c < cols.length; c++) html.push(fgLogCellHtml(g, cols[c].k));
       html.push('<td class="actcell actcol"><div class="acts">' + (g.undone
         ? '<span class="ttag">취소됨</span>'
-        : '<button class="cancel" data-fgundo="' + g.id + '">취소</button>') + '</div></td></tr>');
+        : (g.t === 'OUT' ? '<button class="act stmt" data-fgstmt="' + g.id + '" title="거래명세표">📄</button>' : '') +
+          '<button class="cancel" data-fgundo="' + g.id + '">취소</button>') + '</div></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -5079,12 +5402,35 @@ var LIVE = (function () {
     $('fgPriceLabel').textContent = cur.fgType === 'IN' ? '입고단가(원)' : '출고단가(원)';
     $('btnFgSave').textContent = cur.fgType === 'IN' ? '입고 저장' : '출고 저장';
     $('fgNegWrap').classList.toggle('hidden', cur.fgType !== 'OUT');
+    if ($('fgFormTitle')) $('fgFormTitle').textContent = cur.fgType === 'IN' ? '📥 완제품 입고 등록' : '🚚 완제품 출고 등록';
+    if ($('fgFormSub')) $('fgFormSub').textContent = cur.fgType === 'IN'
+      ? '상품을 고르면 규격·단가가 채워집니다. 🏭 자체생산은 거래처가 자동으로 잡힙니다.'
+      : '출고할 상품과 수량을 적습니다. 재고보다 많이 나가면 아래 허용을 켜세요.';
     if ($('fgSrcWrap')) $('fgSrcWrap').classList.toggle('hidden', cur.fgType !== 'IN');
     var p = cur.fgCode ? ERP.fpProductOf(st.fps, cur.fgCode) : null;
     if (p) $('fgPrice').placeholder = (cur.fgType === 'IN' ? p.inp : p.outp) > 0 ? fmtInt(cur.fgType === 'IN' ? p.inp : p.outp) : '비우면 상품단가';
     renderFgProdRef();
     fgSyncAmount();
   }
+  function openFgForm(type) {
+    if (type === 'new') { openFgNew(null); return; }
+    if (cur.erp !== 'fg') setErpMode('fg');
+    setFgType(type === 'OUT' ? 'OUT' : 'IN');
+    var m = $('fgFormModal');
+    if (m) m.classList.remove('hidden');
+    var card = $('fgFormPanel');
+    if (card) card.scrollTop = 0;
+    setTimeout(function () { try { $('fgQuery').focus(); } catch (e) { } }, 60);
+  }
+  function closeFgForm() {
+    var m = $('fgFormModal');
+    if (m) m.classList.add('hidden');
+  }
+  function fgFormOpen() {
+    var m = $('fgFormModal');
+    return !!m && !m.classList.contains('hidden');
+  }
+
   /* ---------- 완제품 입고구분: 자체생산 / 외부매입 (v6, SQL 변경 없이 partner·note로 구분) ---------- */
   function setFgSrc(src) {
     cur.fgSrc = src === 'self' ? 'self' : 'buy';
@@ -5149,6 +5495,7 @@ var LIVE = (function () {
         (row && Number(row.amount) ? ' · ' + won(row.amount) : ''), cur.fgType === 'IN' ? 'in' : 'out');
       $('fgQty').value = ''; $('fgNote').value = ''; $('fgPrice').value = ''; $('fgAmount').value = '';
       cur.fgLimit = 300;
+      closeFgForm();
       return reload({ silent: true });
     }).then(function () {
       b.disabled = false; b.textContent = label;
@@ -5545,7 +5892,9 @@ var LIVE = (function () {
       var v = page[i];
       html.push('<tr class="accrow" data-vrow="' + v.id + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(v, cols[c].k, 'V'));
-      html.push('<td class="actcell actcol"><div class="acts"><button class="act edit" data-vedit="' + v.id + '">수정</button>' +
+      html.push('<td class="actcell actcol"><div class="acts">' +
+        (v.t === 'sale' ? '<button class="act stmt" data-vstmt="' + v.id + '" title="거래명세표 인쇄">📄</button>' : '') +
+        '<button class="act edit" data-vedit="' + v.id + '">수정</button>' +
         '<button class="cancel" data-vdel="' + v.id + '">삭제</button></div></td></tr>');
     }
     html.push('</tbody></table>');
@@ -5862,7 +6211,7 @@ var LIVE = (function () {
   var accP = { id: null, type: 'in' };
   function openAccPay(type, partner) {
     accP = { id: null, type: type === 'out' ? 'out' : 'in' };
-    $('accPayTitle').textContent = accP.type === 'out' ? '지급(출금)' : '수금(입금)';
+    $('accPayTitle').textContent = accP.type === 'out' ? '＋ 지급 (미지급금 상환)' : '＋ 수금 (미수금 회수)';
     $('accPDate').value = today();
     $('accPPartner').value = partner || '';
     $('accPAmount').value = ''; $('accPMethod').value = '계좌이체'; $('accPNote').value = '';
@@ -5903,9 +6252,15 @@ var LIVE = (function () {
     datalist('dlAccCats', list);
     if (!accE.id) $('accECat').value = list[0];
   }
-  function openAccExpense(row) {
-    accE = { id: row ? row.id : null, type: row ? row.t : 'expense' };
-    $('accExpTitle').textContent = row ? '경비·수입 수정' : '경비 · 수입';
+  function openAccExpense(row, type) {
+    accE = { id: row ? row.id : null, type: row ? row.t : (type === 'income' ? 'income' : 'expense') };
+    $('accExpTitle').textContent = row ? (accE.type === 'income' ? '기타 입금 수정' : '일반 출금(경비) 수정')
+      : (accE.type === 'income' ? '＋ 기타 입금' : '＋ 일반 출금(경비)');
+    if ($('accExpSub')) {
+      $('accExpSub').innerHTML = accE.type === 'income'
+        ? '외상(미수금)과 상관없이 <b>들어온 돈</b>입니다. 잡수입·환급·이자처럼 거래처 외상 잔액을 건드리지 않는 수입입니다.'
+        : '외상(미지급금)과 상관없이 <b>나간 돈</b>입니다. 월세·택배비·식대·유류비처럼 거래처 외상 잔액을 건드리지 않는 지출입니다.';
+    }
     $('accEDate').value = row ? row.d : today();
     $('accEAmount').value = row ? row.amount : '';
     $('accEPartner').value = row ? row.partner : '';
@@ -5969,6 +6324,152 @@ var LIVE = (function () {
       return reload({ silent: true });
     }, function (e) { toast(e.message, 'err'); });
   }
+
+  /* ==========================================================================
+     v7 — 거래명세표 (A4 인쇄) · 공급자 정보 설정 · 회계 사용법
+     ========================================================================== */
+  var SUP_KEY = 'mirsfood.supplier.v1';
+  var SUP_DEFAULT = { name: '미르스타푸드', bizNo: '', owner: '', addr: '', tel: '', email: '', biz: '', bank: '' };
+  function loadSup() {
+    var o = {};
+    try { o = JSON.parse(localStorage.getItem(SUP_KEY) || '{}') || {}; } catch (e) { o = {}; }
+    var out = {}, k;
+    for (k in SUP_DEFAULT) if (Object.prototype.hasOwnProperty.call(SUP_DEFAULT, k)) out[k] = SUP_DEFAULT[k];
+    for (k in o) if (Object.prototype.hasOwnProperty.call(o, k) && k in SUP_DEFAULT) out[k] = String(o[k] === null || o[k] === undefined ? '' : o[k]);
+    if (!out.name) out.name = SUP_DEFAULT.name;
+    return out;
+  }
+  function saveSup(o) {
+    try { localStorage.setItem(SUP_KEY, JSON.stringify(o)); } catch (e) { }
+  }
+  function openSupplier() {
+    var o = loadSup();
+    $('supName').value = o.name; $('supBizNo').value = o.bizNo; $('supOwner').value = o.owner;
+    $('supAddr').value = o.addr; $('supTel').value = o.tel; $('supEmail').value = o.email;
+    $('supBiz').value = o.biz; $('supBank').value = o.bank;
+    $('supplierMsg').textContent = '';
+    $('supplierModal').classList.remove('hidden');
+    setTimeout(function () { try { $('supName').focus(); } catch (e) { } }, 60);
+  }
+  function closeSupplier() { $('supplierModal').classList.add('hidden'); }
+  function saveSupplier() {
+    var name = ($('supName').value || '').replace(/^\s+|\s+$/g, '');
+    if (!name) { $('supplierMsg').textContent = '상호를 입력하세요.'; return; }
+    var o = {
+      name: name, bizNo: $('supBizNo').value || '', owner: $('supOwner').value || '',
+      addr: $('supAddr').value || '', tel: $('supTel').value || '', email: $('supEmail').value || '',
+      biz: $('supBiz').value || '', bank: $('supBank').value || ''
+    };
+    saveSup(o);
+    closeSupplier();
+    toast('공급자 정보를 저장했습니다. 다음 명세표부터 그대로 찍힙니다.', 'ok');
+    if (!$('stmtModal').classList.contains('hidden') && stmtNow) renderStmt();
+  }
+
+  var stmtNow = null;   /* 지금 열려 있는 명세표 데이터 */
+  function stmtEsc(v) { return esc(v === null || v === undefined ? '' : v); }
+  function stmtDash(v) { var t = String(v === null || v === undefined ? '' : v).replace(/^\s+|\s+$/g, ''); return t ? t : '—'; }
+  function wonOrDash(n) { return Number(n) > 0 ? fmtInt(n) : '—'; }
+
+  /* 화면에 띄울 명세표 한 장 그리기 */
+  function renderStmt() {
+    if (!stmtNow || !$('stmtSheet')) return;
+    var d = stmtNow, sup = loadSup();
+    var head = '<div class="stmt-title">거래명세표</div>' +
+      '<div class="stmt-meta"><span>작성일 <b>' + stmtEsc(d.date || today()) + '</b></span>' +
+      '<span>거래처 <b>' + stmtEsc(stmtDash(d.partner)) + '</b></span>' +
+      '<span>' + stmtEsc(d.source) + '</span></div>';
+
+    var supplier = '<div class="box"><div class="who">공급자</div>' +
+      '<div><b>' + stmtEsc(sup.name) + '</b></div>' +
+      '<div>사업자번호 ' + stmtEsc(stmtDash(sup.bizNo)) + ' · 대표 ' + stmtEsc(stmtDash(sup.owner)) + '</div>' +
+      '<div>주소 ' + stmtEsc(stmtDash(sup.addr)) + '</div>' +
+      '<div>연락처 ' + stmtEsc(stmtDash(sup.tel)) + (sup.email ? ' · ' + stmtEsc(sup.email) : '') + '</div>' +
+      (sup.biz ? '<div>업태·종목 ' + stmtEsc(sup.biz) + '</div>' : '') +
+      '<div class="sig">공급자 서명 <span style="display:inline-block;width:86px;border-bottom:1px solid #333"></span></div></div>';
+    var buyer = '<div class="box"><div class="who">공급받는자</div>' +
+      '<div><b>' + stmtEsc(stmtDash(d.partner || buyerName)) + '</b></div>' +
+      '<div>사업자번호 ' + stmtEsc(stmtDash(d.buyerBiz)) + ' · 대표 ' + stmtEsc(stmtDash(d.buyerOwner)) + '</div>' +
+      '<div>주소 ' + stmtEsc(stmtDash(d.buyerAddr)) + '</div>' +
+      '<div>연락처 ' + stmtEsc(stmtDash(d.buyerTel)) + '</div>' +
+      '<div class="sig">인수자 서명 <span style="display:inline-block;width:86px;border-bottom:1px solid #333"></span></div></div>';
+
+    var rows = ['<table class="stmt-tbl"><colgroup><col style="width:24%"><col style="width:14%"><col style="width:10%">' +
+      '<col style="width:12%"><col style="width:13%"><col style="width:9%"><col style="width:13%"><col style="width:5%">' +
+      '</colgroup><thead><tr><th>품목</th><th>규격</th><th>중량(수량)</th><th>단가</th><th>공급가액</th><th>세액</th><th>합계금액</th><th>비고</th></tr></thead><tbody>'];
+    var i, l, qty;
+    for (i = 0; i < d.lines.length; i++) {
+      l = d.lines[i];
+      qty = l.qty > 0 ? (fmtQty(l.qty) + (l.unit ? ' ' + l.unit : '')) : (l.unit || '');
+      rows.push('<tr><td>' + stmtEsc(l.name) + '</td><td class="c">' + stmtEsc(l.spec || '—') + '</td>' +
+        '<td class="num">' + stmtEsc(qty || '—') + '</td>' +
+        '<td class="num">' + wonOrDash(l.price) + '</td>' +
+        '<td class="num">' + wonOrDash(l.supply) + '</td>' +
+        '<td class="num">' + (l.vat ? fmtInt(l.vat) : '—') + '</td>' +
+        '<td class="num">' + wonOrDash(l.total) + '</td>' +
+        '<td>' + stmtEsc(l.note || '') + '</td></tr>');
+    }
+    if (!d.lines.length) rows.push('<tr><td colspan="8" class="c">출고 품목을 찾지 못했습니다. 전표 금액으로 채우려면 [📄 명세표]를 전표에서 여세요.</td></tr>');
+    var pad = Math.max(0, 4 - d.lines.length);
+    for (i = 0; i < pad; i++) rows.push('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
+    rows.push('<tr class="sum"><td colspan="2" class="c">합계</td><td class="num"></td><td class="num"></td>' +
+      '<td class="num">' + fmtInt(d.supply) + '</td><td class="num">' + fmtInt(d.vat) + '</td>' +
+      '<td class="num">' + fmtInt(d.total) + '</td><td></td></tr></tbody></table>');
+
+    var foot = '<div class="stmt-foot"><div class="note"><b>비고</b> ' + stmtEsc(d.note || (d.tax === 'free' ? '면세 거래(원료육)' : '과세 거래')) +
+      '</div><div style="margin-top:5px">' + (sup.bank ? '입금 계좌 ' + stmtEsc(sup.bank) + ' · ' : '') +
+      '위와 같이 거래하였음을 확인합니다.</div></div>';
+
+    $('stmtSheet').innerHTML = head + '<div class="stmt-sign">' + supplier + buyer + '</div>' + rows.join('') + foot;
+    if ($('stmtSub')) {
+      $('stmtSub').textContent = (d.partner || '거래처') + ' · ' + (d.date || today()) + ' · ' + d.lines.length +
+        '개 품목 · 합계 ' + fmtInt(d.total) + '원 · [🖨️ 인쇄 / PDF 저장]을 누르면 A4로 인쇄됩니다.';
+    }
+  }
+  var buyerName = '', buyerBiz = '', buyerOwner = '', buyerAddr = '', buyerTel = '';
+  function openStmt(kind, ref) {
+    var o = { kind: kind, ref: ref || {}, logs: st.logs, fpLogs: st.fpLogs };
+    /* 일괄 반영으로 만든 전표는 원본 출고를 찾아 품목을 채운다 */
+    if (kind === 'voucher' && ref) {
+      var srcKind = ref.srcKind, srcId = ref.srcId;
+      if (srcKind === 'meat' && srcId) {
+        var lg = null, i;
+        for (i = 0; i < st.logs.length; i++) if (Number(st.logs[i].dbid) === Number(srcId)) lg = st.logs[i];
+        if (lg) o = { kind: 'meat', ref: lg, logs: st.logs, fpLogs: st.fpLogs };
+      } else if (srcKind === 'fp' && srcId) {
+        var fg = null, j;
+        for (j = 0; j < st.fpLogs.length; j++) if (Number(st.fpLogs[j].id) === Number(srcId)) fg = st.fpLogs[j];
+        if (fg) o = { kind: 'fp', ref: fg, logs: st.logs, fpLogs: st.fpLogs };
+      }
+    }
+    var data = ERP.stmtData(o);
+    if (kind === 'voucher' && !(ref && ref.srcKind)) {
+      data.partner = ref.partner || '';
+      data.note = ref.note || '';
+    }
+    stmtNow = data;
+    buyerName = data.partner; buyerBiz = ''; buyerOwner = ''; buyerAddr = ''; buyerTel = '';
+    $('stmtModal').classList.remove('hidden');
+    document.body.classList.add('stmt-open');
+    renderStmt();
+    var sheet = document.querySelector('.stmt-scroll');
+    if (sheet) sheet.scrollTop = 0;
+  }
+  function closeStmt() {
+    $('stmtModal').classList.add('hidden');
+    document.body.classList.remove('stmt-open');
+    stmtNow = null;
+  }
+  function printStmt() {
+    if (!stmtNow) return;
+    document.body.classList.add('stmt-open');
+    try { window.print(); } catch (e) { toast('이 브라우저에서는 인쇄 창을 열 수 없습니다. PDF 저장을 이용해 주세요.', 'warn'); }
+    setTimeout(function () { if ($('stmtModal').classList.contains('hidden')) document.body.classList.remove('stmt-open'); }, 800);
+  }
+
+  /* ---------- ❓ 회계 사용법 ---------- */
+  function openAccHelp() { $('accHelpModal').classList.remove('hidden'); }
+  function closeAccHelp() { $('accHelpModal').classList.add('hidden'); }
 
   /* ---------- 회계 엑셀 ---------- */
   function accXls() {
@@ -6109,8 +6610,49 @@ var LIVE = (function () {
       var el = $(id);
       if (el) el.addEventListener('click', function () { setErpMode(this.getAttribute('data-erpmode')); });
     });
-    if ($('qbForm')) $('qbForm').addEventListener('click', function () { scrollPanel('form'); });
+    if ($('qbForm')) $('qbForm').addEventListener('click', function () { openMeatQuick(); });
     if ($('qbList')) $('qbList').addEventListener('click', function () { scrollPanel('list'); });
+
+    /* v7: 왼쪽 세로 메뉴 — 입력은 팝업, 조회는 오른쪽 표 전환 */
+    var sideOpen = document.querySelectorAll('#meatSide [data-open]');
+    for (var so = 0; so < sideOpen.length; so++) {
+      sideOpen[so].addEventListener('click', function () {
+        openMeatForm(this.getAttribute('data-open'));
+      });
+    }
+    var fgOpen = document.querySelectorAll('#fgSide [data-fgopen]');
+    for (var fo = 0; fo < fgOpen.length; fo++) {
+      fgOpen[fo].addEventListener('click', function () {
+        openFgForm(this.getAttribute('data-fgopen'));
+      });
+    }
+    if ($('sidePhotoInbox')) $('sidePhotoInbox').addEventListener('click', function () { openPhotoInbox(); });
+    if ($('meatFormClose')) $('meatFormClose').addEventListener('click', closeMeatForm);
+    if ($('meatFormModal')) $('meatFormModal').addEventListener('click', function (ev) {
+      if (ev.target === this) closeMeatForm();
+    });
+    if ($('fgFormClose')) $('fgFormClose').addEventListener('click', closeFgForm);
+    if ($('fgFormModal')) $('fgFormModal').addEventListener('click', function (ev) {
+      if (ev.target === this) closeFgForm();
+    });
+
+    /* 회계 사용법 · 4종 입출금 */
+    if ($('btnAccHelp')) $('btnAccHelp').addEventListener('click', openAccHelp);
+    if ($('accHelpClose')) $('accHelpClose').addEventListener('click', closeAccHelp);
+    if ($('accHelpClose2')) $('accHelpClose2').addEventListener('click', closeAccHelp);
+    if ($('accHelpModal')) $('accHelpModal').addEventListener('click', function (ev) { if (ev.target === this) closeAccHelp(); });
+    if ($('accHelpGoSale')) $('accHelpGoSale').addEventListener('click', function () { closeAccHelp(); openAccVoucher('sale'); });
+    if ($('btnAccExtraIn')) $('btnAccExtraIn').addEventListener('click', function () { openAccExpense(null, 'income'); });
+
+    /* 거래명세표 · 공급자 정보 */
+    if ($('stmtClose')) $('stmtClose').addEventListener('click', closeStmt);
+    if ($('stmtPrint')) $('stmtPrint').addEventListener('click', printStmt);
+    if ($('stmtSupBtn')) $('stmtSupBtn').addEventListener('click', openSupplier);
+    if ($('stmtModal')) $('stmtModal').addEventListener('click', function (ev) { if (ev.target === this) closeStmt(); });
+    if ($('supplierClose')) $('supplierClose').addEventListener('click', closeSupplier);
+    if ($('supplierCancel')) $('supplierCancel').addEventListener('click', closeSupplier);
+    if ($('supplierSave')) $('supplierSave').addEventListener('click', saveSupplier);
+    if ($('supplierModal')) $('supplierModal').addEventListener('click', function (ev) { if (ev.target === this) closeSupplier(); });
 
     /* 완제품 탭 */
     var ftabs = document.querySelectorAll('#fgTabs .tab');
@@ -6120,6 +6662,7 @@ var LIVE = (function () {
         cur.fgLimit = 300;
         for (var k = 0; k < ftabs.length; k++) ftabs[k].classList.toggle('active', ftabs[k] === this);
         closeFilter();
+        closeFgForm();
         renderRangeBar();
         renderFgTable();
         $('fgTableWrap').scrollTop = 0;
@@ -6223,6 +6766,14 @@ var LIVE = (function () {
       if (edit) { openFgNew(edit.getAttribute('data-fgedit')); return; }
       var undoBtn = t.closest ? t.closest('[data-fgundo]') : null;
       if (undoBtn) { fgUndo(Number(undoBtn.getAttribute('data-fgundo')), undoBtn); return; }
+      var stmtBtn = t.closest ? t.closest('[data-fgstmt]') : null;
+      if (stmtBtn) {
+        var sid = Number(stmtBtn.getAttribute('data-fgstmt'));
+        var sg = null;
+        for (var si = 0; si < st.fpLogs.length; si++) if (Number(st.fpLogs[si].id) === sid) sg = st.fpLogs[si];
+        if (sg) openStmt('fp', sg);
+        return;
+      }
       var row = t.closest ? t.closest('tr.fgrow') : null;
       if (row) {
         var code = row.getAttribute('data-fgcode');
@@ -6233,7 +6784,7 @@ var LIVE = (function () {
             cur.fgCode = pr.code;
             renderFgInfo();
             fgSyncAmount();
-            scrollPanel('form');
+            openFgForm(cur.fgType);   /* v7: 입력은 팝업으로 */
           }
         }
       }
@@ -6313,7 +6864,7 @@ var LIVE = (function () {
       for (var p3 = 0; p3 < ps.length; p3++) ps[p3].addEventListener('click', function () {
         accP.type = this.getAttribute('data-ptype');
         for (var q = 0; q < ps.length; q++) ps[q].classList.toggle('active', ps[q] === this);
-        $('accPayTitle').textContent = accP.type === 'out' ? '지급(출금)' : '수금(입금)';
+        $('accPayTitle').textContent = accP.type === 'out' ? '＋ 지급 (미지급금 상환)' : '＋ 수금 (미수금 회수)';
       });
     }
     if ($('accPayClose')) $('accPayClose').addEventListener('click', closeAccPay);
@@ -6385,6 +6936,14 @@ var LIVE = (function () {
       }
       var vd = t.closest ? t.closest('[data-vdel]') : null;
       if (vd) { accDelete('v', Number(vd.getAttribute('data-vdel'))); return; }
+      var vst = t.closest ? t.closest('[data-vstmt]') : null;
+      if (vst) {
+        var vsid = Number(vst.getAttribute('data-vstmt'));
+        var vv = null;
+        for (var vi = 0; vi < st.vouchers.length; vi++) if (Number(st.vouchers[vi].id) === vsid) vv = st.vouchers[vi];
+        if (vv) openStmt('voucher', vv);
+        return;
+      }
       var ee = t.closest ? t.closest('[data-eedit]') : null;
       if (ee) {
         var eid = Number(ee.getAttribute('data-eedit'));
@@ -6429,8 +6988,9 @@ var LIVE = (function () {
         if ($('chgNote')) $('chgNote').classList.toggle('hidden', !isV);
         if ($('search')) $('search').placeholder = isV
           ? '🔍 품목명 · 육류 · 업체명 검색'
-          : (isH ? '🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색' : '🔍 제품명 · 업체명 · 원산지 · 브랜드 · 날짜 검색');
+          : '🔍 제품명 · 업체명 · 브랜드(한/영) · 날짜 검색';
         closeFilter();
+        closeMeatForm();
         renderRangeBar();
         renderTable();
         $('tableWrap').scrollTop = 0;
@@ -6630,7 +7190,8 @@ var LIVE = (function () {
         if (!it) return;
         if (it.act === 'thaw' || it.act === 're' || it.act === 'out') {
           bindLot(it.lot, it.act);
-          scrollPanel('form');
+          openMeatForm(it.act);
+          if (it.act === 'out') toast('출고 등록 — 고른 로트가 자동으로 선택됐습니다.', 'out');
         } else if (it.act === 'lotedit') {
           openLot(it.lot);
         } else if (it.act === 'fgprice') {
@@ -6641,6 +7202,12 @@ var LIVE = (function () {
           openEdit(it.id);
         } else if (it.act === 'undo') {
           undoEntry(it.id, null);
+        } else if (it.act === 'stmt') {
+          var stmtLog = ERP.getLog(st, it.id);
+          if (stmtLog) {
+            if (stmtLog.t === 'out') openStmt('meat', stmtLog);
+            else toast('출고 건에서만 명세표를 열 수 있습니다.', 'warn');
+          }
         }
       });
     }
@@ -6725,6 +7292,14 @@ var LIVE = (function () {
     ['inName'].forEach(function (id) {
       $(id).addEventListener('input', function () { updatePriceHint(); });
       $(id).addEventListener('change', function () { updatePriceHint(); });
+    });
+    /* v7: 브랜드는 표준 영문명으로 맞춘다 (파텔 → PATEL) */
+    [['inBrand', 'inName'], ['ltBrand', null]].forEach(function (pair) {
+      var el = $(pair[0]);
+      if (!el) return;
+      el.addEventListener('change', function () { normalizeBrandInput(el); });
+      el.addEventListener('blur', function () { normalizeBrandInput(el); });
+      if (pair[1]) el.addEventListener('input', function () { if ($(pair[1])) updatePriceHint(); });
     });
 
     $('btnCsvF').addEventListener('click', function () { csvStock('F'); });
@@ -6837,6 +7412,11 @@ var LIVE = (function () {
       if (!$('accVoucherModal').classList.contains('hidden')) { closeAccVoucher(); return; }
       if (!$('accPayModal').classList.contains('hidden')) { closeAccPay(); return; }
       if (!$('accExpModal').classList.contains('hidden')) { closeAccExpense(); return; }
+      if (!$('stmtModal').classList.contains('hidden')) { closeStmt(); return; }
+      if (!$('supplierModal').classList.contains('hidden')) { closeSupplier(); return; }
+      if (!$('accHelpModal').classList.contains('hidden')) { closeAccHelp(); return; }
+      if (!$('meatFormModal').classList.contains('hidden')) { closeMeatForm(); return; }
+      if (!$('fgFormModal').classList.contains('hidden')) { closeFgForm(); return; }
       if (fpop.open) closeFilter();
     });
     var xlsSegs = document.querySelectorAll('#xlsRangeSeg button');

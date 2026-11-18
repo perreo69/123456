@@ -641,6 +641,9 @@ td.zero,.num.zero{color:#b0b8c6}
 td.pos{color:#0f766e}
 td.neg,.neg{color:#b42318}
 .act.in{color:#0f766e;border-color:#c7e9dc;background:#f6fdfa}
+/* v7: 명세표 버튼 */
+.act.stmt{color:#1d4ed8;border-color:#c9d9f7;background:#f5f9ff;font-weight:800}
+.act.stmt:hover{background:#e9f1ff;border-color:#a9c2f2}
 .act.out{color:#b45309;border-color:#f8d8c2;background:#fffaf6}
 
 /* ---------- 회계 ---------- */
@@ -1011,4 +1014,162 @@ tr.chgrow:hover{background:#f8faff}
   .top-actions .sync{order:2}
   .top-actions .who{order:3}
   .top-actions #btnLogout{order:4}
+}
+
+/* ============================ v7: 왼쪽 세로 메뉴 · 입력 팝업 · 거래명세표 ============================ */
+/* ---------- 원료육·완제품 공통: 200px 세로 사이드바 + 넓은 표 ---------- */
+.layout.side-layout{grid-template-columns:200px minmax(0,1fr);gap:12px}
+.side{
+  position:sticky;top:68px;align-self:start;display:flex;flex-direction:column;gap:2px;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:10px 9px 11px;overflow:hidden;
+}
+.side-head{
+  font-size:13px;font-weight:800;letter-spacing:-.3px;color:var(--ink);
+  padding:1px 6px 8px;border-bottom:1px solid var(--line2);margin-bottom:4px;
+}
+.side-label{margin:9px 0 3px;padding-left:7px;font-size:10px;font-weight:800;color:#98a2b3;letter-spacing:.3px}
+.side-group{display:flex;flex-direction:column;gap:2px}
+.sideitem{
+  display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;
+  color:#41506a;font-size:12.5px;font-weight:700;text-align:left;letter-spacing:-.3px;
+  padding:8px 8px;border-radius:9px;line-height:1.25;white-space:nowrap;
+}
+.sideitem:hover{background:#f2f7ff;color:#1d4ed8}
+.sideitem .cnt{
+  margin-left:auto;font-size:10.5px;font-weight:800;color:#6b7789;background:#eef1f6;
+  border-radius:20px;padding:1px 6px;
+}
+/* 사이드바 안의 조회 탭은 예전 가로 탭 모양을 벗고 메뉴 줄처럼 */
+.side .tab{border-bottom:0;padding:8px 8px;border-radius:9px;color:#41506a;font-size:12.5px;font-weight:700}
+.side .tab:hover{background:#f2f7ff;color:#1d4ed8;border-bottom:0}
+.side .tab.active{background:#eaf1ff;color:#1d4ed8;border-bottom:0;box-shadow:inset 0 0 0 1px #bed0f2}
+.side .tab .cnt{background:#eef1f6;color:#6b7789}
+.side .tab.active .cnt{background:#d8e5ff;color:#1d4ed8}
+.sideitem:hover .cnt,.side .tab:hover .cnt{background:#dde9ff;color:#1d4ed8}
+.w-in{color:#1d4ed8}
+.w-thaw{color:#4f46e5}
+.w-re{color:#0f766e}
+.w-out{color:#b45309}
+.w-photo{color:#8a4b0a}
+.w-new{color:#1d4ed8}
+.sideitem.work{padding-left:9px}
+.sideitem.work:hover{background:#f5f9ff}
+.sideitem.has{background:#fff7ec;box-shadow:inset 0 0 0 1px #f3d9b5}
+.sideitem.has .cnt{background:#ffe9c9;color:#b45309}
+.side-tip{margin:11px 3px 0;font-size:10.5px;line-height:1.5;color:#98a2b3;letter-spacing:-.2px}
+.side-tip b{color:#6b7789}
+
+/* ---------- 입력 팝업(모달) 공통 ---------- */
+.modal-card.formcard{max-width:560px}
+.modal-card.formcard .modal-head{margin-bottom:1px}
+.modal-card.formcard .modal-sub{margin:2px 0 8px}
+.modal-card.formcard .modes{margin:6px 0 2px}
+.modal-card.formcard .modes.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.modal-card.formcard form{padding:8px 0 0}
+.modal-card.formcard .pane{gap:8px}
+.modal-card.formcard .msg{margin-bottom:0}
+/* 사진 대기함에서 불러온 사진을 작게 띄운 채 입력 팝업이 왼쪽에 나란히 선다 */
+body.photo-beside #meatFormModal{justify-content:flex-start;padding:18px 18px 18px max(12px,3vw)}
+body.photo-beside #meatFormModal .modal-card{max-width:min(520px,56vw)}
+#photoViewModal.mini{z-index:86}
+#photoViewModal.mini .modal-card{top:74px;right:14px;bottom:auto;width:min(370px,38vw);max-height:80vh}
+#photoViewModal.mini .photo-big{max-height:30vh}
+#photoViewModal.mini .photo-big img{max-height:30vh}
+
+/* ---------- 회계: 4종 입출금 버튼 + 사용법 ---------- */
+.accbtn-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+.accbtn.inc{color:#0f766e;border-color:#c7e9dc;background:#f4fdf9}
+.accbtn.help{color:#4a576d;border-style:dashed}
+.accbtn.help:hover{background:#f4f8ff;border-color:#b9c8de}
+.helpcard{max-width:640px}
+.helpflow{margin:6px 0 12px;padding-left:18px;font-size:12.5px;line-height:1.65;color:#41506a}
+.helpflow li{margin-bottom:7px}
+.helpflow b{color:#1b2431}
+.helptable{border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.ht-row{display:grid;grid-template-columns:170px minmax(0,1.5fr) minmax(0,1fr) 74px;gap:8px;align-items:center;
+  padding:8px 11px;border-bottom:1px solid #f1f4f9;font-size:12px;color:#41506a}
+.ht-row:last-child{border-bottom:0}
+.ht-row.ht-head{background:#f7f9fc;font-weight:800;color:#5f6b80;font-size:11.5px}
+.ht-b{font-weight:800;font-size:11.5px;border-radius:7px;padding:4px 7px;text-align:center;white-space:nowrap}
+.ht-b.payin{background:#f2fdf9;color:#0f766e;border:1px solid #c7e9dc}
+.ht-b.payout{background:#fdf7ff;color:#a21caf;border:1px solid #eccdf1}
+.ht-b.inc{background:#f0f8ff;color:#1d4ed8;border:1px solid #c9d9f7}
+.ht-b.exp{background:#fffaf4;color:#b45309;border:1px solid #f5d8bd}
+.ht-ok{color:#0f766e;font-weight:800;text-align:center}
+.ht-no{color:#8a95a8;font-weight:700;text-align:center}
+.helpnote{margin:12px 0 0;padding:10px 12px;background:#f7faff;border:1px solid #e2ecfb;border-radius:10px;
+  font-size:11.5px;line-height:1.6;color:#41506a}
+
+/* ---------- 거래명세표 (A4) ---------- */
+/* 명세표 위에 설정·안내 팝업이 겹칠 때는 그쪽이 위로 */
+#stmtModal{z-index:80}
+#accHelpModal{z-index:84}
+#supplierModal{z-index:88}
+.stmtcard{max-width:900px}
+.stmt-scroll{overflow:auto;background:#eef1f6;border-radius:10px;padding:12px;margin-top:4px}
+.stmt-sheet{
+  width:210mm;margin:0 auto;background:#fff;color:#111;
+  padding:12mm 12mm;box-sizing:border-box;border:1px solid #d7dee9;
+  font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Noto Sans KR",sans-serif;
+}
+.stmt-title{text-align:center;font-size:24px;font-weight:800;letter-spacing:8px;margin:0 0 10px;color:#111}
+.stmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;color:#333;margin-bottom:8px}
+.stmt-meta b{font-weight:800}
+.stmt-sign{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 8px;font-size:11px}
+.stmt-sign .box{border:1px solid #333;padding:6px 8px;line-height:1.55;min-height:52px}
+.stmt-sign .box .who{font-weight:800;font-size:10.5px;color:#555;margin-bottom:2px}
+.stmt-sign .sig{margin-top:8px;font-size:10px;color:#555}
+table.stmt-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}
+table.stmt-tbl th,table.stmt-tbl td{border:1px solid #333;padding:4px 5px;vertical-align:middle;word-break:break-all}
+table.stmt-tbl th{background:#f4f6f9;font-weight:800;text-align:center;font-size:10px}
+table.stmt-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+table.stmt-tbl td.c{text-align:center}
+table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
+.stmt-foot{margin-top:8px;font-size:10px;color:#444;line-height:1.6}
+.stmt-foot .note{border:1px solid #333;padding:5px 7px;min-height:34px}
+@media (max-width:900px){
+  .stmt-sheet{width:100%;min-height:0;padding:16px 12px}
+  .stmt-scroll{background:transparent;padding:0}
+  .stmtcard{max-width:100%}
+  .helptable .ht-row{grid-template-columns:120px minmax(0,1.6fr) 74px}
+  .helptable .ht-row span:nth-child(3){display:none}
+  .accbtn-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:768px){
+  .layout.side-layout{grid-template-columns:1fr}
+  .side{
+    position:sticky;top:0;z-index:35;display:block;padding:7px 8px;border-radius:12px;
+    overflow-x:auto;overflow-y:hidden;white-space:nowrap;-webkit-overflow-scrolling:touch;
+  }
+  .side::-webkit-scrollbar{display:none}
+  .side-head,.side-label,.side-tip{display:none}
+  .side-group{display:flex;flex-direction:row;gap:5px}
+  .sideitem,.side .tab{
+    width:auto;flex:0 0 auto;padding:8px 10px;font-size:12px;border-radius:20px;
+    background:#f5f7fb;border:1px solid var(--line);color:#41506a;
+  }
+  .sideitem .cnt{margin-left:2px}
+  .side .tab.active{background:#1b2431;color:#fff;border-color:#1b2431;box-shadow:none}
+  .side .tab.active .cnt{background:rgba(255,255,255,.2);color:#fff}
+  body.photo-beside #meatFormModal{justify-content:center;padding:10px}
+  body.photo-beside #meatFormModal .modal-card{max-width:100%}
+  #photoViewModal.mini .modal-card{top:auto;bottom:80px;right:10px;width:min(280px,80vw);max-height:60vh}
+}
+
+/* ---------- 인쇄: 명세표만 A4 한 장으로 ---------- */
+@page{size:A4;margin:10mm}
+@media print{
+  html,body{background:#fff !important}
+  body.stmt-open #loginView,
+  body.stmt-open #appView > *:not(#stmtModal){display:none !important}
+  body.stmt-open #stmtModal{position:static;inset:auto;display:block !important;padding:0;background:#fff;backdrop-filter:none}
+  body.stmt-open #stmtModal .modal-card{
+    max-width:none;width:auto;max-height:none;overflow:visible;border:0;box-shadow:none;padding:0;margin:0;
+  }
+  .stmt-noprint{display:none !important}
+  .stmt-scroll{overflow:visible;background:#fff;padding:0;margin:0;border-radius:0}
+  .stmt-sheet{width:190mm;min-height:0;border:0;padding:0;margin:0}
+  table.stmt-tbl{page-break-inside:auto}
+  tr{page-break-inside:avoid}
 }
