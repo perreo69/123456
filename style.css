@@ -1464,8 +1464,7 @@ table.sp-bottom td.num.sg{text-align:center;color:#8496ab}
 .acitem .act{display:block;font-size:13px;font-weight:800;color:#16222e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .acitem .acs{display:block;font-size:11px;color:#6b7f96;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ---------- 완제품 재고 표 [입고][출고][수정] ---------- */
-.acts.fpacts{gap:3px;justify-content:flex-end}
+/* ---------- [입고][출고] 계열 버튼 색 (회계 표 수금·지급 등) ---------- */
 .acts .act.in{background:#e9f7ef;border-color:#bfe3cd;color:#14683b;font-weight:800}
 .acts .act.in:hover{background:#dcf3e5}
 .acts .act.out{background:#fff3e8;border-color:#f4d5b6;color:#a1541a;font-weight:800}

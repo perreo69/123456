@@ -3367,7 +3367,7 @@ var LIVE = (function () {
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
   var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {} };
   var COL_MIN = 44, COL_MAX = 720;
-  var ACT_DEF = { lot: 78, log: 84, fpG: 172, fpL: 112, fpP: 96, accV: 156, accR: 132, accE: 96, accB: 156, accS: 156 };
+  var ACT_DEF = { lot: 78, log: 84, fpG: 78, fpL: 112, fpP: 96, accV: 156, accR: 132, accE: 96, accB: 156, accS: 156 };
   var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC'];
   var COLW_KEY = 'meatERP.colw.v4';
   function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
@@ -5815,12 +5815,9 @@ var LIVE = (function () {
       var p = page[i];
       html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
-      /* v8.1 — 한눈에 누르는 [입고] [출고] [수정] (그 품목이 선택된 채로 팝업이 열린다) */
-      html.push('<td class="actcell actcol"><div class="acts fpacts">' +
-        '<button type="button" class="act in" data-fgin="' + esc(p.code) + '" title="이 품목으로 입고 등록">입고</button>' +
-        '<button type="button" class="act out" data-fgout="' + esc(p.code) + '" title="이 품목으로 출고 등록">출고</button>' +
-        '<button type="button" class="act edit" data-fgedit="' + esc(p.code) + '" title="이 품목 정보 수정">수정</button>' +
-        '</div></td></tr>');
+      /* v8.2 — 원료육과 같은 [작업 ▾] 한 버튼 (입고 / 출고 / 수정) */
+      html.push('<td class="actcell actcol"><button type="button" class="actmenu" data-menu="fg" data-fgcode="' +
+        esc(p.code) + '" title="입고·출고·수정">작업 ▾</button></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -8101,8 +8098,9 @@ var LIVE = (function () {
         ev.preventDefault(); ev.stopPropagation();
         var fc = fgMenu.getAttribute('data-fgcode');
         openRowMenu(fgMenu, [
-          { label: '💰 상품·단가 수정', act: 'fgprice', code: fc },
-          { label: '✏️ 상품 정보 수정', act: 'fgedit', code: fc }
+          { label: '입고', act: 'fgin', code: fc },
+          { label: '출고', act: 'fgout', code: fc },
+          { label: '수정', act: 'fgedit', code: fc }
         ]);
         return;
       }
@@ -8558,6 +8556,10 @@ var LIVE = (function () {
           if (it.act === 'out') toast('출고 등록 — 고른 로트가 자동으로 선택됐습니다.', 'out');
         } else if (it.act === 'lotedit') {
           openLot(it.lot);
+        } else if (it.act === 'fgin') {
+          openFgFor(it.code, 'IN');
+        } else if (it.act === 'fgout') {
+          openFgFor(it.code, 'OUT');
         } else if (it.act === 'fgprice') {
           openFgPrice(it.code);
         } else if (it.act === 'fgedit') {
