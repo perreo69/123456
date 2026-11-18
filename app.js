@@ -6989,10 +6989,19 @@ var LIVE = (function () {
   }
 
   /* ---------- 회계 전표 모달 ---------- */
-  var accV = { id: null, type: 'sale' };
+  var accV = { id: null, type: 'sale', mode: '' };
   function updateAccVDoc() {
     var isSale = accV.type === 'sale';
-    $('accVoucherTitle').textContent = isSale ? '매출 전표 (미수금)' : '매입 전표 (미지급금)';
+    /* v8.6 — 구매관리·판매관리에서 열면 그 메뉴 전용(반대쪽 전표 종류 버튼 숨김)으로 띄운다 */
+    $('accVoucherTitle').textContent = accV.mode === 'buy' ? '매입 전표 입력'
+      : (accV.mode === 'sale' ? '매출 전표 입력'
+        : (isSale ? '매출 전표 (미수금)' : '매입 전표 (미지급금)'));
+    var segs = $('accVoucherSeg') ? $('accVoucherSeg').querySelectorAll('button') : [];
+    for (var i = 0; i < segs.length; i++) {
+      var vt = segs[i].getAttribute('data-vtype');
+      segs[i].classList.toggle('hidden',
+        (accV.mode === 'buy' && vt !== 'purchase') || (accV.mode === 'sale' && vt !== 'sale'));
+    }
     $('accVDoc').innerHTML = isSale
       ? '<option value="none">미발행</option><option value="issued">발행완료</option>'
       : '<option value="none">미수령</option><option value="received">수령완료</option>';
@@ -7007,8 +7016,8 @@ var LIVE = (function () {
     var v = ERP.accVat(amount, tax, inc);
     $('accVVat').value = v.vat ? fmtInt(v.vat) + '원 (합계 ' + fmtInt(v.total) + '원)' : '0원';
   }
-  function openAccVoucher(type, row) {
-    accV = { id: row ? row.id : null, type: row ? row.t : (type || 'sale') };
+  function openAccVoucher(type, row, mode) {
+    accV = { id: row ? row.id : null, type: row ? row.t : (type || 'sale'), mode: row ? '' : (mode || '') };
     $('accVDate').value = row ? row.d : today();
     $('accVPartner').value = row ? row.partner : '';
     $('accVAmount').value = row ? row.supply : '';
@@ -7025,7 +7034,7 @@ var LIVE = (function () {
     $('accVoucherModal').classList.remove('hidden');
     setTimeout(function () { try { $('accVPartner').focus(); } catch (e) { } }, 60);
   }
-  function closeAccVoucher() { $('accVoucherModal').classList.add('hidden'); accV = { id: null, type: 'sale' }; }
+  function closeAccVoucher() { $('accVoucherModal').classList.add('hidden'); accV = { id: null, type: 'sale', mode: '' }; }
   function saveAccVoucher() {
     var partner = ($('accVPartner').value || '').replace(/^\s+|\s+$/g, '');
     var amount = Number($('accVAmount').value || 0);
@@ -7344,30 +7353,27 @@ var LIVE = (function () {
       '<div class="sp-keep">(' + stmtEsc(label) + ')</div>' +
       '<div class="sp-page">PAGE&nbsp;&nbsp;1 / 1</div></div>');
     /* 왼쪽 거래 정보 · 오른쪽 공급자 정보 */
+    /* v8.6 — 왼쪽 공급받는자 칸은 표 테두리 없이 텍스트 줄로만 (원본 양식과 동일) */
     h.push('<div class="sp-top"><div class="sp-left">' +
-      '<div class="sp-row"><span class="k">프로젝트/현장</span><span class="v">' + stmtEsc(stmtDash(sup.project)) + '</span></div>' +
-      '<div class="sp-row"><span class="k">일 자</span><span class="v">' + stmtEsc(d.date || '') + '</span>' +
-        '<span class="k w2">출고번호</span><span class="v">' + stmtEsc(stmtDocNo(d)) + '</span></div>' +
-      '<div class="sp-row"><span class="k">거래처</span><span class="v"><b>' + stmtEsc(stmtDash(buyer.name || d.partner)) + '</b>' +
+      '<div class="sp-line"><span class="k">프로젝트/현장</span><span class="v">' + stmtEsc(stmtDash(sup.project)) + '</span></div>' +
+      '<div class="sp-line"><span class="k">일 자</span><span class="v">' + stmtEsc(d.date || '') + '</span>' +
+        '<span class="k sub">등록번호</span><span class="v">' + stmtEsc(stmtDash(buyer.bizNo)) + '</span></div>' +
+      '<div class="sp-line"><span class="k">거래처</span><span class="v grow"><b>' + stmtEsc(stmtDash(buyer.name || d.partner)) + '</b>' +
         (buyer.owner ? ' / ' + stmtEsc(buyer.owner) : '') + '</span></div>' +
-      '<div class="sp-row"><span class="k">등록번호</span><span class="v">' + stmtEsc(stmtDash(buyer.bizNo)) + '</span></div>' +
-      '<div class="sp-row"><span class="k">주 소</span><span class="v">' + stmtEsc(stmtDash(buyer.addr)) + '</span></div>' +
-      '<div class="sp-row"><span class="k">전화</span><span class="v">' + stmtEsc(stmtDash(buyer.tel)) +
-        '<span class="k w2">팩스</span><span class="v">' + stmtEsc(stmtDash(buyer.fax)) + '</span></span></div>' +
-      '<div class="sp-row sign"><span class="k">결재란</span><span class="v"></span></div>' +
+      '<div class="sp-line"><span class="k">주 소</span><span class="v grow">' + stmtEsc(stmtDash(buyer.addr)) + '</span></div>' +
+      '<div class="sp-line"><span class="k">전화번호</span><span class="v">' + stmtEsc(stmtDash(buyer.tel)) + '</span>' +
+        '<span class="k sub">팩스번호</span><span class="v">' + stmtEsc(stmtDash(buyer.fax)) + '</span></div>' +
+      '<div class="sp-sum"><span class="lab">합계금액</span><span class="amt">' + fmtInt(d.total) + '</span></div>' +
       '</div><div class="sp-right"><div class="sp-sup">' +
-      '<div class="k">등록번호</div><div class="v">' + stmtEsc(stmtDash(sup.bizNo)) + '</div>' +
+      '<div class="k">등록번호</div><div class="v span3">' + stmtEsc(stmtDash(sup.bizNo)) + '</div>' +
       '<div class="k">상 호</div><div class="v">' + stmtEsc(stmtDash(sup.name)) + '</div>' +
-      '<div class="k">성 명</div><div class="v who">' + stmtEsc(stmtDash(sup.owner)) + stamp + '</div>' +
-      '<div class="k">사업장주소</div><div class="v span5">' + stmtEsc(stmtDash(sup.addr)) + '</div>' +
+      '<div class="k">성 명</div><div class="v own">' + stmtEsc(stmtDash(sup.owner)) + stamp + '</div>' +
+      '<div class="k">사업장주소</div><div class="v span3 addr">' + stmtEsc(stmtDash(sup.addr)) + '</div>' +
       '<div class="k">업 태</div><div class="v">' + stmtEsc(stmtDash(sup.biz)) + '</div>' +
-      '<div class="k">종 목</div><div class="v span3">' + stmtEsc(stmtDash(sup.item)) + '</div>' +
+      '<div class="k">종 목</div><div class="v">' + stmtEsc(stmtDash(sup.item)) + '</div>' +
       '<div class="k">전화번호</div><div class="v">' + stmtEsc(stmtDash(sup.tel)) + '</div>' +
-      '<div class="k">팩스번호</div><div class="v span3">' + stmtEsc(stmtDash(sup.fax)) + '</div>' +
+      '<div class="k">팩스번호</div><div class="v">' + stmtEsc(stmtDash(sup.fax)) + '</div>' +
       '</div></div></div>');
-    /* 합계금액 큰 박스 */
-    h.push('<div class="sp-total"><span class="lab">합계금액</span><span class="amt"><span class="won">₩</span>' +
-      fmtInt(d.total) + '</span></div>');
     /* 품목 표 */
     h.push('<table class="sp-items"><colgroup><col style="width:7.5%"><col style="width:30%"><col style="width:12%">' +
       '<col style="width:9%"><col style="width:9.5%"><col style="width:13%"><col style="width:11%"><col style="width:8%">' +
@@ -7376,14 +7382,17 @@ var LIVE = (function () {
       '<tr class="qsum"><td colspan="3" class="c">수량총계</td><td class="r">' + (qtySum ? fmtQty(qtySum) : '') +
       '</td><td colspan="4"></td></tr></tbody></table>');
     /* 하단 합계·입금·미수·인수자 */
-    h.push('<table class="sp-bottom"><tr>' +
-      '<td class="pay" rowspan="3">결제수단란</td>' +
+    /* v8.6 — 하단 합계는 원본 그대로 2줄 (결제수단란 없음) */
+    h.push('<table class="sp-bottom">' +
+      '<colgroup><col style="width:14%"><col style="width:21%"><col style="width:12%"><col style="width:16%">' +
+      '<col style="width:11%"><col style="width:12%"><col style="width:7%"><col style="width:7%"></colgroup>' +
+      '<tr><td class="lb">전미수잔액</td><td colspan="2"></td>' +
       '<td class="lb">합 계</td><td class="num">' + wonOrDash(d.supply) + '</td>' +
-      '<td class="lb">세 액</td><td class="num">' + (d.vat ? fmtInt(d.vat) : '—') + '</td></tr><tr>' +
-      '<td class="lb">총합계</td><td class="num b">' + fmtInt(d.total) + '</td>' +
-      '<td class="lb">입금액</td><td class="num">—</td></tr><tr>' +
-      '<td class="lb">총미수잔액</td><td class="num">—</td>' +
-      '<td class="lb">인수자</td><td class="num sg">(서명)</td></tr></table>');
+      '<td class="num">' + (d.vat ? fmtInt(d.vat) : '') + '</td><td colspan="2"></td></tr>' +
+      '<tr><td class="lb">총합계</td><td class="num b">' + fmtInt(d.total) + '</td>' +
+      '<td class="lb">입금액</td><td></td>' +
+      '<td class="lb">총미수잔액</td><td></td>' +
+      '<td class="lb">인수자</td><td></td></tr></table>');
     h.push('<div class="sp-foot"><span>' + stmtEsc(sup.bank || '') + '</span>' +
       '<span>Print Date : ' + stmtEsc(d.printedAt || '') + '</span></div>');
     h.push('</section>');
@@ -7395,7 +7404,7 @@ var LIVE = (function () {
     var d = stmtNow, sup = loadSup(), buyer = stmtBuyer(d);
     if (!d.printedAt) d.printedAt = stmtTime();
     $('stmtSheet').innerHTML = stmtPartHtml('sup', '공급자 보관용', d, sup, buyer) +
-      '<div class="stmt-cut"><span>✂</span></div>' +
+      '<div class="stmt-cut"></div>' +
       stmtPartHtml('buy', '공급 받는자 보관용', d, sup, buyer);
     if ($('stmtSub')) {
       $('stmtSub').textContent = (buyer.name || d.partner || '거래처') + ' · ' + (d.date || today()) + ' · ' +
@@ -8046,14 +8055,14 @@ var LIVE = (function () {
         openGroup('buy');
         var pid = a === 'new' ? 'accVoucherModal' : (a === 'reflect' ? 'reflectModal' : (a === 'pay' ? 'accPayModal' : ''));
         if (pid && sidePopToggle(this, 'buy:' + a, pid)) { closeMobileGroups(); return; }
-        if (a === 'new') { setPane('buy'); openAccVoucher('purchase'); return; }
+        if (a === 'new') { setPane('buy'); openAccVoucher('purchase', null, 'buy'); return; }
         if (a === 'reflect') { setPane('buy'); openReflect('purchase'); return; }
         if (a === 'pay') { setPane('buy'); openAccPay('out', ''); closeMobileGroups(); return; }
         setPane('buy');
         closeMobileGroups();
       });
     }
-    if ($('btnBuyNew')) $('btnBuyNew').addEventListener('click', function () { openAccVoucher('purchase'); });
+    if ($('btnBuyNew')) $('btnBuyNew').addEventListener('click', function () { openAccVoucher('purchase', null, 'buy'); });
     if ($('btnBuyReflect')) $('btnBuyReflect').addEventListener('click', function () { openReflect('purchase'); });
     if ($('btnBuyPay')) $('btnBuyPay').addEventListener('click', function () { openAccPay('out', ''); });
     if ($('buySearch')) $('buySearch').addEventListener('input', function () { cur.buySearch = this.value; renderBuy(); });
@@ -8078,7 +8087,7 @@ var LIVE = (function () {
         var pid = a === 'new' ? 'accVoucherModal' : (a === 'reflect' ? 'reflectModal'
           : (a === 'pay' ? 'accPayModal' : (a === 'stmt' ? 'stmtModal' : '')));
         if (pid && sidePopToggle(this, 'sale:' + a, pid)) { closeMobileGroups(); return; }
-        if (a === 'new') { setPane('sale'); openAccVoucher('sale'); return; }
+        if (a === 'new') { setPane('sale'); openAccVoucher('sale', null, 'sale'); return; }
         if (a === 'reflect') { setPane('sale'); openReflect('sale'); return; }
         if (a === 'pay') { setPane('sale'); openAccPay('in', ''); return; }
         if (a === 'stmt') { setPane('sale'); openSaleStmt(); closeMobileGroups(); return; }
@@ -8086,7 +8095,7 @@ var LIVE = (function () {
         closeMobileGroups();
       });
     }
-    if ($('btnSaleNew')) $('btnSaleNew').addEventListener('click', function () { openAccVoucher('sale'); });
+    if ($('btnSaleNew')) $('btnSaleNew').addEventListener('click', function () { openAccVoucher('sale', null, 'sale'); });
     if ($('btnSaleReflect')) $('btnSaleReflect').addEventListener('click', function () { openReflect('sale'); });
     if ($('btnSalePay')) $('btnSalePay').addEventListener('click', function () { openAccPay('in', ''); });
     if ($('btnSaleStmt')) $('btnSaleStmt').addEventListener('click', openSaleStmt);
