@@ -1173,3 +1173,204 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
   table.stmt-tbl{page-break-inside:auto}
   tr{page-break-inside:avoid}
 }
+
+/* ============================================================================
+   v8 — 6대 메뉴 통합 셸 · 시인성 개선
+   왼쪽 대분류는 번호·색 띠로 구분하고, 구매(주황)·판매(초록)·생산(보라)은
+   화면을 열자마자 무슨 일을 하는 곳인지 색으로 먼저 읽히게 했다.
+   ============================================================================ */
+.v8shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:14px;align-items:start;max-width:1720px;margin:0 auto;padding:0 14px 46px}
+.v8side{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto;background:#fff;border:1px solid #e2e8f1;border-radius:16px;padding:12px 12px 10px;box-shadow:0 10px 28px rgba(20,32,50,.07)}
+.v8brand{display:flex;align-items:center;gap:9px;padding:4px 4px 12px;border-bottom:1px solid #eef2f7;margin-bottom:9px}
+.v8brand>span{font-size:23px;line-height:1}
+.v8brand b{display:block;font-size:15.5px;letter-spacing:-.3px;color:#15202e}
+.v8brand small{display:block;color:#7d8fa6;font-size:11.5px;margin-top:1px;font-weight:600}
+.v8nav{display:flex;flex-direction:column;gap:5px}
+.v8grp{border-radius:12px}
+.v8cat{display:flex;align-items:center;gap:9px;width:100%;padding:11px 10px;border:1px solid #e7edf5;border-left:4px solid #33475b;border-radius:11px;background:#f8fafd;color:#1b2838;font:inherit;font-size:14px;font-weight:800;letter-spacing:-.2px;cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
+.v8cat:hover{background:#eff4fb}
+.v8num{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;border-radius:7px;background:#33475b;color:#fff;font-size:12px;font-weight:800}
+.v8cat .v8lab{flex:1 1 auto}
+.v8car{font-size:11px;color:#8b9cb2;transition:transform .16s}
+.v8grp.open .v8car{transform:rotate(180deg)}
+.v8sub{display:none;padding:6px 2px 4px;margin-top:2px}
+.v8grp.open>.v8sub{display:block}
+.v8sec{margin:7px 9px 3px;font-size:11.5px;font-weight:800;color:#8496ac;letter-spacing:.02em}
+.v8item{display:flex;align-items:center;gap:6px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:9px;background:none;color:#33475d;font:inherit;font-size:13.2px;line-height:1.3;text-align:left;cursor:pointer}
+.v8item:hover{background:#eef4fb}
+.v8item.on,.v8item.active{background:#e7f0fb;border-color:#c8ddf5;color:#0e4c86;font-weight:800}
+.v8item .cnt{margin-left:auto;background:#eef2f8;color:#4b6485;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800}
+.v8sub2{display:flex;gap:5px;padding:3px 8px 2px}
+.v8mini{padding:4px 9px;border:1px solid #dce5f1;border-radius:999px;background:#f7f9fc;color:#4c6280;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
+.v8mini:hover{background:#eaf2fb}
+.v8foot{display:flex;flex-wrap:wrap;gap:5px;padding:10px 4px 2px;margin-top:9px;border-top:1px solid #eef2f7}
+.v8badge{border-radius:999px;padding:3px 8px;font-size:10.5px;font-weight:800;background:#fff3d9;color:#7d5a12}
+.v8badge.out{background:#e8f6ee;color:#0d6b3d}
+/* 대분류 색 띠 — 입출고(남색) · 재고(파랑) · 구매(주황) · 판매(초록) · 생산(보라) · 회계(짙은 남색) */
+.g-io .v8cat{border-left-color:#33475b}
+.g-io .v8num{background:#33475b}
+.g-stock .v8cat{border-left-color:#1779c4;background:#f4f9fe;border-color:#dcebf9}
+.g-stock .v8num{background:#1779c4}
+.g-buy .v8cat{border-left-color:#e07b09;background:#fff8ee;border-color:#f6e2c6}
+.g-buy .v8num{background:#e07b09}
+.g-buy .v8item.on,.g-buy .v8item.active{background:#fff0d9;border-color:#f2d3a4;color:#8a4b00}
+.g-sale .v8cat{border-left-color:#0f8a4b;background:#f1fbf5;border-color:#cdeedd}
+.g-sale .v8num{background:#0f8a4b}
+.g-sale .v8item.on,.g-sale .v8item.active{background:#e5f8ee;border-color:#bbe5d0;color:#086337}
+.g-prod .v8cat{border-left-color:#7b3fd4;background:#f8f4ff;border-color:#e5d8fb}
+.g-prod .v8num{background:#7b3fd4}
+.g-prod .v8item.on,.g-prod .v8item.active{background:#f0e7ff;border-color:#d8c2fa;color:#57209f}
+.g-acc .v8cat{border-left-color:#1f3a68;background:#f3f6fc;border-color:#dbe4f3}
+.g-acc .v8num{background:#1f3a68}
+.g-acc .v8item.on,.g-acc .v8item.active{background:#e8eefb;border-color:#c6d5f1;color:#1a3159}
+
+.v8main{min-width:0}
+.v8pagehead{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin:2px 2px 12px}
+.v8pagehead h2{margin:0;font-size:21px;letter-spacing:-.5px;color:#15202e}
+.v8pagehead p{margin:4px 0 0;color:#6b7f96;font-size:12.8px;line-height:1.45}
+.v8crumb{flex:0 0 auto;border-radius:999px;background:#eaf1fa;color:#2e4f78;padding:5px 11px;font-size:11.8px;font-weight:800;white-space:nowrap}
+.v8layout{display:block}
+
+/* KPI — 숫자를 키우고 여백을 넉넉히 */
+.kpis{gap:14px}
+.kpi{padding:18px 18px 16px;border-radius:16px}
+.kpi-label{font-size:12.8px;letter-spacing:-.1px}
+.kpi-line{align-items:baseline;gap:5px}
+.kpi-value{font-size:30px;font-weight:800;letter-spacing:-.9px;line-height:1.15}
+.kpi-unit{font-size:12.5px;font-weight:700}
+.kpi-sub{display:block;margin-top:7px;font-size:12px;line-height:1.4}
+
+/* 구매·판매 카드 */
+.v8cards{padding:14px 16px}
+.v8cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.v8cardhead h3{margin:0;font-size:15.5px;letter-spacing:-.2px}
+.v8cardtotal{font-size:18px;font-weight:800;letter-spacing:-.4px}
+.v8cardtotal.pay{color:#b05a00}
+.v8cardtotal.recv{color:#0b6b3a}
+.v8cardrow{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 6px}
+.v8card{min-width:178px;display:flex;flex-direction:column;gap:4px;padding:11px 12px;border:1px solid #e6edf6;border-radius:13px;background:#fff}
+.v8card.pay{border-left:4px solid #e07b09;background:#fffdf8}
+.v8card.recv{border-left:4px solid #12855a;background:#fbfffd}
+.v8card b{font-size:13px;color:#22364d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v8card .amt{font-size:19px;font-weight:800;letter-spacing:-.5px;color:#15202e}
+.v8card .amt small{font-size:11px;font-weight:700;color:#7c8ea4;margin-left:1px}
+.v8cardbtn{margin-top:5px;padding:5px 9px;border:1px solid #d3e1f2;border-radius:8px;background:#f4f8fd;color:#245082;font:inherit;font-size:11.5px;font-weight:800;cursor:pointer}
+.v8cardbtn.payout{background:#fff2e2;border-color:#efd1a8;color:#8a4b00}
+.v8cardbtn.payin{background:#e9f9f0;border-color:#bfe7d0;color:#0a6a3b}
+.v8cardempty{color:#7c8ea4;font-size:12.5px;padding:8px 2px}
+
+.v8panehead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 16px 0}
+.v8panehead h3{margin:0;font-size:16px;letter-spacing:-.2px}
+.v8hint{display:block;margin-top:3px;color:#7387a0;font-size:12px;line-height:1.4}
+.v8acts{display:flex;gap:6px;flex-wrap:wrap}
+.accbtn.stmt{background:#0f3d70;border-color:#0f3d70;color:#fff}
+.accbtn.stmt:hover{background:#0b3059}
+
+/* 생산·원가 히어로 */
+.v8prodhero{padding:16px}
+.v8prodsum{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px}
+.psum{padding:14px 16px;border:1px solid #e6edf6;border-radius:14px;background:#f8fafd}
+.psum>span{font-size:12.5px;font-weight:800;color:#64788f}
+.psum b{display:block;margin:5px 0 2px;font-size:27px;font-weight:800;letter-spacing:-.9px;color:#15202e}
+.psum small{font-size:11.5px;color:#8294aa;font-weight:600}
+.psum.total{background:linear-gradient(135deg,#f4efff 0%,#eafafb 100%);border-color:#d9caf7}
+.psum.total b{color:#4a2a86}
+.psum.meat b{color:#a8392c}
+.psum.fp b{color:#0b7480}
+.psum.zero b{font-size:22px;color:#7f8ea1}
+
+/* 표 색 구분 · 숫자 정렬 */
+.t-buy thead th{background:#fff6e8}
+.t-sale thead th{background:#eefaf3}
+.t-prod td.num,.t-buy td.num,.t-sale td.num{font-variant-numeric:tabular-nums}
+.prodrow td.meat{color:#a4372b}
+.prodrow td.fp{color:#0b6f7a}
+.prodrow.sumrow td{background:#f4f7fc;border-top:2px solid #dbe4f0}
+.costrow.miss td{background:#fffaf1}
+.v8tag{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:800;background:#eef2f8;color:#4b6485}
+.v8tag.warn{background:#fff0d4;color:#8a5300}
+.pos{color:#0b6b3a}
+.neg{color:#b3261e}
+
+#buyTableWrap,#saleTableWrap,#prodTableWrap,#prodCostWrap{margin:12px 16px 16px;background:#fff;border:1px solid #e7edf5;border-radius:12px;overflow:auto}
+
+/* 내역 전환 */
+.v8subtabs{display:flex;align-items:center;gap:6px;padding:10px 14px 0}
+.v8stlabel{font-size:12px;font-weight:800;color:#6b7f97;margin-right:4px}
+.v8st{padding:5px 11px;border:1px solid #dbe4f0;border-radius:999px;background:#f7f9fc;color:#48607d;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.v8st.active{background:#1f3a68;border-color:#1f3a68;color:#fff}
+
+/* 입출고 입력 허브 */
+.hubcard{max-width:660px}
+.hubsec{margin:14px 0 6px;font-size:12.5px;font-weight:800;color:#6b7f97}
+.hubgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:8px}
+.hubbtn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:11px 12px;border:1px solid #e2e9f3;border-left:4px solid #1779c4;border-radius:12px;background:#f9fbfe;color:#22364d;font:inherit;font-size:13.5px;font-weight:800;text-align:left;cursor:pointer}
+.hubbtn small{font-size:11.5px;font-weight:600;color:#7b8ea6}
+.hubbtn:hover{background:#eff6ff;border-color:#bcd3ee}
+.hubbtn.thaw{border-left-color:#2a9d8f}
+.hubbtn.re{border-left-color:#457b9d}
+.hubbtn.out{border-left-color:#d07a2c}
+.hubbtn.photo{border-left-color:#8a6d3b}
+.hubbtn.fp{border-left-color:#12855a}
+.hubbtn.fpout{border-left-color:#0b6f7a}
+.hubbtn.new{border-left-color:#7b3fd4}
+label.check.autolink{margin-top:6px;padding:8px 10px;border:1px solid #d7e6f7;border-radius:10px;background:#f2f8ff;color:#25537f;font-size:12.5px;font-weight:800}
+label.check.autolink .tiny-hint{font-weight:600;color:#6d8bab}
+label.check.autolink.hidden{display:none}
+
+/* 폰: 사이드바가 가로 퀵 메뉴로 접히고, 하위 메뉴는 그 아래 드롭다운 */
+@media (max-width:768px){
+  .v8shell{display:block;padding:0 10px 82px}
+  .v8side{position:sticky;top:0;z-index:40;max-height:none;overflow:visible;padding:7px 8px;border-radius:0 0 14px 14px;box-shadow:0 6px 18px rgba(20,32,50,.08)}
+  .v8brand{padding:0 2px 7px;margin-bottom:6px}
+  .v8brand b{font-size:13.5px}
+  .v8brand small{font-size:10.5px}
+  .v8nav{flex-direction:row;flex-wrap:wrap;gap:6px;overflow:visible;padding-bottom:2px}
+  .v8grp{position:relative;flex:1 1 calc(33.333% - 6px);min-width:0}
+  .v8cat{width:100%;padding:7px 8px;font-size:12.5px;gap:6px;white-space:nowrap;border-radius:10px;justify-content:flex-start}
+  .v8grp:nth-child(3n) .v8sub{left:auto;right:0}
+  .v8num{width:18px;height:18px;font-size:10.5px;border-radius:5px}
+  .v8car{display:none}
+  .v8sub{position:absolute;left:0;top:calc(100% + 5px);min-width:238px;max-width:calc(100vw - 16px);max-height:58vh;overflow:auto;padding:7px;background:#fff;border:1px solid #e2e8f1;border-radius:13px;box-shadow:0 16px 34px rgba(18,30,48,.16);z-index:60}
+  .v8item{font-size:13px;padding:9px 9px}
+  .v8foot{display:none}
+  .v8pagehead{margin:10px 2px 10px}
+  .v8pagehead h2{font-size:18px}
+  .v8pagehead p{font-size:12px}
+  .kpi-value{font-size:25px}
+  .v8panehead{padding:12px 12px 0}
+  .v8acts{width:100%}
+  .v8acts .accbtn{flex:1 1 auto}
+  #buyTableWrap,#saleTableWrap,#prodTableWrap,#prodCostWrap{margin:10px 0 10px}
+  .v8prodsum{grid-template-columns:1fr 1fr}
+  .psum b{font-size:21px}
+  .psum.zero{grid-column:1/-1}
+}
+
+/* v8 셸 안에서는 바깥 여백을 셸이 맡는다 */
+.v8main .kpis{max-width:none;margin:12px 0 0;padding:0}
+.v8main .layout{max-width:none;margin:12px 0 0;padding:0}
+.v8main .accwrap{max-width:none;margin:0;padding:0}
+.v8main .acc-quick{margin:12px 0 0}
+.v8main .panel.list-panel{margin:12px 0 0}
+.v8main .v8cards{margin:12px 0 0}
+
+/* 회계 KPI — 6개를 3열로 나눠 숫자를 크게 읽는다 */
+.kpis.acc{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kpis.acc .kpi-value{font-size:27px}
+.kpis.acc .kpi-label{font-size:13px}
+@media (max-width:1100px){.kpis.acc{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:768px){
+  .kpis.acc{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis.acc .kpi-value{font-size:23px}
+  .v8cat{font-size:12px;padding:6px 9px}
+  .v8brand{padding-bottom:6px}
+}
+@media (max-width:400px){
+  .v8brand small{display:none}
+  .v8cat{font-size:11.5px;padding:6px 8px}
+}
+.v8note{padding:10px 12px;margin:8px 10px;border:1px solid #e3d4fb;border-radius:10px;background:#f8f4ff;color:#5b3d8f;font-size:12.5px;line-height:1.5}
+/* 표 작업 버튼 — 명세표는 또렷한 남색 아이콘으로 */
+.acts .act.stmt{background:#e8f0fb;border-color:#c6dbf3;color:#123c69;font-weight:800}
+.acts .act.stmt:hover{background:#d7e7fa}
