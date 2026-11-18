@@ -3354,7 +3354,9 @@ var LIVE = (function () {
     accRange: { preset: 'all', from: '', to: '' },
     accSortV: { k: '', dir: -1 }, accSortE: { k: '', dir: -1 }, accSortR: { k: '', dir: -1 },
     fAccV: {}, fAccE: {}, fAccR: {},
-    fgCats: [], v4ok: true, reflectOpen: false, reflectSel: {}, payOpen: {}
+    fgCats: [], v4ok: true, reflectOpen: false, reflectSel: {}, payOpen: {},
+    /* v8.3 — 왼쪽 메뉴로 열어 둔 팝업 기억(같은 메뉴를 다시 누르면 닫기) */
+    sidePop: '', sidePopId: ''
   };
   var prev = {};
   var loading = false, again = false;
@@ -7806,13 +7808,166 @@ var LIVE = (function () {
     });
   }
 
+  /* ==========================================================================
+     v8.3 — 팝업 창 세 가지 동작
+       ① 제목 줄(.modal-head)을 잡고 끌면 창이 따라 움직인다. 새 팝업은 늘 가운데에서 시작한다.
+       ② 오버레이는 투명·클릭 통과(CSS) — 뒤쪽 표를 보면서 입력한다.
+       ③ 왼쪽 메뉴에서 방금 눌렀던 그 메뉴를 한 번 더 누르면 열려 있던 팝업이 닫힌다.
+     ========================================================================== */
+  var POP_CLOSERS = {
+    ioHubModal: function () { closeIoHub(); },
+    meatFormModal: function () { closeMeatForm(); },
+    fgFormModal: function () { closeFgForm(); },
+    fgNewModal: function () { closeFgNew(); },
+    photoInboxModal: function () { closePhotoInbox(); },
+    accVoucherModal: function () { closeAccVoucher(); },
+    reflectModal: function () { closeReflect(); },
+    accPayModal: function () { closeAccPay(); },
+    stmtModal: function () { closeStmt(); },
+    accHelpModal: function () { closeAccHelp(); }
+  };
+  var POP_ORDER = ['ioHubModal', 'meatFormModal', 'fgFormModal', 'fgNewModal', 'photoInboxModal',
+    'accVoucherModal', 'reflectModal', 'accPayModal', 'stmtModal', 'accHelpModal'];
+
+  function popOpen(id) {
+    var m = $(id);
+    return !!m && !m.classList.contains('hidden');
+  }
+  function popClose(id) {
+    var f = POP_CLOSERS[id];
+    if (f) { try { f(); } catch (e) { } return; }
+    var m = $(id);
+    if (m) m.classList.add('hidden');
+  }
+  /* 다른 팝업을 열 때 먼저 떠 있던 팝업은 닫아, 창이 겹쳐 쌓이지 않게 한다 */
+  function popCloseOthers(keepId) {
+    for (var i = 0; i < POP_ORDER.length; i++) {
+      if (POP_ORDER[i] === keepId) continue;
+      if (popOpen(POP_ORDER[i])) popClose(POP_ORDER[i]);
+    }
+  }
+  function markSidePop(el) {
+    var on = document.querySelectorAll('#v8Side .popon');
+    for (var i = 0; i < on.length; i++) on[i].classList.remove('popon');
+    if (el && el.classList) el.classList.add('popon');
+  }
+  /* 이미 그 팝업이 열려 있으면 닫고 true. 아니면 다른 팝업을 닫고 false(이어서 연다). */
+  function sidePopToggle(el, key, id) {
+    if (popOpen(id) && cur.sidePop === key) {
+      popClose(id);
+      cur.sidePop = ''; cur.sidePopId = '';
+      markSidePop(null);
+      return true;
+    }
+    popCloseOthers(id);
+    cur.sidePop = key; cur.sidePopId = id;
+    markSidePop(el);
+    return false;
+  }
+  /* 팝업이 닫히면(✕·ESC·저장 후) 메뉴 강조도 같이 지운다 */
+  function popForgot(id) {
+    if (cur.sidePopId !== id) return;
+    cur.sidePop = ''; cur.sidePopId = '';
+    markSidePop(null);
+  }
+
+  /* ---------- ① 팝업 창 드래그 이동 ---------- */
+  var DRAG = { card: null, head: null, baseL: 0, baseT: 0, w: 0, h: 0, px: 0, py: 0, tx: 0, ty: 0 };
+
+  function popClamp(d, tx, ty) {
+    var M = 6, vw = window.innerWidth, vh = window.innerHeight;
+    var minX = M - d.baseL, maxX = vw - M - d.baseL - d.w;
+    if (maxX < minX) tx = (vw - d.w) / 2 - d.baseL;           /* 창이 화면보다 넓으면 가운데 */
+    else tx = Math.max(minX, Math.min(maxX, tx));
+    var minY = M - d.baseT, maxY = vh - M - d.baseT - d.h;
+    if (maxY < minY) ty = (vh - d.h) / 2 - d.baseT;
+    else ty = Math.max(minY, Math.min(maxY, ty));
+    return [Math.round(tx), Math.round(ty)];
+  }
+  function popMove(card, tx, ty) {
+    card._px = tx || 0; card._py = ty || 0;
+    card.style.transform = (tx || ty) ? 'translate(' + tx + 'px,' + ty + 'px)' : '';
+  }
+  function popBindDrag(m) {
+    var card = m.querySelector('.modal-card');
+    if (!card) return;
+    var head = card.querySelector('.modal-head');
+    if (!head) return;
+    head.classList.add('popgrab');
+    head.addEventListener('pointerdown', function (ev) {
+      if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+      var t = ev.target;
+      if (t && t.closest && t.closest('button,a,input,textarea,select,label,option')) return;
+      var r = card.getBoundingClientRect();
+      var tx = card._px || 0, ty = card._py || 0;
+      DRAG.card = card; DRAG.head = head;
+      DRAG.baseL = r.left - tx; DRAG.baseT = r.top - ty;
+      DRAG.w = r.width; DRAG.h = r.height;
+      DRAG.px = ev.clientX; DRAG.py = ev.clientY;
+      DRAG.tx = tx; DRAG.ty = ty;
+      card.classList.add('popmoving');
+      head.classList.add('grabbing');
+      try { head.setPointerCapture(ev.pointerId); } catch (e) { }
+      ev.preventDefault();
+    });
+    head.addEventListener('pointermove', function (ev) {
+      if (DRAG.card !== card) return;
+      var c = popClamp(DRAG, DRAG.tx + (ev.clientX - DRAG.px), DRAG.ty + (ev.clientY - DRAG.py));
+      popMove(card, c[0], c[1]);
+      ev.preventDefault();
+    });
+    function endDrag() {
+      if (DRAG.card !== card) return;
+      card.classList.remove('popmoving');
+      head.classList.remove('grabbing');
+      DRAG.card = null; DRAG.head = null;
+    }
+    head.addEventListener('pointerup', endDrag);
+    head.addEventListener('pointercancel', endDrag);
+  }
+  function popInit() {
+    var ms = document.querySelectorAll('.modal');
+    for (var i = 0; i < ms.length; i++) {
+      (function (m) {
+        popBindDrag(m);
+        var card = m.querySelector('.modal-card');
+        var wasHidden = m.classList.contains('hidden');
+        function sync() {
+          var hid = m.classList.contains('hidden');
+          if (hid === wasHidden) return;
+          wasHidden = hid;
+          if (!hid) { if (card) popMove(card, 0, 0); }   /* 새 팝업은 기본 위치(가운데)에서 */
+          else popForgot(m.id);
+        }
+        if (window.MutationObserver) new MutationObserver(sync).observe(m, { attributes: true, attributeFilter: ['class'] });
+      })(ms[i]);
+    }
+    /* 창 크기가 바뀌면 옮겨 둔 팝업이 화면 밖에 남지 않게 다시 붙잡아 준다 */
+    window.addEventListener('resize', function () {
+      var cards = document.querySelectorAll('.modal:not(.hidden) .modal-card');
+      for (var j = 0; j < cards.length; j++) {
+        var card = cards[j];
+        if (!card._px && !card._py) continue;
+        var r = card.getBoundingClientRect();
+        var d = { baseL: r.left - (card._px || 0), baseT: r.top - (card._py || 0), w: r.width, h: r.height };
+        var c = popClamp(d, card._px || 0, card._py || 0);
+        popMove(card, c[0], c[1]);
+      }
+    });
+  }
+
   function bindV4Events() {
     /* v8: 단일 통합 사이드바 — 6대 메뉴 */
     var cats = document.querySelectorAll('#v8Nav .v8cat');
     for (var ci = 0; ci < cats.length; ci++) {
       cats[ci].addEventListener('click', function () {
         var cat = this.getAttribute('data-cat');
-        if (cat === 'io') { openGroup('io'); openIoHub(); return; }
+        if (cat === 'io') {
+          openGroup('io');
+          if (sidePopToggle(this, 'cat:io', 'ioHubModal')) return;   /* 같은 메뉴를 또 눌렀다 → 허브 닫힘 */
+          openIoHub();
+          return;
+        }
         openGroup(cat);
         if (cat === 'stock') setStockView(cur.tab === 'C' ? 'chill' : (cur.tab === 'H' ? 'hist' : (cur.tab === 'V' ? 'price' : 'freeze')), true);
         else setPane(cat === 'acc' ? 'acc' : cat, { keepGroup: true });
@@ -7820,7 +7975,16 @@ var LIVE = (function () {
     }
     var ioBtns = document.querySelectorAll('#v8Side [data-io]');
     for (var io = 0; io < ioBtns.length; io++) {
-      ioBtns[io].addEventListener('click', function () { doIoAction(this.getAttribute('data-io')); });
+      ioBtns[io].addEventListener('click', function () {
+        var a = this.getAttribute('data-io');
+        var pid = a === 'photo' ? 'photoInboxModal'
+          : (a === 'fp-new' ? 'fgNewModal' : ((a === 'fp-in' || a === 'fp-out') ? 'fgFormModal' : 'meatFormModal'));
+        if (sidePopToggle(this, 'io:' + a, pid)) { closeMobileGroups(); return; }  /* 같은 메뉴 재클릭 → 닫기 */
+        doIoAction(a);
+        /* 입력 팝업이 뜨면 오른쪽 화면(창고 표)으로 넘어가면서 이 메뉴가 접힌다 →
+           방금 누른 메뉴를 다시 누를 수 있게 입력 메뉴는 펼쳐 둔다 (PC에서만) */
+        if (window.innerWidth > 768) openGroup('io');
+      });
     }
     var ioHubBtns = document.querySelectorAll('#ioHubModal [data-io]');
     for (var ih = 0; ih < ioHubBtns.length; ih++) {
@@ -7851,6 +8015,8 @@ var LIVE = (function () {
       buyBtns[bb].addEventListener('click', function () {
         var a = this.getAttribute('data-buy');
         openGroup('buy');
+        var pid = a === 'new' ? 'accVoucherModal' : (a === 'reflect' ? 'reflectModal' : (a === 'pay' ? 'accPayModal' : ''));
+        if (pid && sidePopToggle(this, 'buy:' + a, pid)) { closeMobileGroups(); return; }
         if (a === 'new') { setPane('buy'); openAccVoucher('purchase'); return; }
         if (a === 'reflect') { setPane('buy'); openReflect('purchase'); return; }
         if (a === 'pay') { setPane('buy'); openAccPay('out', ''); closeMobileGroups(); return; }
@@ -7880,6 +8046,9 @@ var LIVE = (function () {
       saleBtns[sl].addEventListener('click', function () {
         var a = this.getAttribute('data-sale');
         openGroup('sale');
+        var pid = a === 'new' ? 'accVoucherModal' : (a === 'reflect' ? 'reflectModal'
+          : (a === 'pay' ? 'accPayModal' : (a === 'stmt' ? 'stmtModal' : '')));
+        if (pid && sidePopToggle(this, 'sale:' + a, pid)) { closeMobileGroups(); return; }
         if (a === 'new') { setPane('sale'); openAccVoucher('sale'); return; }
         if (a === 'reflect') { setPane('sale'); openReflect('sale'); return; }
         if (a === 'pay') { setPane('sale'); openAccPay('in', ''); return; }
@@ -7943,7 +8112,10 @@ var LIVE = (function () {
       accBtns[ab].addEventListener('click', function () {
         var a = this.getAttribute('data-acc');
         openGroup('acc');
-        if (a === 'help') { openAccHelp(); return; }
+        if (a === 'help') {
+          if (sidePopToggle(this, 'acc:help', 'accHelpModal')) return;   /* 같은 메뉴 재클릭 → 닫기 */
+          openAccHelp(); return;
+        }
         cur.accTab = this.getAttribute('data-atab') || 'V';
         setPane('acc');
         markSide('acc', { key: 'data-atab', val: cur.accTab });
@@ -8909,6 +9081,7 @@ var LIVE = (function () {
     bindLoginEvents();
     bindAppEvents();
     bindV4Events();
+    popInit();
     acSetupAll();
     setSync('wait', '확인 중');
     var ses = SB.auth.restore();

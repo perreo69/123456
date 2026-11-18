@@ -285,18 +285,25 @@ td.zero{color:#b3bccb;font-weight:600}
 /* ---------- 양식 내려받기 버튼·모달 ---------- */
 .btn.xls{border-color:#bcd0f7;background:#f2f7ff;color:#1d4ed8;font-weight:750}
 .btn.xls:hover{background:#e8f0ff;border-color:#9db9f2}
+/* v8.3 — 팝업이 떠도 뒤쪽 표를 그대로 보면서 입력한다.
+   오버레이는 투명(blur·어두운 색 없음)이고 클릭도 통과시킨다 → 팝업 창만 클릭을 받는다. */
 .modal{
   position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
-  padding:18px;background:rgba(17,26,39,.45);backdrop-filter:blur(2px);
+  padding:18px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;
 }
 .modal-card{
   width:100%;max-width:430px;max-height:calc(100vh - 36px);overflow:auto;
-  background:#fff;border-radius:16px;border:1px solid var(--line);
-  box-shadow:0 24px 60px rgba(9,17,30,.28);padding:16px 18px 15px;
+  background:#fff;border-radius:16px;border:1px solid #b6c7dc;
+  box-shadow:0 22px 56px rgba(9,17,30,.30),0 3px 10px rgba(9,17,30,.18),0 0 0 3px rgba(255,255,255,.72);
+  padding:16px 18px 15px;pointer-events:auto;
 }
-.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+/* v8.3 — 제목 줄을 잡고 끌면 팝업이 움직인다 */
+.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.modal-head.grabbing{cursor:grabbing}
+.modal-head button,.modal-head .modal-x{cursor:pointer}
+.modal-card.popmoving{box-shadow:0 30px 72px rgba(9,17,30,.38),0 5px 16px rgba(9,17,30,.22),0 0 0 3px rgba(255,255,255,.8)}
 .modal-head h2{margin:0;font-size:15.5px;font-weight:800;letter-spacing:-.3px}
-.modal-x{border:0;background:#f1f3f8;color:#5b6779;border-radius:8px;width:28px;height:28px;font-size:13px;font-weight:800;line-height:1;flex:0 0 auto}
+.modal-x{border:0;background:#f1f3f8;color:#5b6779;border-radius:8px;width:28px;height:28px;font-size:13px;font-weight:800;line-height:1;flex:0 0 auto;cursor:pointer}
 .modal-x:hover{background:#e6eaf2;color:var(--ink)}
 .modal-sub{margin:3px 0 12px;font-size:11.5px;color:var(--muted);line-height:1.5}
 .modal-card .field{margin-top:10px}
@@ -1199,6 +1206,9 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
 .v8item{display:flex;align-items:center;gap:6px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:9px;background:none;color:#33475d;font:inherit;font-size:13.2px;line-height:1.3;text-align:left;cursor:pointer}
 .v8item:hover{background:#eef4fb}
 .v8item.on,.v8item.active{background:#e7f0fb;border-color:#c8ddf5;color:#0e4c86;font-weight:800}
+/* v8.3 — 이 메뉴가 연 팝업이 지금 떠 있다 */
+.v8item.popon{background:#e7f0fb;border-color:#9dc2ea;color:#0e4c86;font-weight:800;box-shadow:inset 3px 0 0 #2f7fd0}
+.v8cat.popon{border-color:#9dc2ea;box-shadow:0 0 0 2px #dbe9f8}
 .v8item .cnt{margin-left:auto;background:#eef2f8;color:#4b6485;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800}
 .v8sub2{display:flex;gap:5px;padding:3px 8px 2px}
 .v8mini{padding:4px 9px;border:1px solid #dce5f1;border-radius:999px;background:#f7f9fc;color:#4c6280;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
