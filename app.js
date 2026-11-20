@@ -5561,25 +5561,25 @@ var LIVE = (function () {
   }
   function ymdTag() { return today().replace(/-/g, ''); }
 
-  /* ---------- v8: 6대 메뉴 · 화면 전환 ---------- */
+  /* ---------- v8: 6대 메뉴 · 화면 전환 (v14: 물류/회계 대분류 · 거래 통합) ---------- */
   var MODE_KEY = 'meatERP.erpMode.v2';
   var PANE_HOSTS = { meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
-  var PANE_CAT = { meat: 'stock', fg: 'stock', buy: 'buy', sale: 'sale', prod: 'prod', acc: 'acc' };
+  var PANE_CAT = { meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
     meat: ['원료육 재고', '냉동고·냉장고를 나눠 보고, 표에서 바로 해동·출고로 이어집니다.', '2. 재고 · 원료육'],
     fg: ['완제품·부자재 재고', '완제품·부자재를 대분류로 나눠 보고, 단가와 재고금액을 확인합니다.', '2. 재고 · 완제품·부자재'],
-    buy: ['매입 내역', '거래처·기간별 매입 전표와 지급 상태를 한 표에서 봅니다.', '3. 구매 · 매입 내역'],
-    sale: ['매출 내역', '업체·택배 출고는 매출로 이어지고, 거래명세표를 A4로 바로 찍습니다.', '4. 판매 · 매출 내역'],
-    prod: ['생산투입 합계', '현장 출고만 모아 생산투입금액과 품목별 실제 제조원가를 냅니다.', '5. 생산·원가 · 생산투입'],
-    acc: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '6. 회계·손익 · 손익 요약']
+    buy: ['매입 내역', '거래처·기간별 매입 전표와 지급 상태를 한 표에서 봅니다.', '4. 거래 · 매입 내역'],
+    sale: ['매출 내역', '업체·택배 출고는 매출로 이어지고, 거래명세표를 A4로 바로 찍습니다.', '4. 거래 · 매출 내역'],
+    prod: ['생산투입 합계', '현장 출고만 모아 생산투입금액과 품목별 실제 제조원가를 냅니다.', '3. 생산·원가 · 생산투입'],
+    acc: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '5. 손익·정산 · 손익 요약']
   };
   /* v13 — 회계 탭마다 머리말 */
   var ACC_HEAD = {
-    V: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '6. 회계·손익 · 손익 요약'],
-    S: ['받을돈·줄돈 정산', '거래처별 받을돈·줄돈을 한 표에서 보고, 줄마다 금액을 적어 그 자리에서 수금·지급을 저장합니다.', '6. 회계·손익 · 받을돈·줄돈 정산'],
-    R: ['거래처 원장', '거래처 하나를 골라 매입·매출·수금·지급·경비를 시간 순으로 봅니다.', '6. 회계·손익 · 거래처 원장'],
-    E: ['일반 경비', '월세·택배비·식대처럼 외상과 상관없이 나간 돈과 기타 입금을 기록합니다.', '6. 회계·손익 · 일반 경비'],
-    M: ['월별 손익', '달마다 매출·매입·경비·순이익을 모아 추이를 봅니다.', '6. 회계·손익 · 월별 손익']
+    V: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '5. 손익·정산 · 손익 요약'],
+    S: ['정산 관리', '거래처별 미수금·미지급금을 한 표에서 보고, 줄마다 금액을 적어 그 자리에서 수금·지급을 저장합니다.', '5. 손익·정산 · 정산 관리'],
+    R: ['거래처 원장', '거래처 하나를 골라 매입·매출·수금·지급·경비를 시간 순으로 봅니다.', '5. 손익·정산 · 거래처 원장'],
+    E: ['일반 경비', '월세·택배비·식대처럼 외상과 상관없이 나간 돈과 기타 입금을 기록합니다.', '5. 손익·정산 · 일반 경비'],
+    M: ['월별 손익', '달마다 매출·매입·경비·순이익을 모아 추이를 봅니다.', '5. 손익·정산 · 월별 손익']
   };
   function paneName(p) {
     return p === 'meat' ? 'stock' : p;
@@ -5700,28 +5700,27 @@ var LIVE = (function () {
   }
   function updatePageHead() {
     var h = PANE_HEAD[cur.erp] || PANE_HEAD.meat;
-    /* v11 — 회계는 탭마다 머리말이 다르다(받을돈·줄돈 정산 …) */
+    /* v11 — 회계는 탭마다 머리말이 다르다(정산 관리 …) */
     if (cur.erp === 'acc') h = ACC_HEAD[cur.accTab] || ACC_HEAD.V;
     /* v13 — 메뉴 이름과 화면 이름을 맞춘다 */
     if (cur.erp === 'meat' && cur.tab === 'H') h = ['입출고 내역', '입고·출고·해동·현장·택배·기타 기록을 한 줄씩 봅니다.', '2. 재고 · 입출고 내역'];
     if (cur.erp === 'meat' && cur.tab === 'V') h = ['단가 변동', '품목별 입고단가가 얼마나 움직였는지 직전 입고와 비교합니다.', '2. 재고 · 단가 변동'];
     if (cur.erp === 'fg' && cur.fgTab === 'L') h = ['입출고 내역', '완제품·부자재 입출고 기록을 한 줄씩 봅니다.', '2. 재고 · 입출고 내역'];
-    if (cur.erp === 'buy' && cur.buyView === 'status') h = ['미지급금(줄돈)', '거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다.', '3. 구매 · 미지급금(줄돈)'];
-    if (cur.erp === 'sale' && cur.saleView === 'status') h = ['미수금(받을돈)', '거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다.', '4. 판매 · 미수금(받을돈)'];
-    if (cur.erp === 'prod' && cur.prodView === 'cost') h = ['제품별 원가', '투입원가 ÷ 자체생산 입고수량 = 1단위당 실제 제조원가를 판매단가와 비교합니다.', '5. 생산·원가 · 제품별 원가'];
+    if (cur.erp === 'buy' && cur.buyView === 'status') h = ['미지급금', '거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다.', '4. 거래 · 미지급금'];
+    if (cur.erp === 'sale' && cur.saleView === 'status') h = ['미수금', '거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다.', '4. 거래 · 미수금'];
+    if (cur.erp === 'prod' && cur.prodView === 'cost') h = ['제품별 원가', '투입원가 ÷ 자체생산 입고수량 = 1단위당 실제 제조원가를 판매단가와 비교합니다.', '3. 생산·원가 · 제품별 원가'];
     if ($('v8Title')) $('v8Title').textContent = h[0];
     if ($('v8Desc')) $('v8Desc').textContent = h[1];
     if ($('v8Crumb')) $('v8Crumb').textContent = h[2];
   }
-  /* v13 — 받을돈·줄돈 정산 탭은 왼쪽 메뉴에 없으므로 '손익 요약'을 켜 둔다 */
+  /* v14 — 정산 관리 탭은 왼쪽 메뉴 「5. 손익·정산 · 정산 관리」로 바로 간다 */
   function accSideTab(t) {
-    return (t === 'S') ? 'V' : t;
+    return t || 'V';
   }
-  /* v13 — 구매·판매 화면에서만 오른쪽 위 액션 바를 보여준다 */
+  /* v14 — 거래(매입·매출) 화면에서만 오른쪽 위 액션 바를 보여준다 */
   function renderPageActs(p) {
-    var b = $('buyActs'), s = $('saleActs');
-    if (b) b.classList.toggle('hidden', p !== 'buy');
-    if (s) s.classList.toggle('hidden', p !== 'sale');
+    var t = $('tradeActs');
+    if (t) t.classList.toggle('hidden', !(p === 'buy' || p === 'sale'));
   }
   function setErpMode(m) {
     if (m === 'fg') return setPane('fg');
@@ -5746,8 +5745,8 @@ var LIVE = (function () {
     var item = null;
     if (p === 'meat') item = { key: 'data-tab', val: (cur.tab === 'H' ? 'H' : (cur.tab === 'V' ? 'V' : 'M')) };
     else if (p === 'fg') item = { key: 'data-ftab', val: cur.fgTab };
-    else if (p === 'buy') item = { key: 'data-buy', val: cur.buyView === 'status' ? 'status' : 'list' };
-    else if (p === 'sale') item = { key: 'data-sale', val: cur.saleView === 'status' ? 'status' : 'list' };
+    else if (p === 'buy') item = { key: 'data-trade', val: cur.buyView === 'status' ? 'buy-status' : 'buy-list' };
+    else if (p === 'sale') item = { key: 'data-trade', val: cur.saleView === 'status' ? 'sale-status' : 'sale-list' };
     else if (p === 'prod') item = { key: 'data-prod', val: cur.prodView || 'sum' };
     else if (p === 'acc') item = { key: 'data-atab', val: accSideTab(cur.accTab) };
     markSide(PANE_CAT[p] || 'stock', item);
@@ -7290,7 +7289,7 @@ var LIVE = (function () {
     if ($('accBadge')) $('accBadge').textContent = String(a.vouchers.length);
     if ($('cntAccV')) $('cntAccV').textContent = a.vouchers.length;
     if ($('cntAccR')) $('cntAccR').textContent = ERP.accLedger(a, '', '', '').length;
-    if ($('cntAccS')) {          /* v11 — 받을돈·줄돈이 남아 있는 거래처 수 */
+    if ($('cntAccS')) {          /* v11 — 미수금·미지급금이 남아 있는 거래처 수 */
       var ledS = ERP.accLedger(a, '', '', ''), openS = 0, iS;
       for (iS = 0; iS < ledS.length; iS++) if (ledS[iS].receivable > 0.004 || ledS[iS].payable > 0.004) openS++;
       $('cntAccS').textContent = String(openS);
@@ -7493,7 +7492,7 @@ var LIVE = (function () {
   }
 
   /* ==========================================================================
-     v11 — 💳 받을돈·줄돈 정산: 표에서 그 자리에서 바로 수금(IN)·지급(OUT) 저장
+     v11 — 💳 정산 관리: 표에서 그 자리에서 바로 수금(IN)·지급(OUT) 저장
      ========================================================================== */
   var STL_LIMIT = 40;
   function stlKey(t, partner) { return t + '|' + partner; }
@@ -7526,7 +7525,7 @@ var LIVE = (function () {
     }
     return out;
   }
-  /* 한 거래처의 지금 남은 받을돈(in) / 줄돈(out) */
+  /* 한 거래처의 지금 남은 미수금(in) / 미지급금(out) */
   function stlRemainOf(t, partner) {
     var sale = 0, received = 0, purchase = 0, paid = 0, i, r, pn = trimV(partner);
     for (i = 0; i < st.vouchers.length; i++) {
@@ -7566,7 +7565,7 @@ var LIVE = (function () {
       '<th class="stlp">거래처</th>' +
       '<th class="num">' + (isIn ? '총 매출' : '총 매입') + '</th>' +
       '<th class="num">' + (isIn ? '받은 돈' : '보낸 돈') + '</th>' +
-      '<th class="num">' + (isIn ? '남은 받을돈' : '남은 줄돈') + '</th>' +
+      '<th class="num">' + (isIn ? '남은 미수금' : '남은 미지급금') + '</th>' +
       '<th class="num">' + (isIn ? '수금 금액' : '지급 금액') + '</th>' +
       '<th></th><th>날짜</th><th>수단</th><th></th>' +
       '</tr></thead>';
@@ -7661,26 +7660,26 @@ var LIVE = (function () {
     var tIn = { sale: 0, received: 0, receivable: 0 }, tOut = { purchase: 0, paid: 0, payable: 0 };
     for (i = 0; i < inRows.length; i++) { tIn.sale += inRows[i].sale; tIn.received += inRows[i].received; tIn.receivable += inRows[i].receivable; }
     for (i = 0; i < outRows.length; i++) { tOut.purchase += outRows[i].purchase; tOut.paid += outRows[i].paid; tOut.payable += outRows[i].payable; }
-    setAccSum('받을돈 ' + fmtInt(sumIn) + '원 · 줄돈 ' + fmtInt(sumOut) + '원');
+    setAccSum('미수금 ' + fmtInt(sumIn) + '원 · 미지급금 ' + fmtInt(sumOut) + '원');
 
     var html = [];
     html.push('<div class="stlsum">' +
-      '<div class="stlbox in"><span>📥 받을돈 합계</span><b id="stlSumIn">' + fmtInt(sumIn) + '원</b><small>거래처 ' + cntIn + '곳의 남은 미수금</small></div>' +
-      '<div class="stlbox out"><span>📤 줄돈 합계</span><b id="stlSumOut">' + fmtInt(sumOut) + '원</b><small>거래처 ' + cntOut + '곳의 남은 미지급금</small></div>' +
-      '<div class="stlbox net"><span>⚖️ 받을돈 − 줄돈</span><b id="stlSumNet">' + fmtInt(sumIn - sumOut) + '원</b><small>양수면 받을 돈이 더 많습니다</small></div>' +
+      '<div class="stlbox in"><span>📥 미수금 합계</span><b id="stlSumIn">' + fmtInt(sumIn) + '원</b><small>거래처 ' + cntIn + '곳의 남은 미수금</small></div>' +
+      '<div class="stlbox out"><span>📤 미지급금 합계</span><b id="stlSumOut">' + fmtInt(sumOut) + '원</b><small>거래처 ' + cntOut + '곳의 남은 미지급금</small></div>' +
+      '<div class="stlbox net"><span>⚖️ 미수금 − 미지급금</span><b id="stlSumNet">' + fmtInt(sumIn - sumOut) + '원</b><small>양수면 미수금이 더 많습니다</small></div>' +
       '</div>');
 
     html.push('<section class="stlsec in" id="stlInSec">' +
-      '<div class="stlhead"><h3>📥 받을돈 (미수금)</h3>' +
-      '<span class="hint">거래처별 <b>총 매출 − 받은 돈</b>입니다. 줄마다 <b>수금 금액</b>을 적고 <b>[수금 저장]</b>을 누르면 그 자리에서 수금이 기록되고 남은 받을돈·회계 KPI가 바로 줄어듭니다.</span></div>');
-    if (!inRows.length) html.push('<div class="stlempty">받을돈이 없습니다. 판매관리에서 매출 전표를 넣으면 여기에 모입니다.</div>');
+      '<div class="stlhead"><h3>📥 미수금</h3>' +
+      '<span class="hint">거래처별 <b>총 매출 − 받은 돈</b>입니다. 줄마다 <b>수금 금액</b>을 적고 <b>[수금 저장]</b>을 누르면 그 자리에서 수금이 기록되고 남은 미수금·회계 KPI가 바로 줄어듭니다.</span></div>');
+    if (!inRows.length) html.push('<div class="stlempty">미수금이 없습니다. 매출 전표를 넣으면 여기에 모입니다.</div>');
     else html.push(stlTableHtml('in', inRows, tIn));
     html.push('</section>');
 
     html.push('<section class="stlsec out" id="stlOutSec">' +
-      '<div class="stlhead"><h3>📤 줄돈 (미지급금)</h3>' +
-      '<span class="hint">거래처별 <b>총 매입 − 보낸 돈</b>입니다. 줄마다 <b>지급 금액</b>을 적고 <b>[지급 저장]</b>을 누르면 그 자리에서 지급이 기록되고 남은 줄돈·회계 KPI가 바로 줄어듭니다.</span></div>');
-    if (!outRows.length) html.push('<div class="stlempty">줄돈이 없습니다. 구매관리에서 매입 전표를 넣으면 여기에 모입니다.</div>');
+      '<div class="stlhead"><h3>📤 미지급금</h3>' +
+      '<span class="hint">거래처별 <b>총 매입 − 보낸 돈</b>입니다. 줄마다 <b>지급 금액</b>을 적고 <b>[지급 저장]</b>을 누르면 그 자리에서 지급이 기록되고 남은 미지급금·회계 KPI가 바로 줄어듭니다.</span></div>');
+    if (!outRows.length) html.push('<div class="stlempty">미지급금이 없습니다. 매입 전표를 넣으면 여기에 모입니다.</div>');
     else html.push(stlTableHtml('out', outRows, tOut));
     html.push('</section>');
 
@@ -7694,7 +7693,7 @@ var LIVE = (function () {
     recent.sort(function (a, b) { return a.d < b.d ? 1 : (a.d > b.d ? -1 : (b.id - a.id)); });
     html.push('<section class="stlsec rec" id="stlRecSec">' +
       '<div class="stlhead"><h3>💵 최근 수금·지급 내역</h3>' +
-      '<span class="hint">방금 저장한 건이 맨 위에 나옵니다. <b>[삭제]</b>하면 그 거래처의 남은 받을돈·줄돈이 다시 늘어납니다. (기간·검색이 적용됩니다)</span></div>');
+      '<span class="hint">방금 저장한 건이 맨 위에 나옵니다. <b>[삭제]</b>하면 그 거래처의 남은 미수금·미지급금이 다시 늘어납니다. (기간·검색이 적용됩니다)</span></div>');
     if (!recent.length) html.push('<div class="stlempty">수금·지급 기록이 없습니다.</div>');
     else {
       html.push('<div class="stlwrap"><table class="stltbl t-rec" id="stlRecTbl">' +
@@ -7723,7 +7722,7 @@ var LIVE = (function () {
     stlFocusRestore(focus);
   }
   function stlRowOf(el) { return el && el.closest ? el.closest('tr[data-stl]') : null; }
-  /* 같은 줄의 남은 받을돈·줄돈 칸을 입력한 금액만큼 미리 줄여 보여 준다 */
+  /* 같은 줄의 남은 미수금·미지급금 칸을 입력한 금액만큼 미리 줄여 보여 준다 */
   function stlPreview(tr, t, partner) {
     if (!tr) return;
     var leftEl = tr.querySelector('.stlleft'), amtEl = tr.querySelector('[data-amt]');
@@ -7755,7 +7754,7 @@ var LIVE = (function () {
     if (!(amount > 0)) { toast('금액을 입력하세요.', 'err'); if (amtEl) { try { amtEl.focus(); } catch (e) { } } return; }
     var left = stlRemainOf(t, partner);
     if (left > 0.004 && amount > left) {
-      if (!window.confirm('남은 ' + (t === 'out' ? '줄돈' : '받을돈') + ' ' + fmtInt(left) + '원보다 큰 금액입니다.\n' +
+      if (!window.confirm('남은 ' + (t === 'out' ? '미지급금' : '미수금') + ' ' + fmtInt(left) + '원보다 큰 금액입니다.\n' +
         fmtInt(amount) + '원으로 저장할까요?\n(선수금·선지급이면 남은 금액이 마이너스로 바뀝니다)')) return;
     }
     var label = btn.textContent;
@@ -7773,7 +7772,7 @@ var LIVE = (function () {
       toast(e.message, 'err');
     });
   }
-  /* 받을돈·줄돈 표 클릭 — 전액 채우기 / 바로 저장 (return true면 처리됨) */
+  /* 정산 관리 표 클릭 — 전액 채우기 / 바로 저장 (return true면 처리됨) */
   function settleClick(t) {
     var allBtn = t.closest ? t.closest('[data-settle-all]') : null;
     if (allBtn) { stlFillAll(allBtn); return true; }
@@ -7781,7 +7780,7 @@ var LIVE = (function () {
     if (saveBtn) { stlSaveRow(saveBtn); return true; }
     return false;
   }
-  /* 받을돈·줄돈 표 입력 — 적은 값을 기억해 두고 남은 금액을 미리 보여 준다 */
+  /* 정산 관리 표 입력 — 적은 값을 기억해 두고 남은 금액을 미리 보여 준다 */
   function settleInput(ev) {
     var t = ev.target;
     if (!t || !t.getAttribute) return;
@@ -7809,7 +7808,7 @@ var LIVE = (function () {
     var anyF = hasCols(cur.fAccV) || hasCols(cur.fAccE);
     $('btnAccResetFilters').classList.toggle('hidden', !anyF);
     $('accNoteBar').textContent = isS
-      ? '받을돈·줄돈은 기간과 상관없이 지금 남은 금액입니다. 검색은 거래처 이름에, 기간은 맨 아래 최근 수금·지급 내역에 적용됩니다.'
+      ? '미수금·미지급금은 기간과 상관없이 지금 남은 금액입니다. 검색은 거래처 이름에, 기간은 맨 아래 최근 수금·지급 내역에 적용됩니다.'
       : (isR
         ? '거래처별로 매출·수금·미수, 매입·지급·미지급을 모아 보여줍니다. [수금]·[지급]을 누르면 바로 등록됩니다.'
         : (tab === 'M' ? '월별 매출 − 매입원가 − 일반경비 = 순이익입니다. (부가세 제외, 공급가액 기준)'
@@ -8789,7 +8788,7 @@ var LIVE = (function () {
     if (el) {
       el.innerHTML = !p
         ? '거래처를 입력하거나 고르면 그 거래처의 남은 ' + (isOut ? '미지급금' : '미수금') + '이 여기 표시됩니다.'
-        : '이 거래처의 남은 ' + (isOut ? '미지급금(줄돈)' : '미수금(받을돈)') +
+        : '이 거래처의 남은 ' + (isOut ? '미지급금' : '미수금') +
           ' <b class="' + (Math.abs(r) > 0.004 ? (isOut ? 'neg' : 'pos') : 'zero') + '">' + fmtInt(r) + '원</b>';
       el.classList.toggle('on', !!p);
     }
@@ -9732,65 +9731,13 @@ var LIVE = (function () {
     head.addEventListener('pointerup', endDrag);
     head.addEventListener('pointercancel', endDrag);
   }
-  /* ---------- ④ v13 맥 신호등 버튼 (🔴 닫기 · 🟡 접기 · 🟢 크게) ----------
-     모든 팝업 창 왼쪽 위에 붙는다. 제목 줄 더블클릭도 크게 보기와 같은 동작. */
-  function popTraffic(m) {
-    var card = m.querySelector('.modal-card');
-    if (!card) return;
-    var head = card.querySelector('.modal-head') || card.querySelector('.rm-top');
-    if (!head || head.querySelector('.traffic')) return;
-    var tl = document.createElement('div');
-    tl.className = 'traffic' + ((head.className.indexOf('stmt-noprint') >= 0) ? ' stmt-noprint' : '');
-    tl.innerHTML = '<button type="button" class="tl tl-close" data-tl="close" aria-label="닫기" title="닫기"></button>' +
-      '<button type="button" class="tl tl-min" data-tl="min" aria-label="창 접기" title="창 접기 / 펼치기"></button>' +
-      '<button type="button" class="tl tl-max" data-tl="max" aria-label="크게 보기" title="크게 보기 / 원래 크기"></button>';
-    head.insertBefore(tl, head.firstChild);
-    tl.addEventListener('click', function (ev) {
-      var b = ev.target && ev.target.closest ? ev.target.closest('[data-tl]') : null;
-      if (!b) return;
-      ev.preventDefault(); ev.stopPropagation();
-      var act = b.getAttribute('data-tl');
-      if (act === 'close') { popClose(m.id); return; }
-      if (act === 'min') { popFold(m, card); return; }
-      popBig(m, card);
-    });
-    head.addEventListener('dblclick', function (ev) {
-      var t = ev.target;
-      if (t && t.closest && t.closest('button,a,input,select,textarea,label')) return;
-      popBig(m, card);
-    });
-  }
-  function popBig(m, card) {
-    var on = !card.classList.contains('tl-big');
-    if (on) { card.classList.remove('tl-fold'); m.classList.remove('tl-foldwrap'); }
-    card.classList.toggle('tl-big', on);
-    m.classList.toggle('modal-big', on);
-    if (on) popMove(card, 0, 0);
-    var b = card.querySelector('.tl-max');
-    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  }
-  function popFold(m, card) {
-    var on = !card.classList.contains('tl-fold');
-    if (on) { card.classList.remove('tl-big'); m.classList.remove('modal-big'); }
-    card.classList.toggle('tl-fold', on);
-    m.classList.toggle('tl-foldwrap', on);
-    var b = card.querySelector('.tl-min');
-    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
-  }
-  function popResetSize(m, card) {
-    if (!card) return;
-    card.classList.remove('tl-big'); card.classList.remove('tl-fold');
-    m.classList.remove('modal-big'); m.classList.remove('tl-foldwrap');
-    var b1 = card.querySelector('.tl-max'), b2 = card.querySelector('.tl-min');
-    if (b1) b1.setAttribute('aria-pressed', 'false');
-    if (b2) b2.setAttribute('aria-pressed', 'false');
-  }
+  /* ---------- ④ v14 팝업 창: 오른쪽 위 × 닫기 + 제목 줄 드래그 이동만 ----------
+     (v13 맥 신호등 🔴🟡🟢 · 접기 · 크게 보기는 없앴다) */
   function popInit() {
     var ms = document.querySelectorAll('.modal');
     for (var i = 0; i < ms.length; i++) {
       (function (m) {
         popBindDrag(m);
-        popTraffic(m);
         var card = m.querySelector('.modal-card');
         var wasHidden = m.classList.contains('hidden');
         function sync() {
@@ -9798,7 +9745,7 @@ var LIVE = (function () {
           if (hid === wasHidden) return;
           wasHidden = hid;
           if (!hid) { if (card) popMove(card, 0, 0); }   /* 새 팝업은 기본 위치(가운데)에서 */
-          else { popResetSize(m, card); popForgot(m.id); }   /* 닫으면 원래 크기로 되돌린다 */
+          else { popForgot(m.id); }   /* 닫으면 옮겨 둔 위치를 잊는다 */
         }
         if (window.MutationObserver) new MutationObserver(sync).observe(m, { attributes: true, attributeFilter: ['class'] });
       })(ms[i]);
@@ -9838,6 +9785,7 @@ var LIVE = (function () {
         }
         openGroup(cat);
         if (cat === 'stock') setStockView(cur.tab === 'H' ? 'hist' : (cur.tab === 'V' ? 'price' : 'meat'), true);
+        else if (cat === 'trade') setPane(cur.erp === 'sale' ? 'sale' : 'buy', { keepGroup: true });
         else setPane(cat === 'acc' ? 'acc' : cat, { keepGroup: true });
       });
     }
@@ -9878,33 +9826,25 @@ var LIVE = (function () {
       histBtns[hb].addEventListener('click', function () { setHist(this.getAttribute('data-hist')); closeMobileGroups(); });
     }
 
-    /* 구매관리 */
-    var buyBtns = document.querySelectorAll('#v8Side [data-buy]');
-    for (var bb = 0; bb < buyBtns.length; bb++) {
-      buyBtns[bb].addEventListener('click', function () {
-        var a = this.getAttribute('data-buy');
-        openGroup('buy');
-        var pid = a === 'new' ? 'accVoucherModal' : (a === 'reflect' ? 'reflectModal' : (a === 'pay' ? 'accPayModal' : ''));
-        if (pid && sidePopToggle(this, 'buy:' + a, pid)) { closeMobileGroups(); return; }
-        /* v9 — 미지급금 현황: 입력창 없이 카드 + 거래처별 원장으로 바로 간다 */
-        if (a === 'status') {
-          cur.buyView = 'status';
-          popCloseOthers(''); cur.sidePop = ''; cur.sidePopId = ''; markSidePop(null);
-          setPane('buy');
-          closeMobileGroups();
-          var card = $('buyPayCard');
-          if (card) {
-            try { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { card.scrollIntoView(); }
-            flashEl(card);
-          }
-          return;
-        }
-        cur.buyView = 'list';
-        if (a === 'new') { setPane('buy'); openAccVoucher('purchase', null, 'buy'); return; }
-        if (a === 'reflect') { setPane('buy'); openReflect('purchase'); return; }
-        if (a === 'pay') { setPane('buy'); openAccPay('out', ''); closeMobileGroups(); return; }
-        setPane('buy');
+    /* v14 — 4. 거래 (매입·매출 통합) 메뉴 */
+    var tradeBtns = document.querySelectorAll('#v8Side [data-trade]');
+    for (var tb = 0; tb < tradeBtns.length; tb++) {
+      tradeBtns[tb].addEventListener('click', function () {
+        var a = this.getAttribute('data-trade');
+        openGroup('trade');
+        popCloseOthers(''); cur.sidePop = ''; cur.sidePopId = ''; markSidePop(null);
+        /* buy-status → 미지급금 현황, sale-status → 미수금 현황 (입력창 없이 카드 + 거래처별 원장) */
+        var isBuy = a.indexOf('buy') === 0;
+        var isStatus = a.indexOf('-status') > 0;
+        if (isBuy) { cur.buyView = isStatus ? 'status' : 'list'; setPane('buy'); }
+        else { cur.saleView = isStatus ? 'status' : 'list'; setPane('sale'); }
         closeMobileGroups();
+        if (!isStatus) return;
+        var card = isBuy ? $('buyPayCard') : $('saleRecvCard');
+        if (card) {
+          try { card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { card.scrollIntoView(); }
+          flashEl(card);
+        }
       });
     }
     if ($('btnBuyNew')) $('btnBuyNew').addEventListener('click', function () { openAccVoucher('purchase', null, 'buy'); });
@@ -9930,37 +9870,6 @@ var LIVE = (function () {
     });
     if ($('btnBuyColReset')) $('btnBuyColReset').addEventListener('click', function () { COLW.accB = {}; COLW.accS = {}; saveColW(); renderBuy(); toast('열 너비를 기본값으로 돌렸습니다.', 'ok'); });
 
-    /* 판매관리 */
-    var saleBtns = document.querySelectorAll('#v8Side [data-sale]');
-    for (var sl = 0; sl < saleBtns.length; sl++) {
-      saleBtns[sl].addEventListener('click', function () {
-        var a = this.getAttribute('data-sale');
-        openGroup('sale');
-        var pid = a === 'new' ? 'accVoucherModal' : (a === 'reflect' ? 'reflectModal'
-          : (a === 'pay' ? 'accPayModal' : (a === 'stmt' ? 'stmtModal' : '')));
-        if (pid && sidePopToggle(this, 'sale:' + a, pid)) { closeMobileGroups(); return; }
-        /* v9 — 미수금 현황: 입력창 없이 카드 + 거래처별 원장으로 바로 간다 */
-        if (a === 'status') {
-          cur.saleView = 'status';
-          popCloseOthers(''); cur.sidePop = ''; cur.sidePopId = ''; markSidePop(null);
-          setPane('sale');
-          closeMobileGroups();
-          var card2 = $('saleRecvCard');
-          if (card2) {
-            try { card2.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { card2.scrollIntoView(); }
-            flashEl(card2);
-          }
-          return;
-        }
-        cur.saleView = 'list';
-        if (a === 'new') { setPane('sale'); openAccVoucher('sale', null, 'sale'); return; }
-        if (a === 'reflect') { setPane('sale'); openReflect('sale'); return; }
-        if (a === 'pay') { setPane('sale'); openAccPay('in', ''); return; }
-        if (a === 'stmt') { setPane('sale'); openSaleStmt(); closeMobileGroups(); return; }
-        setPane('sale');
-        closeMobileGroups();
-      });
-    }
     if ($('btnSaleNew')) $('btnSaleNew').addEventListener('click', function () { openAccVoucher('sale', null, 'sale'); });
     if ($('btnSaleReflect')) $('btnSaleReflect').addEventListener('click', function () { openReflect('sale'); });
     if ($('btnSalePay')) $('btnSalePay').addEventListener('click', function () { openAccPay('in', ''); });
@@ -10462,7 +10371,7 @@ var LIVE = (function () {
       var pd = t.closest ? t.closest('[data-pdel]') : null;
       if (pd) { accDelete('p', Number(pd.getAttribute('data-pdel'))); return; }
     });
-    /* v11 — 받을돈·줄돈 표의 금액·날짜·수단 입력을 기억하고 남은 금액을 미리 보여 준다 */
+    /* v11 — 정산 관리 표의 금액·날짜·수단 입력을 기억하고 남은 금액을 미리 보여 준다 */
     if ($('accTableWrap')) {
       $('accTableWrap').addEventListener('input', settleInput);
       $('accTableWrap').addEventListener('change', settleInput);

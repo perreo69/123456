@@ -1221,12 +1221,6 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
 .g-io .v8num{background:#33475b}
 .g-stock .v8cat{border-left-color:#1779c4;background:#f4f9fe;border-color:#dcebf9}
 .g-stock .v8num{background:#1779c4}
-.g-buy .v8cat{border-left-color:#e07b09;background:#fff8ee;border-color:#f6e2c6}
-.g-buy .v8num{background:#e07b09}
-.g-buy .v8item.on,.g-buy .v8item.active{background:#fff0d9;border-color:#f2d3a4;color:#8a4b00}
-.g-sale .v8cat{border-left-color:#0f8a4b;background:#f1fbf5;border-color:#cdeedd}
-.g-sale .v8num{background:#0f8a4b}
-.g-sale .v8item.on,.g-sale .v8item.active{background:#e5f8ee;border-color:#bbe5d0;color:#086337}
 .g-prod .v8cat{border-left-color:#7b3fd4;background:#f8f4ff;border-color:#e5d8fb}
 .g-prod .v8num{background:#7b3fd4}
 .g-prod .v8item.on,.g-prod .v8item.active{background:#f0e7ff;border-color:#d8c2fa;color:#57209f}
@@ -1586,7 +1580,7 @@ table.vsheet-table tfoot td.b{color:#0b3d91}
 .vrowmeta:empty{display:none}
 
 /* ==========================================================================
-   v11 — 💳 받을돈·줄돈 정산 (표에서 바로 수금·지급)
+   v11 — 💳 정산 관리 (표에서 바로 수금·지급)
    ========================================================================== */
 .stlsum{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:2px 0 12px}
 .stlbox{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -1642,7 +1636,7 @@ table.stltbl td .badge{font-size:10.5px}
   .stlhead .hint{min-width:0}
   table.stltbl{font-size:12px}
 }
-/* v11 — 줄돈은 주황, 저장 버튼은 표 색(받을돈=초록 · 줄돈=주황)에 맞춘다 */
+/* v11 — 미지급금은 주황, 저장 버튼은 표 색(미수금=초록 · 미지급금=주황)에 맞춘다 */
 .num.warn,td.num.warn,.stltbl td.warn{color:var(--orange-ink)}
 .stlsec.in .stlsave{background:#0f766e;border-color:#0f766e;color:#fff}
 .stlsec.in .stlsave:hover{background:#0b615a;border-color:#0b615a}
@@ -1663,340 +1657,330 @@ table.vsheet-table.iosheet td:first-child select{font-weight:750}
 
 
 /* ==========================================================================
-   v13 — macOS (Apple) Light UI · 왼쪽 메뉴 18개 · 팝업 신호등 버튼
-   흰색 + 단계별 연한 회색 + 얇은 1px 테두리 + 애플 시스템 블루(#007AFF)
+   v14 — 시안(work/mockup-v13) UI · 물류/회계 대분류 · 거래 통합 · 팝업 신호등 제거
+   흰색 + 연한 회색 단계(#f5f7fa·#e4e9f1·#eff2f7) + 파랑 강조 #2563EB
+   선택된 하위 메뉴는 진한 채우기 대신 연한 파란 알약(#EFF6FF + #2563EB 글자)
    ※ A4 거래명세표 인쇄 양식(.stmt-sheet)은 예전 빨강·파랑 2부 그대로 둔다.
    ========================================================================== */
 :root{
-  --bg:#F5F5F7; --panel:#FFFFFF; --line:#E5E5EA; --line2:#ECECEE;
-  --ink:#1D1D1F; --muted:#6E6E73; --muted2:#8E8E93;
-  --blue:#007AFF; --blue-bg:#EAF2FF; --blue-ink:#0062CC;
-  --green:#34C759; --green-bg:#EAF9EF; --green-ink:#1F7A3D;
-  --indigo:#5856D6; --indigo-bg:#EFEFFC; --indigo-ink:#403EB8;
-  --orange:#FF9500; --orange-bg:#FFF5E6; --orange-ink:#A75F00;
-  --red:#FF3B30; --red-bg:#FFECEB;
+  --bg:#f5f7fa; --panel:#fff; --line:#e4e9f1; --line2:#eff2f7;
+  --ink:#16202e; --muted:#6b7a8f; --muted2:#98a4b5;
+  --blue:#2563eb; --blue-bg:#eff6ff; --blue-ink:#1d4ed8;
+  --green:#0d6b3b; --green-bg:#ecf8f1; --green-ink:#0d6b3b;
+  --indigo:#4f46e5; --indigo-bg:#eeefff; --indigo-ink:#4338ca;
+  --orange:#a35c00; --orange-bg:#fff6e6; --orange-ink:#a35c00;
+  --red:#dc2626; --red-bg:#fdecec;
+  --accent:#2563eb; --accent-bg:#eff6ff; --accent-ink:#2563eb;
   --radius:12px;
-  --shadow:0 1px 2px rgba(0,0,0,.04),0 6px 20px rgba(0,0,0,.05);
-  --hair:#E5E5EA; --fill:#F2F2F7; --fill2:#ECECEE;
+  --shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.05);
+  --hair:#e4e9f1; --fill:#f2f5f9; --fill2:#eff2f7;
 }
 html,body{background:var(--bg)}
-body{color:#1D1D1F;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","Segoe UI","Malgun Gothic",Roboto,"Noto Sans KR",sans-serif;font-size:13.5px}
+body{color:#16202e;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","SF Pro Text","Segoe UI","Malgun Gothic",Roboto,"Noto Sans KR",sans-serif;font-size:13.5px}
 *::-webkit-scrollbar{width:11px;height:11px}
 *::-webkit-scrollbar-track{background:transparent}
-*::-webkit-scrollbar-thumb{background:rgba(60,60,67,.22);border-radius:99px;border:3px solid transparent;background-clip:content-box}
-*::-webkit-scrollbar-thumb:hover{background:rgba(60,60,67,.36);background-clip:content-box}
-::selection{background:rgba(0,122,255,.18)}
+*::-webkit-scrollbar-thumb{background:rgba(60,76,102,.22);border-radius:99px;border:3px solid transparent;background-clip:content-box}
+*::-webkit-scrollbar-thumb:hover{background:rgba(60,76,102,.36);background-clip:content-box}
+::selection{background:rgba(37,99,235,.18)}
 input,select,button,textarea{font-size:13px}
-input[type=checkbox],input[type=radio]{accent-color:#007AFF}
+input[type=checkbox],input[type=radio]{accent-color:#2563EB}
 
 /* ---------- 상단 바 ---------- */
 .top{background:rgba(255,255,255,.86);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-bottom:1px solid var(--hair);padding:10px 20px}
 .brand h1{font-size:15px;font-weight:600;letter-spacing:-.3px}
-.brand p{color:#8E8E93;font-size:11.5px;font-weight:400}
+.brand p{color:#98a4b5;font-size:11.5px;font-weight:400}
 .logo{font-size:21px}
-.sync{color:#8E8E93;font-weight:500}
-.who{color:#8E8E93;font-weight:400}
-.who b{color:#1D1D1F;font-weight:600}
-.pbadge{background:#007AFF}
-.btn.photo{background:#fff;border:1px solid var(--hair);color:#1D1D1F;font-weight:500}
+.sync{color:#98a4b5;font-weight:500}
+.who{color:#98a4b5;font-weight:400}
+.who b{color:#16202e;font-weight:600}
+.pbadge{background:#2563EB}
+.btn.photo{background:#fff;border:1px solid var(--hair);color:#16202e;font-weight:500}
 
 /* ---------- 버튼 ---------- */
-.btn{border:1px solid var(--hair);background:#fff;color:#1D1D1F;border-radius:8px;font-weight:500;font-size:12.5px;padding:6px 12px;box-shadow:0 1px 1px rgba(0,0,0,.03);transition:background .12s,border-color .12s,box-shadow .12s}
-.btn:hover{background:var(--fill);border-color:#D9D9DE;box-shadow:0 1px 2px rgba(0,0,0,.05)}
-.btn:active{background:#E8E8ED}
-.btn.ghost{color:#3A3A3C}
+.btn{border:1px solid var(--hair);background:#fff;color:#16202e;border-radius:8px;font-weight:500;font-size:12.5px;padding:6px 12px;box-shadow:0 1px 1px rgba(0,0,0,.03);transition:background .12s,border-color .12s,box-shadow .12s}
+.btn:hover{background:var(--fill);border-color:#dde3ec;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+.btn:active{background:#e9eef6}
+.btn.ghost{color:#3c4a5e}
 .btn.ghost:hover{background:var(--fill)}
-.btn.primary{background:#007AFF;border-color:#007AFF;color:#fff;font-weight:600;box-shadow:0 1px 2px rgba(0,122,255,.28)}
-.btn.primary:hover{background:#0A84FF;border-color:#0A84FF}
-.btn.xl,.btn.xls{border-color:#CBE0FF;background:#F0F6FF;color:#0062CC;font-weight:600}
-.btn.xl:hover,.btn.xls:hover{background:#E4EFFF;border-color:#B4D2FF}
+.btn.primary{background:#2563EB;border-color:#2563EB;color:#fff;font-weight:600;box-shadow:0 1px 2px rgba(37,99,235,.28)}
+.btn.primary:hover{background:#1D4ED8;border-color:#1D4ED8}
+.btn.xl,.btn.xls{border-color:#cfe0ff;background:#F3F8FF;color:#1D4ED8;font-weight:600}
+.btn.xl:hover,.btn.xls:hover{background:#E4EFFF;border-color:#b8d2ff}
 .btn.tiny{font-size:11.5px;padding:5px 9px;border-radius:7px}
-.btn.fgnew{background:#007AFF;border-color:#007AFF;color:#fff;font-weight:600}
-.submit{background:#007AFF;border-radius:9px;font-weight:600;font-size:13.5px;box-shadow:0 1px 2px rgba(0,122,255,.30)}
-.submit:hover{filter:none;background:#0A84FF}
-.submit.t-thaw{background:#5856D6}
-.submit.t-re{background:#34C759}
-.submit.t-out{background:#FF9500}
-.submit:disabled{background:#C7C7CC;box-shadow:none}
-.accbtn{background:#fff;border:1px solid var(--hair);border-radius:8px;color:#1D1D1F;font-weight:600;box-shadow:0 1px 1px rgba(0,0,0,.03)}
-.accbtn:hover{background:var(--fill);border-color:#D9D9DE}
-.accbtn.sale{color:#0062CC;background:#F4F9FF;border-color:#D3E4FF}
-.accbtn.buy{color:#A75F00;background:#FFF9F0;border-color:#F5E0C4}
-.accbtn.payin{color:#1F7A3D;background:#F4FCF6;border-color:#CCEBD6}
+.btn.fgnew{background:#2563EB;border-color:#2563EB;color:#fff;font-weight:600}
+.submit{background:#2563EB;border-radius:9px;font-weight:600;font-size:13.5px;box-shadow:0 1px 2px rgba(37,99,235,.30)}
+.submit:hover{filter:none;background:#1D4ED8}
+.submit.t-thaw{background:#4f46e5}
+.submit.t-re{background:#059669}
+.submit.t-out{background:#e07a12}
+.submit:disabled{background:#c3ccd9;box-shadow:none}
+.accbtn{background:#fff;border:1px solid var(--hair);border-radius:8px;color:#16202e;font-weight:600;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+.accbtn:hover{background:var(--fill);border-color:#dde3ec}
+.accbtn.sale{color:#1D4ED8;background:#F5FAFF;border-color:#d6e4ff}
+.accbtn.buy{color:#a35c00;background:#FFF9F0;border-color:#f2dfc2}
+.accbtn.payin{color:#0d6b3b;background:#f3fbf7;border-color:#c9e8d6}
 .accbtn.payout{color:#6B32B8;background:#FAF6FF;border-color:#E2D3F7}
-.accbtn.inc{color:#1F7A3D;background:#F4FCF6;border-color:#CCEBD6}
-.accbtn.exp{color:#3A3A3C;background:#fff}
-.accbtn.refl{background:#1D1D1F;border-color:#1D1D1F;color:#fff}
+.accbtn.inc{color:#0d6b3b;background:#f3fbf7;border-color:#c9e8d6}
+.accbtn.exp{color:#3c4a5e;background:#fff}
+.accbtn.refl{background:#16202e;border-color:#16202e;color:#fff}
 .accbtn.refl:hover{background:#333336}
-.accbtn.help{color:#3A3A3C;border-style:solid;border-color:var(--hair);background:#fff}
-.accbtn.stmt{color:#0062CC;background:#F4F9FF;border-color:#D3E4FF}
+.accbtn.help{color:#3c4a5e;border-style:solid;border-color:var(--hair);background:#fff}
+.accbtn.stmt{color:#1D4ED8;background:#F5FAFF;border-color:#d6e4ff}
 
 /* ---------- 입력 ---------- */
 input[type=search],input[type=text],input[type=date],input[type=number],input[type=email],input[type=password],input[type=tel],textarea,select{
-  border:1px solid var(--hair);border-radius:8px;background:#fff;color:#1D1D1F;outline:none;
+  border:1px solid var(--hair);border-radius:8px;background:#fff;color:#16202e;outline:none;
 }
 input[type=search]:focus,input[type=text]:focus,input[type=date]:focus,input[type=number]:focus,input[type=email]:focus,input[type=password]:focus,input[type=tel]:focus,textarea:focus,select:focus{
-  border-color:#007AFF;box-shadow:0 0 0 3px rgba(0,122,255,.18)
+  border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.18)
 }
-input::placeholder,textarea::placeholder{color:#AEAEB2}
-.field>span{color:#6E6E73;font-weight:500;font-size:11.5px}
+input::placeholder,textarea::placeholder{color:#a8b3c2}
+.field>span{color:#6b7a8f;font-weight:500;font-size:11.5px}
 .field input,.field select{border-radius:8px}
-.field input:focus,.field select:focus{border-color:#007AFF;box-shadow:0 0 0 3px rgba(0,122,255,.18)}
+.field input:focus,.field select:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
 .toolbar{border-bottom:1px solid var(--line2);background:#fff}
 .toolbar input[type=search]{border-radius:8px}
-.toolbar input[type=search]:focus{border-color:#007AFF;box-shadow:0 0 0 3px rgba(0,122,255,.18)}
-.toolbar select{border-radius:8px;font-weight:500;color:#3A3A3C}
-.check{color:#3A3A3C;font-weight:500}
+.toolbar input[type=search]:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
+.toolbar select{border-radius:8px;font-weight:500;color:#3c4a5e}
+.check{color:#3c4a5e;font-weight:500}
 .check input{width:14px;height:14px}
 .seg{background:var(--fill);border-radius:9px;padding:2px;gap:2px}
-.seg button{border-radius:7px;color:#3A3A3C;font-weight:500;font-size:12px}
-.seg button.active{background:#fff;color:#1D1D1F;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04)}
-.seg button.active[data-wh="F"]{color:#0062CC}
-.seg button.active[data-wh="C"]{color:#1F7A3D}
+.seg button{border-radius:7px;color:#3c4a5e;font-weight:500;font-size:12px}
+.seg button.active{background:#fff;color:#16202e;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.04)}
+.seg button.active[data-wh="F"]{color:#1D4ED8}
+.seg button.active[data-wh="C"]{color:#0d6b3b}
 .ltabs{background:var(--fill);border-radius:10px}
-.ltab{color:#3A3A3C;font-weight:500}
-.ltab.active{background:#fff;color:#1D1D1F;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.10)}
+.ltab{color:#3c4a5e;font-weight:500}
+.ltab.active{background:#fff;color:#16202e;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.10)}
 
 /* ---------- 로그인 ---------- */
-.login-view{background:radial-gradient(1200px 600px at 50% -20%,#FFFFFF 0%,#F5F5F7 55%,#EFEFF2 100%)}
+.login-view{background:radial-gradient(1200px 600px at 50% -20%,#FFFFFF 0%,#f5f7fa 55%,#EFEFF2 100%)}
 .login-card{border:1px solid var(--hair);border-radius:16px;box-shadow:0 18px 48px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);background:#fff}
 .login-brand .logo{font-size:30px}
 .login-brand h1{font-size:17px;font-weight:600;letter-spacing:-.3px}
 .lmsg{font-weight:500}
-.lmsg.err{background:#FFECEB;color:#B3261E}
-.lmsg.warn{background:#FFF7E6;color:#8A5A09}
-.lfine{color:#8E8E93;border-top:1px solid var(--line2)}
+.lmsg.err{background:#fdecec;color:#b42318}
+.lmsg.warn{background:#fff6e6;color:#8a5a09}
+.lfine{color:#98a4b5;border-top:1px solid var(--line2)}
 
-/* ---------- v13 왼쪽 메뉴 ---------- */
-.v8shell{grid-template-columns:224px minmax(0,1fr);gap:16px;padding:14px 16px 46px}
-.v8side{background:#fff;border:1px solid var(--hair);border-radius:14px;padding:8px 8px 10px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.04);top:12px}
+/* ---------- v14 왼쪽 메뉴 (물류 / 회계 대분류 · 5대 메뉴) ---------- */
+.v8shell{grid-template-columns:236px minmax(0,1fr);gap:16px;padding:14px 16px 46px}
+.v8side{background:#fff;border:1px solid var(--hair);border-radius:12px;padding:8px 9px 11px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.04)}
 .v8nav{display:flex;flex-direction:column;gap:0}
-.v8grp{border-radius:10px;border-top:1px solid var(--line2);padding:3px 0}
-.v8grp:first-child{border-top:0}
+/* 대분류 머리글 — 물류 · 회계 */
+.v8big{display:flex;align-items:center;gap:7px;height:24px;padding:0 8px;margin:8px 0 3px}
+.v8big:first-child{margin-top:2px}
+.v8big .v8bigdot{flex:0 0 auto;width:5px;height:5px;border-radius:2px;background:var(--accent)}
+.v8big .v8biglab{flex:0 0 auto;font-size:11.5px;font-weight:800;color:var(--ink);letter-spacing:.1px}
+.v8big i{flex:1 1 auto;height:1px;background:var(--line2);margin-left:3px}
+.v8grp{border-radius:9px;padding:1px 0}
 .v8side .v8nav .v8grp .v8cat{
   display:flex;align-items:center;gap:9px;width:100%;height:34px;padding:0 8px;border:0;border-radius:8px;
-  background:transparent;color:#3A3A3C;font:inherit;font-size:12.8px;font-weight:500;letter-spacing:-.2px;text-align:left;
-  box-shadow:none;transition:background .12s;
+  background:transparent;color:#3c4a5e;font:inherit;font-size:12.8px;font-weight:600;letter-spacing:-.2px;text-align:left;
+  box-shadow:none;transition:background .12s,color .12s;
 }
 .v8side .v8nav .v8grp .v8cat:hover{background:var(--fill)}
-.v8side .v8nav .v8grp.open .v8cat{color:#1D1D1F;font-weight:600;background:transparent}
-.v8side .v8nav .v8grp .v8num{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:20px;height:20px;border-radius:6px;background:var(--fill);color:#8E8E93;font-size:10.5px;font-weight:600;letter-spacing:0}
-.v8side .v8nav .v8grp.open .v8num{background:var(--blue-bg);color:#0062CC}
+.v8side .v8nav .v8grp.open .v8cat{color:var(--ink);font-weight:700;background:transparent}
+.v8side .v8nav .v8grp .v8num{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:19px;height:19px;border-radius:5px;background:#f1f4f9;color:#8492a6;font-size:10.5px;font-weight:700;letter-spacing:0}
+.v8side .v8nav .v8grp.open .v8num{background:var(--accent-bg);color:var(--accent-ink)}
 .v8lab{flex:1 1 auto}
-.v8car{flex:0 0 auto;margin-left:auto;color:#C7C7CC;font-size:9px;line-height:1;display:inline-block;transition:transform .15s}
-.v8grp.open .v8car{transform:rotate(90deg);color:#8E8E93}
-.v8sub{display:none;margin:1px 0 3px 18px;padding-left:10px;border-left:1px solid var(--line2)}
+.v8car{flex:0 0 auto;margin-left:auto;color:#c3ccd9;font-size:9px;line-height:1;display:inline-block;transition:transform .15s}
+.v8grp.open .v8car{transform:rotate(90deg);color:#8b99ac}
+.v8sub{display:none;margin:2px 0 3px 18px;padding-left:10px;border-left:1px solid #edf1f6}
 .v8grp.open>.v8sub{display:block}
 .v8side .v8sub .v8item{
-  display:flex;align-items:center;gap:6px;width:100%;height:29px;padding:0 9px;border:0;border-radius:7px;
-  background:none;color:#48484A;font:inherit;font-size:12.6px;font-weight:500;line-height:1.2;text-align:left;letter-spacing:-.15px;
-  box-shadow:none;
+  display:flex;align-items:center;gap:6px;width:100%;height:29px;padding:0 9px;border:0;border-radius:6px;
+  background:none;color:#4d5b6e;font:inherit;font-size:12.5px;font-weight:500;line-height:1.2;text-align:left;letter-spacing:-.15px;
+  box-shadow:none;transition:background .12s,color .12s;
 }
-.v8side .v8sub .v8item:hover{background:var(--fill);color:#1D1D1F}
-.v8side .v8sub .v8item.on,.v8side .v8sub .v8item.active{background:#007AFF;color:#fff;font-weight:600}
-.v8side .g-buy .v8sub .v8item.on,.v8side .g-buy .v8sub .v8item.active,
-.v8side .g-sale .v8sub .v8item.on,.v8side .g-sale .v8sub .v8item.active,
+.v8side .v8sub .v8item:hover{background:#f4f7fb;color:var(--ink)}
+/* 선택된 하위 메뉴 — 진한 채우기 대신 연한 파란 알약(#EFF6FF + #2563EB) */
+.v8side .v8sub .v8item.on,.v8side .v8sub .v8item.active{background:var(--accent-bg);color:var(--accent-ink);font-weight:700}
+.v8side .g-io .v8sub .v8item.on,.v8side .g-io .v8sub .v8item.active,
+.v8side .g-stock .v8sub .v8item.on,.v8side .g-stock .v8sub .v8item.active,
 .v8side .g-prod .v8sub .v8item.on,.v8side .g-prod .v8sub .v8item.active,
-.v8side .g-acc .v8sub .v8item.on,.v8side .g-acc .v8sub .v8item.active{background:#007AFF;color:#fff;border:0;font-weight:600}
-.v8side .v8sub .v8item.popon{background:var(--blue-bg);color:#0062CC;box-shadow:inset 0 0 0 1px #B9D6FF;font-weight:600}
-.v8side .v8sub .v8item .cnt{margin-left:auto;background:var(--fill);color:#6E6E73;border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:600}
-.v8side .v8sub .v8item.on .cnt,.v8side .v8sub .v8item.active .cnt{background:rgba(255,255,255,.26);color:#fff}
-.v8cat.popon{background:var(--blue-bg)!important;box-shadow:none}
+.v8side .g-trade .v8sub .v8item.on,.v8side .g-trade .v8sub .v8item.active,
+.v8side .g-acc .v8sub .v8item.on,.v8side .g-acc .v8sub .v8item.active{background:var(--accent-bg);color:var(--accent-ink);border:0;font-weight:700}
+.v8side .v8sub .v8item.popon{background:var(--accent-bg);color:var(--accent-ink);box-shadow:inset 0 0 0 1px #dbe8ff;font-weight:700}
+.v8side .v8sub .v8item .cnt{margin-left:auto;background:#f1f4f9;color:#6b7a8f;border-radius:999px;padding:1px 7px;font-size:10.5px;font-weight:600}
+.v8side .v8sub .v8item.on .cnt,.v8side .v8sub .v8item.active .cnt{background:#dbeafe;color:var(--accent);font-weight:700}
+.v8cat.popon{background:var(--accent-bg)!important;box-shadow:none}
 
 /* ---------- 페이지 머리말 · 오른쪽 액션 바 ---------- */
 .v8pagehead{align-items:flex-start;margin:2px 2px 14px}
-.v8pagehead h2{font-size:20px;font-weight:600;letter-spacing:-.5px;color:#1D1D1F}
-.v8pagehead p{color:#8E8E93;font-size:12.5px;margin-top:3px}
+.v8pagehead h2{font-size:20px;font-weight:600;letter-spacing:-.5px;color:#16202e}
+.v8pagehead p{color:#98a4b5;font-size:12.5px;margin-top:3px}
 .v8pgright{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;flex:0 0 auto}
 .pacts{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .pacts .btn{height:30px;padding:0 12px}
-.v8crumb{background:var(--fill);color:#6E6E73;font-weight:600;font-size:11.5px;padding:5px 11px;border-radius:999px;letter-spacing:-.1px}
+.v8crumb{background:var(--fill);color:#6b7a8f;font-weight:600;font-size:11.5px;padding:5px 11px;border-radius:999px;letter-spacing:-.1px}
 
 /* ---------- 카드 · 표 ---------- */
 .kpis{gap:10px}
 .kpi{background:#fff;border:1px solid var(--hair);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .kpi:before{width:3px;border-radius:3px 0 0 3px}
-.kpi-label{color:#6E6E73;font-weight:500;font-size:11.5px}
+.kpi-label{color:#6b7a8f;font-weight:500;font-size:11.5px}
 .kpi-value{font-size:22px;font-weight:600;letter-spacing:-.6px}
-.kpi-unit{color:#8E8E93;font-weight:500}
-.kpi-sub{color:#AEAEB2;font-weight:400}
+.kpi-unit{color:#98a4b5;font-weight:500}
+.kpi-sub{color:#a8b3c2;font-weight:400}
 .panel{background:#fff;border:1px solid var(--hair);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 .v8cards,.v8panehead{border-color:var(--hair)}
 .v8panehead h3{font-weight:600;letter-spacing:-.25px}
-.v8hint{color:#8E8E93}
-.note{background:#FAFAFC;color:#8E8E93;border-bottom:1px solid var(--line2)}
+.v8hint{color:#98a4b5}
+.note{background:#f8fafc;color:#98a4b5;border-bottom:1px solid var(--line2)}
 .tabs{border-bottom:1px solid var(--line2);padding:8px 12px 0;gap:4px}
-.tab{color:#6E6E73;font-weight:500;font-size:12.8px;padding:8px 12px 10px;border-bottom:2px solid transparent;border-radius:7px 7px 0 0}
-.tab:hover{background:var(--fill);color:#1D1D1F}
-.tab.active{color:#007AFF;border-bottom-color:#007AFF;font-weight:600}
-.tab .cnt{background:var(--fill);color:#6E6E73;font-weight:600}
-.tab.active .cnt{background:var(--blue-bg);color:#0062CC}
+.tab{color:#6b7a8f;font-weight:500;font-size:12.8px;padding:8px 12px 10px;border-bottom:2px solid transparent;border-radius:7px 7px 0 0}
+.tab:hover{background:var(--fill);color:#16202e}
+.tab.active{color:#2563EB;border-bottom-color:#2563EB;font-weight:600}
+.tab .cnt{background:var(--fill);color:#6b7a8f;font-weight:600}
+.tab.active .cnt{background:var(--blue-bg);color:#1D4ED8}
 .v8subtabs{padding:10px 14px 0}
-.v8mini{border:1px solid var(--hair);background:#fff;border-radius:7px;color:#3A3A3C;font-weight:500;font-size:11.8px;padding:4px 10px}
+.v8mini{border:1px solid var(--hair);background:#fff;border-radius:7px;color:#3c4a5e;font-weight:500;font-size:11.8px;padding:4px 10px}
 .v8mini:hover{background:var(--fill)}
-.v8mini.active{background:#007AFF;border-color:#007AFF;color:#fff;font-weight:600}
-.v8st{border:1px solid var(--hair);background:#fff;border-radius:7px;color:#3A3A3C;font-weight:500}
-.v8st.active{background:#007AFF;border-color:#007AFF;color:#fff;font-weight:600}
-.v8stlabel{color:#8E8E93;font-weight:600}
+.v8mini.active{background:#2563EB;border-color:#2563EB;color:#fff;font-weight:600}
+.v8st{border:1px solid var(--hair);background:#fff;border-radius:7px;color:#3c4a5e;font-weight:500}
+.v8st.active{background:#2563EB;border-color:#2563EB;color:#fff;font-weight:600}
+.v8stlabel{color:#98a4b5;font-weight:600}
 .rangebar{border-bottom:1px solid var(--line2);background:#fff;gap:8px}
-.pr{color:#6E6E73;font-weight:500;border-radius:7px}
-.pr:hover{color:#1D1D1F;background:var(--fill)}
-.pr.active{background:#fff;color:#007AFF;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.05)}
-.rangebox{border:1px solid var(--hair);border-radius:8px;background:#fff;color:#3A3A3C;font-weight:500}
-.rangebox.set{color:#0062CC;border-color:#B4D2FF;background:#F4F9FF}
+.pr{color:#6b7a8f;font-weight:500;border-radius:7px}
+.pr:hover{color:#16202e;background:var(--fill)}
+.pr.active{background:#fff;color:#2563EB;font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.10),0 0 0 .5px rgba(0,0,0,.05)}
+.rangebox{border:1px solid var(--hair);border-radius:8px;background:#fff;color:#3c4a5e;font-weight:500}
+.rangebox.set{color:#1D4ED8;border-color:#b8d2ff;background:#F5FAFF}
 .rng input[type=date]{border-radius:8px}
-.tilde{color:#C7C7CC}
-.range-sum{color:#8E8E93}
+.tilde{color:#c3ccd9}
+.range-sum{color:#98a4b5}
 .table-wrap{border-radius:0 0 12px 12px}
-thead th{background:#F5F5F7;color:#6E6E73;font-weight:600;font-size:11.3px;border-bottom:1px solid var(--hair);letter-spacing:0;padding:8px 9px}
-tbody td{border-bottom:1px solid var(--line2);color:#1D1D1F}
-tbody tr.lot:hover{background:#F5F9FF}
-tbody tr.lot.sel{background:#EAF2FF;box-shadow:inset 3px 0 0 #007AFF}
-tr.group td{background:#F2F2F7;color:#3A3A3C;border-bottom:1px solid var(--hair);font-weight:600}
+thead th{background:#f8fafc;color:#6b7a8f;font-weight:600;font-size:11.3px;border-bottom:1px solid var(--hair);letter-spacing:0;padding:8px 9px}
+tbody td{border-bottom:1px solid var(--line2);color:#16202e}
+tbody tr.lot:hover{background:#F7FAFF}
+tbody tr.lot.sel{background:#EFF6FF;box-shadow:inset 3px 0 0 #2563EB}
+tr.group td{background:#f2f5f9;color:#3c4a5e;border-bottom:1px solid var(--hair);font-weight:600}
 .g-name{font-weight:600}
-.g-meta{color:#8E8E93;font-weight:500}
-.g-meta b{color:#3A3A3C}
+.g-meta{color:#98a4b5;font-weight:500}
+.g-meta b{color:#3c4a5e}
 td.num{font-weight:600}
 .mtag{background:var(--fill);color:#48484A;font-weight:600}
-.mtag.mt-돈{background:#FFEDEC;color:#B3261E}
-.mtag.mt-우{background:#EAF2FF;color:#0062CC}
-.mtag.mt-계{background:#FFF6E5;color:#8A5A09}
-.mtag.mt-양{background:#F3EFFC;color:#5B3EA8}
-.dday.ok{background:var(--fill);color:#6E6E73}
-.dday.warn{background:#FFF5E6;color:#A75F00}
-.dday.danger{background:#FFECEB;color:#B3261E}
+.mtag.mt-돈{background:#fdecec;color:#b42318}
+.mtag.mt-우{background:#EFF6FF;color:#1D4ED8}
+.mtag.mt-계{background:#FFF6E5;color:#8a5a09}
+.mtag.mt-양{background:#f3effc;color:#5B3EA8}
+.dday.ok{background:var(--fill);color:#6b7a8f}
+.dday.warn{background:#fff6e6;color:#a35c00}
+.dday.danger{background:#fdecec;color:#b42318}
 .badge{font-weight:600}
-.badge.in{background:#EAF2FF;color:#0062CC}
-.badge.thaw{background:#EFEFFC;color:#403EB8}
-.badge.re{background:#EAF9EF;color:#1F7A3D}
-.badge.out{background:#FFF5E6;color:#A75F00}
+.badge.in{background:#EFF6FF;color:#1D4ED8}
+.badge.thaw{background:#eeefff;color:#4338ca}
+.badge.re{background:#ecf8f1;color:#0d6b3b}
+.badge.out{background:#fff6e6;color:#a35c00}
 .badge.base{background:var(--fill);color:#5A5A5E}
-.actmenu{border:1px solid var(--hair);background:#fff;border-radius:6px;color:#3A3A3C;font-weight:500;font-size:11.5px;padding:3px 8px}
+.actmenu{border:1px solid var(--hair);background:#fff;border-radius:6px;color:#3c4a5e;font-weight:500;font-size:11.5px;padding:3px 8px}
 .actmenu:hover{background:var(--fill)}
-.act{border:1px solid var(--hair);background:#fff;border-radius:6px;font-weight:500;color:#3A3A3C}
+.act{border:1px solid var(--hair);background:#fff;border-radius:6px;font-weight:500;color:#3c4a5e}
 .act:hover{background:var(--fill)}
-.act.thaw{color:#403EB8;background:#F7F7FF;border-color:#DEDEFB}
-.act.re{color:#1F7A3D;background:#F4FCF6;border-color:#CCEBD6}
-.act.out{color:#A75F00;background:#FFF9F2;border-color:#F5E0C4}
-.cancel{border-color:#F5C9C5;background:#FFF6F5;color:#B3261E}
-.worker{background:var(--fill);color:#3A3A3C;font-weight:500}
-.move{background:var(--fill);color:#3A3A3C;font-weight:600}
+.act.thaw{color:#4338ca;background:#f6f6ff;border-color:#dfdfFB}
+.act.re{color:#0d6b3b;background:#f3fbf7;border-color:#c9e8d6}
+.act.out{color:#a35c00;background:#fff8f0;border-color:#f2dfc2}
+.cancel{border-color:#f3c9c5;background:#fef6f5;color:#b42318}
+.worker{background:var(--fill);color:#3c4a5e;font-weight:500}
+.move{background:var(--fill);color:#3c4a5e;font-weight:600}
 .dtype{font-weight:600}
-.dtype.site{background:#FFEDEC;color:#B3261E}
-.dtype.vendor{background:#EAF2FF;color:#0062CC}
-.dtype.courier{background:#FFF6E5;color:#8A5A09}
+.dtype.site{background:#fdecec;color:#b42318}
+.dtype.vendor{background:#EFF6FF;color:#1D4ED8}
+.dtype.courier{background:#FFF6E5;color:#8a5a09}
 .dtype.other{background:var(--fill);color:#5A5A5E}
-.more{background:#FAFAFC;color:#3A3A3C;border-top:1px solid var(--line2);font-weight:500}
+.more{background:#f8fafc;color:#3c4a5e;border-top:1px solid var(--line2);font-weight:500}
 .more:hover{background:var(--fill)}
-.empty-row td{color:#AEAEB2}
-.ttag{color:#AEAEB2}
-.setuptip{background:#FAFAFC;border-color:var(--hair);color:#8E8E93}
+.empty-row td{color:#a8b3c2}
+.ttag{color:#a8b3c2}
+.setuptip{background:#f8fafc;border-color:var(--hair);color:#98a4b5}
 
 /* ---------- 작업 메뉴 · 필터 팝오버 · 토스트 ---------- */
-.rowmenu{background:#fff;border:1px solid #D8D8DC;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);padding:5px}
-.rowmenu button{border-radius:6px;color:#1D1D1F;font-weight:500}
-.rowmenu button:hover{background:#007AFF;color:#fff}
-.rowmenu button.danger{color:#B3261E}
-.rowmenu button.danger:hover{background:#FF3B30;color:#fff}
+.rowmenu{background:#fff;border:1px solid #dbe2ec;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);padding:5px}
+.rowmenu button{border-radius:6px;color:#16202e;font-weight:500}
+.rowmenu button:hover{background:#2563EB;color:#fff}
+.rowmenu button.danger{color:#b42318}
+.rowmenu button.danger:hover{background:#dc2626;color:#fff}
 .rowmenu .rm-sep{background:var(--line2)}
-.fpop{background:#fff;border:1px solid #D8D8DC;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06)}
-.fpop-head{background:#FAFAFC;border-bottom:1px solid var(--line2)}
-.fpop-head b{color:#1D1D1F;font-weight:600}
-.fpop-x{background:var(--fill);color:#6E6E73;border-radius:6px}
-.fpop-foot{background:#FAFAFC;border-top:1px solid var(--line2)}
+.fpop{background:#fff;border:1px solid #dbe2ec;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06)}
+.fpop-head{background:#f8fafc;border-bottom:1px solid var(--line2)}
+.fpop-head b{color:#16202e;font-weight:600}
+.fpop-x{background:var(--fill);color:#6b7a8f;border-radius:6px}
+.fpop-foot{background:#f8fafc;border-top:1px solid var(--line2)}
 .fpop-body input[type=search]{border-radius:8px}
-.fpop-body input[type=search]:focus{border-color:#007AFF;box-shadow:0 0 0 3px rgba(0,122,255,.18)}
+.fpop-body input[type=search]:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.18)}
 .toast{background:rgba(29,29,31,.92);color:#fff;border-radius:10px;font-weight:500;box-shadow:0 8px 24px rgba(0,0,0,.22)}
 .quickbar{background:rgba(255,255,255,.94);border-top:1px solid var(--hair);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
-.qb{color:#6E6E73;font-weight:500}
-.qb.active{color:#007AFF;font-weight:600}
+.qb{color:#6b7a8f;font-weight:500}
+.qb.active{color:#2563EB;font-weight:600}
 
 /* ---------- 팝업 창 (맥 윈도) ---------- */
-.modal-card{background:#fff;border:1px solid #D8D8DC;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.24),0 2px 8px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.06);padding:14px 16px 15px}
+.modal-card{background:#fff;border:1px solid #dbe2ec;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.24),0 2px 8px rgba(0,0,0,.08),0 0 0 .5px rgba(0,0,0,.06);padding:14px 16px 15px}
 .modal-card.popmoving{box-shadow:0 30px 72px rgba(0,0,0,.30),0 4px 14px rgba(0,0,0,.14)}
 .modal-head{align-items:center;gap:9px}
-.modal-head h2{flex:1 1 auto;font-size:14.5px;font-weight:600;letter-spacing:-.25px;color:#1D1D1F}
-.modal-sub{color:#8E8E93;font-size:11.5px;margin:4px 0 12px}
-.modal-x{background:var(--fill);color:#6E6E73;border-radius:7px;width:26px;height:26px;font-size:12px;font-weight:500}
-.modal-x:hover{background:#E5E5EA;color:#1D1D1F}
+.modal-head h2{flex:1 1 auto;font-size:14.5px;font-weight:600;letter-spacing:-.25px;color:#16202e}
+.modal-sub{color:#98a4b5;font-size:11.5px;margin:4px 0 12px}
+.modal-x{background:var(--fill);color:#6b7a8f;border-radius:7px;width:26px;height:26px;font-size:12px;font-weight:500}
+.modal-x:hover{background:#e4e9f1;color:#16202e}
 .modal-actions .btn{border-radius:9px}
 .modal-actions .submit{border-radius:9px}
 
-/* 맥 신호등 버튼 (🔴 닫기 · 🟡 접기 · 🟢 크게) */
-.traffic{display:flex;align-items:center;gap:8px;flex:0 0 auto;margin-right:3px}
-.traffic .tl{width:12px;height:12px;padding:0;border:0;border-radius:50%;position:relative;flex:0 0 auto;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.14);transition:filter .12s}
-.traffic .tl-close{background:#FF5F57}
-.traffic .tl-min{background:#FEBC2E}
-.traffic .tl-max{background:#28C840}
-.traffic .tl:hover{filter:brightness(.94)}
-.traffic .tl:focus-visible{outline:2px solid #007AFF;outline-offset:2px}
-.traffic .tl:after{content:"";position:absolute;inset:0;display:grid;place-items:center;font-size:9px;font-weight:800;line-height:1;color:rgba(0,0,0,.55);opacity:0}
-.traffic:hover .tl:after{opacity:1}
-.traffic .tl-close:after{content:"✕";font-size:7px}
-.traffic .tl-min:after{content:"—";font-size:7px}
-.traffic .tl-max:after{content:"＋";font-size:8px}
-/* 🟡 접기 — 제목 줄만 남긴다 */
-.modal-card.tl-fold{max-height:none;overflow:hidden;padding-bottom:14px}
-.modal-card.tl-fold>*:not(.modal-head){display:none!important}
-/* 🟢 크게 — 화면 가득 */
-.modal.modal-big{padding:0;align-items:stretch;justify-content:center}
-.modal .modal-card.tl-big{width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0;padding:16px 20px 18px;transform:none!important}
-.modal .modal-card.tl-big .modal-head{cursor:default}
+/* v14 팝업 창 — 오른쪽 위 × 닫기 + 제목 줄 드래그 이동만 (신호등·접기·크게 보기 없음) */
 
-/* 맥 라이트 — 팝업 안쪽 요소 */
+/* v14 시안 — 팝업 안쪽 요소 */
 .modal-card .field input,.modal-card .field select{border-radius:8px}
 .vsheet,.vsheet-table{border-color:var(--hair)}
-.vsheetbar{background:#FAFAFC;border-bottom:1px solid var(--line2);color:#3A3A3C}
-.vsheet-table th{background:#F5F5F7;color:#6E6E73;font-weight:600}
+.vsheetbar{background:#f8fafc;border-bottom:1px solid var(--line2);color:#3c4a5e}
+.vsheet-table th{background:#f8fafc;color:#6b7a8f;font-weight:600}
 .vsheet-table td{border-bottom:1px solid var(--line2)}
-.vsheet-table tfoot .vsum td{background:#FAFAFC;color:#1D1D1F;font-weight:600}
-.tsline,.srcline,.prodref{background:#FAFAFC;border-color:var(--hair)}
-.lotinfo{background:#FAFAFC;border-left-color:#007AFF;color:#3A3A3C}
-.hubsec{color:#8E8E93}
-.hubbtn{background:#fff;border:1px solid var(--hair);border-radius:10px;color:#1D1D1F;box-shadow:0 1px 1px rgba(0,0,0,.03)}
-.hubbtn:hover{background:#F5F9FF;border-color:#B4D2FF}
-.hubbtn small{color:#8E8E93}
+.vsheet-table tfoot .vsum td{background:#f8fafc;color:#16202e;font-weight:600}
+.tsline,.srcline,.prodref{background:#f8fafc;border-color:var(--hair)}
+.lotinfo{background:#f8fafc;border-left-color:#2563EB;color:#3c4a5e}
+.hubsec{color:#98a4b5}
+.hubbtn{background:#fff;border:1px solid var(--hair);border-radius:10px;color:#16202e;box-shadow:0 1px 1px rgba(0,0,0,.03)}
+.hubbtn:hover{background:#F7FAFF;border-color:#b8d2ff}
+.hubbtn small{color:#98a4b5}
 .photocard,.photo-item{background:#fff;border-color:var(--hair)}
 .reflect-list,.reflect-item{border-color:var(--hair)}
-.reflect-hint{background:#FAFAFC;color:#6E6E73;border-color:var(--hair)}
-.xls-count{background:var(--blue-bg);color:#0062CC;font-weight:600}
-.xls-count.none{background:#FFF7E6;color:#8A5A09}
+.reflect-hint{background:#f8fafc;color:#6b7a8f;border-color:var(--hair)}
+.xls-count{background:var(--blue-bg);color:#1D4ED8;font-weight:600}
+.xls-count.none{background:#fff6e6;color:#8a5a09}
 
 /* ---------- 2개월 기간 달력 팝업 ---------- */
-.rngcard{background:#fff;border:1px solid #D8D8DC;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08)}
+.rngcard{background:#fff;border:1px solid #dbe2ec;border-radius:12px;box-shadow:0 24px 60px rgba(0,0,0,.22),0 2px 8px rgba(0,0,0,.08)}
 .rm-quick{border-color:var(--hair)}
-.rm-quick button{color:#3A3A3C;font-weight:500;border-right:1px solid var(--line2)}
-.rm-quick button:hover{background:var(--fill);color:#0062CC}
-.rm-quick button.on{background:#007AFF;color:#fff;font-weight:600}
+.rm-quick button{color:#3c4a5e;font-weight:500;border-right:1px solid var(--line2)}
+.rm-quick button:hover{background:var(--fill);color:#1D4ED8}
+.rm-quick button.on{background:#2563EB;color:#fff;font-weight:600}
 .cal{border:1px solid var(--hair);border-radius:10px;background:#fff}
 .cal-head{background:var(--fill);border-radius:7px}
-.cal-nav{background:#fff;color:#3A3A3C;border:1px solid var(--hair);border-radius:50%}
-.cal-nav:hover{background:#E8E8ED;color:#1D1D1F}
-.cal-y,.cal-m{border:1px solid var(--hair);border-radius:6px;color:#1D1D1F;font-weight:500;background:#fff}
-.cal-dow span{color:#8E8E93;font-weight:600}
-.cal-dow .sun{color:#FF3B30}
-.cal-dow .sat{color:#007AFF}
-.cal-day{background:#fff;border:1px solid transparent;border-radius:6px;color:#1D1D1F;font-weight:500}
-.cal-day.other{background:#FAFAFC;color:#C7C7CC}
+.cal-nav{background:#fff;color:#3c4a5e;border:1px solid var(--hair);border-radius:50%}
+.cal-nav:hover{background:#e9eef6;color:#16202e}
+.cal-y,.cal-m{border:1px solid var(--hair);border-radius:6px;color:#16202e;font-weight:500;background:#fff}
+.cal-dow span{color:#98a4b5;font-weight:600}
+.cal-dow .sun{color:#dc2626}
+.cal-dow .sat{color:#2563EB}
+.cal-day{background:#fff;border:1px solid transparent;border-radius:6px;color:#16202e;font-weight:500}
+.cal-day.other{background:#f8fafc;color:#c3ccd9}
 .cal-day:hover{background:var(--fill);border-color:transparent}
-.rngcard .cal-day.today{background:var(--blue-bg);color:#0062CC;font-weight:600;box-shadow:none}
-.rngcard .cal-day.range{background:#EAF2FF;color:#0062CC}
-.rngcard .cal-day.start,.rngcard .cal-day.end{background:#007AFF;color:#fff;border-color:#007AFF;font-weight:600;box-shadow:none;border-radius:6px}
-.rngcard .cal-day.pick{border-color:#007AFF;box-shadow:inset 0 0 0 1px #007AFF}
+.rngcard .cal-day.today{background:var(--blue-bg);color:#1D4ED8;font-weight:600;box-shadow:none}
+.rngcard .cal-day.range{background:#EFF6FF;color:#1D4ED8}
+.rngcard .cal-day.start,.rngcard .cal-day.end{background:#2563EB;color:#fff;border-color:#2563EB;font-weight:600;box-shadow:none;border-radius:6px}
+.rngcard .cal-day.pick{border-color:#2563EB;box-shadow:inset 0 0 0 1px #2563EB}
 .rm-actions .submit{border-radius:9px}
-.rm-hint{color:#AEAEB2}
+.rm-hint{color:#a8b3c2}
 
 /* ---------- 회계 · 생산 화면 ---------- */
 .acc-quick-head h2{font-weight:600}
-.acc-quick-head .hint{color:#8E8E93}
+.acc-quick-head .hint{color:#98a4b5}
 .v8cardhead h3{font-weight:600}
 .v8cardtotal{font-weight:600}
 .v8prodhero{background:#fff;border-color:var(--hair)}
-.psum{border-color:var(--hair);background:#FAFAFC}
+.psum{border-color:var(--hair);background:#f8fafc}
 .psum b{font-weight:600}
-.psum small{color:#8E8E93}
-.psum.total{background:#F4F9FF}
-.psum.total b{color:#0062CC}
+.psum small{color:#98a4b5}
+.psum.total{background:#F5FAFF}
+.psum.total b{color:#1D4ED8}
 
 /* ---------- 폰 화면 ---------- */
 @media (max-width:768px){
@@ -2012,28 +1996,95 @@ td.num{font-weight:600}
   .v8pagehead{flex-wrap:wrap}
   .v8pgright{width:100%;justify-content:flex-start}
   .pacts .btn{height:28px}
-  .modal-card.tl-big{border-radius:0;padding:12px 12px 14px}
 }
 
 /* v13 — 구매/판매 표 머리글도 같은 회색으로 통일 */
-.v8main .t-buy thead th,.v8main .t-sale thead th,.v8pane .t-buy thead th,.v8pane .t-sale thead th{background:#F5F5F7;color:#6E6E73}
-.v8main .t-buy tr.sum td,.v8main .t-sale tr.sum td{background:#FAFAFC}
+.v8main .t-buy thead th,.v8main .t-sale thead th,.v8pane .t-buy thead th,.v8pane .t-sale thead th{background:#f8fafc;color:#6b7a8f}
+.v8main .t-buy tr.sum td,.v8main .t-sale tr.sum td{background:#f8fafc}
 /* v13 — 기간 달력 팝업 머리 줄에 신호등이 앉도록 */
 .rngcard .rm-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.rngcard .traffic{margin-right:4px}
-.rngcard .rm-quick button.on{background:#EAF2FF;color:#0062CC;font-weight:600}
-.rngcard .rm-quick button.on:hover{background:#E1EDFF}
+.rngcard .rm-quick button.on{background:#EFF6FF;color:#1D4ED8;font-weight:600}
+.rngcard .rm-quick button.on:hover{background:#E3EDFF}
 /* v13 — 크게 보기: 내용이 화면 높이를 채우고 아래 버튼은 맨 아래로 */
-.modal .modal-card.tl-big{display:flex;flex-direction:column}
-.modal .modal-card.tl-big>.vsheet,
-.modal .modal-card.tl-big>.stmt-scroll,
-.modal .modal-card.tl-big>.table-wrap,
-.modal .modal-card.tl-big>.reflect-list,
-.modal .modal-card.tl-big>.photo-grid,
-.modal .modal-card.tl-big>.vsheet-scroll,
-.modal .modal-card.tl-big>form{flex:1 1 auto;min-height:0;overflow:auto}
-.modal .modal-card.tl-big .vsheet .vsheet-scroll{overflow:auto}
-.modal .modal-card.tl-big>.modal-actions{margin-top:auto}
 /* v13 — 완제품·부자재 재고 상단 [＋ 품목 등록] */
-.v8mini.add{margin-left:auto;background:#007AFF;border-color:#007AFF;color:#fff;font-weight:600}
-.v8mini.add:hover{background:#0A84FF;border-color:#0A84FF}
+.v8mini.add{margin-left:auto;background:#2563EB;border-color:#2563EB;color:#fff;font-weight:600}
+.v8mini.add:hover{background:#1D4ED8;border-color:#1D4ED8}
+
+/* ==========================================================================
+   v14 — 시안(work/mockup-v13) 톤 마감
+   상단 바 · 페이지 머리말 · 카드 · 표 · 버튼 · 거래 액션 바
+   ========================================================================== */
+/* ---------- 상단 바 ---------- */
+.top{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none;border-bottom:1px solid var(--line);padding:10px 18px}
+.brand h1{font-size:15.5px;font-weight:700;color:var(--ink);letter-spacing:-.35px}
+.brand p{color:var(--muted2);font-size:11.5px;font-weight:500}
+.logo{font-size:22px}
+.sync{color:var(--muted);font-weight:500}
+.sync .dot{background:#12b76a;box-shadow:0 0 0 3px rgba(18,183,106,.13)}
+.who{color:var(--muted2);font-weight:500}
+.who b{color:var(--ink);font-weight:700}
+.pbadge{background:var(--accent)}
+
+/* ---------- 버튼 ---------- */
+.btn{display:inline-flex;align-items:center;gap:5px;height:30px;padding:0 12px;border:1px solid var(--line);border-radius:8px;
+  background:#fff;color:#3c4a5e;font-size:12.2px;font-weight:600;letter-spacing:-.1px;box-shadow:0 1px 1px rgba(16,24,40,.03)}
+.btn:hover{background:#f7f9fc;border-color:#d8e0ec;box-shadow:0 1px 2px rgba(16,24,40,.05)}
+.btn:active{background:#eff3f9}
+.btn.ghost{color:#3c4a5e}
+.btn.ghost:hover{background:#f7f9fc}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;box-shadow:0 1px 2px rgba(37,99,235,.25)}
+.btn.primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.btn.tiny{height:24px;padding:0 9px;font-size:11.3px;border-radius:6px;font-weight:600}
+.btn.photo{height:28px;padding:0 10px;font-size:11.8px}
+.submit{background:var(--accent);border-radius:8px;font-weight:700;font-size:13px;box-shadow:0 1px 2px rgba(37,99,235,.25)}
+.submit:hover{background:#1d4ed8}
+.accbtn{border-radius:8px;font-weight:600;box-shadow:0 1px 1px rgba(16,24,40,.03)}
+
+/* ---------- 페이지 머리말 ---------- */
+.v8pagehead h2{font-size:19px;font-weight:700;letter-spacing:-.6px;color:var(--ink)}
+.v8pagehead p{color:var(--muted);font-size:12.4px;margin-top:3px;letter-spacing:-.15px}
+.v8crumb{background:#eaeff7;color:#5c6f8a;font-weight:700;font-size:11.5px;padding:5px 11px;border-radius:999px;letter-spacing:-.1px}
+
+/* ---------- 거래(매입·매출) 액션 바 — 7버튼 한 줄 ---------- */
+.pacts{gap:6px;flex-wrap:wrap}
+.pacts .tgrp{display:flex;align-items:center;gap:6px}
+.pacts .psep{width:1px;height:18px;background:var(--line);margin:0 2px}
+.pacts .btn{height:28px;padding:0 10px;font-size:11.8px;font-weight:600}
+.pacts .btn.primary{font-weight:700}
+
+/* ---------- 카드 · 표 ---------- */
+.kpi{border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+.kpi-label{color:var(--muted);font-weight:600;font-size:11.6px}
+.kpi-value{font-size:21px;font-weight:700;letter-spacing:-.7px}
+.panel,.card{background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+thead th{background:#f8fafc;color:#6b7a8f;font-size:11.3px;font-weight:600;border-bottom:1px solid var(--line);padding:8px 10px}
+tbody td{color:#2b3748;border-bottom:1px solid var(--line2);font-size:12.4px}
+tbody tr.lot:hover{background:#f7faff}
+tbody tr.lot.sel{background:var(--accent-bg);box-shadow:inset 3px 0 0 var(--accent)}
+td.num{font-weight:700;color:var(--ink)}
+.toolbar{border-bottom:1px solid var(--line2);background:#fff;gap:8px;padding:10px 12px}
+.tab{color:var(--muted);font-weight:600;font-size:12.6px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:700}
+.tab.active .cnt{background:#dbeafe;color:var(--accent-ink)}
+.v8mini.active,.v8st.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.rangebar{background:#fff;border-bottom:1px solid var(--line2)}
+.pr.active{color:var(--accent);font-weight:700}
+.rangebox.set{color:var(--accent-ink);border-color:#c7dbff;background:#eff6ff}
+.stlbox.in,.stlbox.out,.stlbox.net{border-color:var(--line)}
+
+/* ---------- 팝업 창 ---------- */
+.modal-card{border:1px solid #dfe5ee;border-radius:14px;box-shadow:0 24px 60px rgba(15,23,42,.26),0 2px 6px rgba(15,23,42,.08);padding:15px 17px 16px}
+.modal-head h2{font-size:15px;font-weight:700;color:var(--ink);letter-spacing:-.3px}
+.modal-x{background:#f2f5f9;color:#8b98ab;border-radius:7px;width:26px;height:26px;font-size:12px}
+.modal-x:hover{background:#e8eef6;color:var(--ink)}
+.modal.modal-backdrop,.modal{background:rgba(16,24,38,.30)}
+
+@media (min-width:769px){
+  /* 상단 바(54px) 밑에 사이드바가 붙어 따라온다 — 스크롤해도 메뉴가 헤더에 가리지 않게 */
+  .v8side{top:64px;max-height:calc(100vh - 84px)}
+}
+@media (max-width:768px){
+  .v8big{flex:1 1 100%;margin:6px 0 1px}
+  .pacts .psep{display:none}
+  .pacts .btn{height:27px;font-size:11.4px}
+}
