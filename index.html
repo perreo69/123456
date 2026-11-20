@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261120_24">
+<link rel="stylesheet" href="style.css?v=20261120_25">
 </head>
 <body>
 
@@ -152,8 +152,6 @@
       <div class="sidefoot">
         <b id="sideAsOf">재고 기준일 —</b>원료육·완제품·부자재를<br>한 표에서 같은 자리로 봅니다.
         <span class="sflinks" id="sideMore">
-          <button type="button" data-legacy="meat">창고별 원료육</button>
-          <button type="button" data-legacy="fg">완제품 상세</button>
           <button type="button" data-legacy="prod">생산·원가</button>
           <button type="button" data-legacy="price">단가 변동</button>
         </span>
@@ -303,9 +301,10 @@
           <span class="sp"></span>
           <label class="usearch">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
-            <input type="search" id="uniSearch" placeholder="품목명 · 코드 · 로트번호 검색" autocomplete="off">
+            <input type="search" id="uniSearch" placeholder="품명 · 로트번호 검색" autocomplete="off">
           </label>
           <button class="btn primary" id="uniBtnIn" type="button">＋ 입고</button>
+          <button class="btn ghost" id="uniBtnItem" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다">＋ 품목 등록</button>
           <div class="xlmenu" id="xlUni">
             <button class="btn xlbtn" id="xlUniBtn" type="button" aria-haspopup="true" aria-expanded="false">엑셀<span class="car"></span></button>
             <div class="xlpop hidden" id="xlUniPop" role="menu">
@@ -317,16 +316,9 @@
             </div>
           </div>
         </div>
-        <div class="utrow">
-          <span class="lbl">창고</span>
-          <div class="chips" id="uniWhChips">
-            <button class="chip soft on" type="button" data-uwh="all">전체 창고</button>
-            <button class="chip soft" type="button" data-uwh="F">냉동</button>
-            <button class="chip soft" type="button" data-uwh="C">냉장</button>
-            <button class="chip soft" type="button" data-uwh="A">상온</button>
-          </div>
-          <span class="divv"></span>
-          <span class="hint" id="uniHint">규격이 달라도 같은 13개 칸에 들어갑니다</span>
+        <div class="utrow" id="uniFilterRow">
+          <div class="chipset" id="uniViewChips"></div>
+          <span class="hint" id="uniHint">일곱 구분 · 원산지와 브랜드를 나눠 한 표에 담습니다</span>
           <span class="sp"></span>
           <span class="hint" id="uniSum"></span>
           <button class="btn ghost xs" id="uniColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
@@ -852,7 +844,7 @@
         <label class="field"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
       </div>
 
-      <p class="minfo"><span class="dot"></span>일곱 구분 모두 <b>창고</b>를 고릅니다(냉동 · 냉장 · 상온). 완제품 줄은 <b>자체 / 매입</b>도 함께 고릅니다.
+      <p class="minfo"><span class="dot"></span>원료육 줄은 <b>냉동고 · 냉장고</b>, 그 외 품목은 <b>냉동 · 냉장 · 실온</b>을 고릅니다. 완제품 줄은 <b>자체 / 매입</b>과 <b>제조일</b>도 함께 적습니다.
         <span class="sp"></span><span class="way" id="ioSheetWay">품목 0줄 · 수량합 0</span></p>
 
       <div class="vsheet" id="ioSheetWrap">
@@ -864,17 +856,17 @@
         <div class="vsheet-scroll">
           <table class="vsheet-table iosheet" id="ioSheetTable">
             <colgroup>
-              <col style="width:136px"><col style="width:330px"><col style="width:146px"><col style="width:146px">
-              <col style="width:130px"><col style="width:132px"><col style="width:104px"><col style="width:112px"><col style="width:36px">
+              <col style="width:136px"><col style="width:320px"><col style="width:130px"><col style="width:140px">
+              <col style="width:132px"><col style="width:126px"><col style="width:100px"><col style="width:108px"><col style="width:36px">
             </colgroup>
             <thead><tr>
-              <th>구분</th><th>품목코드 / 품목명</th><th>창고</th><th>로트번호</th><th>소비기한</th>
+              <th>구분</th><th>품목코드 / 품목명</th><th>창고</th><th>로트번호</th><th>제조일</th><th>소비기한</th>
               <th class="num">수량(단위)</th><th class="num">단가</th><th class="num">금액</th><th aria-label="줄 삭제"></th>
             </tr></thead>
             <tbody id="ioSheetBody"></tbody>
             <tfoot>
               <tr class="vsum">
-                <td colspan="5" class="c">합계</td>
+                <td colspan="6" class="c">합계</td>
                 <td class="r" id="ioSheetSumQty">0</td>
                 <td></td>
                 <td class="r b" id="ioSheetSumAmt">0</td>
@@ -934,7 +926,7 @@
       <div class="modes" id="fpWhSeg" role="tablist" aria-label="보관 위치">
         <button class="mode" data-wh="F" type="button">냉동</button>
         <button class="mode" data-wh="C" type="button">냉장</button>
-        <button class="mode active" data-wh="A" type="button">상온</button>
+        <button class="mode active" data-wh="A" type="button">실온</button>
       </div>
       <p class="mvstat" id="fpWhStat"></p>
       <p class="msg" id="fpWhMsg"></p>
@@ -1652,7 +1644,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261120_24"></script>
-<script src="app.js?v=20261120_24"></script>
+<script src="partners_data.js?v=20261120_25"></script>
+<script src="app.js?v=20261120_25"></script>
 </body>
 </html>

@@ -2176,6 +2176,9 @@ td.actcell{white-space:nowrap}
 .utool .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
 .utool .rng{display:inline-flex;align-items:center;gap:6px}
 .utool .rng input{height:32px;border:1px solid #e2e8f1;border-radius:8px;padding:0 8px;font:inherit;font-size:12px;color:#26313f;background:#fff}
+/* v18 — 품목 전용 화면 상단 칩 묶음(창고 · 자체/매입 · 보관방법) */
+.utool .chipset{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.utool .chipset:empty{display:none}
 
 /* ---------- 통합 표 ---------- */
 #uniTableWrap,#utxTableWrap{max-height:calc(100vh - 268px);overflow:auto}
@@ -2204,6 +2207,10 @@ table.tblu{font-size:13px;border-collapse:separate;border-spacing:0;table-layout
 .tblu .b{font-weight:700;color:#131d2b}
 .tblu .dim{color:#8b98aa}
 .tblu .sub{color:#6d7c90;font-size:12.3px}
+/* v18 — 완제품 세부분류 칸의 자체 / 매입 */
+.tblu .sub.flag{font-weight:700}
+.tblu .sub.flag.self{color:#0b6b3a}
+.tblu .sub.flag.buy{color:#8a5a00}
 .tblu .cat{font-size:12.4px;font-weight:600;color:#33415a}
 .tblu .cat.raw{color:#1d4ed8}
 .tblu .cat.fg{color:#0b6b3a}
