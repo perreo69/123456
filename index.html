@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261120_26">
+<link rel="stylesheet" href="style.css?v=20261121_27">
 </head>
 <body>
 
@@ -1057,26 +1057,42 @@
     </div>
   </div>
 
-  <!-- ===================== 컬럼 필터 (엑셀 스타일) ===================== -->
-  <div class="fpop hidden" id="fpop">
-    <div class="fpop-head">
-      <b id="fpopTitle">필터</b>
-      <button class="fpop-x" id="fpopClose" type="button" aria-label="닫기">✕</button>
-    </div>
+  <!-- ===================== 컬럼 필터 (엑셀 스타일 v20) ===================== -->
+  <div class="fpop hidden" id="fpop" role="dialog" aria-label="열 필터">
     <div class="fpop-sort" id="fpopSort">
-      <button type="button" class="fsort" id="fpopAsc">↑ 오름차순</button>
-      <button type="button" class="fsort" id="fpopDesc">↓ 내림차순</button>
-      <button type="button" class="fsort off" id="fpopUnsort">정렬 해제</button>
+      <button type="button" class="fmrow" id="fpopAsc" data-dir="1"><span class="fmi" aria-hidden="true">ㄱ↓</span><span class="fmt">텍스트 오름차순 정렬</span><span class="fmok">✓</span></button>
+      <button type="button" class="fmrow" id="fpopDesc" data-dir="-1"><span class="fmi" aria-hidden="true">ㅎ↓</span><span class="fmt">텍스트 내림차순 정렬</span><span class="fmok">✓</span></button>
+      <button type="button" class="fmrow hidden" id="fpopUnsort" tabindex="-1" aria-hidden="true">정렬 해제</button>
+    </div>
+    <div class="fpop-menu">
+      <button type="button" class="fmrow fmsub" id="fpopCondBtn" aria-haspopup="menu" aria-expanded="false">
+        <span class="fmi" aria-hidden="true">▽</span><span class="fmt" id="fpopCondLabel">텍스트 필터</span><span class="fmarrow" aria-hidden="true">▸</span>
+      </button>
+      <div class="fcond hidden" id="fcondMenu" role="menu">
+        <button type="button" class="fcond-it" role="menuitem" data-cond="eq">같음</button>
+        <button type="button" class="fcond-it" role="menuitem" data-cond="inc">포함</button>
+        <button type="button" class="fcond-it" role="menuitem" data-cond="start">시작 문자</button>
+        <button type="button" class="fcond-it" role="menuitem" data-cond="end">끝 문자</button>
+        <div class="fcond-sep"></div>
+        <button type="button" class="fcond-it muted" role="menuitem" data-cond="">조건 해제</button>
+      </div>
+      <div class="fcond-form hidden" id="fcondForm">
+        <div class="fcf-top"><span id="fcondName">포함</span><button type="button" class="fcf-x" id="fcondBack" aria-label="닫기">✕</button></div>
+        <input type="text" id="fcondVal" autocomplete="off" placeholder="값 입력">
+        <div class="fcf-act"><button type="button" class="fsub-ok" id="fcondOk">적용</button><button type="button" class="fsub-cancel" id="fcondCancel">취소</button></div>
+      </div>
     </div>
     <div class="fpop-body">
-      <input type="search" id="fpopSearch" placeholder="값 검색">
+      <div class="fsearch"><input type="search" id="fpopSearch" placeholder="검색" autocomplete="off"><span class="fmag" aria-hidden="true"><svg viewBox="0 0 16 16" width="13" height="13"><circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.5"></circle><path d="M10.4 10.4 L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path></svg></span></div>
+      <button type="button" class="fall" id="fpopAll"><span class="fck" id="fAllCk" aria-hidden="true"></span><span class="falt">(모두 선택)</span></button>
       <div class="fpop-list" id="fpopList"></div>
     </div>
     <div class="fpop-foot">
-      <button class="btn tiny" id="fpopAll" type="button">전체</button>
-      <button class="btn tiny" id="fpopNone" type="button">모두 해제</button>
-      <button class="btn tiny ghost" id="fpopReset" type="button">필터 해제</button>
-      <button class="btn tiny primary" id="fpopDone" type="button">완료</button>
+      <div class="faux"><button type="button" id="fpopNone">모두 해제</button><i>·</i><button type="button" id="fpopReset">필터 해제</button></div>
+      <div class="fmain">
+        <button type="button" class="fok" id="fpopDone">확인</button>
+        <button type="button" class="fcancel" id="fpopClose">취소</button>
+      </div>
     </div>
   </div>
 
@@ -1647,7 +1663,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261120_26"></script>
-<script src="app.js?v=20261120_26"></script>
+<script src="partners_data.js?v=20261121_27"></script>
+<script src="app.js?v=20261121_27"></script>
 </body>
 </html>
