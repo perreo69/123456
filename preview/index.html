@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>미르스타푸드 ERP · 입출고 · 재고 · 구매 · 판매 · 생산원가 · 회계</title>
+<meta name="description" content="미르스타푸드 ERP — 입출고·재고·구매·판매·생산원가·회계를 한 화면에서 자동으로 이어 씁니다 (Supabase 로그인)">
+<meta name="theme-color" content="#1b2431">
+<meta name="color-scheme" content="light">
+<!-- 폰 홈 화면에 추가하면 주소창 없이 앱처럼 열립니다 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
+<meta name="application-name" content="미르스타푸드 ERP">
+<meta name="format-detection" content="telephone=no">
+<link rel="stylesheet" href="../style.css?v=20261120_26">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/perreo69/123456@ui-redesign/erp-visual-refresh/erp-refresh.css?v=20261121_1">
+</head>
+<body>
+
+<!-- ===================== 로그인 화면 ===================== -->
+<section class="login-view" id="loginView">
+  <div class="login-card">
+    <div class="login-brand">
+      <span class="logo">🏭</span>
+      <div>
+        <h1>미르스타푸드 ERP</h1>
+        <p>입출고 · 재고 · 구매 · 판매 · 생산원가 · 회계를 한 화면에서</p>
+      </div>
+    </div>
+
+    <div class="ltabs" role="tablist">
+      <button class="ltab active" data-ltab="in" type="button">로그인</button>
+      <button class="ltab" data-ltab="up" type="button">계정 만들기</button>
+    </div>
+
+    <form id="loginForm" class="lform" autocomplete="on">
+      <label class="field"><span>이메일</span>
+        <input type="email" id="liEmail" autocomplete="username" placeholder="name@company.co.kr">
+      </label>
+      <label class="field"><span>비밀번호</span>
+        <input type="password" id="liPw" autocomplete="current-password" placeholder="비밀번호">
+      </label>
+      <button class="submit" id="btnLogin" type="submit">로그인</button>
+    </form>
+
+    <form id="signupForm" class="lform hidden" autocomplete="off">
+      <label class="field"><span>작업자 이름</span>
+        <input id="suName" placeholder="예: 박한솔">
+      </label>
+      <label class="field"><span>이메일</span>
+        <input type="email" id="suEmail" autocomplete="username" placeholder="name@company.co.kr">
+      </label>
+      <label class="field"><span>비밀번호 (6자 이상)</span>
+        <input type="password" id="suPw" autocomplete="new-password" placeholder="비밀번호">
+      </label>
+      <button class="submit" id="btnSignup" type="submit">계정 만들기</button>
+      <p class="hint">회사 내부용입니다. 만든 계정으로 로그인하면 입출고 내역에 <b>작업자 이름</b>이 남습니다.</p>
+    </form>
+
+    <p class="lmsg" id="loginMsg"></p>
+    <p class="lfine">로그인한 사람만 재고·회계를 볼 수 있습니다. PC·폰 어디서든 같은 데이터를 봅니다.</p>
+  </div>
+</section>
+
+<!-- ===================== 앱 화면 ===================== -->
+<div class="app hidden" id="appView">
+
+  <header class="top">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 20V8.5L12 4l8.5 4.5V20"/><path d="M7.5 20v-6h9v6M8 9.5h.01M12 9.5h.01M16 9.5h.01"/></svg></span>
+      <div class="brand-copy">
+        <div class="brand-line"><h1>미르스타푸드 ERP</h1><span class="brand-credit">Created by LCP <span class="credit-dot">·</span> AI-assisted development</span></div>
+        <p id="baseLabel">불러오는 중…</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
+      <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함">입고 대기 <span class="pbadge" id="photoBadge">0</span></button>
+      <span class="who" id="whoami"></span>
+      <button class="btn ghost" id="btnLogout" type="button">로그아웃</button>
+    </div>
+  </header>
+
+  <div class="banner hidden" id="banner"></div>
+
+  <div class="v8shell" id="v8Shell">
+
+  <!-- ========= v16: 왼쪽 메뉴 = 물류 · 품목 · 회계 세 묶음 (얇은 선 아이콘) ========= -->
+  <aside class="v8side" id="v8Side" aria-label="통합 메뉴">
+    <nav class="v8nav" id="v8Nav">
+      <div class="glabel" data-grp="logi">물류<span class="ln"></span></div>
+      <button class="nitem" type="button" data-nav="stock:all" data-ucat="all">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg><span>통합 재고</span><span class="cnt" id="navCntStock">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="tx">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg><span>통합 입출고</span><span class="cnt" id="navCntTx">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="in">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4M4 20h16"/></svg><span>통합 입고</span>
+      </button>
+      <button class="nitem" type="button" data-nav="out">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V11M8 15l4 4 4-4M4 4h16"/></svg><span>통합 출고</span>
+      </button>
+      <button class="nitem" type="button" data-nav="move">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9a7 7 0 0 1 12-2M19 15a7 7 0 0 1-12 2"/><path d="M17 3v4h-4M7 21v-4h4"/></svg><span>해동 · 창고이동</span>
+      </button>
+
+      <div class="glabel" data-grp="item">품목<span class="ln"></span></div>
+      <button class="nitem" type="button" data-nav="stock:meat" data-ucat="meat">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span><span class="cnt" id="navCntMeat">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:fg" data-ucat="fg">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>완제품</span><span class="cnt" id="navCntFg">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:sauce" data-ucat="sauce">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v4l2 3v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9l2-3z"/><path d="M7 14h10"/></svg><span>소스</span><span class="cnt" id="navCntSauce">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:spice" data-ucat="spice">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v5M5.5 9h13l-1.6 11H7.1z"/><path d="M9.5 13h5"/></svg><span>향신료</span><span class="cnt" id="navCntSpice">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:veg" data-ucat="veg">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-5 0-7-3.5-7-8 0-4 3-7 7-7s7 3 7 7c0 4.5-2 8-7 8z"/><path d="M12 6c0-1.7 1.3-3 3-3"/></svg><span>야채</span><span class="cnt" id="navCntVeg">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:sub" data-ucat="sub">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H5v6l9 9 6-6-9-9z"/><circle cx="8" cy="7" r="1.2"/></svg><span>부자재</span><span class="cnt" id="navCntSub">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:etc" data-ucat="etc">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/></svg><span>기타</span><span class="cnt" id="navCntEtc">0</span>
+      </button>
+
+      <div class="glabel" data-grp="acc">회계<span class="ln"></span></div>
+      <button class="nitem" type="button" data-nav="buy-list">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>매입 내역</span>
+      </button>
+      <button class="nitem" type="button" data-nav="sale-list">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>매출 내역</span>
+      </button>
+      <button class="nitem" type="button" data-nav="buy-status">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 9l1.6 6L12 9l2.4 6L16 9"/></svg><span>미지급금</span>
+      </button>
+      <button class="nitem" type="button" data-nav="sale-status">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 9l1.6 6L12 9l2.4 6L16 9"/></svg><span>미수금</span>
+      </button>
+      <button class="nitem" type="button" data-nav="expense">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>일반 경비</span>
+      </button>
+      <button class="nitem" type="button" data-nav="ledger">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5.6M17 19a5.6 5.6 0 0 0-2-4.2"/></svg><span>거래처 원장</span>
+      </button>
+
+      <div class="sidefoot">
+        <b id="sideAsOf">재고 기준일 —</b>원료육·완제품·부자재를<br>한 표에서 같은 자리로 봅니다.
+        <span class="sflinks" id="sideMore">
+          <button type="button" data-legacy="prod">생산·원가</button>
+          <button type="button" data-legacy="price">단가 변동</button>
+        </span>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ===================== v8: 오른쪽 본문 ===================== -->
+  <div class="v8main" id="v8Main">
+
+  <div class="v8pagehead">
+    <div>
+      <h2 id="v8Title">재고관리 · 냉동고 재고</h2>
+      <p id="v8Desc">원료육 재고를 창고별로 보고, 표에서 바로 해동·출고로 이어집니다.</p>
+    </div>
+    <div class="v8pgright">
+      <div class="pacts hidden" id="tradeActs">
+        <div class="tgrp buy">
+          <button class="btn primary" id="btnBuyNew" type="button">＋ 매입 전표 입력</button>
+          <button class="btn" id="btnBuyReflect" type="button">미반영 입고 가져오기</button>
+          <button class="btn" id="btnBuyPay" type="button">＋ 지급 입력</button>
+        </div>
+        <span class="psep" aria-hidden="true"></span>
+        <div class="tgrp sale">
+          <button class="btn primary" id="btnSaleNew" type="button">＋ 매출 전표 입력</button>
+          <button class="btn" id="btnSaleReflect" type="button">미반영 판매출고 가져오기</button>
+          <button class="btn" id="btnSalePay" type="button">＋ 수금 입력</button>
+          <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
+        </div>
+      </div>
+      <span class="v8crumb" id="v8Crumb">2. 재고 · 원료육</span>
+    </div>
+  </div>
+
+  <!-- ===================== 원료육 요약 ===================== -->
+  <section class="kpis" id="meatKpi">
+    <div class="kpi freeze">
+      <span class="kpi-label">🧊 냉동고 총재고</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFree">0.00</span><span class="kpi-unit">kg</span></div>
+      <span class="kpi-sub" id="kFreeSub">보관 로트 0개</span>
+    </div>
+    <div class="kpi chill">
+      <span class="kpi-label">❄️ 냉장고 총재고</span>
+      <div class="kpi-line"><span class="kpi-value" id="kChill">0.00</span><span class="kpi-unit">kg</span></div>
+      <span class="kpi-sub" id="kChillSub">보관 로트 0개</span>
+    </div>
+    <div class="kpi value">
+      <span class="kpi-label">💰 총 재고금액</span>
+      <div class="kpi-line"><span class="kpi-value" id="kValue">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub" id="kValueSub">단가 입력된 로트 기준</span>
+    </div>
+    <div class="kpi live">
+      <span class="kpi-label">📦 보관중 로트</span>
+      <div class="kpi-line"><span class="kpi-value" id="kLive">0</span><span class="kpi-unit">개</span></div>
+      <span class="kpi-sub" id="kLiveSub">전체 0개 로트 중</span>
+    </div>
+    <div class="kpi today">
+      <span class="kpi-label">✍️ 오늘 입력 건수</span>
+      <div class="kpi-line"><span class="kpi-value" id="kToday">0</span><span class="kpi-unit">건</span></div>
+      <span class="kpi-sub" id="kTodaySub">오늘 날짜 기준</span>
+    </div>
+  </section>
+
+  <!-- ===================== 완제품 요약 ===================== -->
+  <section class="kpis hidden" id="fgKpi">
+    <div class="kpi fgstock">
+      <span class="kpi-label">📦 완제품 총재고</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFgStock">0</span><span class="kpi-unit">개</span></div>
+      <span class="kpi-sub" id="kFgStockSub">보유 품목 0개</span>
+    </div>
+    <div class="kpi fgitem">
+      <span class="kpi-label">🏷️ 보유 품목</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFgHold">0</span><span class="kpi-unit">품목</span></div>
+      <span class="kpi-sub" id="kFgHoldSub">전체 0품목 중</span>
+    </div>
+    <div class="kpi fgvalue">
+      <span class="kpi-label">💰 총 재고금액</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFgValue">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub" id="kFgValueSub">입고단가 기준</span>
+    </div>
+    <div class="kpi fgtoday">
+      <span class="kpi-label">✍️ 오늘 입출고</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFgToday">0</span><span class="kpi-unit">건</span></div>
+      <span class="kpi-sub" id="kFgTodaySub">오늘 금액 0원</span>
+    </div>
+    <div class="kpi fgmiss">
+      <span class="kpi-label">⚠️ 단가 미입력</span>
+      <div class="kpi-line"><span class="kpi-value" id="kFgNoPrice">0</span><span class="kpi-unit">품목</span></div>
+      <span class="kpi-sub">단가를 넣으면 재고금액이 계산됩니다</span>
+    </div>
+  </section>
+
+  <!-- ===================== 회계 요약 ===================== -->
+  <section class="kpis acc hidden" id="accKpi">
+    <div class="kpi accrecv">
+      <span class="kpi-label">📥 총 미수금</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccRecv">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub">미수금 = 매출 − 수금</span>
+    </div>
+    <div class="kpi accpay">
+      <span class="kpi-label">📤 총 미지급금</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccPay">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub">미지급금 = 매입 − 지급</span>
+    </div>
+    <div class="kpi accprod">
+      <span class="kpi-label">🏭 이번 달 생산투입액</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccProd">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub" id="kAccProdSub">원료육 + 완제품·부자재 현장 출고</span>
+    </div>
+    <div class="kpi acctax hidden">
+      <span class="kpi-label">🧾 세금계산서</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccTax">0</span><span class="kpi-unit">건</span></div>
+      <span class="kpi-sub" id="kAccTaxSub">미발행 0 · 미수령 0</span>
+    </div>
+    <div class="kpi accsale">
+      <span class="kpi-label">💵 이번 달 매출</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccSale">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub" id="kAccSaleSub">공급가액 기준</span>
+    </div>
+    <div class="kpi accbuy">
+      <span class="kpi-label">🧾 이번 달 매입·경비</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccBuy">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub" id="kAccBuySub">매입 0 · 경비 0</span>
+    </div>
+    <div class="kpi accprofit">
+      <span class="kpi-label">📈 예상 순이익</span>
+      <div class="kpi-line"><span class="kpi-value" id="kAccProfit">0</span><span class="kpi-unit">원</span></div>
+      <span class="kpi-sub">매출 − 매입 − 경비</span>
+    </div>
+  </section>
+
+  <!-- ===================== v16 · 1. 통합 재고 (원료육 + 완제품 + 부자재) ===================== -->
+  <main class="v8pane unipane" id="uniMode">
+    <section class="panel list-panel unicard">
+      <div class="utool">
+        <div class="utrow">
+          <div class="chips" id="uniCatChips">
+            <button class="chip on" type="button" data-ucat="all">전체<span class="n" id="uniCntAll">0</span></button>
+            <button class="chip" type="button" data-ucat="meat">원료육<span class="n" id="uniCntMeat">0</span></button>
+            <button class="chip" type="button" data-ucat="fg">완제품<span class="n" id="uniCntFg">0</span></button>
+            <button class="chip" type="button" data-ucat="sauce">소스<span class="n" id="uniCntSauce">0</span></button>
+            <button class="chip" type="button" data-ucat="spice">향신료<span class="n" id="uniCntSpice">0</span></button>
+            <button class="chip" type="button" data-ucat="veg">야채<span class="n" id="uniCntVeg">0</span></button>
+            <button class="chip" type="button" data-ucat="sub">부자재<span class="n" id="uniCntSub">0</span></button>
+            <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="uniCntEtc">0</span></button>
+          </div>
+          <span class="sp"></span>
+          <label class="usearch">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <input type="search" id="uniSearch" placeholder="품명 · 로트번호 검색" autocomplete="off">
+          </label>
+          <button class="btn primary" id="uniBtnIn" type="button">＋ 입고</button>
+          <button class="btn ghost" id="uniBtnItem" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다">＋ 품목 등록</button>
+          <div class="xlmenu" id="xlUni">
+            <button class="btn xlbtn" id="xlUniBtn" type="button" aria-haspopup="true" aria-expanded="false">엑셀<span class="car"></span></button>
+            <div class="xlpop hidden" id="xlUniPop" role="menu">
+              <button type="button" role="menuitem" id="btnUniCsv" data-xl="uniCsv">통합 재고 CSV (지금 화면)</button>
+              <button type="button" role="menuitem" id="btnUniTxCsv" data-xl="uniTxCsv">통합 입출고 CSV (원료육)</button>
+              <div class="xlsep"></div>
+              <button type="button" role="menuitem" id="btnUniSabang" data-xl="sabang">사방넷 입고 양식 (.xlsx)</button>
+              <button type="button" role="menuitem" id="btnUniSales" data-xl="sales">경리나라 매출 양식 (.xlsx)</button>
+            </div>
+          </div>
+        </div>
+        <div class="utrow" id="uniFilterRow">
+          <div class="chipset" id="uniViewChips"></div>
+          <span class="hint" id="uniHint">일곱 구분 · 원산지와 브랜드를 나눠 한 표에 담습니다</span>
+          <span class="sp"></span>
+          <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
+          <label class="check utog" id="uniGroupWrap" title="같은 품명끼리 묶고 위에 로트 수 · 재고 · 재고금액 합계 줄을 넣습니다"><input type="checkbox" id="uniGroupByName">품명 묶어보기</label>
+          <span class="divv"></span>
+          <span class="hint" id="uniSum"></span>
+          <button class="btn ghost xs" id="uniColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="uniTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== v16 · 2. 통합 입출고 내역 ===================== -->
+  <main class="v8pane unipane hidden" id="uniTxMode">
+    <section class="panel list-panel unicard">
+      <div class="utool">
+        <div class="utrow">
+          <div class="chips" id="utxPeriodChips">
+            <button class="chip soft on" type="button" data-upreset="all">전체 기간</button>
+            <button class="chip soft" type="button" data-upreset="today">오늘</button>
+            <button class="chip soft" type="button" data-upreset="week">이번 주</button>
+            <button class="chip soft" type="button" data-upreset="month">이번 달</button>
+          </div>
+          <button class="btn tiny period" id="utxBtnPeriod" type="button" title="두 달 달력에서 기간 고르기">기간선택</button>
+          <label class="rng"><input type="date" id="utxFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="utxTo" aria-label="종료일"></label>
+          <span class="hint" id="utxRangeDisplay"></span>
+          <span class="sp"></span>
+          <label class="usearch">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <input type="search" id="utxSearch" placeholder="품목명 · 로트 · 거래처 검색" autocomplete="off">
+          </label>
+          <div class="xlmenu" id="xlUtx">
+            <button class="btn xlbtn" id="xlUtxBtn" type="button" aria-haspopup="true" aria-expanded="false">엑셀<span class="car"></span></button>
+            <div class="xlpop hidden" id="xlUtxPop" role="menu">
+              <button type="button" role="menuitem" id="btnUtxCsv" data-xl="utxCsv">통합 입출고 CSV (지금 화면)</button>
+              <button type="button" role="menuitem" id="btnUtxStockCsv" data-xl="uniCsv">통합 재고 CSV</button>
+            </div>
+          </div>
+        </div>
+        <div class="utrow">
+          <span class="lbl">품목구분</span>
+          <div class="chips" id="utxCatChips">
+            <button class="chip on" type="button" data-ucat="all">전체<span class="n" id="utxCntAll">0</span></button>
+            <button class="chip" type="button" data-ucat="meat">원료육<span class="n" id="utxCntMeat">0</span></button>
+            <button class="chip" type="button" data-ucat="fg">완제품<span class="n" id="utxCntFg">0</span></button>
+            <button class="chip" type="button" data-ucat="sauce">소스<span class="n" id="utxCntSauce">0</span></button>
+            <button class="chip" type="button" data-ucat="spice">향신료<span class="n" id="utxCntSpice">0</span></button>
+            <button class="chip" type="button" data-ucat="veg">야채<span class="n" id="utxCntVeg">0</span></button>
+            <button class="chip" type="button" data-ucat="sub">부자재<span class="n" id="utxCntSub">0</span></button>
+            <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="utxCntEtc">0</span></button>
+          </div>
+          <span class="divv"></span>
+          <span class="lbl">거래구분</span>
+          <div class="chips" id="utxKindChips">
+            <button class="chip soft on" type="button" data-utk="all">전체</button>
+            <button class="chip soft" type="button" data-utk="입고">입고</button>
+            <button class="chip soft" type="button" data-utk="출고">출고</button>
+            <button class="chip soft" type="button" data-utk="해동">해동</button>
+            <button class="chip soft" type="button" data-utk="현장">현장</button>
+            <button class="chip soft" type="button" data-utk="기타">기타</button>
+          </div>
+          <span class="sp"></span>
+          <span class="hint">잔여재고 = 그 거래 직후 로트에 남은 수량</span>
+          <button class="btn ghost xs" id="utxColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="utxTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== 2-1. 재고관리 · 원료육 (냉동·냉장·내역·단가) ===================== -->
+  <div class="v8subtabs hidden" id="histSwitch">
+    <span class="v8stlabel">📋 입출고 내역</span>
+    <button class="v8st active" type="button" data-hist="meat" id="histMeat">🥩 원료육 내역</button>
+    <button class="v8st" type="button" data-hist="fg" id="histFg">📦 완제품·부자재 내역</button>
+  </div>
+  <main class="layout v8layout" id="meatMode">
+    <section class="panel list-panel" id="meatListPanel">
+      <div class="v8subtabs" id="meatWhTabs">
+        <span class="v8stlabel">🥩 원료육</span>
+        <button class="v8mini active" type="button" data-wh="F">🧊 냉동고</button>
+        <button class="v8mini" type="button" data-wh="C">❄️ 냉장고</button>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 브랜드(한/영) · 날짜 검색">
+        <label class="check" id="zeroWrap"><input type="checkbox" id="showZero">0kg 소진 로트</label>
+        <select id="typeFilter" class="hidden">
+          <option value="all">전체 구분</option>
+          <option value="in">입고</option>
+          <option value="vendor">출고</option>
+          <option value="thaw">해동</option>
+          <option value="site">현장</option>
+          <option value="courier">택배</option>
+          <option value="other">기타</option>
+        </select>
+        <button class="btn ghost tiny hidden" id="btnResetFilters" type="button">필터 초기화</button>
+        <button class="btn ghost tiny" id="btnColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+        <button class="btn tiny primary" id="btnMeatIn" type="button" title="한 품목만 자세히 적어 입고(원산지·브랜드·사진까지)">＋ 입고</button>
+        <div class="xlmenu" id="xlMeat">
+          <button class="btn xlbtn" id="xlMeatBtn" type="button" aria-haspopup="true" aria-expanded="false" title="원료육 엑셀·CSV 모음">📊 엑셀 <span class="car">▾</span></button>
+          <div class="xlpop hidden" id="xlMeatPop" role="menu">
+            <button type="button" role="menuitem" id="btnCsvF" data-xl="csvF">⬇ 냉동고 재고 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvC" data-xl="csvC">⬇ 냉장고 재고 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvH" data-xl="csvH">⬇ 입출고 내역 CSV</button>
+            <div class="xlsep"></div>
+            <button type="button" role="menuitem" id="btnXlsSabang" data-xl="sabang" title="사방넷 풀필먼트 입고 업로드용 엑셀">📥 사방넷 입고 양식 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnXlsSales" data-xl="sales" title="경리나라 매출거래명세표 일괄등록용 엑셀">📥 경리나라 매출 양식 (.xlsx)</button>
+          </div>
+        </div>
+      </div>
+      <div class="rangebar" id="rangeBar">
+        <button class="btn tiny period" id="btnPeriod" type="button">📅 기간선택</button>
+        <div class="presets" id="rangePresets">
+          <button type="button" class="pr active" data-preset="all">전체</button>
+          <button type="button" class="pr" data-preset="today">오늘</button>
+          <button type="button" class="pr" data-preset="week">이번주</button>
+          <button type="button" class="pr" data-preset="month">이번달</button>
+        </div>
+        <label class="rng"><input type="date" id="rangeFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="rangeTo" aria-label="종료일"></label>
+        <button class="btn tiny primary" id="btnSearch" type="button">🔍 검색</button>
+        <button class="btn ghost tiny" id="rangeClear" type="button">초기화</button>
+        <span class="range-sum" id="rangeSum"></span>
+      </div>
+      <div class="note hidden" id="histNote"></div>
+      <div class="note hidden" id="chgNote">입고 이력이 2번 이상인 품목만 보입니다. <b>변동률</b>은 직전 입고단가 대비 최근 입고단가이고, 기본 정렬은 변동이 큰 순입니다.</div>
+      <div class="table-wrap" id="tableWrap"></div>
+    </section>
+  </main>
+
+
+  <!-- ===================== 원료육 입력 팝업 (v7) ===================== -->
+  <div class="modal hidden" id="meatFormModal">
+    <div class="modal-card wide formcard" id="meatFormPanel" role="dialog" aria-modal="true" aria-labelledby="meatFormTitle">
+      <div class="modal-head">
+        <h2 id="meatFormTitle">📥 입고 등록</h2>
+        <button class="modal-x" id="meatFormClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="meatFormSub">입력하면 재고와 입출고 내역에 바로 반영됩니다.</p>
+<div class="modes formmodes" role="tablist" aria-label="원료육 작업">
+        <button class="mode active" data-mode="in" type="button">📥 입고</button>
+        <button class="mode" data-mode="thaw" type="button">🧊→❄️ 해동</button>
+        <button class="mode" data-mode="re" type="button">❄️→🧊 재냉동</button>
+        <button class="mode" data-mode="out" type="button">📤 출고</button>
+      </div>
+
+      <form id="entryForm" autocomplete="off">
+        <!-- ===== 입고 ===== -->
+        <div class="pane" data-pane="in">
+          <div class="photorow">
+            <button type="button" class="btn photo" id="btnPhotoUp">📷 입고 사진 업로드</button>
+            <button type="button" class="btn ghost tiny" id="btnPhotoInbox2">대기함 <b id="photoPending">0</b></button>
+            <input type="file" id="photoFile" accept="image/*" capture="environment" hidden>
+          </div>
+          <div class="photostate hidden" id="photoState">
+            <img id="photoStateImg" alt="입고 전표 사진">
+            <div class="ps-body"><b id="photoStateTitle">사진</b>
+              <span class="ps-sub" id="photoStateSub"></span>
+              <button type="button" class="btn ghost tiny" id="photoStateClear">사진 해제</button>
+            </div>
+          </div>
+          <label class="field"><span>받는 창고</span>
+            <div class="seg" id="whSegIn">
+              <button type="button" data-wh="F" class="active">🧊 냉동고</button>
+              <button type="button" data-wh="C">❄️ 냉장고</button>
+            </div>
+          </label>
+          <label class="field"><span>날짜</span><input type="date" id="inDate"></label>
+          <div class="grid2">
+            <label class="field"><span>육류</span>
+              <input id="inMeat" list="dlMeats" placeholder="돈육 · 우육 · 계육 …">
+            </label>
+            <label class="field"><span>제품명 <span class="req">*</span></span><input id="inName" list="dlNames" placeholder="예: 등갈비"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span>원산지</span><input id="inOrigin" list="dlOrigins" placeholder="예: 국내산"></label>
+            <label class="field"><span>업체명</span><input id="inVendor" list="dlVendors" placeholder="예: 도드람푸드"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span>브랜드</span><input id="inBrand" list="dlBrands" placeholder="선택"></label>
+            <label class="field"><span>입고일 <span class="req">*</span></span><input type="date" id="inInDate"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span>소비기한 <span class="req">*</span></span><input type="date" id="inExpiry"></label>
+            <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="inKg" step="0.01" min="0" placeholder="0.00"></label>
+          </div>
+          <div class="grid2">
+            <label class="field"><span>입고단가(원/kg) <b class="delta-badge hidden" id="inPriceBadge"></b></span><input type="number" id="inPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="inAmount" step="1" min="0" placeholder="0"></label>
+          </div>
+          <div class="pricebox" id="priceHint"></div>
+          <label class="check autolink" id="inAutoBuyWrap"><input type="checkbox" id="inAutoBuy" checked>✓ 구매관리(매입 전표) 자동 반영 <span class="tiny-hint">금액이 있을 때만</span></label>
+          <label class="field"><span>비고</span><input id="inNote" placeholder="선택 입력"></label>
+          <p class="hint">제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
+        </div>
+
+        <!-- ===== 해동 ===== -->
+        <div class="pane hidden" data-pane="thaw">
+          <div class="flow"><span class="chip b">🧊 냉동고</span><span class="arrow">→</span><span class="chip g">❄️ 냉장고</span></div>
+          <label class="field"><span>날짜</span><input type="date" id="thDate"></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="thLot"></select></label>
+          <div class="lotinfo empty" id="thInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
+          <label class="field"><span>해동 중량(kg) <span class="req">*</span></span>
+            <div class="with-btn"><input type="number" id="thKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="thAll">전량</button></div>
+          </label>
+          <div class="grid2">
+            <label class="field"><span>단가(원/kg)</span><input type="number" id="thPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="thAmount" step="1" min="0" placeholder="0"></label>
+          </div>
+          <label class="field"><span>생산품명</span><input id="thProd" list="dlProducts" placeholder="예: 선진바베큐폭립 (생산품목)"></label>
+          <label class="field"><span>비고</span><input id="thNote" placeholder="선택 입력"></label>
+          <p class="hint">냉동고 재고가 차감되고, 같은 로트가 냉장고로 옮겨집니다. 생산품명은 입출고 내역의 <b>생산품목</b> 칸에 그대로 적힙니다.</p>
+        </div>
+
+        <!-- ===== 재냉동 ===== -->
+        <div class="pane hidden" data-pane="re">
+          <div class="flow"><span class="chip g">❄️ 냉장고</span><span class="arrow">→</span><span class="chip b">🧊 냉동고</span></div>
+          <label class="field"><span>날짜</span><input type="date" id="reDate"></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="reLot"></select></label>
+          <div class="lotinfo empty" id="reInfo">냉장고 재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
+          <label class="field"><span>재냉동 중량(kg) <span class="req">*</span></span>
+            <div class="with-btn"><input type="number" id="reKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="reAll">전량</button></div>
+          </label>
+          <div class="grid2">
+            <label class="field"><span>단가(원/kg)</span><input type="number" id="rePrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="reAmount" step="1" min="0" placeholder="0"></label>
+          </div>
+          <label class="field"><span>사유</span><input id="reNote" placeholder="예: 생산 취소 · 해동 취소"></label>
+          <p class="hint">해동한 로트로 생산하지 않고 되돌릴 때 씁니다. 냉장고 재고가 차감되고 같은 로트가 냉동고로 돌아갑니다.</p>
+        </div>
+
+        <!-- ===== 출고 ===== -->
+        <div class="pane hidden" data-pane="out">
+          <div class="field whonly">
+            <div class="seg" id="whSegOut">
+              <button type="button" data-wh="F">🧊 냉동고</button>
+              <button type="button" data-wh="C" class="active">❄️ 냉장고</button>
+            </div>
+          </div>
+          <label class="field"><span>날짜</span><input type="date" id="outDate"></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="outLot"></select></label>
+          <div class="lotinfo empty" id="outInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
+          <label class="field"><span>출고처 <span class="req">*</span></span>
+            <div class="seg" id="destSeg">
+              <button type="button" data-dest="site" class="active" title="현장(생산품목)으로 나감">🏭 현장</button>
+              <button type="button" data-dest="vendor" title="업체로 판매·이동">🏢 업체</button>
+              <button type="button" data-dest="courier" title="택배로 발송">📦 택배</button>
+              <button type="button" data-dest="other" title="그 밖의 출고">✏️ 기타</button>
+            </div>
+          </label>
+          <label class="field"><span><span id="destLabel">생산품목</span> <span class="req">*</span></span><input id="outDest" list="dlProducts" placeholder="예: 선진바베큐폭립"></label>
+          <label class="field"><span>출고 중량(kg) <span class="req">*</span></span>
+            <div class="with-btn"><input type="number" id="outKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="outAll">전량</button></div>
+          </label>
+          <div class="grid2">
+            <label class="field"><span>출고단가(원/kg)</span><input type="number" id="outPrice" step="1" min="0" placeholder="0"></label>
+            <label class="field"><span>금액(원)</span><input type="number" id="outAmount" step="1" min="0" placeholder="0"></label>
+          </div>
+          <label class="check autolink" id="outAutoSaleWrap"><input type="checkbox" id="outAutoSale" checked>✓ 판매관리(매출·명세표) 자동 반영 <span class="tiny-hint">업체·택배·기타만</span></label>
+          <label class="field"><span>비고</span><input id="outNote" placeholder="선택 입력"></label>
+          <p class="hint" id="destHint">현장은 생산품목으로 적습니다. 고른 창고의 재고가 차감되고, 나간 물량은 재고에서 빠집니다.</p>
+        </div>
+
+        <p class="msg" id="formMsg"></p>
+        <button class="submit" id="btnSave" type="submit">냉동고로 입고 저장</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== 2-2. 재고관리 · 완제품·부자재 ===================== -->
+  <main class="layout v8layout hidden" id="fgMode">
+    <section class="panel list-panel" id="fgListPanel">
+
+      <div class="v8subtabs" id="fgTabs">
+        <span class="v8stlabel">📦 완제품·부자재</span>
+        <button class="v8mini active" type="button" data-stock="fg" data-ftab="G">재고</button>
+        <button class="v8mini" type="button" data-stock="hist" data-ftab="L">입출고 내역</button>
+        <button class="v8mini add" type="button" id="btnFgNewTop" title="완제품·부자재 품목을 새로 등록합니다">＋ 품목 등록</button>
+      </div>
+
+      <div class="catbar" id="fgCatBar">
+        <span class="catbar-title">대분류</span>
+        <button class="catchip active" data-fgcat="all" type="button"><b>전체</b><span id="fgCatAll">0품목</span></button>
+        <button class="catchip" data-fgcat="완제품" type="button"><b>완제품</b><span id="fgCat1">0</span></button>
+        <button class="catchip" data-fgcat="부자재·포장지" type="button"><b>부자재·포장지</b><span id="fgCat2">0</span></button>
+        <button class="catchip" data-fgcat="야채·소스" type="button"><b>야채·소스</b><span id="fgCat3">0</span></button>
+        <span id="fgCatExtra"></span>
+        <button class="catchip add" id="btnFgCatAdd" type="button" title="대분류를 직접 적어 추가">＋ 직접입력</button>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="fgSearch" placeholder="🔍 상품명 · 코드 · 규격 · 거래처 검색">
+        <label class="check" id="fgZeroWrap"><input type="checkbox" id="fgShowZero">재고 0 품목</label>
+        <select id="fgLogFilter" class="hidden">
+          <option value="all">전체 구분</option>
+          <option value="IN">입고</option>
+          <option value="OUT">출고</option>
+        </select>
+        <button class="btn ghost tiny hidden" id="btnFgResetFilters" type="button">필터 초기화</button>
+        <button class="btn ghost tiny" id="btnFgColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+        <div class="xlmenu" id="xlFg">
+          <button class="btn xlbtn" id="xlFgBtn" type="button" aria-haspopup="true" aria-expanded="false" title="완제품 엑셀 모음">📊 엑셀 <span class="car">▾</span></button>
+          <div class="xlpop hidden" id="xlFgPop" role="menu">
+            <button type="button" role="menuitem" id="btnFgStockXls" data-xl="fgStock">⬇ 완제품 재고 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnFgLogXls" data-xl="fgLog">⬇ 입출고 이력 (.xlsx)</button>
+            <div class="xlsep"></div>
+            <button type="button" role="menuitem" id="btnFgTpl" data-xl="fgTpl">⬇ 입출고 양식 받기</button>
+            <button type="button" role="menuitem" id="btnFgUpload" data-xl="fgUpload">⬆ 입출고 엑셀 올리기</button>
+            <div class="xlsep"></div>
+            <button type="button" role="menuitem" id="btnFgPriceTpl" data-xl="fgPriceTpl">⬇ 단가표 양식 받기</button>
+            <button type="button" role="menuitem" id="btnFgPriceUpload" data-xl="fgPriceUpload">⬆ 단가표 엑셀 올리기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rangebar" id="fgRangeBar">
+        <button class="btn tiny period" id="fgBtnPeriod" type="button">📅 기간선택</button>
+        <div class="presets" id="fgPresets">
+          <button type="button" class="pr active" data-preset="all">전체</button>
+          <button type="button" class="pr" data-preset="today">오늘</button>
+          <button type="button" class="pr" data-preset="week">이번주</button>
+          <button type="button" class="pr" data-preset="month">이번달</button>
+        </div>
+        <label class="rng"><input type="date" id="fgFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="fgTo" aria-label="종료일"></label>
+        <button class="btn tiny primary" id="fgBtnSearch" type="button">🔍 검색</button>
+        <button class="btn ghost tiny" id="fgRangeClear" type="button">초기화</button>
+        <span class="range-sum" id="fgRangeSum"></span>
+      </div>
+      <div class="note" id="fgNoteBar">기간을 고르면 그 기간에 입출고가 있는 품목·이력만 보여줍니다.</div>
+      <div class="table-wrap" id="fgTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== 3. 구매관리 (매입 · 미지급금 · 지급) ===================== -->
+  <main class="v8pane hidden" id="buyPane">
+    <section class="panel v8cards" id="buyPayCard">
+      <div class="v8cardhead"><h3>📤 거래처별 미지급금</h3><span class="v8cardtotal pay" id="buyPaySum">0원</span></div>
+      <div class="v8cardrow" id="buyPayList"></div>
+    </section>
+    <section class="panel list-panel hidden" id="buyPayStatus">
+      <div class="v8panehead">
+        <div><h3>📤 미지급금 현황</h3><span class="v8hint">거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다. 여기서 바로 지급을 입력합니다.</span></div>
+        <div class="v8acts">
+          <button class="accbtn payout" id="btnBuyStatusPay" type="button">＋ 지급 입력</button>
+          <button class="accbtn refl" id="btnBuyStatusLedger" type="button">🏢 거래처별 원장</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="buyPayStatusWrap"></div>
+      <div class="v8panehead">
+        <div><h3>💸 최근 지급 내역</h3><span class="v8hint">지급을 지우면 그 거래처의 미지급금이 다시 늘어납니다.</span></div>
+      </div>
+      <div class="table-wrap" id="buyPayLogWrap"></div>
+    </section>
+    <section class="panel list-panel">
+      <div class="v8panehead">
+        <div><h3>🧾 매입 전표</h3><span class="v8hint">입고와 동시에 자동으로 생기고, 직접 넣거나 지급으로 상환합니다.</span></div>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="buySearch" placeholder="🔍 거래처 · 적요 검색">
+        <button class="btn ghost tiny" id="btnBuyColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+      </div>
+      <div class="rangebar" id="buyRangeBar">
+        <button class="btn tiny period" id="buyBtnPeriod" type="button">📅 기간선택</button>
+        <button class="rangebox" id="buyRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
+        <label class="rng"><input type="date" id="buyFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="buyTo" aria-label="종료일"></label>
+        <button class="btn tiny primary" id="buyBtnSearch" type="button">🔍 검색</button>
+        <button class="btn ghost tiny" id="buyRangeClear" type="button">초기화</button>
+        <span class="range-sum" id="buyRangeSum"></span>
+      </div>
+      <div class="table-wrap" id="buyTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== 4. 판매관리 (매출 · 미수금 · 수금 · 명세표) ===================== -->
+  <main class="v8pane hidden" id="salePane">
+    <section class="panel v8cards" id="saleRecvCard">
+      <div class="v8cardhead"><h3>📥 거래처별 미수금</h3><span class="v8cardtotal recv" id="saleRecvSum">0원</span></div>
+      <div class="v8cardrow" id="saleRecvList"></div>
+    </section>
+    <section class="panel list-panel hidden" id="saleRecvStatus">
+      <div class="v8panehead">
+        <div><h3>📥 미수금 현황</h3><span class="v8hint">거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다. 여기서 바로 수금을 입력합니다.</span></div>
+        <div class="v8acts">
+          <button class="accbtn payin" id="btnSaleStatusPay" type="button">＋ 수금 입력</button>
+          <button class="accbtn refl" id="btnSaleStatusLedger" type="button">🏢 거래처별 원장</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="saleRecvStatusWrap"></div>
+      <div class="v8panehead">
+        <div><h3>💵 최근 수금 내역</h3><span class="v8hint">수금을 지우면 그 거래처의 미수금이 다시 늘어납니다.</span></div>
+      </div>
+      <div class="table-wrap" id="saleRecvLogWrap"></div>
+    </section>
+    <section class="panel list-panel">
+      <div class="v8panehead">
+        <div><h3>🧾 매출 전표</h3><span class="v8hint">업체·택배 출고는 자동으로 매출 전표가 되고, 현장 출고는 생산투입으로만 집계됩니다.</span></div>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="saleSearch" placeholder="🔍 거래처 · 적요 검색">
+        <button class="btn ghost tiny" id="btnSaleColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+      </div>
+      <div class="rangebar" id="saleRangeBar">
+        <button class="btn tiny period" id="saleBtnPeriod" type="button">📅 기간선택</button>
+        <button class="rangebox" id="saleRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
+        <label class="rng"><input type="date" id="saleFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="saleTo" aria-label="종료일"></label>
+        <button class="btn tiny primary" id="saleBtnSearch" type="button">🔍 검색</button>
+        <button class="btn ghost tiny" id="saleRangeClear" type="button">초기화</button>
+        <span class="range-sum" id="saleRangeSum"></span>
+      </div>
+      <div class="table-wrap" id="saleTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== 5. 생산·원가관리 (현장 투입 생산원가) ===================== -->
+  <main class="v8pane hidden" id="prodPane">
+    <section class="panel v8prodhero">
+      <div class="v8prodsum">
+        <div class="psum total"><span>🏭 전체 생산투입금액</span><b id="prodTotal">0원</b><small id="prodTotalSub">원료육 0 · 완제품·부자재 0</small></div>
+        <div class="psum meat"><span>🥩 원료육 현장 출고</span><b id="prodMeat">0원</b><small id="prodMeatSub">0건</small></div>
+        <div class="psum fp"><span>📦 완제품·부자재 현장 투입</span><b id="prodFp">0원</b><small id="prodFpSub">0건</small></div>
+        <div class="psum zero"><span>🚫 매출 · 미수금</span><b id="prodSales">0원</b><small>현장 투입은 매출로 잡히지 않습니다</small></div>
+      </div>
+    </section>
+    <section class="panel list-panel">
+      <div class="v8panehead">
+        <div><h3>📊 생산투입 (일별 · 월별)</h3><span class="v8hint">원료육 현장 출고 + 완제품·부자재 현장 투입을 합칩니다.</span></div>
+        <div class="seg" id="prodPeriodSeg">
+          <button type="button" data-prodperiod="day" class="active">일별</button>
+          <button type="button" data-prodperiod="month">월별</button>
+        </div>
+      </div>
+      <div class="rangebar" id="prodRangeBar">
+        <button class="btn tiny period" id="prodBtnPeriod" type="button">📅 기간선택</button>
+        <button class="rangebox" id="prodRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
+        <label class="rng"><input type="date" id="prodFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="prodTo" aria-label="종료일"></label>
+        <button class="btn tiny primary" id="prodBtnSearch" type="button">🔍 검색</button>
+        <button class="btn ghost tiny" id="prodRangeClear" type="button">초기화</button>
+        <span class="range-sum" id="prodRangeSum"></span>
+      </div>
+      <div class="table-wrap" id="prodTableWrap"></div>
+    </section>
+    <section class="panel list-panel">
+      <div class="v8panehead">
+        <div><h3>💡 제품별 원가 분석</h3><span class="v8hint">투입원가 ÷ 자체생산 입고수량 = 1단위당 실제 제조원가 · 판매단가와 비교해 예상 마진을 봅니다.</span></div>
+      </div>
+      <div class="table-wrap" id="prodCostWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== 완제품 입력 팝업 (v7) ===================== -->
+  <div class="modal hidden" id="fgFormModal">
+    <div class="modal-card wide formcard" id="fgFormPanel" role="dialog" aria-modal="true" aria-labelledby="fgFormTitle">
+      <div class="modal-head">
+        <h2 id="fgFormTitle">📥 입고 등록</h2>
+        <button class="modal-x" id="fgFormClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="fgFormSub">상품을 고르면 규격·단가가 자동으로 채워집니다.</p>
+      <form id="fgForm" autocomplete="off">
+        <div class="srcline" id="fgSrcWrap">
+          <span class="srclabel">입고구분</span>
+          <div class="seg" id="fgSrcSeg">
+            <button type="button" data-src="buy" class="active" title="거래처에서 사온 입고">🏢 외부매입</button>
+            <button type="button" data-src="self" title="원료육을 현장에 투입해 만든 자체 생산품">🏭 자체생산</button>
+          </div>
+        </div>
+        <div class="prodref hidden" id="fgProdRef"></div>
+        <div class="srcline hidden" id="fgUseWrap">
+          <span class="srclabel">출고 구분</span>
+          <div class="seg" id="fgUseSeg">
+            <button type="button" data-use="sale" class="active" title="거래처로 판매·납품하는 출고">🏢 판매 출고</button>
+            <button type="button" data-use="site" title="박스·포장지·소스 등을 생산 현장에 투입">🏭 현장소모·생산투입</button>
+          </div>
+        </div>
+        <label class="check autolink" id="fgAutoBuyWrap"><input type="checkbox" id="fgAutoBuy" checked>✓ 구매관리(매입 전표) 자동 반영 <span class="tiny-hint">외부매입만</span></label>
+        <label class="check autolink hidden" id="fgAutoSaleWrap"><input type="checkbox" id="fgAutoSale" checked>✓ 판매관리(매출·명세표) 자동 반영 <span class="tiny-hint">판매 출고만</span></label>
+        <label class="field"><span>상품 <span class="req">*</span> <span class="tiny-hint">코드 또는 상품명</span></span>
+          <div class="with-btn">
+            <input id="fgQuery" list="dlFgNames" placeholder="예: 떡갈비 / W00100016">
+            <button type="button" class="mini" id="btnFgFind">찾기</button>
+          </div>
+        </label>
+        <div class="fgnewrow">
+          <button class="btn fgnew" id="btnFgNew" type="button">＋ 품목 등록</button>
+        </div>
+        <div class="lotinfo empty" id="fgInfo">상품을 고르면 현재고·단가가 보입니다.</div>
+        <div class="grid2">
+          <label class="field"><span>규격</span><input id="fgSpec" list="dlFgSpecs" placeholder="예: 500g*2"></label>
+          <label class="field"><span>단위</span><input id="fgUnit" list="dlFgUnits" placeholder="개"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span>날짜</span><input type="date" id="fgDate"></label>
+          <label class="field"><span id="fgQtyLabel">수량 <span class="req">*</span></span><input type="number" id="fgQty" step="0.001" min="0" placeholder="0"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span id="fgPriceLabel">입고단가(원)</span><input type="number" id="fgPrice" step="1" min="0" placeholder="비우면 상품단가"></label>
+          <label class="field"><span>금액(원)</span><input type="number" id="fgAmount" step="1" min="0" readonly placeholder="0"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span>소비기한</span><input type="date" id="fgExpiry"></label>
+          <label class="field"><span id="fgPartnerLabel">거래처</span><input id="fgPartner" list="dlFgPartners" placeholder="매입처 / 납품처"></label>
+        </div>
+        <div class="grid2" id="fgLotInWrap">
+          <label class="field"><span>로트번호</span><input id="fgLotNo" placeholder="비우면 자동 (상품코드-입고일)"></label>
+          <label class="field"><span>입고일</span><input type="date" id="fgInDate"></label>
+        </div>
+        <label class="field hidden" id="fgLotPickWrap"><span>출고 로트 <span class="tiny-hint">비우면 소비기한 빠른 로트부터</span></span><select id="fgLotPick"></select></label>
+        <label class="field"><span>비고</span><input id="fgNote" placeholder="선택 입력"></label>
+        <label class="check hidden" id="fgNegWrap"><input type="checkbox" id="fgNeg">재고보다 많이 출고 허용 (마이너스 재고)</label>
+        <p class="msg" id="fgMsg"></p>
+        <button class="submit" id="btnFgSave" type="submit">입고 저장</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===================== v16 · 통합 입고 / 통합 출고 (명세서형 다중 품목) ===================== -->
+  <div class="modal hidden" id="ioSheetModal">
+    <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="ioSheetTitle">
+      <div class="modal-head">
+        <h2 id="ioSheetTitle">통합 입고</h2>
+        <button class="modal-x" id="ioSheetClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="ioSheetSub">원료육 · 완제품 · 부자재를 한 팝업에서 처리합니다. 구분에 따라 창고 칸만 열립니다.</p>
+
+      <div class="vhead">
+        <label class="field"><span id="ioSheetDateLabel">입고일 <span class="req">*</span></span><input type="date" id="ioSheetDate"></label>
+        <label class="field"><span>업체·거래처</span><input id="ioSheetPartner" list="dlVendors" placeholder="예: 도드람푸드"></label>
+        <label class="field"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
+      </div>
+
+      <p class="minfo"><span class="dot"></span>원료육 줄은 <b>냉동고 · 냉장고</b>, 그 외 품목은 <b>냉동 · 냉장 · 실온</b>을 고릅니다. 완제품 줄은 <b>자체 / 매입</b>과 <b>제조일</b>도 함께 적습니다.
+        <span class="sp"></span><span class="way" id="ioSheetWay">품목 0줄 · 수량합 0</span></p>
+
+      <div class="vsheet" id="ioSheetWrap">
+        <div class="vsheetbar">
+          <b>품목 줄</b>
+          <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · 기본 3줄</span>
+          <button type="button" class="btn vadd" id="ioSheetAdd">＋ 줄 추가</button>
+        </div>
+        <div class="vsheet-scroll">
+          <table class="vsheet-table iosheet" id="ioSheetTable">
+            <colgroup>
+              <col style="width:136px"><col style="width:320px"><col style="width:130px"><col style="width:140px">
+              <col style="width:132px"><col style="width:126px"><col style="width:100px"><col style="width:108px"><col style="width:36px">
+            </colgroup>
+            <thead><tr>
+              <th>구분</th><th>품목코드 / 품목명</th><th>창고</th><th>로트번호</th><th>제조일</th><th>소비기한</th>
+              <th class="num">수량(단위)</th><th class="num">단가</th><th class="num">금액</th><th aria-label="줄 삭제"></th>
+            </tr></thead>
+            <tbody id="ioSheetBody"></tbody>
+            <tfoot>
+              <tr class="vsum">
+                <td colspan="6" class="c">합계</td>
+                <td class="r" id="ioSheetSumQty">0</td>
+                <td></td>
+                <td class="r b" id="ioSheetSumAmt">0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <p class="hint" id="ioSheetHint"></p>
+      <p class="msg" id="ioSheetMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="ioSheetCancel" type="button">취소</button>
+        <button class="submit" id="ioSheetSave" type="button">입고 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== v16 · 해동 / 창고이동 ===================== -->
+  <div class="modal hidden" id="uniMoveModal">
+    <div class="modal-card mvcard" role="dialog" aria-modal="true" aria-labelledby="uniMoveTitle">
+      <div class="modal-head">
+        <h2 id="uniMoveTitle">해동 · 창고이동</h2>
+        <button class="modal-x" id="uniMoveClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="uniMoveSub">냉동고 재고를 냉장고로 옮깁니다. 로트를 고르면 단가가 채워집니다.</p>
+      <div class="modes" id="uniMoveSeg" role="tablist" aria-label="이동 방향">
+        <button class="mode active" data-mv="thaw" type="button">해동 (냉동고 → 냉장고)</button>
+        <button class="mode" data-mv="re" type="button">재냉동 (냉장고 → 냉동고)</button>
+      </div>
+      <div class="mvgrid">
+        <label class="field"><span>날짜</span><input type="date" id="uniMoveDate"></label>
+        <label class="field"><span>로트 <span class="req">*</span></span><select id="uniMoveLot"></select></label>
+        <label class="field"><span>수량(kg) <span class="req">*</span></span><input type="number" id="uniMoveKg" step="0.01" min="0" placeholder="0.00"></label>
+        <label class="field"><span>단가(원/kg)</span><input type="number" id="uniMovePrice" step="1" min="0" placeholder="0"></label>
+        <label class="field"><span>생산품명 (해동)</span><input id="uniMoveProd" placeholder="예: 선진바베큐폭립"></label>
+        <label class="field"><span>비고</span><input id="uniMoveNote" placeholder="선택 입력"></label>
+      </div>
+      <p class="mvstat" id="uniMoveStat"></p>
+      <p class="msg" id="uniMoveMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="uniMoveCancel" type="button">취소</button>
+        <button class="submit" id="uniMoveSave" type="button">이동 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== v17 · 보관 위치 변경 (완제품·소스·향신료·야채·부자재·기타) ===================== -->
+  <div class="modal hidden" id="fpWhModal">
+    <div class="modal-card mvcard" role="dialog" aria-modal="true" aria-labelledby="fpWhTitle">
+      <div class="modal-head">
+        <h2 id="fpWhTitle">보관 위치 변경</h2>
+        <button class="modal-x" id="fpWhClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="fpWhSub">이 로트를 어느 창고에 두는지 고릅니다. 수량은 그대로입니다.</p>
+      <div class="modes" id="fpWhSeg" role="tablist" aria-label="보관 위치">
+        <button class="mode" data-wh="F" type="button">냉동</button>
+        <button class="mode" data-wh="C" type="button">냉장</button>
+        <button class="mode active" data-wh="A" type="button">실온</button>
+      </div>
+      <p class="mvstat" id="fpWhStat"></p>
+      <p class="msg" id="fpWhMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="fpWhCancel" type="button">취소</button>
+        <button class="submit" id="fpWhSave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 💰 회계 ERP ===================== -->
+  <main class="hidden accwrap" id="accMode">
+    <section class="panel acc-quick" id="accQuick">
+      <div class="acc-quick-head">
+        <h2>💰 회계 입력</h2>
+        <span class="hint">전표·수금·경비를 바로 기록하고, 입출고는 한 번에 전표로 넘깁니다.</span>
+      </div>
+      <div class="accbtn-grid">
+        <button class="accbtn sale" id="btnAccSale" type="button" title="물건을 팔고 아직 돈을 못 받은 건(미수금)">＋ 매출 전표</button>
+        <button class="accbtn buy" id="btnAccBuy" type="button" title="물건을 사고 아직 돈을 안 준 건(미지급금)">＋ 매입 전표</button>
+        <button class="accbtn payin" id="btnAccPayIn" type="button" title="외상으로 판 미수금을 통장으로 받음">＋ 수금 입력</button>
+        <button class="accbtn payout" id="btnAccPayOut" type="button" title="외상으로 산 미지급금을 통장에서 갚음">＋ 지급 입력</button>
+        <button class="accbtn inc" id="btnAccExtraIn" type="button" title="장부에 올린 외상과 상관없이 들어온 현금(잡수입·환급·이자)">＋ 기타 입금</button>
+        <button class="accbtn exp" id="btnAccExpense" type="button" title="장부에 올린 외상과 상관없이 나간 현금(월세·택배비·식대·유류비)">＋ 일반 출금(경비)</button>
+        <button class="accbtn refl" id="btnAccReflect" type="button">⚡ 입출고 일괄 반영</button>
+        <button class="accbtn help" id="btnAccHelp" type="button" title="수금·지급·기타 입금·일반 출금 차이와 순서">❓ 회계 사용법</button>
+      </div>
+    </section>
+
+    <section class="panel list-panel" id="accListPanel">
+      <div class="tabs" id="accPaneTabs">
+        <button class="tab active" data-atab="V" type="button">손익 요약 <span class="cnt" id="cntAccV">0</span></button>
+        <button class="tab" data-atab="S" type="button">정산 관리 <span class="cnt" id="cntAccS">0</span></button>
+        <button class="tab" data-atab="R" type="button">거래처 원장</button>
+        <button class="tab" data-atab="E" type="button">일반 경비</button>
+        <button class="tab" data-atab="M" type="button">월별 손익</button>
+      </div>
+
+      <div class="toolbar">
+        <input type="search" id="accSearch" placeholder="🔍 거래처 · 적요 · 항목 검색">
+        <select id="accTypeFilter" class="hidden">
+          <option value="all">전체 구분</option>
+          <option value="sale">매출</option>
+          <option value="purchase">매입</option>
+          <option value="expense">경비</option>
+          <option value="income">수입</option>
+        </select>
+        <button class="btn ghost tiny hidden" id="btnAccResetFilters" type="button">필터 초기화</button>
+        <button class="btn ghost tiny" id="btnAccColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+        <div class="xlmenu" id="xlAcc">
+          <button class="btn xlbtn" id="xlAccBtn" type="button" aria-haspopup="true" aria-expanded="false" title="회계 엑셀 모음">📊 엑셀 <span class="car">▾</span></button>
+          <div class="xlpop hidden" id="xlAccPop" role="menu">
+            <button type="button" role="menuitem" id="btnAccXls" data-xl="accXls">⬇ 현재 표 엑셀</button>
+            <button type="button" role="menuitem" id="btnAccUpload" data-xl="accUpload">⬆ 통장·카드 엑셀 올리기</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rangebar" id="accRangeBar">
+        <button class="btn tiny period" id="accBtnPeriod" type="button">📅 기간선택</button>
+        <button class="rangebox" id="accRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
+        <div class="presets" id="accPresets">
+          <button type="button" class="pr active" data-preset="all">전체</button>
+          <button type="button" class="pr" data-preset="today">오늘</button>
+          <button type="button" class="pr" data-preset="week">이번주</button>
+          <button type="button" class="pr" data-preset="month">이번달</button>
+        </div>
+        <label class="rng"><input type="date" id="accFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="accTo" aria-label="종료일"></label>
+        <button class="btn tiny primary" id="accBtnSearch" type="button">🔍 검색</button>
+        <button class="btn ghost tiny" id="accRangeClear" type="button">초기화</button>
+        <span class="range-sum" id="accRangeSum"></span>
+      </div>
+      <div class="note" id="accNoteBar">기간·검색은 전표·원장·경비·손익 표에 함께 적용됩니다.</div>
+      <div class="table-wrap" id="accTableWrap"></div>
+    </section>
+  </main>
+
+  </div><!-- /v8main -->
+  </div><!-- /v8shell -->
+
+  <!-- ===================== 모바일 퀵 바 ===================== -->
+  <nav class="quickbar" id="quickBar" aria-label="빠른 이동">
+    <button class="qb active" id="qbForm" type="button">📝 입력하기</button>
+    <button class="qb" id="qbList" type="button">📋 목록보기</button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ===================== 행 작업 메뉴 (해동 / 출고 / 수정) ===================== -->
+  <div class="rowmenu hidden" id="rowMenu" role="menu"></div>
+
+  <!-- ===================== 입고 사진 대기함 ===================== -->
+  <div class="modal hidden" id="photoInboxModal">
+    <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="piTitle">
+      <div class="modal-head">
+        <h2 id="piTitle">📷 입고 사진 대기함</h2>
+        <button class="modal-x" id="photoInboxClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="photoInboxSub">전표 사진을 눌러 크게 보고, 확인한 내용으로 입고를 등록하세요. 등록한 사진은 대기함에서 빠집니다.</p>
+      <div class="photo-grid" id="photoGrid"></div>
+      <label class="check"><input type="checkbox" id="photoNotify" checked> 새 사진이 올라오면 알림음·브라우저 알림으로 알려주기</label>
+      <div class="modal-actions">
+        <button class="btn" id="photoInboxUpload" type="button">📷 사진 올리기</button>
+        <button class="btn" id="photoInboxDone" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 입고 사진 크게 보기 ===================== -->
+  <div class="modal hidden" id="photoViewModal">
+    <div class="modal-card photocard" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
+      <div class="modal-head">
+        <h2 id="pvTitle">입고 전표 사진</h2>
+        <button class="modal-x" id="photoViewClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="photoViewSub"></p>
+      <div class="photo-big"><img id="photoBigImg" alt="입고 전표 사진"></div>
+      <label class="field"><span>사진 메모</span><input id="photoMemo" readonly></label>
+      <div class="modal-actions">
+        <button class="btn ghost" id="photoDelete" type="button">삭제</button>
+        <button class="btn ghost" id="photoPin" type="button">🪟 작게 띄우기</button>
+        <button class="btn" id="photoViewClose2" type="button">닫기</button>
+        <button class="submit" id="photoLoad" type="button">입고 폼으로 불러오기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 컬럼 필터 (엑셀 스타일) ===================== -->
+  <div class="fpop hidden" id="fpop">
+    <div class="fpop-head">
+      <b id="fpopTitle">필터</b>
+      <button class="fpop-x" id="fpopClose" type="button" aria-label="닫기">✕</button>
+    </div>
+    <div class="fpop-sort" id="fpopSort">
+      <button type="button" class="fsort" id="fpopAsc">↑ 오름차순</button>
+      <button type="button" class="fsort" id="fpopDesc">↓ 내림차순</button>
+      <button type="button" class="fsort off" id="fpopUnsort">정렬 해제</button>
+    </div>
+    <div class="fpop-body">
+      <input type="search" id="fpopSearch" placeholder="값 검색">
+      <div class="fpop-list" id="fpopList"></div>
+    </div>
+    <div class="fpop-foot">
+      <button class="btn tiny" id="fpopAll" type="button">전체</button>
+      <button class="btn tiny" id="fpopNone" type="button">모두 해제</button>
+      <button class="btn tiny ghost" id="fpopReset" type="button">필터 해제</button>
+      <button class="btn tiny primary" id="fpopDone" type="button">완료</button>
+    </div>
+  </div>
+
+  <!-- ===================== 기간 선택 (2개월 달력) ===================== -->
+  <div class="modal hidden" id="rangeModal">
+    <div class="modal-card rngcard" role="dialog" aria-modal="true" aria-labelledby="rmTitle">
+      <div class="rm-top">
+        <span class="rm-title" id="rmTitle">기간 선택</span>
+        <span class="rm-lbl">기준연도</span>
+        <div class="rm-year">
+          <button type="button" class="rm-ybtn" id="rmPrevY" aria-label="이전 연도">◀</button>
+          <b id="rmYear">2026</b>
+          <button type="button" class="rm-ybtn" id="rmNextY" aria-label="다음 연도">▶</button>
+        </div>
+        <strong class="rm-cur" id="rmCurrent"></strong>
+        <button class="modal-x" id="rmClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <div class="rm-quick" id="rmQ1"></div>
+      <div class="rm-quick" id="rmQ2"></div>
+      <div class="rm-quick months" id="rmQ3"></div>
+      <div class="rm-cals">
+        <div class="cal" id="rmCalL"></div>
+        <span class="rm-tilde">~</span>
+        <div class="cal" id="rmCalR"></div>
+      </div>
+      <p class="rm-hint">왼쪽·오른쪽 달력은 각자 연도·월을 바꿀 수 있습니다. 시작일과 종료일을 차례로 클릭하세요.</p>
+      <div class="rm-actions">
+        <button class="submit" id="rmApply" type="button">적용</button>
+        <button class="btn" id="rmCancel" type="button">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 입력 수정 ===================== -->
+  <div class="modal hidden" id="editModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <div class="modal-head">
+        <h2 id="editTitle">입출고 내역 수정</h2>
+        <button class="modal-x" id="editClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="editSub"></p>
+      <div class="grid2">
+        <label class="field"><span>거래일 <span class="req">*</span></span><input type="date" id="edDate"></label>
+        <label class="field"><span>창고</span><select id="edWh"><option value="F">냉동고</option><option value="C">냉장고</option></select></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="edKg" step="0.01" min="0"></label>
+        <label class="field"><span id="edPriceLabel">단가(원/kg)</span><input type="number" id="edPrice" step="1" min="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>금액(원)</span><input type="number" id="edAmount" step="1" min="0"></label>
+        <label class="field hidden" id="edDestWrap"><span>출고처</span>
+          <select id="edDest"><option value="site">현장</option><option value="vendor">업체</option><option value="courier">택배</option><option value="other">기타</option></select>
+        </label>
+      </div>
+      <label class="field hidden" id="edDestDetailWrap"><span id="edDestDetailLabel">생산품목</span><input id="edDestDetail"></label>
+      <label class="field"><span>비고</span><input id="edNote"></label>
+      <p class="msg" id="editMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="editCancel" type="button">취소</button>
+        <button class="submit" id="editSave" type="button">수정 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 로트 정보 수정 ===================== -->
+  <div class="modal hidden" id="lotModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="lotTitle">
+      <div class="modal-head">
+        <h2 id="lotTitle">로트 정보 수정</h2>
+        <button class="modal-x" id="lotClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="lotSub"></p>
+      <label class="field"><span>육류</span><input id="ltMeat" list="dlMeats"></label>
+      <label class="field"><span>품목명 <span class="req">*</span></span><input id="ltName" list="dlNames"></label>
+      <div class="grid2">
+        <label class="field"><span>업체명</span><input id="ltVendor" list="dlVendors"></label>
+        <label class="field"><span>브랜드</span><input id="ltBrand" list="dlBrands"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>원산지</span><input id="ltOrigin" list="dlOrigins"></label>
+        <label class="field"><span>기준단가(원/kg)</span><input type="number" id="ltPrice" step="1" min="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>입고일</span><input type="date" id="ltInDate"></label>
+        <label class="field"><span>소비기한</span><input type="date" id="ltExp"></label>
+      </div>
+      <p class="msg" id="lotMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="lotCancel" type="button">취소</button>
+        <button class="submit" id="lotSave" type="button">수정 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 양식 내려받기 (사방넷 · 경리나라) ===================== -->
+  <div class="modal hidden" id="xlsModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="xlsTitle">
+      <div class="modal-head">
+        <h2 id="xlsTitle">양식 내려받기</h2>
+        <button class="modal-x" id="xlsClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="xlsSub"></p>
+
+      <div class="field"><span>날짜 범위</span>
+        <div class="seg" id="xlsRangeSeg">
+          <button type="button" data-range="today" class="active">오늘</button>
+          <button type="button" data-range="range">기간 지정</button>
+          <button type="button" data-range="all">전체</button>
+        </div>
+      </div>
+      <div class="grid2 hidden" id="xlsRangeBox">
+        <label class="field"><span>시작일</span><input type="date" id="xlsFrom"></label>
+        <label class="field"><span>종료일</span><input type="date" id="xlsTo"></label>
+      </div>
+
+      <div id="xlsOptSabang" class="hidden">
+        <label class="check"><input type="checkbox" id="xlsThaw">해동 내역도 입고로 포함 (냉장고 입고)</label>
+      </div>
+
+      <div id="xlsOptSales" class="hidden">
+        <label class="check"><input type="checkbox" id="xlsAllOut">업체 출고 외(현장·택배·기타)도 포함</label>
+        <label class="field"><span>부가세구분</span>
+          <select id="xlsVat">
+            <option value="면세" selected>면세 (원료육 기본)</option>
+            <option value="별도">별도</option>
+            <option value="없음">없음</option>
+          </select>
+        </label>
+      </div>
+
+      <p class="xls-count" id="xlsCount"></p>
+      <div class="modal-actions">
+        <button class="btn" id="xlsCancel" type="button">취소</button>
+        <button class="submit" id="xlsGo" type="button">⬇ 엑셀 다운로드</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 완제품 새 상품 / 수정 ===================== -->
+  <div class="modal hidden" id="fgNewModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fgNewTitle">
+      <div class="modal-head">
+        <h2 id="fgNewTitle">＋ 품목 등록</h2>
+        <button class="modal-x" id="fgNewClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="fgNewSub">상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.</p>
+      <div class="grid2">
+        <label class="field"><span>상품코드 <span class="req">*</span></span><input id="fgNewCode" placeholder="W00100001"></label>
+        <label class="field"><span>세부분류</span><input id="fgNewCat" list="dlFgCats" placeholder="예: 치킨 · 피자 · 소시지"></label>
+      </div>
+      <label class="field"><span>상품명 <span class="req">*</span></span><input id="fgNewName" placeholder="예: 떡갈비 500g*2"></label>
+      <div class="grid2">
+        <label class="field"><span>규격</span><input id="fgNewSpec" list="dlFgSpecs" placeholder="예: 500g*2"></label>
+        <label class="field"><span>단위</span><input id="fgNewUnit" list="dlFgUnits" placeholder="개"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>입고단가(원)</span><input type="number" id="fgNewIn" step="1" min="0" placeholder="0"></label>
+        <label class="field"><span>출고단가(원)</span><input type="number" id="fgNewOut" step="1" min="0" placeholder="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field" id="fgNewStockWrap"><span>초기재고</span><input type="number" id="fgNewStock" step="0.001" min="0" placeholder="0"></label>
+        <label class="field"><span>소비기한</span><input type="date" id="fgNewExpiry"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>자체 / 매입</span><select id="fgNewFlag">
+          <option value="매입">외부매입</option>
+          <option value="자체">자체생산</option>
+        </select></label>
+        <label class="field"><span>매입처</span><input id="fgNewSupplier" list="dlFgPartners" placeholder="선택 입력"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>바코드</span><input id="fgNewBarcode" placeholder="선택 입력"></label>
+      </div>
+      <p class="hint" id="fgNewHint">초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.</p>
+      <p class="msg" id="fgNewMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="fgNewCancel" type="button">취소</button>
+        <button class="submit" id="fgNewSave" type="button">등록</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 완제품 단가 수정 ===================== -->
+  <div class="modal hidden" id="fgPriceModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fgPriceTitle">
+      <div class="modal-head">
+        <h2 id="fgPriceTitle">단가 수정</h2>
+        <button class="modal-x" id="fgPriceClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="fgPriceSub"></p>
+      <div class="grid2">
+        <label class="field"><span>입고단가(원)</span><input type="number" id="fgPriceIn" step="1" min="0" placeholder="0"></label>
+        <label class="field"><span>출고단가(원)</span><input type="number" id="fgPriceOut" step="1" min="0" placeholder="0"></label>
+      </div>
+      <p class="hint">입고단가로 <b>재고금액</b>을 계산합니다. 출고단가는 판매·납품 단가입니다.</p>
+      <p class="msg" id="fgPriceMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="fgPriceCancel" type="button">취소</button>
+        <button class="submit" id="fgPriceSave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 엑셀 올리기 (완제품 입출고 · 단가 · 경비) ===================== -->
+  <div class="modal hidden" id="uploadModal">
+    <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
+      <div class="modal-head">
+        <h2 id="uploadTitle">엑셀 올리기</h2>
+        <button class="modal-x" id="uploadClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="uploadSub"></p>
+      <label class="field"><span>엑셀 파일 (.xlsx / .csv)</span>
+        <input type="file" id="uploadFile" accept=".xlsx,.csv,.txt">
+      </label>
+      <label class="check hidden" id="uploadNegWrap"><input type="checkbox" id="uploadNeg">재고보다 많은 출고도 허용 (마이너스 재고)</label>
+      <div class="upload-preview" id="uploadPreview"></div>
+      <div class="modal-actions">
+        <button class="btn" id="uploadCancel" type="button">취소</button>
+        <button class="submit" id="uploadGo" type="button" disabled>올리기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== v10: 명세서형 다중 품목 매입·매출 전표 ===================== -->
+  <div class="modal hidden" id="accVoucherModal">
+    <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="accVoucherTitle">
+      <div class="modal-head">
+        <h2 id="accVoucherTitle">매출 전표 입력</h2>
+        <button class="modal-x" id="accVoucherClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="accVoucherSub">한 장에 여러 품목을 적으면 재고·전표·거래명세표가 한 번에 처리됩니다.</p>
+
+      <!-- 상단 공통 영역 -->
+      <div class="vhead">
+        <label class="field" id="accVTypeField"><span>전표 종류</span>
+          <div class="seg" id="accVoucherSeg">
+            <button type="button" data-vtype="sale" class="active">매출</button>
+            <button type="button" data-vtype="purchase">매입</button>
+          </div>
+        </label>
+        <label class="field"><span>전표일자 <span class="req">*</span></span><input type="date" id="accVDate"></label>
+        <label class="field"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
+        <label class="field"><span>세금계산서</span>
+          <select id="accVDoc"><option value="none">미발행</option><option value="issued">발행완료</option><option value="received">수령완료</option></select>
+        </label>
+        <label class="field"><span>비고</span><input id="accVNote" placeholder="예: 11월 납품분"></label>
+      </div>
+
+      <!-- 가운데 명세서 표 (여러 줄) -->
+      <div class="vsheet" id="accVSheetWrap">
+        <div class="vsheetbar">
+          <b>명세서 품목</b>
+          <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · Enter = 1순위 · 기본 3줄</span>
+          <button type="button" class="btn vadd" id="accVAddRow">＋ 줄 추가</button>
+        </div>
+        <div class="vsheet-scroll">
+          <table class="vsheet-table" id="accVSheet">
+            <colgroup>
+              <col style="width:144px"><col style="width:168px"><col style="width:188px"><col style="width:126px">
+              <col style="width:92px"><col style="width:100px"><col style="width:76px">
+              <col style="width:104px"><col style="width:88px"><col style="width:104px"><col style="width:34px">
+            </colgroup>
+            <thead><tr>
+              <th>구분</th><th>창고/로트</th><th>품목명</th><th>소비기한/규격</th>
+              <th>수량(kg/개)</th><th>단가(원)</th><th>과세</th>
+              <th>공급가액</th><th>세액</th><th>합계</th><th aria-label="줄 삭제"></th>
+            </tr></thead>
+            <tbody id="accVSheetBody"></tbody>
+            <tfoot>
+              <tr class="vsum">
+                <td colspan="4" class="c">합계</td>
+                <td class="r" id="accVSumQty">0</td>
+                <td></td><td></td>
+                <td class="r" id="accVSumSupply">0</td>
+                <td class="r" id="accVSumVat">0</td>
+                <td class="r b" id="accVSumTotal">0</td>
+                <td></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- 기존 전표를 고칠 때는 단일 전표 화면(재고는 건드리지 않는다) -->
+      <div class="vsimple hidden" id="accVSimpleBox">
+        <label class="field"><span>과세 구분</span>
+          <div class="seg" id="accVTaxSeg">
+            <button type="button" data-vtax="tax" class="active">과세 (10%)</button>
+            <button type="button" data-vtax="free">면세</button>
+          </div>
+        </label>
+        <div class="grid2">
+          <label class="field"><span>금액(원) <span class="req">*</span> <span class="tiny-hint" id="accVAmountNote"></span></span><input type="number" id="accVAmount" step="1" min="0" placeholder="0"></label>
+          <label class="field"><span>부가세</span><input id="accVVat" readonly placeholder="0"></label>
+        </div>
+        <label class="check" id="accVVatIncWrap"><input type="checkbox" id="accVVatIncluded">입력한 금액이 부가세 포함 금액입니다</label>
+      </div>
+
+      <p class="hint" id="accVHint"></p>
+      <p class="msg" id="accVMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="accVoucherCancel" type="button">취소</button>
+        <button class="submit" id="accVoucherSave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== 회계 수금·지급 ===================== -->
+  <div class="modal hidden" id="accPayModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accPayTitle">
+      <div class="modal-head">
+        <h2 id="accPayTitle">수금(입금)</h2>
+        <button class="modal-x" id="accPayClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub">등록하면 거래처 원장의 <b>남은 미수금·미지급금</b>에서 바로 빠집니다.</p>
+      <label class="field"><span>구분</span>
+        <div class="seg" id="accPaySeg">
+          <button type="button" data-ptype="in" class="active">수금</button>
+          <button type="button" data-ptype="out">지급</button>
+        </div>
+      </label>
+      <div class="grid2">
+        <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accPDate"></label>
+        <label class="field"><span>거래처 <span class="req">*</span></span><input id="accPPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
+      </div>
+      <div class="paybal" id="accPBal">거래처를 입력하면 그 거래처의 남은 미수금·미지급금이 여기 표시됩니다.</div>
+      <div class="grid2">
+        <label class="field"><span>금액(원) <span class="req">*</span></span><input type="number" id="accPAmount" step="1" min="0" placeholder="0"></label>
+        <label class="field"><span>수단</span><input id="accPMethod" list="dlAccMethods" placeholder="계좌이체"></label>
+      </div>
+      <div class="payfull"><button class="btn tiny" id="accPFull" type="button">전액 채우기</button><span class="hint">남은 금액을 금액칸에 그대로 넣습니다.</span></div>
+      <label class="field"><span>메모</span><input id="accPNote" placeholder="선택 입력"></label>
+      <p class="msg" id="accPMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="accPayCancel" type="button">취소</button>
+        <button class="submit" id="accPaySave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 회계 경비·수입 ===================== -->
+  <div class="modal hidden" id="accExpModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accExpTitle">
+      <div class="modal-head">
+        <h2 id="accExpTitle">경비 · 수입</h2>
+        <button class="modal-x" id="accExpClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="accExpSub">택배비·부자재·전기세·임대료·급여·식대·차량유지비처럼 재고와 상관없는 돈을 적습니다.</p>
+      <label class="field"><span>구분</span>
+        <div class="seg" id="accExpSeg">
+          <button type="button" data-etype="expense" class="active">경비 (나간 돈)</button>
+          <button type="button" data-etype="income">수입 (들어온 돈)</button>
+        </div>
+      </label>
+      <div class="grid2">
+        <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accEDate"></label>
+        <label class="field"><span>항목</span><input id="accECat" list="dlAccCats" placeholder="택배비"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>거래처</span><input id="accEPartner" list="dlAccPartners" placeholder="예: CJ대한통운"></label>
+        <label class="field"><span>금액(원) <span class="req">*</span></span><input type="number" id="accEAmount" step="1" min="0" placeholder="0"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>과세 구분</span>
+          <select id="accETax"><option value="free">면세</option><option value="tax">과세 (10%)</option></select>
+        </label>
+        <label class="field"><span>수단</span><input id="accEMethod" list="dlAccMethods" placeholder="카드"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="accEVatIncluded" checked>입력한 금액이 부가세 포함 금액입니다</label>
+      <label class="field"><span>메모</span><input id="accENote" placeholder="선택 입력"></label>
+      <p class="msg" id="accEMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="accECancel" type="button">취소</button>
+        <button class="submit" id="accESave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ===================== 회계 사용법 (v7) ===================== -->
+  <div class="modal hidden" id="accHelpModal">
+    <div class="modal-card wide helpcard" role="dialog" aria-modal="true" aria-labelledby="accHelpTitle">
+      <div class="modal-head">
+        <h2 id="accHelpTitle">❓ 회계 사용법</h2>
+        <button class="modal-x" id="accHelpClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub">이제 <b>입출고만 적으면 구매·판매 전표가 자동으로</b> 생깁니다. <b>① 입출고 → ② 전표 확인 → ③ 수금·지급 → ④ 생산원가·손익</b> 순서로 보면 됩니다.</p>
+
+      <ol class="helpflow">
+        <li><b>① 입출고 입력</b> — <b>1. 입출고관리</b>에서 적습니다. 원료육·완제품 <b>입고</b>는 구매관리 <b>매입 전표</b>가,
+          <b>업체·택배·기타 출고</b>는 판매관리 <b>매출 전표</b>가 자동으로 생깁니다.
+          <b>현장 출고</b>와 <b>현장소모</b>는 매출이 아니라 <b>생산·원가관리</b>에만 집계됩니다.</li>
+        <li><b>② 전표 확인·보정</b> — <b>3. 구매관리 · 4. 판매관리</b>에서 금액과 거래처를 확인하고,
+          세금계산서 <b>수령·발행</b>을 체크합니다. 자동 반영을 꺼 두었거나 빠진 건은
+          <b>⚡ 미반영 입고/판매출고 가져오기</b>로 한 번에 넘깁니다.</li>
+        <li><b>③ 돈 받고·주고</b> — 미수금이 들어오면 <b>＋ 수금</b>, 미지급금을 보내면 <b>＋ 지급</b>.
+          외상과 상관없는 돈은 <b>＋ 기타 입금</b> / <b>＋ 일반 출금(경비)</b>로 적습니다.</li>
+        <li><b>④ 생산원가·손익 확인</b> — <b>5. 생산·원가관리</b>에서 이번 달 투입액과
+          <b>품목별 1단위당 제조원가</b>를 보고, <b>6. 회계·손익</b>에서 미수금·미지급금·예상 순이익을 확인합니다.</li>
+      </ol>
+
+      <div class="helptable">
+        <div class="ht-row ht-head"><span>버튼</span><span>언제 쓰나</span><span>들어가는 곳</span><span>미수·미지급</span></div>
+        <div class="ht-row"><span class="ht-b payin">＋ 수금 입력</span><span>팔고 못 받은 돈을 받았을 때</span><span>수금 기록</span><span class="ht-ok">줄어듦</span></div>
+        <div class="ht-row"><span class="ht-b payout">＋ 지급 입력</span><span>사고 안 준 돈을 보냈을 때</span><span>지급 기록</span><span class="ht-ok">줄어듦</span></div>
+        <div class="ht-row"><span class="ht-b inc">＋ 기타 입금</span><span>외상과 무관한 현금이 들어왔을 때</span><span>일반 경비·자금 (수입)</span><span class="ht-no">그대로</span></div>
+        <div class="ht-row"><span class="ht-b exp">＋ 일반 출금(경비)</span><span>외상과 무관한 현금이 나갔을 때</span><span>일반 경비·자금 (경비)</span><span class="ht-no">그대로</span></div>
+      </div>
+
+      <p class="helpnote">💡 <b>현장 출고 = 생산투입</b>입니다. 원료육을 현장에 내보내고 완제품을 <b>🏭 자체생산</b>으로 입고하면,
+        생산·원가관리가 <b>투입원가 ÷ 생산수량</b>으로 1단위당 실제 제조원가와 예상 마진을 계산합니다.
+        매출 전표의 <b>📄</b>를 누르면 그 거래의 거래명세표를 A4로 바로 인쇄할 수 있습니다.</p>
+
+      <div class="modal-actions">
+        <button class="btn" id="accHelpClose2" type="button">닫기</button>
+        <button class="submit" id="accHelpGoSale" type="button">＋ 매출 전표 넣어 보기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 공급자 정보 설정 (거래명세표) ===================== -->
+  <div class="modal hidden" id="supplierModal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="supplierTitle">
+      <div class="modal-head">
+        <h2 id="supplierTitle">⚙️ 공급자 정보 설정</h2>
+        <button class="modal-x" id="supplierClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub">한 번 넣어 두면 거래명세표에 계속 찍힙니다. 이 컴퓨터(브라우저)에만 저장됩니다.</p>
+      <label class="field"><span>상호 <span class="req">*</span></span><input id="supName" placeholder="미르스타푸드"></label>
+      <div class="grid2">
+        <label class="field"><span>사업자등록번호</span><input id="supBizNo" placeholder="000-00-00000"></label>
+        <label class="field"><span>대표자</span><input id="supOwner" placeholder="대표자 이름"></label>
+      </div>
+      <label class="field"><span>주소</span><input id="supAddr" placeholder="예: 경기도 이천시 …"></label>
+      <div class="grid2">
+        <label class="field"><span>연락처</span><input id="supTel" placeholder="031-000-0000"></label>
+        <label class="field"><span>이메일</span><input id="supEmail" placeholder="선택 입력"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>업태</span><input id="supBiz" placeholder="도소매외"></label>
+        <label class="field"><span>종목</span><input id="supItem" placeholder="식육가공외"></label>
+      </div>
+      <div class="grid2">
+        <label class="field"><span>팩스</span><input id="supFax" placeholder="070-0000-0000"></label>
+        <label class="field"><span>프로젝트 / 현장</span><input id="supProject" placeholder="광주공장"></label>
+      </div>
+      <label class="field"><span>입금 계좌</span><input id="supBank" placeholder="예: 국민은행 348301-04-270779 (주)미르스타푸드"></label>
+      <label class="check"><input type="checkbox" id="supStampOn" checked>명세표 성명 옆에 직인(도장) 찍기</label>
+      <div class="supstamp">
+        <img id="supStampImg" alt="직인 미리보기">
+        <div class="supstamp-body">
+          <input type="file" id="supStampFile" accept="image/*" hidden>
+          <button class="btn tiny" id="supStampPick" type="button">직인 이미지 바꾸기</button>
+          <button class="btn ghost tiny" id="supStampReset" type="button">기본 직인</button>
+          <span class="tiny-hint" id="supStampHint">흰 배경 PNG를 고르면 그대로 찍힙니다.</span>
+        </div>
+      </div>
+      <p class="msg" id="supplierMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="supplierCancel" type="button">취소</button>
+        <button class="submit" id="supplierSave" type="button">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 거래명세표 (A4 인쇄) ===================== -->
+  <div class="modal hidden" id="stmtModal">
+    <div class="modal-card stmtcard" role="dialog" aria-modal="true" aria-labelledby="stmtTitle">
+      <div class="modal-head stmt-noprint">
+        <h2 id="stmtTitle">📄 거래명세표</h2>
+        <button class="modal-x" id="stmtClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub stmt-noprint" id="stmtSub">A4 용지에 맞춰 인쇄하거나 PDF로 저장할 수 있습니다.</p>
+      <details class="stmt-buyer stmt-noprint" id="stmtBuyerBox">
+        <summary>🏢 공급받는자 정보 수정 <span class="tiny-hint">거래처 DB에서 자동으로 채웁니다</span></summary>
+        <div class="grid2">
+          <label class="field"><span>상호</span><input id="stmtBuyerName" placeholder="(주)한이퀴드"></label>
+          <label class="field"><span>등록번호</span><input id="stmtBuyerBizNo" placeholder="000-00-00000"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span>대표자</span><input id="stmtBuyerOwner" placeholder="대표자"></label>
+          <label class="field"><span>전화</span><input id="stmtBuyerTel" placeholder="031-000-0000"></label>
+        </div>
+        <div class="grid2">
+          <label class="field"><span>주소</span><input id="stmtBuyerAddr" placeholder="주소"></label>
+          <label class="field"><span>팩스</span><input id="stmtBuyerFax" placeholder="070-0000-0000"></label>
+        </div>
+      </details>
+      <div class="stmt-scroll">
+        <div class="stmt-sheet" id="stmtSheet"></div>
+      </div>
+      <div class="modal-actions stmt-noprint">
+        <button class="btn" id="stmtSupBtn" type="button">⚙️ 공급자 정보 설정</button>
+        <button class="submit" id="stmtPrint" type="button">🖨️ 인쇄 / PDF 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 입출고 입력 허브 (v8) ===================== -->
+  <div class="modal hidden" id="ioHubModal">
+    <div class="modal-card wide hubcard" role="dialog" aria-modal="true" aria-labelledby="ioHubTitle">
+      <div class="modal-head">
+        <h2 id="ioHubTitle">📥 입출고 입력</h2>
+        <button class="modal-x" id="ioHubClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub">무엇을 기록할지 고르면 해당 입력 팝업이 바로 열립니다.</p>
+      <p class="hubsec">🥩 원료육</p>
+      <div class="hubgrid">
+        <button class="hubbtn in" type="button" data-io="in">📥 원료육 입고<small>구매관리 매입 전표 자동</small></button>
+        <button class="hubbtn thaw" type="button" data-io="thaw">❄️ 해동 이동<small>냉동고 → 냉장고</small></button>
+        <button class="hubbtn re" type="button" data-io="re">🧊 재냉동 이동<small>냉장고 → 냉동고</small></button>
+        <button class="hubbtn out" type="button" data-io="out">🚚 원료육 출고<small>현장은 생산투입으로만</small></button>
+        <button class="hubbtn photo" type="button" data-io="photo">📷 입고 사진 대기함<small>전표 사진 보고 입고</small></button>
+      </div>
+      <p class="hubsec">📦 완제품·부자재</p>
+      <div class="hubgrid three">
+        <button class="hubbtn fp" type="button" data-io="fp-in">📥 입고<small>외부매입 / 자체생산</small></button>
+        <button class="hubbtn fpout" type="button" data-io="fp-out">🚚 출고<small>판매 / 현장소모</small></button>
+        <button class="hubbtn new" type="button" data-io="fp-new">📦 품목 등록<small>완제품·부자재</small></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 미반영 입출고 가져오기 (구매·판매·회계 공용) ===================== -->
+  <div class="modal hidden" id="reflectModal">
+    <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="reflectTitle">
+      <div class="modal-head">
+        <h2 id="reflectTitle">⚡ 미반영 입출고 가져오기</h2>
+        <button class="modal-x" id="accReflectClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="reflectSub">금액이 있는 입출고를 골라 매입·매출 전표로 한 번에 넘깁니다. 이미 전표가 있는 건은 다시 들어가지 않습니다.</p>
+      <div class="reflect-top">
+        <div class="reflect-opts">
+          <label class="rng"><input type="date" id="accReflectFrom" aria-label="반영 시작일"><span class="tilde">~</span><input type="date" id="accReflectTo" aria-label="반영 종료일"></label>
+          <label class="filt-sel"><span>부가세</span>
+            <select id="accReflectTax">
+              <option value="auto">자동 (원료육 면세 · 완제품 과세)</option>
+              <option value="free">전부 면세</option>
+              <option value="tax">전부 과세</option>
+            </select>
+          </label>
+          <button class="btn tiny" id="accReflectAll" type="button">전체 선택</button>
+          <button class="btn tiny primary" id="accReflectGo" type="button">선택 반영</button>
+        </div>
+      </div>
+      <p class="reflect-hint">🏭 <b>자체생산</b> 완제품 입고는 사내 생산 이동이라 매입 전표에서 <b>자동 제외</b>됩니다. 🏭 <b>현장</b> 출고도 매출 전표를 만들지 않습니다(생산·원가관리에만 집계).</p>
+      <div class="reflect-list" id="accReflectList"></div>
+    </div>
+  </div>
+
+  <datalist id="dlNames"></datalist>
+  <datalist id="dlVendors"></datalist>
+  <datalist id="dlOrigins"></datalist>
+  <datalist id="dlBrands"></datalist>
+  <datalist id="dlProducts"></datalist>
+  <datalist id="dlCourier"></datalist>
+  <datalist id="dlOther"></datalist>
+  <datalist id="dlMeats"></datalist>
+  <datalist id="dlFgNames"></datalist>
+  <datalist id="dlFgPartners"></datalist>
+  <datalist id="dlFgCats"></datalist>
+  <datalist id="dlFgUnits"></datalist>
+  <datalist id="dlFgSpecs"></datalist>
+  <datalist id="dlAccPartners"></datalist>
+  <datalist id="dlAccMethods"></datalist>
+  <datalist id="dlAccCats"></datalist>
+</div>
+
+<script src="../partners_data.js?v=20261120_26"></script>
+<script src="../app.js?v=20261120_26"></script>
+</body>
+</html>
