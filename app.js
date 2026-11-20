@@ -4902,16 +4902,8 @@ var LIVE = (function () {
     for (var i = 0; i < list.length; i++) if (list[i].k === key) return list[i].t;
     return key;
   }
-  /* v20 — 엑셀 스타일 열 필터: 정렬 2줄 + 텍스트 필터 조건 + 검색 + 체크 목록 + [확인]/[취소] */
-  var fmeta = {};                                   /* '표|컬럼' → { op, val } 텍스트 조건 */
-  var COND_NAME = { eq: '같음', inc: '포함', start: '시작 문자', end: '끝 문자' };
-  var condTimer = 0, condAt = 0;
-  function metaOf(tbl, key) { return fmeta[tbl + '|' + key] || null; }
-  function setMeta(tbl, key, m) {
-    if (m) fmeta[tbl + '|' + key] = m;
-    else delete fmeta[tbl + '|' + key];
-  }
-  /* 이 열의 값 성격 — 정렬 줄 문구를 텍스트·숫자·날짜에 맞춘다 */
+  /* v21 — 엑셀 스타일 열 필터: 정렬 2줄 + 검색 + 체크 목록 + [확인]/[취소] (v20 의 텍스트 필터·하단 해제 제거) */
+  /* 이 열의 값 성격 — 정렬 줄 아이콘을 텍스트·숫자·날짜에 맞춘다 */
   function fpopType() {
     var a = fpop.all || [], i, v, num = true, date = true;
     if (!a.length) return 'text';
@@ -4927,14 +4919,13 @@ var LIVE = (function () {
     var t = fpopType();
     var asc = $('fpopAsc'), desc = $('fpopDesc');
     var ic = t === 'num' ? ['1↓', '9↓'] : (t === 'date' ? ['↑', '↓'] : ['ㄱ↓', 'ㅎ↓']);
-    var nm = t === 'num' ? '숫자' : (t === 'date' ? '날짜' : '텍스트');
     if (asc) {
       asc.querySelector('.fmi').textContent = ic[0];
-      asc.querySelector('.fmt').textContent = nm + ' 오름차순 정렬';
+      asc.querySelector('.fmt').textContent = '오름차순 정렬';
     }
     if (desc) {
       desc.querySelector('.fmi').textContent = ic[1];
-      desc.querySelector('.fmt').textContent = nm + ' 내림차순 정렬';
+      desc.querySelector('.fmt').textContent = '내림차순 정렬';
     }
   }
   function openFilter(tbl, key, btn) {
@@ -4943,9 +4934,8 @@ var LIVE = (function () {
     var allow = filterStore(tbl)[key];
     var sel = {}, i;
     for (i = 0; i < vals.length; i++) sel[vals[i]] = !allow || allow.length === 0 || allow.indexOf(vals[i]) >= 0;
-    fpop = { open: true, tbl: tbl, key: key, rect: rect, all: vals, sel: sel, q: '', cond: metaOf(tbl, key) };
+    fpop = { open: true, tbl: tbl, key: key, rect: rect, all: vals, sel: sel, q: '' };
     $('fpopSearch').value = '';
-    closeCond();
     setSortRows();
     renderFpop();
     markFpopSort();
@@ -5015,92 +5005,6 @@ var LIVE = (function () {
     list.innerHTML = html.join('');
     var ck = $('fAllCk');
     if (ck) ck.className = 'fck' + (on && on === fpop.all.length ? ' on' : (on ? ' part' : ''));
-    setCondLabel();
-  }
-  function setCondLabel() {
-    var lab = $('fpopCondLabel'), btn = $('fpopCondBtn'), m = fpop.cond;
-    if (lab) {
-      lab.textContent = m
-        ? ('텍스트 필터 · ' + (COND_NAME[m.op] || '') + ' "' + m.val + '"')
-        : '텍스트 필터';
-      lab.title = lab.textContent;
-    }
-    if (btn) btn.classList.toggle('on', !!m);
-  }
-  /* --- 텍스트 필터 서브메뉴 --- */
-  function openCond() {
-    var m = $('fcondMenu'), btn = $('fpopCondBtn');
-    if (!m || !btn) return;
-    /* 조건을 고른 직후에는 시트형에서 자리가 밀려 마우스가 버튼 위로 오는 일이 있다 → 그때만 잠깐 무시 */
-    if (Date.now() - condAt < 600 && ($('fpop').classList.contains('sheet') || !$('fcondForm').classList.contains('hidden'))) return;
-    clearTimeout(condTimer);
-    $('fcondForm').classList.add('hidden');
-    m.classList.remove('hidden', 'flip');
-    btn.classList.add('on');
-    btn.setAttribute('aria-expanded', 'true');
-    var r = m.getBoundingClientRect();
-    if (r.right > window.innerWidth - 8) m.classList.add('flip');
-  }
-  function closeCond() {
-    var m = $('fcondMenu'), f = $('fcondForm'), btn = $('fpopCondBtn');
-    clearTimeout(condTimer);
-    if (m) m.classList.add('hidden');
-    if (f) f.classList.add('hidden');
-    if (btn) {
-      btn.setAttribute('aria-expanded', 'false');
-      btn.classList.toggle('on', !!(fpop && fpop.cond));
-    }
-  }
-  function openCondForm(op) {
-    var f = $('fcondForm');
-    if (!f) return;
-    clearTimeout(condTimer);
-    condAt = Date.now();
-    $('fcondMenu').classList.add('hidden');
-    $('fcondName').textContent = COND_NAME[op] || '';
-    $('fcondVal').value = (fpop.cond && fpop.cond.op === op) ? fpop.cond.val : '';
-    f.classList.remove('hidden', 'flip');
-    f.setAttribute('data-op', op);
-    var r = f.getBoundingClientRect();
-    if (r.right > window.innerWidth - 8) f.classList.add('flip');
-    setTimeout(function () { try { $('fcondVal').focus(); } catch (e) { } }, 30);
-  }
-  function normTxt(v) { return String(v == null ? '' : v).toLowerCase().replace(/\s+/g, ''); }
-  function condHit(v, op, q) {
-    var h = normTxt(v), t = normTxt(q);
-    if (!t) return false;
-    if (op === 'eq') return h === t;
-    if (op === 'start') return h.indexOf(t) === 0;
-    if (op === 'end') return h.slice(-t.length) === t;
-    return h.indexOf(t) >= 0;
-  }
-  function applyCond(op, val) {
-    var i, hit = 0, s;
-    for (i = 0; i < fpop.all.length; i++) {
-      s = condHit(fpop.all[i], op, val);
-      fpop.sel[fpop.all[i]] = s;
-      if (s) hit++;
-    }
-    fpop.cond = { op: op, val: val };
-    renderFpop();
-    /* 조건에 맞는 첫 값을 목록에서 보이게 스크롤 */
-    var list = $('fpopList');
-    if (list && hit) {
-      var first = list.querySelector('.fitem input:checked');
-      var lab = first ? (first.closest ? first.closest('.fitem') : first.parentNode) : null;
-      if (lab) list.scrollTop = Math.max(0, lab.offsetTop - list.offsetTop - 4);
-    }
-    closeCond();
-    if (hit) toast('조건 적용: ' + (COND_NAME[op] || '') + ' "' + val + '" · 값 ' + hit + '개', 'ok');
-    else toast('"' + val + '" 와 맞는 값이 없습니다', 'warn');
-  }
-  function clearCond() {
-    var i;
-    for (i = 0; i < fpop.all.length; i++) fpop.sel[fpop.all[i]] = true;
-    fpop.cond = null;
-    renderFpop();
-    closeCond();
-    toast('조건 해제', 'ok');
   }
   function placeFpop() {
     var el = $('fpop');
@@ -5123,7 +5027,6 @@ var LIVE = (function () {
   function closeFilter(mode) {
     if (fpop.open && mode === 'apply') applyFilter();
     fpop.open = false;
-    closeCond();
     $('fpop').classList.add('hidden');
   }
   function applyFilter() {
@@ -5134,15 +5037,6 @@ var LIVE = (function () {
     }
     if (!off) delete store[fpop.key];
     else store[fpop.key] = on;
-    /* 조건 표시 — 지금 체크한 값이 그 조건의 결과와 같을 때만 남긴다 */
-    var cond = fpop.cond, condOk = false;
-    if (cond && off) {
-      condOk = true;
-      for (i = 0; i < fpop.all.length; i++) {
-        if (fpop.sel[fpop.all[i]] !== condHit(fpop.all[i], cond.op, cond.val)) { condOk = false; break; }
-      }
-    }
-    setMeta(fpop.tbl, fpop.key, condOk ? cond : null);
     renderCurrent();
   }
 
@@ -12509,52 +12403,11 @@ var LIVE = (function () {
       renderFpop();
     });
     $('fpopAll').addEventListener('click', function () { toggleAllVals(); });
-    $('fpopNone').addEventListener('click', function () { setAllVals(false); });
-    $('fpopReset').addEventListener('click', function () {
-      delete filterStore(fpop.tbl)[fpop.key];
-      setMeta(fpop.tbl, fpop.key, null);
-      fpop.cond = null;
-      renderCurrent();
-      closeFilter();
-    });
     if ($('fpopAsc')) $('fpopAsc').addEventListener('click', function () { fpopSort(1); });
     if ($('fpopDesc')) $('fpopDesc').addEventListener('click', function () { fpopSort(-1); });
     if ($('fpopUnsort')) $('fpopUnsort').addEventListener('click', function () { fpopSort(0); });
     $('fpopDone').addEventListener('click', function () { closeFilter('apply'); });
     $('fpopClose').addEventListener('click', function () { closeFilter(); });
-    /* 텍스트 필터 ▸ — hover 또는 클릭으로 조건 메뉴 */
-    $('fpopCondBtn').addEventListener('click', function (ev) {
-      ev.stopPropagation();
-      if ($('fcondMenu').classList.contains('hidden') && $('fcondForm').classList.contains('hidden')) openCond();
-      else closeCond();
-    });
-    $('fpopCondBtn').addEventListener('mouseenter', function () { openCond(); });
-    var fmMenu = $('fpopCondBtn').parentNode;
-    if (fmMenu) {
-      fmMenu.addEventListener('mouseleave', function () {
-        clearTimeout(condTimer);
-        condTimer = setTimeout(function () { if (fpop.open) closeCond(); }, 260);
-      });
-      fmMenu.addEventListener('mouseenter', function () { clearTimeout(condTimer); });
-    }
-    $('fcondMenu').addEventListener('click', function (ev) {
-      var b = ev.target.closest ? ev.target.closest('[data-cond]') : null;
-      if (!b) return;
-      var op = b.getAttribute('data-cond');
-      if (!op) { clearCond(); return; }
-      openCondForm(op);
-    });
-    $('fcondOk').addEventListener('click', function () {
-      var op = $('fcondForm').getAttribute('data-op') || 'inc';
-      var val = $('fcondVal').value;
-      if (!String(val).replace(/\s/g, '')) { try { $('fcondVal').focus(); } catch (e) { } return; }
-      applyCond(op, val);
-    });
-    $('fcondVal').addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter') { ev.preventDefault(); $('fcondOk').click(); }
-    });
-    $('fcondCancel').addEventListener('click', function () { closeCond(); });
-    $('fcondBack').addEventListener('click', function () { closeCond(); });
     document.addEventListener('click', function (ev) {
       if (!fpop.open) return;
       var el = $('fpop');
