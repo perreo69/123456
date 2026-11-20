@@ -6636,7 +6636,7 @@ var LIVE = (function () {
     for (var i = 0; i < rows.length; i++) {
       out.push([rows[i].cat, rows[i].sub, rows[i].code, rows[i].n,
         ERP.uniSpecText(rows[i].spec, rows[i].unit),
-        rows[i].ob, rows[i].lot, ERP.UNI_WH_NAME[rows[i].wh] || '', rows[i].inD, rows[i].e,
+        rows[i].ob, rows[i].lot, ERP.uniWhText(rows[i]), rows[i].inD, rows[i].e,
         rows[i].qty, rows[i].price > 0 ? rows[i].price : '', rows[i].price > 0 ? rows[i].amt : '']);
     }
     download(ERP.csvQuote(out), '통합재고_' + today().replace(/-/g, '') + '.csv');
@@ -7960,7 +7960,7 @@ var LIVE = (function () {
     $('ioSheetMsg').textContent = '';
     var b = $('ioSheetSave');
     b.disabled = true; b.textContent = '저장 중…';
-    var ok = 0, fail = 0, errs = [];
+    var ok = 0, fail = 0, errs = [], whWarn = '';
     var chain = Promise.resolve();
     lines.forEach(function (ln) {
       chain = chain.then(function () {
@@ -7980,7 +7980,10 @@ var LIVE = (function () {
               allowNegative: false, source: 'manual',
               lotNo: iosFpLotNo(rw, p, date), lotId: null, inDate: date
             }).then(function (log) {
-              return fpSaveWh(log && log.lot_id, fwh);
+              /* 보관 위치(memo) 저장이 실패해도 입고 자체는 살린다 — 나중에 [작업 ▾] 보관 위치 변경으로 고칠 수 있다 */
+              return fpSaveWh(log && log.lot_id, fwh).then(null, function (e) {
+                whWarn = (e && e.message) ? e.message : String(e);
+              });
             });
           }
           var fLot = iosPickFpLot(rw);
@@ -8019,6 +8022,7 @@ var LIVE = (function () {
       var msg = (iosIsIn() ? '입고 ' : '출고 ') + ok + '줄 저장' + (fail ? ' · 실패 ' + fail + '줄' : '');
       toast(msg, fail ? 'warn' : 'in');
       if (errs.length) $('ioSheetMsg').textContent = errs.slice(0, 3).join(' / ');
+      if (whWarn) toast('보관 위치를 저장하지 못했습니다: ' + whWarn, 'warn');
       cur.hLimit = 250; cur.fgLimit = 300;
       return reload({ silent: true }).then(function () {
         if (!fail) closeIoSheet();
