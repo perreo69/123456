@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261118_19">
+<link rel="stylesheet" href="style.css?v=20261120_20">
 </head>
 <body>
 
@@ -76,7 +76,7 @@
     </div>
     <div class="top-actions">
       <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
-      <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함">📷 입고대기 <span class="pbadge" id="photoBadge">0</span></button>
+      <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함">입고 대기 <span class="pbadge" id="photoBadge">0</span></button>
       <span class="who" id="whoami"></span>
       <button class="btn ghost" id="btnLogout" type="button">로그아웃</button>
     </div>
@@ -88,98 +88,73 @@
 
   <!-- ===================== v8: 단일 통합 사이드바 (6대 메뉴) ===================== -->
   <aside class="v8side" id="v8Side" aria-label="통합 메뉴">
-    <div class="v8brand"><span>🏭</span><div><b>미르스타푸드</b><small>6대 메뉴 · 입출고 자동연동</small></div></div>
-
     <nav class="v8nav" id="v8Nav">
       <section class="v8grp g-io" data-grp="io">
         <button class="v8cat" id="catIo" data-cat="io" type="button" aria-expanded="false">
-          <span class="v8num">1</span><span class="v8lab">입출고관리</span><span class="v8car">▾</span>
+          <span class="v8num">1</span><span class="v8lab">입출고</span><span class="v8car">▸</span>
         </button>
         <div class="v8sub" id="ioSub">
-          <p class="v8sec">원료육</p>
-          <button class="v8item" type="button" data-io="in">📥 원료육 입고</button>
-          <button class="v8item" type="button" data-io="thaw">❄️ 해동 이동</button>
-          <button class="v8item" type="button" data-io="re">🧊 재냉동 이동</button>
-          <button class="v8item" type="button" data-io="out">🚚 원료육 출고</button>
-          <button class="v8item" type="button" data-io="photo">📷 입고 사진 대기함 <span class="cnt" id="sidePhotoCnt">0</span></button>
-          <p class="v8sec">완제품·부자재</p>
-          <button class="v8item" type="button" data-io="fp-in">📥 완제품·부자재 입고</button>
-          <button class="v8item" type="button" data-io="fp-out">🚚 완제품·부자재 출고</button>
-          <button class="v8item" type="button" data-io="fp-new">📦 품목 등록(완제품/부자재)</button>
-          <p class="v8sec">한 번에 (명세서)</p>
-          <button class="v8item" type="button" data-io="sheet-in">🧾 여러 품목 한 번에 입고</button>
-          <button class="v8item" type="button" data-io="sheet-out">🧾 여러 품목 한 번에 출고</button>
+          <button class="v8item" type="button" data-io="sheet-in">통합 입고</button>
+          <button class="v8item" type="button" data-io="sheet-out">통합 출고</button>
+          <button class="v8item" type="button" data-io="thaw">해동 이동</button>
+          <button class="v8item" type="button" data-io="re">재냉동 이동</button>
         </div>
       </section>
 
       <section class="v8grp g-stock" data-grp="stock">
         <button class="v8cat" id="catStock" data-cat="stock" type="button" aria-expanded="true">
-          <span class="v8num">2</span><span class="v8lab">재고관리</span><span class="v8car">▾</span>
+          <span class="v8num">2</span><span class="v8lab">재고</span><span class="v8car">▸</span>
         </button>
         <div class="v8sub" id="meatTabs">
-          <button class="v8item tab active" type="button" data-stock="meat" data-tab="M">🥩 원료육 재고 <span class="cnt" id="cntM">0</span></button>
-          <button class="v8item tab" type="button" data-stock="fg" data-ftab="G">📦 완제품·부자재 재고 <span class="cnt" id="cntFg">0</span></button>
-          <button class="v8item tab" type="button" data-stock="hist" data-tab="H">📋 입출고 내역 <span class="cnt" id="cntH">0</span></button>
-          <button class="v8item tab" type="button" data-stock="price" data-tab="V">📈 입고단가 변동 <span class="cnt" id="cntV">0</span></button>
+          <button class="v8item tab active" type="button" data-stock="meat" data-tab="M">원료육 <span class="cnt" id="cntM">0</span></button>
+          <button class="v8item tab" type="button" data-stock="fg" data-ftab="G">완제품·부자재 <span class="cnt" id="cntFg">0</span></button>
+          <button class="v8item tab" type="button" data-stock="hist" data-tab="H">입출고 내역 <span class="cnt" id="cntH">0</span></button>
+          <button class="v8item tab" type="button" data-stock="price" data-tab="V">단가 변동 <span class="cnt" id="cntV">0</span></button>
         </div>
       </section>
 
       <section class="v8grp g-buy" data-grp="buy">
         <button class="v8cat" id="catBuy" data-cat="buy" type="button" aria-expanded="false">
-          <span class="v8num">3</span><span class="v8lab">구매관리</span><span class="v8car">▾</span>
+          <span class="v8num">3</span><span class="v8lab">구매</span><span class="v8car">▸</span>
         </button>
         <div class="v8sub">
-          <button class="v8item on" type="button" data-buy="list">🧾 매입 전표 목록</button>
-          <button class="v8item" type="button" data-buy="status">📤 미지급금 현황</button>
-          <button class="v8item" type="button" data-buy="new">＋ 매입 전표 직접 입력</button>
-          <button class="v8item" type="button" data-buy="reflect">⚡ 미반영 입고 가져오기</button>
-          <button class="v8item" type="button" data-buy="pay">＋ 지급 입력</button>
+          <button class="v8item on" type="button" data-buy="list">매입 내역</button>
+          <button class="v8item" type="button" data-buy="status">미지급금(줄돈)</button>
         </div>
       </section>
 
       <section class="v8grp g-sale" data-grp="sale">
         <button class="v8cat" id="catSale" data-cat="sale" type="button" aria-expanded="false">
-          <span class="v8num">4</span><span class="v8lab">판매관리</span><span class="v8car">▾</span>
+          <span class="v8num">4</span><span class="v8lab">판매</span><span class="v8car">▸</span>
         </button>
         <div class="v8sub">
-          <button class="v8item on" type="button" data-sale="list">🧾 매출 전표 목록</button>
-          <button class="v8item" type="button" data-sale="status">📥 미수금 현황</button>
-          <button class="v8item" type="button" data-sale="new">＋ 매출 전표 직접 입력</button>
-          <button class="v8item" type="button" data-sale="reflect">⚡ 미반영 판매출고 가져오기</button>
-          <button class="v8item" type="button" data-sale="pay">＋ 수금 입력</button>
-          <button class="v8item" type="button" data-sale="stmt">📄 A4 거래명세표</button>
+          <button class="v8item on" type="button" data-sale="list">매출 내역</button>
+          <button class="v8item" type="button" data-sale="status">미수금(받을돈)</button>
         </div>
       </section>
 
       <section class="v8grp g-prod" data-grp="prod">
         <button class="v8cat" id="catProd" data-cat="prod" type="button" aria-expanded="false">
-          <span class="v8num">5</span><span class="v8lab">생산·원가관리</span><span class="v8car">▾</span>
+          <span class="v8num">5</span><span class="v8lab">생산·원가</span><span class="v8car">▸</span>
         </button>
         <div class="v8sub">
-          <button class="v8item on" type="button" data-prod="sum">🏭 전체 생산투입금액</button>
-          <button class="v8item" type="button" data-prod="cost">📊 제품별 원가 분석</button>
+          <button class="v8item on" type="button" data-prod="sum">생산투입 합계</button>
+          <button class="v8item" type="button" data-prod="cost">제품별 원가</button>
         </div>
       </section>
 
       <section class="v8grp g-acc" data-grp="acc">
         <button class="v8cat" id="catAcc" data-cat="acc" type="button" aria-expanded="false">
-          <span class="v8num">6</span><span class="v8lab">회계·손익</span><span class="v8car">▾</span>
+          <span class="v8num">6</span><span class="v8lab">회계·손익</span><span class="v8car">▸</span>
         </button>
         <div class="v8sub" id="accMenu">
-          <button class="v8item tab active" type="button" data-acc="kpi" data-atab="V">📊 종합 KPI · 전표</button>
-          <button class="v8item tab" type="button" data-acc="settle" data-atab="S">💳 받을돈·줄돈 정산 <span class="cnt" id="cntAccS">0</span></button>
-          <button class="v8item tab" type="button" data-acc="expense" data-atab="E">💳 일반 경비·자금 <span class="cnt" id="cntAccE">0</span></button>
-          <button class="v8item tab" type="button" data-acc="ledger" data-atab="R">🏢 거래처별 원장 <span class="cnt" id="cntAccR">0</span></button>
-          <button class="v8item tab" type="button" data-acc="month" data-atab="M">📈 월별 손익 리포트</button>
-          <button class="v8item" type="button" data-acc="help">❓ 회계 사용법</button>
+          <button class="v8item tab active" type="button" data-acc="kpi" data-atab="V">손익 요약</button>
+          <button class="v8item tab" type="button" data-acc="ledger" data-atab="R">거래처 원장 <span class="cnt" id="cntAccR">0</span></button>
+          <button class="v8item tab" type="button" data-acc="expense" data-atab="E">일반 경비 <span class="cnt" id="cntAccE">0</span></button>
+          <button class="v8item tab" type="button" data-acc="month" data-atab="M">월별 손익</button>
         </div>
       </section>
     </nav>
-
-    <div class="v8foot">
-      <span class="v8badge in">현장 출고 = 생산투입</span>
-      <span class="v8badge out">매출 전표 자동</span>
-    </div>
   </aside>
 
   <!-- ===================== v8: 오른쪽 본문 ===================== -->
@@ -190,7 +165,20 @@
       <h2 id="v8Title">재고관리 · 냉동고 재고</h2>
       <p id="v8Desc">원료육 재고를 창고별로 보고, 표에서 바로 해동·출고로 이어집니다.</p>
     </div>
-    <span class="v8crumb" id="v8Crumb">2. 재고관리</span>
+    <div class="v8pgright">
+      <div class="pacts hidden" id="buyActs">
+        <button class="btn primary" id="btnBuyNew" type="button">＋ 매입 전표 입력</button>
+        <button class="btn" id="btnBuyReflect" type="button">미반영 입고 가져오기</button>
+        <button class="btn" id="btnBuyPay" type="button">＋ 지급 입력</button>
+      </div>
+      <div class="pacts hidden" id="saleActs">
+        <button class="btn primary" id="btnSaleNew" type="button">＋ 매출 전표 입력</button>
+        <button class="btn" id="btnSaleReflect" type="button">미반영 판매출고 가져오기</button>
+        <button class="btn" id="btnSalePay" type="button">＋ 수금 입력</button>
+        <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
+      </div>
+      <span class="v8crumb" id="v8Crumb">2. 재고 · 원료육</span>
+    </div>
   </div>
 
   <!-- ===================== 원료육 요약 ===================== -->
@@ -317,6 +305,7 @@
         </select>
         <button class="btn ghost tiny hidden" id="btnResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
+        <button class="btn tiny primary" id="btnMeatIn" type="button" title="한 품목만 자세히 적어 입고(원산지·브랜드·사진까지)">＋ 입고</button>
         <div class="xlmenu" id="xlMeat">
           <button class="btn xlbtn" id="xlMeatBtn" type="button" aria-haspopup="true" aria-expanded="false" title="원료육 엑셀·CSV 모음">📊 엑셀 <span class="car">▾</span></button>
           <div class="xlpop hidden" id="xlMeatPop" role="menu">
@@ -495,6 +484,7 @@
         <span class="v8stlabel">📦 완제품·부자재</span>
         <button class="v8mini active" type="button" data-stock="fg" data-ftab="G">재고</button>
         <button class="v8mini" type="button" data-stock="hist" data-ftab="L">입출고 내역</button>
+        <button class="v8mini add" type="button" id="btnFgNewTop" title="완제품·부자재 품목을 새로 등록합니다">＋ 품목 등록</button>
       </div>
 
       <div class="catbar" id="fgCatBar">
@@ -573,11 +563,6 @@
     <section class="panel list-panel">
       <div class="v8panehead">
         <div><h3>🧾 매입 전표</h3><span class="v8hint">입고와 동시에 자동으로 생기고, 직접 넣거나 지급으로 상환합니다.</span></div>
-        <div class="v8acts">
-          <button class="accbtn buy" id="btnBuyNew" type="button">＋ 매입 전표 직접 입력</button>
-          <button class="accbtn refl" id="btnBuyReflect" type="button">⚡ 미반영 입고 가져오기</button>
-          <button class="accbtn payout" id="btnBuyPay" type="button">＋ 지급 입력</button>
-        </div>
       </div>
       <div class="toolbar">
         <input type="search" id="buySearch" placeholder="🔍 거래처 · 적요 검색">
@@ -618,12 +603,6 @@
     <section class="panel list-panel">
       <div class="v8panehead">
         <div><h3>🧾 매출 전표</h3><span class="v8hint">업체·택배 출고는 자동으로 매출 전표가 되고, 현장 출고는 생산투입으로만 집계됩니다.</span></div>
-        <div class="v8acts">
-          <button class="accbtn sale" id="btnSaleNew" type="button">＋ 매출 전표 직접 입력</button>
-          <button class="accbtn refl" id="btnSaleReflect" type="button">⚡ 미반영 판매출고 가져오기</button>
-          <button class="accbtn payin" id="btnSalePay" type="button">＋ 수금 입력</button>
-          <button class="accbtn stmt" id="btnSaleStmt" type="button">📄 A4 거래명세표</button>
-        </div>
       </div>
       <div class="toolbar">
         <input type="search" id="saleSearch" placeholder="🔍 거래처 · 적요 검색">
@@ -710,7 +689,7 @@
           </div>
         </label>
         <div class="fgnewrow">
-          <button class="btn fgnew" id="btnFgNew" type="button">＋ 새 상품 등록</button>
+          <button class="btn fgnew" id="btnFgNew" type="button">＋ 품목 등록</button>
         </div>
         <div class="lotinfo empty" id="fgInfo">상품을 고르면 현재고·단가가 보입니다.</div>
         <div class="grid2">
@@ -746,7 +725,7 @@
   <div class="modal hidden" id="ioSheetModal">
     <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="ioSheetTitle">
       <div class="modal-head">
-        <h2 id="ioSheetTitle">🧾 여러 품목 한 번에 입고</h2>
+        <h2 id="ioSheetTitle">통합 입고</h2>
         <button class="modal-x" id="ioSheetClose" type="button" aria-label="닫기">✕</button>
       </div>
       <p class="modal-sub" id="ioSheetSub">한 업체에서 원료육·완제품·소스·야채가 같이 들어오면 이 표에 줄로 적고 한 번에 저장합니다.</p>
@@ -823,11 +802,11 @@
 
     <section class="panel list-panel" id="accListPanel">
       <div class="tabs" id="accPaneTabs">
-        <button class="tab active" data-atab="V" type="button">📋 매입·매출 전표 <span class="cnt" id="cntAccV">0</span></button>
-        <button class="tab" data-atab="S" type="button">💳 받을돈·줄돈 정산</button>
-        <button class="tab" data-atab="R" type="button">🏢 거래처별 원장</button>
-        <button class="tab" data-atab="E" type="button">💳 일반 경비·자금</button>
-        <button class="tab" data-atab="M" type="button">📊 월별 손익</button>
+        <button class="tab active" data-atab="V" type="button">손익 요약 <span class="cnt" id="cntAccV">0</span></button>
+        <button class="tab" data-atab="S" type="button">받을돈·줄돈 정산 <span class="cnt" id="cntAccS">0</span></button>
+        <button class="tab" data-atab="R" type="button">거래처 원장</button>
+        <button class="tab" data-atab="E" type="button">일반 경비</button>
+        <button class="tab" data-atab="M" type="button">월별 손익</button>
       </div>
 
       <div class="toolbar">
@@ -1082,7 +1061,7 @@
   <div class="modal hidden" id="fgNewModal">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fgNewTitle">
       <div class="modal-head">
-        <h2 id="fgNewTitle">＋ 새 상품 등록</h2>
+        <h2 id="fgNewTitle">＋ 품목 등록</h2>
         <button class="modal-x" id="fgNewClose" type="button" aria-label="닫기">✕</button>
       </div>
       <p class="modal-sub" id="fgNewSub">상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.</p>
@@ -1503,7 +1482,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261118_19"></script>
-<script src="app.js?v=20261118_19"></script>
+<script src="partners_data.js?v=20261120_20"></script>
+<script src="app.js?v=20261120_20"></script>
 </body>
 </html>

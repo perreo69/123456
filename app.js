@@ -5566,12 +5566,20 @@ var LIVE = (function () {
   var PANE_HOSTS = { meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
   var PANE_CAT = { meat: 'stock', fg: 'stock', buy: 'buy', sale: 'sale', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
-    meat: ['재고관리 · 원료육 재고', '원료육 재고를 냉동고·냉장고로 나눠 보고, 표에서 바로 해동·출고로 이어집니다.', '2. 재고관리'],
-    fg: ['재고관리 · 완제품·부자재 재고', '완제품·부자재를 대분류로 나눠 보고, 단가와 재고금액을 확인합니다.', '2. 재고관리'],
-    buy: ['구매관리 · 매입 전표 · 미지급금', '입고는 매입 전표로 자동 이어지고, 지급하면 미지급금이 줄어듭니다.', '3. 구매관리'],
-    sale: ['판매관리 · 매출 전표 · 미수금', '업체·택배 출고는 매출로 자동 이어지고, 거래명세표를 A4로 바로 찍습니다.', '4. 판매관리'],
-    prod: ['생산·원가관리 · 현장 투입', '현장 출고만 모아 생산투입금액과 품목별 실제 제조원가를 냅니다. 매출은 0원입니다.', '5. 생산·원가관리'],
-    acc: ['회계·손익 · 종합 KPI', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '6. 회계·손익']
+    meat: ['원료육 재고', '냉동고·냉장고를 나눠 보고, 표에서 바로 해동·출고로 이어집니다.', '2. 재고 · 원료육'],
+    fg: ['완제품·부자재 재고', '완제품·부자재를 대분류로 나눠 보고, 단가와 재고금액을 확인합니다.', '2. 재고 · 완제품·부자재'],
+    buy: ['매입 내역', '거래처·기간별 매입 전표와 지급 상태를 한 표에서 봅니다.', '3. 구매 · 매입 내역'],
+    sale: ['매출 내역', '업체·택배 출고는 매출로 이어지고, 거래명세표를 A4로 바로 찍습니다.', '4. 판매 · 매출 내역'],
+    prod: ['생산투입 합계', '현장 출고만 모아 생산투입금액과 품목별 실제 제조원가를 냅니다.', '5. 생산·원가 · 생산투입'],
+    acc: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '6. 회계·손익 · 손익 요약']
+  };
+  /* v13 — 회계 탭마다 머리말 */
+  var ACC_HEAD = {
+    V: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '6. 회계·손익 · 손익 요약'],
+    S: ['받을돈·줄돈 정산', '거래처별 받을돈·줄돈을 한 표에서 보고, 줄마다 금액을 적어 그 자리에서 수금·지급을 저장합니다.', '6. 회계·손익 · 받을돈·줄돈 정산'],
+    R: ['거래처 원장', '거래처 하나를 골라 매입·매출·수금·지급·경비를 시간 순으로 봅니다.', '6. 회계·손익 · 거래처 원장'],
+    E: ['일반 경비', '월세·택배비·식대처럼 외상과 상관없이 나간 돈과 기타 입금을 기록합니다.', '6. 회계·손익 · 일반 경비'],
+    M: ['월별 손익', '달마다 매출·매입·경비·순이익을 모아 추이를 봅니다.', '6. 회계·손익 · 월별 손익']
   };
   function paneName(p) {
     return p === 'meat' ? 'stock' : p;
@@ -5643,8 +5651,9 @@ var LIVE = (function () {
       var it = items[j];
       var isOn = false;
       if (onItem && it.hasAttribute(onItem.key)) isOn = it.getAttribute(onItem.key) === onItem.val;
+      /* v13 — 예전에 눌렀던 메뉴의 active 표시가 남아 두 줄이 같이 파래지지 않게 같이 지운다 */
       it.classList.toggle('on', isOn);
-      if (isOn) it.classList.add('active');
+      it.classList.toggle('active', isOn);
     }
   }
   function openGroup(cat) {
@@ -5691,13 +5700,28 @@ var LIVE = (function () {
   }
   function updatePageHead() {
     var h = PANE_HEAD[cur.erp] || PANE_HEAD.meat;
-    /* v11 — 회계는 탭마다 머리말이 다르다(받을돈·줄돈 정산) */
-    if (cur.erp === 'acc' && cur.accTab === 'S') {
-      h = ['회계·손익 · 받을돈·줄돈 정산', '거래처별 받을돈·줄돈을 한 표에서 보고, 줄마다 금액을 적어 그 자리에서 수금·지급을 저장합니다.', '6. 회계·손익'];
-    }
+    /* v11 — 회계는 탭마다 머리말이 다르다(받을돈·줄돈 정산 …) */
+    if (cur.erp === 'acc') h = ACC_HEAD[cur.accTab] || ACC_HEAD.V;
+    /* v13 — 메뉴 이름과 화면 이름을 맞춘다 */
+    if (cur.erp === 'meat' && cur.tab === 'H') h = ['입출고 내역', '입고·출고·해동·현장·택배·기타 기록을 한 줄씩 봅니다.', '2. 재고 · 입출고 내역'];
+    if (cur.erp === 'meat' && cur.tab === 'V') h = ['단가 변동', '품목별 입고단가가 얼마나 움직였는지 직전 입고와 비교합니다.', '2. 재고 · 단가 변동'];
+    if (cur.erp === 'fg' && cur.fgTab === 'L') h = ['입출고 내역', '완제품·부자재 입출고 기록을 한 줄씩 봅니다.', '2. 재고 · 입출고 내역'];
+    if (cur.erp === 'buy' && cur.buyView === 'status') h = ['미지급금(줄돈)', '거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다.', '3. 구매 · 미지급금(줄돈)'];
+    if (cur.erp === 'sale' && cur.saleView === 'status') h = ['미수금(받을돈)', '거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다.', '4. 판매 · 미수금(받을돈)'];
+    if (cur.erp === 'prod' && cur.prodView === 'cost') h = ['제품별 원가', '투입원가 ÷ 자체생산 입고수량 = 1단위당 실제 제조원가를 판매단가와 비교합니다.', '5. 생산·원가 · 제품별 원가'];
     if ($('v8Title')) $('v8Title').textContent = h[0];
     if ($('v8Desc')) $('v8Desc').textContent = h[1];
     if ($('v8Crumb')) $('v8Crumb').textContent = h[2];
+  }
+  /* v13 — 받을돈·줄돈 정산 탭은 왼쪽 메뉴에 없으므로 '손익 요약'을 켜 둔다 */
+  function accSideTab(t) {
+    return (t === 'S') ? 'V' : t;
+  }
+  /* v13 — 구매·판매 화면에서만 오른쪽 위 액션 바를 보여준다 */
+  function renderPageActs(p) {
+    var b = $('buyActs'), s = $('saleActs');
+    if (b) b.classList.toggle('hidden', p !== 'buy');
+    if (s) s.classList.toggle('hidden', p !== 'sale');
   }
   function setErpMode(m) {
     if (m === 'fg') return setPane('fg');
@@ -5725,11 +5749,12 @@ var LIVE = (function () {
     else if (p === 'buy') item = { key: 'data-buy', val: cur.buyView === 'status' ? 'status' : 'list' };
     else if (p === 'sale') item = { key: 'data-sale', val: cur.saleView === 'status' ? 'status' : 'list' };
     else if (p === 'prod') item = { key: 'data-prod', val: cur.prodView || 'sum' };
-    else if (p === 'acc') item = { key: 'data-atab', val: cur.accTab };
+    else if (p === 'acc') item = { key: 'data-atab', val: accSideTab(cur.accTab) };
     markSide(PANE_CAT[p] || 'stock', item);
     closeFilter();
     closeRange();
     updatePageHead();
+    renderPageActs(p);
     updateQuickLabels();
     if (!$('appView').classList.contains('hidden')) {
       renderRangeBar();
@@ -5747,8 +5772,8 @@ var LIVE = (function () {
   function updateQuickLabels() {
     var f = $('qbForm'), l = $('qbList');
     if (!f) return;
-    f.textContent = '📝 입출고 입력';
-    l.textContent = '📋 6대 메뉴';
+    f.textContent = '입출고 입력';
+    l.textContent = '메뉴';
   }
   function openMeatQuick() {
     openIoHub();
@@ -6521,7 +6546,7 @@ var LIVE = (function () {
   function iosSetType(t) {
     ios.type = t === 'OUT' ? 'OUT' : 'IN';
     var isIn = iosIsIn();
-    if ($('ioSheetTitle')) $('ioSheetTitle').textContent = isIn ? '🧾 여러 품목 한 번에 입고' : '🧾 여러 품목 한 번에 출고';
+    if ($('ioSheetTitle')) $('ioSheetTitle').textContent = isIn ? '통합 입고' : '통합 출고';
     if ($('ioSheetSub')) $('ioSheetSub').textContent = isIn
       ? '한 업체에서 원료육·완제품·소스·야채가 같이 들어오면 이 표에 줄로 적고 한 번에 저장합니다.'
       : '한 업체로 여러 품목이 같이 나가면 이 표에 줄로 적고 한 번에 출고합니다.';
@@ -6698,7 +6723,7 @@ var LIVE = (function () {
       var p = ERP.fpProductOf(st.fps, code);
       if (!p) return;
       fgNewEditing = p;
-      $('fgNewTitle').textContent = '상품 정보 수정';
+      $('fgNewTitle').textContent = '품목 정보 수정';
       $('fgNewSub').textContent = '이 상품의 이름·규격·단가를 고칩니다. 재고는 입출고로만 바뀝니다.';
       $('fgNewCode').value = p.code; $('fgNewCode').disabled = true;
       $('fgNewCat').value = p.cat; $('fgNewName').value = p.n;
@@ -6709,7 +6734,7 @@ var LIVE = (function () {
       $('fgNewHint').textContent = '단가를 비워 두면 기존 단가가 그대로 남습니다.';
       $('fgNewSave').textContent = '수정 저장';
     } else {
-      $('fgNewTitle').textContent = '＋ 새 상품 등록';
+      $('fgNewTitle').textContent = '＋ 품목 등록';
       $('fgNewSub').textContent = '상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.';
       $('fgNewCode').value = ERP.fpNextCode(st.fps); $('fgNewCode').disabled = false;
       $('fgNewCat').value = cur.fgCat !== 'all' ? cur.fgCat : '완제품';
@@ -9580,15 +9605,25 @@ var LIVE = (function () {
      ========================================================================== */
   var POP_CLOSERS = {
     ioHubModal: function () { closeIoHub(); },
+    ioSheetModal: function () { closeIoSheet(); },
     meatFormModal: function () { closeMeatForm(); },
     fgFormModal: function () { closeFgForm(); },
     fgNewModal: function () { closeFgNew(); },
+    fgPriceModal: function () { closeFgPrice(); },
     photoInboxModal: function () { closePhotoInbox(); },
+    photoViewModal: function () { closePhoto(); },
     accVoucherModal: function () { closeAccVoucher(); },
     reflectModal: function () { closeReflect(); },
     accPayModal: function () { closeAccPay(); },
+    accExpModal: function () { closeAccExpense(); },
     stmtModal: function () { closeStmt(); },
-    accHelpModal: function () { closeAccHelp(); }
+    accHelpModal: function () { closeAccHelp(); },
+    supplierModal: function () { closeSupplier(); },
+    uploadModal: function () { closeUpload(); },
+    rangeModal: function () { closeRange(); },
+    editModal: function () { closeEdit(); },
+    lotModal: function () { closeLot(); },
+    xlsModal: function () { closeXls(); }
   };
   var POP_ORDER = ['ioHubModal', 'meatFormModal', 'fgFormModal', 'fgNewModal', 'photoInboxModal',
     'accVoucherModal', 'reflectModal', 'accPayModal', 'stmtModal', 'accHelpModal'];
@@ -9697,11 +9732,65 @@ var LIVE = (function () {
     head.addEventListener('pointerup', endDrag);
     head.addEventListener('pointercancel', endDrag);
   }
+  /* ---------- ④ v13 맥 신호등 버튼 (🔴 닫기 · 🟡 접기 · 🟢 크게) ----------
+     모든 팝업 창 왼쪽 위에 붙는다. 제목 줄 더블클릭도 크게 보기와 같은 동작. */
+  function popTraffic(m) {
+    var card = m.querySelector('.modal-card');
+    if (!card) return;
+    var head = card.querySelector('.modal-head') || card.querySelector('.rm-top');
+    if (!head || head.querySelector('.traffic')) return;
+    var tl = document.createElement('div');
+    tl.className = 'traffic' + ((head.className.indexOf('stmt-noprint') >= 0) ? ' stmt-noprint' : '');
+    tl.innerHTML = '<button type="button" class="tl tl-close" data-tl="close" aria-label="닫기" title="닫기"></button>' +
+      '<button type="button" class="tl tl-min" data-tl="min" aria-label="창 접기" title="창 접기 / 펼치기"></button>' +
+      '<button type="button" class="tl tl-max" data-tl="max" aria-label="크게 보기" title="크게 보기 / 원래 크기"></button>';
+    head.insertBefore(tl, head.firstChild);
+    tl.addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest('[data-tl]') : null;
+      if (!b) return;
+      ev.preventDefault(); ev.stopPropagation();
+      var act = b.getAttribute('data-tl');
+      if (act === 'close') { popClose(m.id); return; }
+      if (act === 'min') { popFold(m, card); return; }
+      popBig(m, card);
+    });
+    head.addEventListener('dblclick', function (ev) {
+      var t = ev.target;
+      if (t && t.closest && t.closest('button,a,input,select,textarea,label')) return;
+      popBig(m, card);
+    });
+  }
+  function popBig(m, card) {
+    var on = !card.classList.contains('tl-big');
+    if (on) { card.classList.remove('tl-fold'); m.classList.remove('tl-foldwrap'); }
+    card.classList.toggle('tl-big', on);
+    m.classList.toggle('modal-big', on);
+    if (on) popMove(card, 0, 0);
+    var b = card.querySelector('.tl-max');
+    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  function popFold(m, card) {
+    var on = !card.classList.contains('tl-fold');
+    if (on) { card.classList.remove('tl-big'); m.classList.remove('modal-big'); }
+    card.classList.toggle('tl-fold', on);
+    m.classList.toggle('tl-foldwrap', on);
+    var b = card.querySelector('.tl-min');
+    if (b) b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  function popResetSize(m, card) {
+    if (!card) return;
+    card.classList.remove('tl-big'); card.classList.remove('tl-fold');
+    m.classList.remove('modal-big'); m.classList.remove('tl-foldwrap');
+    var b1 = card.querySelector('.tl-max'), b2 = card.querySelector('.tl-min');
+    if (b1) b1.setAttribute('aria-pressed', 'false');
+    if (b2) b2.setAttribute('aria-pressed', 'false');
+  }
   function popInit() {
     var ms = document.querySelectorAll('.modal');
     for (var i = 0; i < ms.length; i++) {
       (function (m) {
         popBindDrag(m);
+        popTraffic(m);
         var card = m.querySelector('.modal-card');
         var wasHidden = m.classList.contains('hidden');
         function sync() {
@@ -9709,7 +9798,7 @@ var LIVE = (function () {
           if (hid === wasHidden) return;
           wasHidden = hid;
           if (!hid) { if (card) popMove(card, 0, 0); }   /* 새 팝업은 기본 위치(가운데)에서 */
-          else popForgot(m.id);
+          else { popResetSize(m, card); popForgot(m.id); }   /* 닫으면 원래 크기로 되돌린다 */
         }
         if (window.MutationObserver) new MutationObserver(sync).observe(m, { attributes: true, attributeFilter: ['class'] });
       })(ms[i]);
@@ -9940,7 +10029,7 @@ var LIVE = (function () {
         }
         cur.accTab = this.getAttribute('data-atab') || 'V';
         setPane('acc');
-        markSide('acc', { key: 'data-atab', val: cur.accTab });
+        markSide('acc', { key: 'data-atab', val: accSideTab(cur.accTab) });
         var pt = document.querySelectorAll('#accPaneTabs .tab');
         for (var i = 0; i < pt.length; i++) pt[i].classList.toggle('active', pt[i].getAttribute('data-atab') === cur.accTab);
         renderAccTable();
@@ -10024,6 +10113,7 @@ var LIVE = (function () {
     if ($('fgQty')) $('fgQty').addEventListener('input', fgSyncAmount);
     if ($('fgPrice')) $('fgPrice').addEventListener('input', fgSyncAmount);
     if ($('btnFgNew')) $('btnFgNew').addEventListener('click', function () { openFgNew(null); });
+    if ($('btnFgNewTop')) $('btnFgNewTop').addEventListener('click', function () { openFgNew(null); });
     if ($('fgNewClose')) $('fgNewClose').addEventListener('click', closeFgNew);
     if ($('fgNewCancel')) $('fgNewCancel').addEventListener('click', closeFgNew);
     if ($('fgNewSave')) $('fgNewSave').addEventListener('click', saveFgNew);
@@ -10143,7 +10233,7 @@ var LIVE = (function () {
         renderRangeBar();
         updatePageHead();
         renderAccTable();
-        markSide('acc', { key: 'data-atab', val: cur.accTab });
+        markSide('acc', { key: 'data-atab', val: accSideTab(cur.accTab) });
         $('accTableWrap').scrollTop = 0;
         $('accTableWrap').scrollLeft = 0;
       });
@@ -10482,6 +10572,7 @@ var LIVE = (function () {
       renderTable();
     });
     $('btnColReset').addEventListener('click', resetColWidth);
+    if ($('btnMeatIn')) $('btnMeatIn').addEventListener('click', function () { openMeatForm('in'); });
 
     var presets = document.querySelectorAll('#rangePresets .pr');
     for (var p = 0; p < presets.length; p++) {
