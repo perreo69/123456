@@ -2119,3 +2119,171 @@ td.actcell{white-space:nowrap}
   .top{padding:10px 12px}
   .banner{margin:10px 12px 0}
 }
+
+/* ==========================================================================
+   v16 — 시안(work/mockup-unified) 톤 이식 · 통합 재고 · 통합 입출고
+     · 왼쪽 메뉴 세 묶음(물류·품목·회계) 196px, 얇은 선 아이콘
+     · 필터 칩 · 회색 머리줄 · 단정한 규칙의 13칸 표
+   ========================================================================== */
+:root{--accent:#2563EB;--accent-bg:#EFF6FF;--accent-ink:#1d4ed8;--accent-line:#c9dafc;
+  --amber-ink:#a15c00;--amber-bg:#fff5e5;--green-ink:#0b6b3a;--red-ink:#b42318;--red-bg:#fef2f1}
+
+/* ---------- 사이드바 ---------- */
+.v8side{display:flex;flex-direction:column;background:#fff;border:1px solid #e2e8f1;border-radius:12px;padding:10px 8px;box-shadow:none}
+.v8nav{display:flex;flex-direction:column;gap:2px;flex:1 1 auto;min-height:0}
+.glabel{display:flex;align-items:center;gap:7px;height:28px;padding:0 9px;margin-top:8px;font-size:10.8px;font-weight:700;color:#9aa7b8;letter-spacing:.5px}
+.v8nav>.glabel:first-child{margin-top:0}
+.glabel .ln{flex:1;height:1px;background:#eef2f8}
+.nitem{display:flex;align-items:center;gap:9px;width:100%;height:34px;padding:0 10px;border:0;border-radius:8px;background:none;
+  font:inherit;font-size:13px;font-weight:500;color:#415064;letter-spacing:-.2px;cursor:pointer;text-align:left}
+.nitem .ic{width:17px;height:17px;flex:0 0 17px;color:#96a3b5}
+.nitem:hover{background:#f5f8fd}
+.nitem.on{background:var(--accent-bg);color:var(--accent-ink);font-weight:700}
+.nitem.on .ic{color:var(--accent)}
+.nitem .cnt{margin-left:auto;font-size:11px;font-weight:700;color:#93a0b2;font-variant-numeric:tabular-nums}
+.nitem.on .cnt{color:var(--accent-ink)}
+.sidefoot{margin-top:auto;padding:10px 10px 4px;border-top:1px solid #eef2f8;font-size:11.2px;color:#94a1b3;line-height:1.55;letter-spacing:-.1px}
+.sidefoot b{display:block;color:#4a5a70;font-size:11.8px;font-weight:700;margin-bottom:2px}
+.sflinks{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.sflinks button{border:1px solid #e2e8f1;background:#fbfcfe;border-radius:6px;padding:2px 6px;font:inherit;font-size:10.8px;color:#5b6b82;cursor:pointer;letter-spacing:-.1px}
+.sflinks button:hover{border-color:var(--accent-line);color:var(--accent-ink);background:var(--accent-bg)}
+
+/* ---------- 통합 화면 카드 · 툴바 ---------- */
+.unipane{margin-top:12px}
+.unipane .unicard{padding:0;overflow:hidden;border-radius:12px;border-color:#e2e8f1}
+.utool{padding:11px 12px;border-bottom:1px solid #eef2f8;display:flex;flex-direction:column;gap:9px;background:#fff}
+.utrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.utrow .sp{flex:1 1 auto}
+.utool .chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.utool .chip{height:30px;padding:0 12px;border-radius:8px;border:1px solid #e2e8f1;background:#fff;color:#55657a;
+  font:inherit;font-size:12.4px;font-weight:600;display:inline-flex;align-items:center;gap:6px;cursor:pointer;letter-spacing:-.15px;white-space:nowrap}
+.utool .chip:hover{border-color:#cfdaea}
+.utool .chip .n{font-size:11px;font-weight:700;color:#94a1b3;font-variant-numeric:tabular-nums}
+.utool .chip.on{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 1px 2px rgba(37,99,235,.2)}
+.utool .chip.on .n{color:#cfe0ff}
+.utool .chip.soft{background:#f4f7fc;border-color:#e6ecf5;color:#54637a}
+.utool .chip.soft:hover{background:#eef3fa}
+.utool .chip.soft.on{background:var(--accent-bg);border-color:var(--accent-line);color:var(--accent-ink)}
+.utool .lbl{font-size:11.6px;font-weight:700;color:#8a97a9;letter-spacing:-.1px}
+.utool .hint{display:inline;margin:0;font-size:11.6px;color:#94a1b3;letter-spacing:-.1px;line-height:1.4}
+.utool .hint b{color:#4b5b70;font-weight:700}
+.utool .divv{width:1px;height:20px;background:#e2e8f1;margin:0 3px}
+.usearch{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 11px;border:1px solid #e2e8f1;border-radius:8px;background:#fff;color:#a6b2c3}
+.usearch input{border:0;outline:0;background:none;font:inherit;font-size:12.4px;color:#26313f;width:232px;letter-spacing:-.2px}
+.usearch:focus-within{border-color:var(--accent-line);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.utool .xlmenu{position:relative}
+.utool .btn{height:32px;border-radius:8px;font-size:12.5px;font-weight:600}
+.utool .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700}
+.utool .rng{display:inline-flex;align-items:center;gap:6px}
+.utool .rng input{height:32px;border:1px solid #e2e8f1;border-radius:8px;padding:0 8px;font:inherit;font-size:12px;color:#26313f;background:#fff}
+
+/* ---------- 통합 표 ---------- */
+#uniTableWrap,#utxTableWrap{max-height:calc(100vh - 268px);overflow:auto}
+table.tblu{font-size:13px;border-collapse:separate;border-spacing:0;table-layout:fixed}
+.tblu thead th{height:40px;padding:0 10px;background:#f7f9fc;border-bottom:1px solid #e2e8f1;
+  font-size:11.7px;font-weight:600;color:#65758a;text-align:left;white-space:nowrap;letter-spacing:-.1px;position:relative}
+.tblu thead th.r{text-align:right}
+.tblu thead th.c{text-align:center}
+.tblu thead th.on{background:var(--accent-bg);color:var(--accent-ink);box-shadow:inset 0 -2px 0 var(--accent)}
+.uhd{display:flex;align-items:center;gap:4px;width:100%;border:0;background:none;padding:0;font:inherit;font-size:11.7px;
+  font-weight:600;color:inherit;cursor:pointer;letter-spacing:-.1px;text-align:left;overflow:hidden}
+.tblu thead th.r .uhd{justify-content:flex-end}
+.uhd .ht{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.uhd .uarrow{font-size:9px;opacity:.85;flex:0 0 auto}
+.car{display:inline-block;flex:0 0 auto;width:0;height:0;border-left:3.4px solid transparent;border-right:3.4px solid transparent;
+  border-top:4px solid currentColor;opacity:.5;margin-left:2px;vertical-align:middle;position:relative;top:-1px}
+.tblu thead th.on .car{color:var(--accent);opacity:1}
+.uhd.filted .ht::after{content:'';display:inline-block;width:4px;height:4px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:middle}
+.tblu tbody td{height:52px;padding:0 10px;border-bottom:1px solid #eef2f8;color:#26313f;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;letter-spacing:-.18px;background:#fff}
+.tblu tbody tr:hover td{background:#fafcff}
+.tblu tbody tr:last-child td{border-bottom:0}
+.tblu .num{font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+.tblu .r{text-align:right}
+.tblu .c{text-align:center}
+.tblu .b{font-weight:700;color:#131d2b}
+.tblu .dim{color:#8b98aa}
+.tblu .sub{color:#6d7c90;font-size:12.3px}
+.tblu .cat{font-size:12.4px;font-weight:600;color:#33415a}
+.tblu .cat.raw{color:#1d4ed8}
+.tblu .cat.fg{color:#0b6b3a}
+.tblu .cat.fgb{color:#8a5a00}
+.tblu .cat.ms{color:#4d5b70}
+.tblu .code{font-size:12.3px;color:#4a5a70;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
+.tblu .name{font-weight:600;color:#1d2837}
+.tblu .tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:5px;font-size:10.9px;font-weight:700;white-space:nowrap}
+.tblu .tag.blue{background:var(--accent-bg);color:var(--accent-ink)}
+.tblu .tag.green{background:#ebf8f0;color:var(--green-ink)}
+.tblu .tag.amber{background:var(--amber-bg);color:var(--amber-ink)}
+.tblu .tag.gray{background:#f2f5f9;color:#5f6d81}
+.tblu .tag.line{background:#fff;border:1px solid #e2e8f1;color:#5f6d81;font-weight:600}
+.tblu .d{display:inline-flex;align-items:center;height:19px;padding:0 6px;border-radius:5px;margin-left:7px;
+  font-size:10.6px;font-weight:700;background:#f1f4f9;color:#5c6b80;font-variant-numeric:tabular-nums}
+.tblu .d.warn{background:var(--amber-bg);color:var(--amber-ink)}
+.tblu .d.hot{background:var(--red-bg);color:var(--red-ink)}
+.tblu .whchip{display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:6px;font-size:11.6px;font-weight:700;
+  background:#e8f0fe;color:#1d4ed8}
+.tblu .whchip.chl{background:#e7f6f2;color:#0b6b53}
+.tblu .whchip.amb{background:#f2f5f9;color:#5f6d81}
+.tblu td.balcell{background:#f3f8ff}
+.tblu td.balcell .num{color:#1d4ed8;font-weight:700}
+.tblu td.actcell{padding:0 6px}
+.tblu td.actcell .actmenu{height:27px;padding:0 9px;border-radius:7px;font-size:11.8px;font-weight:600}
+.tblu thead th.actcol{text-align:center}
+.tblu thead th.actcol .th-plain{display:inline}
+.utfoot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;border-top:1px solid #e2e8f1;
+  font-size:12px;color:#68788d;background:#fcfdfe;letter-spacing:-.15px}
+.utfoot b{color:#31405a;font-weight:700;font-variant-numeric:tabular-nums}
+.uempty{padding:38px 16px;text-align:center;font-size:12.8px;color:#8b98aa}
+.more{height:28px;padding:0 10px;border:1px solid var(--accent-line);border-radius:8px;background:var(--accent-bg);
+  color:var(--accent-ink);font:inherit;font-size:11.8px;font-weight:700;cursor:pointer}
+
+/* ---------- 통합 입고·출고 팝업 ---------- */
+#ioSheetModal .vhead{grid-template-columns:180px minmax(200px,1fr) minmax(180px,1fr);gap:10px}
+#ioSheetModal .modal-sub{margin:2px 0 10px}
+.minfo{display:flex;align-items:center;gap:8px;padding:9px 2px 2px;font-size:11.8px;color:#68788d;letter-spacing:-.15px}
+.minfo .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:0 0 auto}
+.minfo b{color:#3d4c61;font-weight:700}
+.minfo .sp{flex:1}
+.minfo .way{display:inline-flex;align-items:center;height:22px;padding:0 8px;border-radius:6px;background:#f2f6fc;color:#3f5a80;
+  font-size:11px;font-weight:700;white-space:nowrap}
+table.iosheet td .ucell{display:flex;flex-direction:column;gap:2px;min-width:0}
+table.iosheet td .ucell .cd{font-size:10.8px;color:#93a0b2;font-variant-numeric:tabular-nums;letter-spacing:-.1px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-left:2px}
+table.iosheet td .uqty{display:flex;align-items:center;gap:4px}
+table.iosheet td .uqty input{flex:1 1 auto}
+table.iosheet td .uqty .u{font-size:10.8px;color:#7c8a9d;font-weight:700;flex:0 0 auto;min-width:18px}
+table.iosheet select.uwh{font-size:11.8px;font-weight:700;color:#1d4ed8;background:#f7faff;border-color:#d5e3fb}
+table.iosheet select.uwh.auto{color:#98a4b5;background:#f8fafd;border-style:dashed;font-weight:600;cursor:not-allowed;opacity:.85}
+table.iosheet tbody tr[data-g="meat"] td:first-child select{color:#1d4ed8}
+table.iosheet tbody tr[data-g="fgself"] td:first-child select,
+table.iosheet tbody tr[data-g="fgbuy"] td:first-child select{color:#0b6b3a}
+table.iosheet tbody tr[data-g="sub"] td:first-child select{color:#4d5b70}
+#rowMenu button.dis,#rowMenu button:disabled{opacity:.5;cursor:not-allowed}
+
+@media (max-width:1100px){
+  #ioSheetModal .vhead{grid-template-columns:1fr 1fr}
+  .usearch input{width:160px}
+}
+@media (max-width:768px){
+  .unipane{margin-top:0}
+  #uniTableWrap,#utxTableWrap{max-height:none}
+  .utool .chip{height:28px;padding:0 10px;font-size:11.6px}
+  .usearch{flex:1 1 160px}
+  .usearch input{width:100%}
+  .sidefoot{display:none}
+}
+
+/* ---------- v16 해동 · 창고이동 팝업 ---------- */
+#uniMoveModal .modal-card.mvcard{width:min(640px,calc(100vw - 32px));max-width:640px;padding:16px 18px 14px}
+#uniMoveModal .modes{margin:4px 0 10px}
+#uniMoveModal .modes .mode{padding:8px 4px;font-size:12.5px}
+.mvgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px 12px}
+.mvgrid .field{margin:0}
+.mvgrid .field>span{font-size:11.4px;font-weight:700;color:#7b8a9e}
+.mvgrid input,.mvgrid select{width:100%;height:34px;border:1px solid #e2e8f1;border-radius:8px;padding:0 9px;font:inherit;font-size:12.8px;background:#fff}
+.mvgrid select{font-weight:600}
+.mvstat{margin:10px 0 0;padding:9px 11px;border:1px solid #eef2f8;border-radius:9px;background:#fbfcfe;font-size:12px;color:#5b6b82;line-height:1.5}
+.mvstat b{color:#1d2837;font-weight:700}
+#uniMoveModal .msg{margin:6px 0 0;color:#b42318;font-size:12px;min-height:0}
+@media (max-width:768px){.mvgrid{grid-template-columns:1fr}}
