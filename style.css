@@ -2088,3 +2088,34 @@ td.num{font-weight:700;color:var(--ink)}
   .pacts .psep{display:none}
   .pacts .btn{height:27px;font-size:11.4px}
 }
+
+/* ==========================================================================
+   v15 — 24인치(1920px) 전체 폭 확장 · 사이드바 196px 슬림 · 작업 열 통일
+   ========================================================================== */
+/* ---------- 화면 가로 꽉 채우기 (좌우 바깥 여백 14px) ---------- */
+.v8shell,.top,.banner,.modesw,.kpis,.layout,.accwrap{max-width:none}
+.top{padding:10px 14px}
+.banner{margin:12px 14px 0}
+.v8shell{grid-template-columns:196px minmax(0,1fr);gap:12px;padding:14px 14px 46px}
+
+/* ---------- 사이드바 196px — 하위 메뉴 글자·숫자 배지가 잘리지 않게 (PC만) ---------- */
+@media (min-width:769px){
+  .v8side{padding:8px 8px 10px}
+  .v8side .v8nav .v8grp .v8cat{gap:8px;padding:0 7px;font-size:12.4px}
+  .v8side .v8sub{margin:2px 0 3px 15px;padding-left:8px}
+  .v8side .v8sub .v8item{gap:5px;padding:0 7px;font-size:12.2px}
+  .v8side .v8sub .v8item .cnt{padding:1px 5px;font-size:10px}
+  .v8big{padding:0 7px}
+}
+
+/* ---------- 작업 열 — 어느 표든 [작업 ▾] 한 버튼 ---------- */
+th.actcol,td.actcell.actcol{width:76px}
+td.actcell .actmenu{display:inline-flex;align-items:center;justify-content:center;gap:2px;
+  height:24px;padding:0 8px;font-size:11.5px;font-weight:600;border-radius:7px}
+td.actcell{white-space:nowrap}
+
+@media (max-width:768px){
+  .v8shell{grid-template-columns:minmax(0,1fr);gap:0;padding:0 10px 82px}
+  .top{padding:10px 12px}
+  .banner{margin:10px 12px 0}
+}

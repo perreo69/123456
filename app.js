@@ -3477,7 +3477,8 @@ var LIVE = (function () {
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
   var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {} };
   var COL_MIN = 44, COL_MAX = 720;
-  var ACT_DEF = { lot: 78, log: 84, fpG: 78, fpL: 112, fpP: 96, accV: 156, accR: 132, accE: 96, accB: 156, accS: 156 };
+  /* v15 — 어느 표든 작업 열은 [작업 ▾] 한 버튼이라 폭이 같다 */
+  var ACT_DEF = { lot: 76, log: 76, fpG: 76, fpL: 76, fpP: 76, accV: 76, accR: 76, accE: 76, accB: 76, accS: 76 };
   var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC'];
   var COLW_KEY = 'meatERP.colw.v4';
   function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
@@ -3729,21 +3730,49 @@ var LIVE = (function () {
     return '<th class="num actcol"><span class="th-plain">작업</span>' +
       '<span class="colrz" data-rz="_act" title="드래그: 열 너비 조절"></span></th>';
   }
-  function colGroup(tbl, cols, actDef) {
+  /* v15 — 모든 표의 작업 열: 버튼을 가로로 늘어놓지 않고 [작업 ▾] 하나로 통일 */
+  function actMenuBtn(menu, attrs, title) {
+    var a = '', k, v;
+    for (k in attrs) {
+      if (!Object.prototype.hasOwnProperty.call(attrs, k)) continue;
+      v = attrs[k];
+      if (v === null || v === undefined || v === '') continue;
+      a += ' data-' + k + '="' + esc(String(v)) + '"';
+    }
+    return '<button type="button" class="actmenu" data-menu="' + menu + '"' + a +
+      ' title="' + esc(title || '작업') + '">작업 ▾</button>';
+  }
+  function colGroup(tbl, cols, actDef, widths, actW) {
     var out = ['<colgroup>'], i;
     for (i = 0; i < cols.length; i++) {
-      out.push('<col data-colwrap="' + cols[i].k + '" style="width:' + colWidth(tbl, cols[i].k, cols[i].w) + 'px">');
+      out.push('<col data-colwrap="' + cols[i].k + '" style="width:' +
+        (widths ? widths[i] : colWidth(tbl, cols[i].k, cols[i].w)) + 'px">');
     }
-    if (actDef) out.push('<col data-colwrap="_act" style="width:' + colWidth(tbl, '_act', actDef) + 'px">');
+    if (actDef) out.push('<col data-colwrap="_act" style="width:' + (actW || colWidth(tbl, '_act', actDef)) + 'px">');
     out.push('</colgroup>');
     return out.join('');
   }
-  function tableOpen(cls, tbl, cols, actDef) {
-    var w = 0, i;
-    for (i = 0; i < cols.length; i++) w += colWidth(tbl, cols[i].k, cols[i].w);
-    if (actDef) w += colWidth(tbl, '_act', actDef);
-    return '<table class="fixed ' + cls + '" style="width:' + w + 'px;min-width:' + w + 'px">' +
-      colGroup(tbl, cols, actDef);
+  function tableOpen(cls, tbl, cols, actDef, wrapId) {
+    var w = 0, actW = actDef ? colWidth(tbl, '_act', actDef) : 0, widths = [], i;
+    for (i = 0; i < cols.length; i++) { widths.push(colWidth(tbl, cols[i].k, cols[i].w)); w += widths[i]; }
+    w += actW;
+    /* v15 — 24인치 화면에서는 표가 본문 폭을 채우게 칸을 같은 비율로 늘린다.
+       (작업 열은 76px 그대로 — 넓은 화면에서도 한 칸만 차지) */
+    var outer = w, avail = 0, el = wrapId ? $(wrapId) : null;
+    if (el) avail = (el.clientWidth || 0) - 2;
+    var diff = avail - w;
+    /* 넓은 화면(±24px 이상 차이)이면 칸을 같은 비율로 맞춰 표가 본문 폭을 채운다.
+       몇 px 모자라 가로 스크롤이 생기는 경우(-48px까지)도 살짝 줄여 맞춘다. */
+    if (avail > 0 && (w - actW) > 0 && (diff > 24 || (diff < 0 && diff >= -48))) {
+      var base = w - actW, acc = 0, mx = 0;
+      for (i = 0; i < widths.length; i++) widths[i] = Math.round(widths[i] * (base + diff) / base);
+      for (i = 0; i < widths.length; i++) acc += widths[i];
+      for (i = 1; i < widths.length; i++) if (widths[i] > widths[mx]) mx = i;
+      widths[mx] += (base + diff) - acc;   /* 반올림 오차는 가장 넓은 칸이 흡수 */
+      outer = avail;
+    }
+    return '<table class="fixed ' + cls + '" style="width:' + outer + 'px;min-width:' + Math.min(outer, w) + 'px">' +
+      colGroup(tbl, cols, actDef, widths, actW);
   }
 
   /* ---------- 재고표 ---------- */
@@ -3768,7 +3797,7 @@ var LIVE = (function () {
       wrap.scrollTop = 0;
       return;
     }
-    var html = [tableOpen('t-lot', 'lot', cols, ACT_DEF.lot),
+    var html = [tableOpen('t-lot', 'lot', cols, ACT_DEF.lot, 'tableWrap'),
       '<thead><tr>'];
     for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortLot, cur.fLot));
     html.push(actTh() + '</tr></thead><tbody>');
@@ -3867,7 +3896,7 @@ var LIVE = (function () {
     }
     var cols = ERP.LOG_COLS;
     var page = list.slice(0, cur.hLimit);
-    var html = [tableOpen('t-log', 'log', cols, ACT_DEF.log), '<thead><tr>'];
+    var html = [tableOpen('t-log', 'log', cols, ACT_DEF.log, 'tableWrap'), '<thead><tr>'];
     for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortLog, cur.fLog));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < page.length; i++) {
@@ -3942,7 +3971,7 @@ var LIVE = (function () {
       wrap.scrollTop = 0;
       return;
     }
-    var html = [tableOpen('t-chg', 'chg', cols, 0), '<thead><tr>'];
+    var html = [tableOpen('t-chg', 'chg', cols, 0, 'tableWrap'), '<thead><tr>'];
     for (i = 0; i < cols.length; i++) html.push(thHtml(cols[i], cur.sortChg, cur.fChg));
     html.push('</tr></thead><tbody>');
     for (i = 0; i < list.length; i++) {
@@ -4377,6 +4406,49 @@ var LIVE = (function () {
     items.push({ label: '✏️ 수정', act: 'edit', id: e.dbid });
     items.push({ label: '↩️ 취소', act: 'undo', id: e.dbid, danger: true });
     return items;
+  }
+  /* v15 — 완제품·전표·미지급금·원장·경비 표의 [작업 ▾] 메뉴 항목 */
+  function tableMenuItems(btn) {
+    var m = btn.getAttribute('data-menu'), items = [], v, p, id;
+    if (m === 'fglog') {
+      id = Number(btn.getAttribute('data-fglog'));
+      if (btn.getAttribute('data-kind') === 'OUT') items.push({ label: '📄 거래명세표', act: 'fgstmt', id: id });
+      if (items.length) items.push({ sep: true });
+      items.push({ label: '↩️ 취소', act: 'fgundo', id: id, danger: true });
+      return items;
+    }
+    if (m === 'fgpr') return [{ label: '✏️ 단가 수정', act: 'fgprice', code: btn.getAttribute('data-fgpr') }];
+    if (m === 'vch') {
+      v = voucherOf(btn.getAttribute('data-vid'));
+      if (!v) return null;
+      if (v.t !== 'purchase') items.push({ label: '📄 거래명세표', act: 'vstmt', id: v.id });
+      items.push({ label: '✏️ 수정', act: 'vedit', id: v.id });
+      items.push({ sep: true });
+      items.push({ label: '🗑 삭제', act: 'vdel', id: v.id, danger: true });
+      return items;
+    }
+    if (m === 'bal') {
+      p = btn.getAttribute('data-partner') || '';
+      items.push({ label: btn.getAttribute('data-kind') === 'buy' ? '💸 지급 입력' : '💰 수금 입력', act: 'bpay', kind: btn.getAttribute('data-kind'), partner: p });
+      items.push({ label: '📒 거래처 원장', act: 'bledger', partner: p });
+      return items;
+    }
+    if (m === 'led') {
+      p = btn.getAttribute('data-partner') || '';
+      items.push({ label: '💰 수금 입력', act: 'payin', partner: p });
+      items.push({ label: '💸 지급 입력', act: 'payout', partner: p });
+      items.push({ sep: true });
+      items.push({ label: '📋 수금·지급 내역', act: 'paylist', partner: p });
+      return items;
+    }
+    if (m === 'exp') {
+      id = Number(btn.getAttribute('data-eid'));
+      items.push({ label: '✏️ 수정', act: 'eedit', id: id });
+      items.push({ sep: true });
+      items.push({ label: '🗑 삭제', act: 'edel', id: id, danger: true });
+      return items;
+    }
+    return null;
   }
 
   /* ==========================================================================
@@ -5513,6 +5585,7 @@ var LIVE = (function () {
       drag.h.classList.remove('on');
       drag = null;
       document.body.classList.remove('colresizing');
+      renderCurrent();   /* v15 — 바꾼 너비로 다시 그려 표가 화면 폭을 다시 채우게 */
     }
     document.addEventListener('pointerup', endDrag);
     document.addEventListener('pointercancel', endDrag);
@@ -6004,7 +6077,7 @@ var LIVE = (function () {
       return;
     }
     var page = list.slice(0, cur.fgLimit);
-    var html = [(cur.v6ok === false ? noV4('로트 표(<b>fp_lots</b>)가 아직 없어 품목 단위로 보입니다. <b>supabase_migrate_v6.sql</b>을 실행하면 로트번호·입고일·소비기한 열이 채워집니다.') : ''), tableOpen('t-fg', 'fpG', cols, ACT_DEF.fpG), '<thead><tr>'], c;
+    var html = [(cur.v6ok === false ? noV4('로트 표(<b>fp_lots</b>)가 아직 없어 품목 단위로 보입니다. <b>supabase_migrate_v6.sql</b>을 실행하면 로트번호·입고일·소비기한 열이 채워집니다.') : ''), tableOpen('t-fg', 'fpG', cols, ACT_DEF.fpG, 'fgTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.fgSortG, cur.fFgG));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < page.length; i++) {
@@ -6035,17 +6108,16 @@ var LIVE = (function () {
       return;
     }
     var page = list.slice(0, cur.fgLimit);
-    var html = [tableOpen('t-fg', 'fpL', cols, ACT_DEF.fpL), '<thead><tr>'], c;
+    var html = [tableOpen('t-fg', 'fpL', cols, ACT_DEF.fpL, 'fgTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.fgSortL, cur.fFgL));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < page.length; i++) {
       var g = page[i];
       html.push('<tr class="fgrow' + (g.undone ? ' undone' : '') + '" data-fgcode="' + esc(g.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgLogCellHtml(g, cols[c].k));
-      html.push('<td class="actcell actcol"><div class="acts">' + (g.undone
+      html.push('<td class="actcell actcol">' + (g.undone
         ? '<span class="ttag">취소됨</span>'
-        : (g.t === 'OUT' ? '<button class="act stmt" data-fgstmt="' + g.id + '" title="거래명세표">📄</button>' : '') +
-          '<button class="cancel" data-fgundo="' + g.id + '">취소</button>') + '</div></td></tr>');
+        : actMenuBtn('fglog', { fglog: g.id, kind: g.t }, '명세표·취소')) + '</td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -6065,14 +6137,14 @@ var LIVE = (function () {
       return;
     }
     var page = list.slice(0, cur.fgLimit);
-    var html = [tableOpen('t-fg', 'fpP', cols, ACT_DEF.fpP), '<thead><tr>'], c;
+    var html = [tableOpen('t-fg', 'fpP', cols, ACT_DEF.fpP, 'fgTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.fgSortP, cur.fFgP));
     html.push(actTh() + '</tr></thead><tbody>');
     for (var i = 0; i < page.length; i++) {
       var p = page[i];
       html.push('<tr class="fgrow" data-fgcode="' + esc(p.code) + '">');
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
-      html.push('<td class="actcell actcol"><div class="acts"><button class="act edit" data-fgprice="' + esc(p.code) + '">수정</button></div></td></tr>');
+      html.push('<td class="actcell actcol">' + actMenuBtn('fgpr', { fgpr: p.code }, '단가 수정') + '</td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -7033,17 +7105,14 @@ var LIVE = (function () {
       return;
     }
     var shown = list.slice(0, 400);
-    var html = [tableOpen('t-acc ' + (isBuy ? 't-buy' : 't-sale'), tbl, cols, ACT_DEF[tbl]), '<thead><tr>'];
+    var html = [tableOpen('t-acc ' + (isBuy ? 't-buy' : 't-sale'), tbl, cols, ACT_DEF[tbl], isBuy ? 'buyTableWrap' : 'saleTableWrap'), '<thead><tr>'];
     for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], sort, fl));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < shown.length; i++) {
       var v = shown[i];
       html.push('<tr class="accrow ' + (isBuy ? 'vbuy' : 'vsale') + '" data-vrow="' + v.id + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(v, cols[c].k, isBuy ? 'B' : 'S'));
-      html.push('<td class="actcell actcol"><div class="acts">' +
-        (isBuy ? '' : '<button class="act stmt" data-vstmt="' + v.id + '" title="거래명세표 인쇄">📄</button>') +
-        '<button class="act edit" data-vedit="' + v.id + '">수정</button>' +
-        '<button class="cancel" data-vdel="' + v.id + '">삭제</button></div></td></tr>');
+      html.push('<td class="actcell actcol">' + actMenuBtn('vch', { vid: v.id }, '명세표·수정·삭제') + '</td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > shown.length) {
@@ -7131,10 +7200,7 @@ var LIVE = (function () {
           '<td class="num">' + (r[mainKey] ? fmtInt(Math.round(r[mainKey])) : '-') + '</td>' +
           '<td class="num">' + (r[payKey] ? fmtInt(Math.round(r[payKey])) : '-') + '</td>' +
           '<td class="num ' + (isBuy ? 'pay' : 'recv') + '"><b>' + fmtInt(Math.round(r[balKey])) + '</b></td>' +
-          '<td class="actcell"><div class="acts">' +
-          '<button class="act ' + (isBuy ? 'out' : 'in') + '" data-bpay="' + esc(r.partner) + '">' +
-          (isBuy ? '지급' : '수금') + '</button>' +
-          '<button class="act" data-bledger="' + esc(r.partner) + '">원장</button></div></td></tr>');
+          '<td class="actcell">' + actMenuBtn('bal', { partner: r.partner, kind: kind }, isBuy ? '지급·원장' : '수금·원장') + '</td></tr>');
       }
       html.push('<tr class="sumrow"><td><b>합계</b></td><td class="num"><b>' + fmtInt(Math.round(tMain)) + '</b></td>' +
         '<td class="num"><b>' + fmtInt(Math.round(tPay)) + '</b></td>' +
@@ -7166,6 +7232,14 @@ var LIVE = (function () {
   }
   function balanceStatusClick(ev, t, kind) {
     var isBuy = kind === 'buy';
+    /* v15 — 표 공통 [작업 ▾] */
+    var menuBtn = t.closest ? t.closest('[data-menu]') : null;
+    if (menuBtn) {
+      ev.preventDefault(); ev.stopPropagation();
+      var mi = tableMenuItems(menuBtn);
+      if (mi && mi.length) openRowMenu(menuBtn, mi);
+      return true;
+    }
     var pay = t.closest ? t.closest('[data-bpay]') : null;
     if (pay) { openAccPay(isBuy ? 'out' : 'in', pay.getAttribute('data-bpay')); return true; }
     var del = t.closest ? t.closest('[data-bpaydel]') : null;
@@ -7212,7 +7286,7 @@ var LIVE = (function () {
       wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>기간에 현장 출고가 없습니다. 원료육 출고처 <b>🏭 현장</b>과 완제품 출고 <b>🏭 현장소모</b>가 여기에 모입니다.</td></tr></tbody></table>';
       return;
     }
-    var html = [tableOpen('t-prod', tbl, cols, 0), '<thead><tr>'];
+    var html = [tableOpen('t-prod', tbl, cols, 0, 'prodTableWrap'), '<thead><tr>'];
     for (c = 0; c < cols.length; c++) html.push(thPlain(cols[c]));
     html.push('</tr></thead><tbody>');
     for (i = 0; i < list.length; i++) {
@@ -7244,7 +7318,7 @@ var LIVE = (function () {
     if (!anyProd) {
       html.push('<div class="v8note">아직 <b>자체생산</b> 입고가 없어 1단위당 제조원가를 계산할 수 없습니다. 완제품 입고에서 <b>🏭 자체생산</b>으로 등록하면 이 표에 단위원가·마진이 자동으로 채워집니다.</div>');
     }
-    html.push(tableOpen('t-prod', 'prodC', cols, 0), '<thead><tr>');
+    html.push(tableOpen('t-prod', 'prodC', cols, 0, 'prodCostWrap'), '<thead><tr>');
     for (c = 0; c < cols.length; c++) html.push(thPlain(cols[c]));
     html.push('</tr></thead><tbody>');
     for (var i = 0; i < list.length; i++) {
@@ -7357,17 +7431,14 @@ var LIVE = (function () {
       return;
     }
     var page = list.slice(0, cur.accLimit);
-    var html = [tableOpen('t-acc', 'accV', cols, ACT_DEF.accV), '<thead><tr>'], c;
+    var html = [tableOpen('t-acc', 'accV', cols, ACT_DEF.accV, 'accTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.accSortV, cur.fAccV));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < page.length; i++) {
       var v = page[i];
       html.push('<tr class="accrow" data-vrow="' + v.id + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(v, cols[c].k, 'V'));
-      html.push('<td class="actcell actcol"><div class="acts">' +
-        (v.t === 'sale' ? '<button class="act stmt" data-vstmt="' + v.id + '" title="거래명세표 인쇄">📄</button>' : '') +
-        '<button class="act edit" data-vedit="' + v.id + '">수정</button>' +
-        '<button class="cancel" data-vdel="' + v.id + '">삭제</button></div></td></tr>');
+      html.push('<td class="actcell actcol">' + actMenuBtn('vch', { vid: v.id }, '명세표·수정·삭제') + '</td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.accLimit) {
@@ -7397,17 +7468,14 @@ var LIVE = (function () {
       wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>거래처별 원장이 비어 있습니다. 전표를 넣으면 자동으로 모입니다.</td></tr></tbody></table>';
       return;
     }
-    var html = [tableOpen('t-acc', 'accR', cols, ACT_DEF.accR), '<thead><tr>'], c;
+    var html = [tableOpen('t-acc', 'accR', cols, ACT_DEF.accR, 'accTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thPlain(cols[c], cur.accSortR));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < list.length; i++) {
       var r = list[i];
       html.push('<tr class="accrow" data-partner="' + esc(r.partner) + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(r, cols[c].k, 'R'));
-      html.push('<td class="actcell actcol"><div class="acts">' +
-        '<button class="act in" data-payin="' + esc(r.partner) + '">수금</button>' +
-        '<button class="act out" data-payout="' + esc(r.partner) + '">지급</button>' +
-        '<button class="act" data-paylist="' + esc(r.partner) + '">내역</button></div></td></tr>');
+      html.push('<td class="actcell actcol">' + actMenuBtn('led', { partner: r.partner }, '수금·지급·내역') + '</td></tr>');
       if (cur.payOpen[r.partner]) {
         var pays = [], k;
         for (k = 0; k < st.payments.length; k++) {
@@ -7447,15 +7515,14 @@ var LIVE = (function () {
       wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>경비·수입 기록이 없습니다. 위 <b>＋ 경비·수입</b>으로 넣거나 통장·카드 엑셀을 올려 보세요.</td></tr></tbody></table>';
       return;
     }
-    var html = [tableOpen('t-acc', 'accE', cols, ACT_DEF.accE), '<thead><tr>'], c;
+    var html = [tableOpen('t-acc', 'accE', cols, ACT_DEF.accE, 'accTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], cur.accSortE, cur.fAccE));
     html.push(actTh() + '</tr></thead><tbody>');
     for (i = 0; i < list.length; i++) {
       var e = list[i];
       html.push('<tr class="accrow" data-erow="' + e.id + '">');
       for (c = 0; c < cols.length; c++) html.push(accCellHtml(e, cols[c].k, 'E'));
-      html.push('<td class="actcell actcol"><div class="acts"><button class="act edit" data-eedit="' + e.id + '">수정</button>' +
-        '<button class="cancel" data-edel="' + e.id + '">삭제</button></div></td></tr>');
+      html.push('<td class="actcell actcol">' + actMenuBtn('exp', { eid: e.id }, '수정·삭제') + '</td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.accLimit) {
@@ -7478,7 +7545,7 @@ var LIVE = (function () {
       wrap.innerHTML = '<table><tbody><tr class="empty-row"><td>표시할 손익이 없습니다. 전표·경비를 넣으면 월별로 모입니다.</td></tr></tbody></table>';
       return;
     }
-    var html = [tableOpen('t-acc', 'accM', cols, 0), '<thead><tr>'], c;
+    var html = [tableOpen('t-acc', 'accM', cols, 0, 'accTableWrap'), '<thead><tr>'], c;
     for (c = 0; c < cols.length; c++) html.push(thPlain(cols[c], { k: '', dir: 1 }));
     html.push('</tr></thead><tbody>');
     for (i = 0; i < shown.length; i++) {
@@ -9560,6 +9627,7 @@ var LIVE = (function () {
       drag.h.classList.remove('on');
       drag = null;
       document.body.classList.remove('colresizing');
+      renderCurrent();   /* v15 — 바꾼 너비로 다시 그려 표가 화면 폭을 다시 채우게 */
     }
     document.addEventListener('pointerup', endDrag);
     document.addEventListener('pointercancel', endDrag);
@@ -9590,6 +9658,14 @@ var LIVE = (function () {
       if (filtBtn) {
         ev.preventDefault();
         openFilter(wrapId === 'fgTableWrap' ? fgTableOf() : accTableOf(), filtBtn.getAttribute('data-filter'), filtBtn);
+        return;
+      }
+      /* v15 — 표 공통 [작업 ▾] (완제품 이력·단가 · 전표 · 거래처 원장 · 경비) */
+      var menuBtn = t.closest ? t.closest('[data-menu]') : null;
+      if (menuBtn && menuBtn.getAttribute('data-menu') !== 'fg' && menuBtn.getAttribute('data-menu') !== 'lot' && menuBtn.getAttribute('data-menu') !== 'log') {
+        ev.preventDefault(); ev.stopPropagation();
+        var mi = tableMenuItems(menuBtn);
+        if (mi && mi.length) openRowMenu(menuBtn, mi);
         return;
       }
       handler(ev, t);
@@ -10634,6 +10710,39 @@ var LIVE = (function () {
             if (stmtLog.t === 'out') openStmt('meat', stmtLog);
             else toast('출고 건에서만 명세표를 열 수 있습니다.', 'warn');
           }
+        } else if (it.act === 'fgstmt') {
+          var fgLine = null, fi;
+          for (fi = 0; fi < st.fpLogs.length; fi++) if (Number(st.fpLogs[fi].id) === Number(it.id)) fgLine = st.fpLogs[fi];
+          if (fgLine) openStmt('fp', fgLine);
+        } else if (it.act === 'fgundo') {
+          fgUndo(Number(it.id), null);
+        } else if (it.act === 'vstmt') {
+          var vv = voucherOf(it.id);
+          if (vv) openStmt('voucher', vv);
+        } else if (it.act === 'vedit') {
+          var vv2 = voucherOf(it.id);
+          if (vv2) openAccVoucher(vv2.t, vv2);
+        } else if (it.act === 'vdel') {
+          accDelete('v', Number(it.id));
+        } else if (it.act === 'bpay') {
+          openAccPay(it.kind === 'buy' ? 'out' : 'in', it.partner);
+        } else if (it.act === 'bledger') {
+          cur.accTab = 'R'; cur.accSearch = it.partner || ''; cur.accType = 'all';
+          if ($('accSearch')) $('accSearch').value = cur.accSearch;
+          setPane('acc');
+        } else if (it.act === 'payin') {
+          openAccPay('in', it.partner);
+        } else if (it.act === 'payout') {
+          openAccPay('out', it.partner);
+        } else if (it.act === 'paylist') {
+          cur.payOpen[it.partner] = !cur.payOpen[it.partner];
+          renderAccLedger();
+        } else if (it.act === 'eedit') {
+          var ex = null, xi;
+          for (xi = 0; xi < st.expenses.length; xi++) if (Number(st.expenses[xi].id) === Number(it.id)) ex = st.expenses[xi];
+          if (ex) openAccExpense(ex);
+        } else if (it.act === 'edel') {
+          accDelete('e', Number(it.id));
         }
       });
     }
