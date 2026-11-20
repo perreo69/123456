@@ -35,9 +35,12 @@ var ERP = (function () {
   /* ---------- 대분류 / 소분류 ---------- */
   /* v5: 원료육 ERP에서는 대분류를 화면·표·폼·CSV 어디에도 보이지 않는다.
      DB(lots.major_category)에는 예전 값 호환을 위해 '원료육'만 조용히 유지한다. */
-  var MAJORS = ['원료육', '완제품(자체생산)', '완제품(매입)', '야채/농산물', '부자재', '소스/양념', '기타'];
+  var MAJORS = ['원료육', '완제품', '소스', '향신료', '야채', '부자재', '기타'];
   var MAJOR_DEFAULT = '원료육';
-  function majorName(v) { var t = s(v); return t || MAJOR_DEFAULT; }
+  /* 옛 대분류 이름은 새 일곱 구분으로 읽는다(DB 마이그레이션 없이 화면만 맞춤) */
+  var MAJOR_OLD = { '완제품(자체생산)': '완제품', '완제품(매입)': '완제품', '완제품(외부매입)': '완제품',
+    '야채/농산물': '야채', '야채류': '야채', '소스/양념': '소스', '부자재': '부자재', '부재료': '부자재' };
+  function majorName(v) { var t = s(v); return MAJOR_OLD[t] || t || MAJOR_DEFAULT; }
 
   /* 옛 표기(돈/우/계/양)는 새 표기로 읽는다 (DB 마이그레이션 전 데이터도 안전하게) */
   var MEAT_OLD = { '돈': '돈육', '우': '우육', '계': '계육', '양': '양육' };
@@ -1639,7 +1642,7 @@ var ERP = (function () {
   /* ==========================================================================
      v4 · 완제품 ERP (fp_products · fp_logs)
      ========================================================================== */
-  var FP_CATS = ['완제품', '소스', '부재료', '향신료', '야채류'];
+  var FP_CATS = ['완제품', '치킨', '피자', '소시지', '소스', '부재료', '향신료', '야채류'];
   /* v8: 재고관리 대분류 묶음 — 전체 / 완제품 / 부자재·포장지 / 야채·소스 */
   var FP_CAT_GROUPS = {
     '완제품': ['완제품'],
@@ -1696,7 +1699,7 @@ var ERP = (function () {
       id: Number(r.id), code: nz(r.code), lot: nz(r.lot_no), cat: nz(r.category) || '완제품',
       n: nz(r.name), spec: nz(r.spec), unit: nz(r.unit) || '개',
       inD: nz(r.in_date), e: nz(r.exp_date), qty: r3(r.qty),
-      inp: r2(r.in_price), outp: r2(r.out_price), sup: nz(r.supplier)
+      inp: r2(r.in_price), outp: r2(r.out_price), sup: nz(r.supplier), memo: nz(r.memo)
     };
   }
   function fpStateFrom(prodRows, logRows, lotRows) {
@@ -1747,7 +1750,7 @@ var ERP = (function () {
         stock: L.qty, inp: L.inp > 0 ? L.inp : p.inp, outp: p.outp,
         amt: Math.round(L.qty * (L.inp > 0 ? L.inp : p.inp)),
         e: L.e, lot: L.lot, inD: L.inD, lotId: L.id, sup: p.sup, bc: p.bc, active: p.active,
-        _lot: true
+        memo: L.memo || '', _lot: true
       });
     }
     /* 로트 줄이 하나도 없는 품목(초기 등록만 하고 입고 전)도 보이게 */
@@ -1756,7 +1759,7 @@ var ERP = (function () {
       if (has[p.code]) continue;
       out.push({ code: p.code, cat: p.cat, n: p.n, spec: p.spec, unit: p.unit, stock: p.stock,
         inp: p.inp, outp: p.outp, amt: p.amt, e: p.e, lot: '', inD: '', lotId: null,
-        sup: p.sup, bc: p.bc, active: p.active, _lot: false });
+        sup: p.sup, bc: p.bc, active: p.active, memo: '', _lot: false });
     }
     return out;
   }
@@ -2925,17 +2928,46 @@ var ERP = (function () {
   }
 
   /* ==========================================================================
-     v16 — 통합 재고 · 통합 수불
+     v17 — 통합 재고 · 통합 수불
        원료육(lots·tx_logs)과 완제품·부자재(fp_products·fp_lots·fp_logs)를
        같은 13칸 표준 줄로 합친다(작업 칸까지 14칸).
-       · 재고: 로트 한 줄 = 창고 한 곳. 원료육은 냉동고·냉장고를 따로,
-               완제품·부자재는 상온/기타 한 곳으로 놓는다.
+       · 구분은 일곱 가지로 통일한다 — 원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타
+       · 재고: 로트 한 줄 = 창고 한 곳. 일곱 구분 모두 냉동 · 냉장 · 상온을 고른다.
+               원료육이 해동으로 냉동→냉장 옮겨진 로트는 창고를 냉장(해동)으로 보여 준다.
+       · 완제품은 대분류가 완제품 하나이고, 자체생산/외부매입은 이름 옆 [자체]·[매입] 꼬리표로 나눈다.
        · 수불: 이력 한 건 = 한 줄. 그 거래 직후 로트에 남은 수량을 잔여재고로 계산한다.
      ========================================================================== */
-  var UNI_CATS = ['원료육', '완제품(자체생산)', '완제품(외부매입)', '부자재·소스'];
-  var UNI_WH_NAME = { F: '냉동고', C: '냉장고', A: '상온/기타' };
-  var UNI_GROUPS = { all: '전체', meat: '원료육', fg: '완제품', fgself: '완제품(자체생산)',
-    fgbuy: '완제품(외부매입)', sub: '부자재·소스' };
+  var UNI_CATS = ['원료육', '완제품', '소스', '향신료', '야채', '부자재', '기타'];
+  var UNI_GROUP_KEYS = ['meat', 'fg', 'sauce', 'spice', 'veg', 'sub', 'etc'];
+  var UNI_WH_NAME = { F: '냉동', C: '냉장', A: '상온' };
+  var UNI_WH_KEYS = ['F', 'C', 'A'];
+  var UNI_GROUPS = { all: '전체', meat: '원료육', fg: '완제품', sauce: '소스', spice: '향신료',
+    veg: '야채', sub: '부자재', etc: '기타' };
+  /* 기존 표기(부자재·소스 · 완제품(자체생산) · 야채류 · 부재료 …)를 일곱 구분으로 옮긴다.
+     모르는 이름은 완제품으로 둔다(fp_products 의 기본 대분류가 완제품이다). */
+  var UNI_CAT_RULES = [
+    { g: 'sub', re: /부재|부자재|포장|박스|테이프|라벨|용기|봉투|트레이|완충재|소모품/ },
+    { g: 'spice', re: /향신|후추|시즈닝|파우더|소금|고춧가루|마늘가루|양념가루/ },
+    { g: 'veg', re: /야채|채소|농산|양파|대파|쪽파|당근|버섯|감자|마늘|배추|무청|무우|상추|깻잎|파프리카/ },
+    { g: 'sauce', re: /소스|양념|드레싱|케찹|케첩|마요|시럽|식초|간장/ },
+    { g: 'meat', re: /원료육|원육|생육|정육/ },
+    { g: 'fg', re: /완제품|치킨|피자|소시지|떡갈비|튀김|만두|너겟|스테이크|함박|돈까스|돈가스|핫도그/ },
+    { g: 'etc', re: /기타|잡화|기타품목/ }
+  ];
+  function uniCatGroupOfName(cat) {
+    var c = s(cat), i, r;
+    if (!c) return 'fg';
+    for (i = 0; i < UNI_CAT_RULES.length; i++) {
+      r = UNI_CAT_RULES[i];
+      if (r.re.test(c)) return r.g;
+    }
+    return 'fg';
+  }
+  function uniGroupName(g) { return UNI_GROUPS[g] || UNI_GROUPS.etc; }
+  function uniGroupOrder(g) {
+    var i = UNI_GROUP_KEYS.indexOf(g);
+    return i < 0 ? UNI_GROUP_KEYS.length : i;
+  }
   var UNI_COLS = [
     { k: 'cat', t: '구분', w: 118, f: 1 },
     { k: 'sub', t: '세부분류', w: 86, f: 1 },
@@ -2998,21 +3030,41 @@ var ERP = (function () {
     if (!x) return '';
     return map[nz(x.n) + '\u0001' + nz(x.mt)] || '';
   }
-  /* 완제품·부자재 통합 구분 — 품목의 대분류와 자체생산 여부로 네 가지 중 하나 */
+  /* 완제품·부자재 통합 구분 — 품목의 세부분류를 일곱 구분 중 하나로 옮긴다.
+     원료육은 lots 에서만 나오므로 fp 품목은 원료육으로 두지 않는다(기타로 둔다). */
   function uniFpCat(p, fpLogs) {
-    var grp = fpCatGroup(p && p.cat), i;
-    if (grp === '부자재·포장지' || grp === '야채·소스') return '부자재·소스';
-    if (s(p && p.sup).indexOf('자체생산') >= 0) return '완제품(자체생산)';
+    var g = uniCatGroupOfName(p && p.cat);
+    return g === 'meat' ? '기타' : uniGroupName(g);
+  }
+  /* 완제품 자체/매입 — 자체생산 입고이거나 품목 매입처가 '자체생산'이면 자체 */
+  function uniFpFlag(p, fpLogs) {
+    var i;
+    if (s(p && p.sup).indexOf('자체생산') >= 0) return '자체';
+    if (s(p && p.cat).indexOf('자체생산') >= 0) return '자체';
+    if (s(p && p.cat).indexOf('외부매입') >= 0) return '매입';
     for (i = 0; i < (fpLogs || []).length; i++) {
-      if (fpLogs[i] && fpLogs[i].code === p.code && selfMadeLog(fpLogs[i])) return '완제품(자체생산)';
+      if (fpLogs[i] && fpLogs[i].code === p.code && selfMadeLog(fpLogs[i])) return '자체';
     }
-    return '완제품(외부매입)';
+    return '매입';
   }
   function uniGroupOf(cat) {
-    if (cat === '원료육') return 'meat';
-    if (cat === '완제품(자체생산)') return 'fgself';
-    if (cat === '완제품(외부매입)') return 'fgbuy';
-    return 'sub';
+    var t = s(cat);
+    if (t === '원료육') return 'meat';
+    return uniCatGroupOfName(t);
+  }
+  /* fp_lots.memo 에 적어 두는 보관 위치 꼬리표 — 기존 글은 그대로 두고 wh:F/wh:C/wh:A 만 바꾼다 */
+  var UNI_WH_TAG = /(?:\[)?\bwh\s*[:=]\s*([FCA])(?:\])?/i;
+  function uniWhOfMemo(memo) {
+    var m = UNI_WH_TAG.exec(s(memo));
+    if (!m) return 'A';
+    var w = String(m[1]).toUpperCase();
+    return w === 'F' || w === 'C' ? w : 'A';
+  }
+  function uniMemoWh(memo, wh) {
+    var w = wh === 'F' ? 'F' : (wh === 'C' ? 'C' : 'A');
+    var rest = s(memo).replace(UNI_WH_TAG, ' ').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+    if (w === 'A') return rest;                 /* 상온은 꼬리표를 달지 않는다(기본값) */
+    return (rest ? rest + ' ' : '') + 'wh:' + w;
   }
   /* 규격/단위 칸 — 규격에 단위가 이미 들어 있으면 한 번만 적는다 (1박스/10EA / 박스 → 1박스/10EA) */
   function uniSpecText(spec, unit) {
@@ -3033,20 +3085,28 @@ var ERP = (function () {
   /* ---------- 통합 재고 줄 ---------- */
   function uniStockRows(st) {
     st = st || {};
-    var out = [], codes = uniMeatCodes(st.lots), i, l, p, cat, list;
+    var out = [], codes = uniMeatCodes(st.lots), i, l, p, cat, list, thawed = {}, thawKeys = {};
+    /* 해동 이력이 있는 로트 — 냉장 줄을 냉장(해동)으로 보여 준다.
+       로트 id 가 없는 예전 이력은 이름·업체·입고일·소비기한으로 찾는다. */
+    for (i = 0; i < (st.logs || []).length; i++) {
+      l = st.logs[i];
+      if (!l || l.t !== 'thaw') continue;
+      if (l.lid) thawed['L' + l.lid] = 1;
+      else thawKeys['M||' + [l.n, l.v, l.i, l.e].join('|')] = 1;
+    }
     for (i = 0; i < (st.lots || []).length; i++) {
       l = st.lots[i];
       if (!l) continue;
       if (r2(l.fq) > EPS) {
         out.push({ kind: 'meat', g: 'meat', cat: '원료육', sub: l.mt || '-', code: uniMeatCodeOf(codes, l),
           n: l.n, spec: 'kg', unit: 'kg', ob: uniObMeat(l), lot: uniLotNo(l.i, l.dbid),
-          wh: 'F', inD: l.i || '', e: l.e || '', qty: r2(l.fq), price: r2(l.price),
+          wh: 'F', thaw: false, flag: '', inD: l.i || '', e: l.e || '', qty: r2(l.fq), price: r2(l.price),
           amt: r0(l.fq * l.price), lotId: l.id, dbid: l.dbid, vendor: l.v || '' });
       }
       if (r2(l.cq) > EPS) {
         out.push({ kind: 'meat', g: 'meat', cat: '원료육', sub: l.mt || '-', code: uniMeatCodeOf(codes, l),
           n: l.n, spec: 'kg', unit: 'kg', ob: uniObMeat(l), lot: uniLotNo(l.i, l.dbid),
-          wh: 'C', inD: l.i || '', e: l.e || '', qty: r2(l.cq), price: r2(l.price),
+          wh: 'C', thaw: !!(thawed['L' + l.dbid] || thawKeys['M||' + [l.n, l.v, l.i, l.e].join('|')]), flag: '', inD: l.i || '', e: l.e || '', qty: r2(l.cq), price: r2(l.price),
           amt: r0(l.cq * l.price), lotId: l.id, dbid: l.dbid, vendor: l.v || '' });
       }
     }
@@ -3057,12 +3117,20 @@ var ERP = (function () {
       cat = uniFpCat(p, st.fpLogs);
       out.push({ kind: 'fp', g: uniGroupOf(cat), cat: cat, sub: p.cat || '-', code: p.code, n: p.n,
         spec: p.spec || '-', unit: p.unit || '개',
-        ob: cat === '완제품(자체생산)' ? '자사' : (p.sup || '-'),
+        ob: cat === '완제품' ? (uniFpFlag(p, st.fpLogs) === '자체' ? '자사' : (p.sup || '-')) : (p.sup || '-'),
+        flag: cat === '완제품' ? uniFpFlag(p, st.fpLogs) : '',
         lot: p.lot || (p.lotId ? uniLotNo(p.inD, p.lotId) : '-'),
-        wh: 'A', inD: p.inD || '', e: p.e || '', qty: r3(p.stock), price: r2(p.inp),
-        amt: Math.round(p.stock * p.inp), lotId: p.lotId, code: p.code, sup: p.sup || '', _lot: p._lot !== false });
+        wh: uniWhOfMemo(p.memo), thaw: false, inD: p.inD || '', e: p.e || '', qty: r3(p.stock), price: r2(p.inp),
+        amt: Math.round(p.stock * p.inp), lotId: p.lotId, code: p.code, sup: p.sup || '', memo: p.memo || '',
+        _lot: p._lot !== false });
     }
     return out;
+  }
+  /* 창고 이름 — 원료육이 해동으로 냉동→냉장 옮겨진 줄은 냉장(해동) */
+  function uniWhText(r) {
+    if (!r) return '-';
+    var t = UNI_WH_NAME[r.wh] || '-';
+    return (r.wh === 'C' && r.thaw) ? (t + '(해동)') : t;
   }
   function uniCell(r, k) {
     if (!r) return '';
@@ -3073,7 +3141,7 @@ var ERP = (function () {
     if (k === 'spec') return uniSpecText(r.spec, r.unit);
     if (k === 'ob') return r.ob;
     if (k === 'lot') return r.lot;
-    if (k === 'wh') return UNI_WH_NAME[r.wh] || '-';
+    if (k === 'wh') return uniWhText(r);
     if (k === 'inD') return r.inD || '';
     if (k === 'e') return r.e || '';
     if (k === 'qty') return r.qty;
@@ -3083,7 +3151,7 @@ var ERP = (function () {
   }
   function uniGroupHit(g, sel) {
     if (!sel || sel === 'all') return true;
-    if (sel === 'fg') return g === 'fgself' || g === 'fgbuy';
+    if (sel === 'fgself' || sel === 'fgbuy') return g === 'fg';   /* v16 칩 이름 호환 */
     return g === sel;
   }
   function uniSortStock(list, key, dir) {
@@ -3135,7 +3203,7 @@ var ERP = (function () {
   }
   /* 칩에 붙는 품목 수 — 재고 줄 전체 기준(필터와 무관) */
   function uniCatCounts(rows) {
-    var out = { all: 0, meat: 0, fg: 0, fgself: 0, fgbuy: 0, sub: 0 }, seen = {}, i, r, k;
+    var out = { all: 0, meat: 0, fg: 0, sauce: 0, spice: 0, veg: 0, sub: 0, etc: 0 }, seen = {}, i, r, k;
     for (i = 0; i < (rows || []).length; i++) {
       r = rows[i];
       k = r.kind + '|' + r.code;
@@ -3143,7 +3211,6 @@ var ERP = (function () {
       seen[k] = 1;
       out.all++;
       out[r.g] = (out[r.g] || 0) + 1;
-      if (r.g === 'fgself' || r.g === 'fgbuy') out.fg++;
     }
     return out;
   }
@@ -3161,14 +3228,26 @@ var ERP = (function () {
     if (note) parts.push(note);
     return parts.join(' · ');
   }
+  /* fp_lots.memo 찾기 — 이력의 lot_id 로 그 로트의 보관 위치 꼬리표를 읽는다 */
+  function fpLotMemoOf(st, code, lotId) {
+    var i, L, list = (st && st.fpLots) || [];
+    if (lotId !== null && lotId !== undefined && lotId !== '') {
+      for (i = 0; i < list.length; i++) {
+        L = list[i];
+        if (L && Number(L.id) === Number(lotId)) return s(L.memo);
+      }
+    }
+    for (i = 0; i < list.length; i++) {
+      L = list[i];
+      if (L && code && L.code === code) return s(L.memo);
+    }
+    return '';
+  }
   function uniFpCatForLog(g, fps) {
     var p = null, i;
     for (i = 0; i < (fps || []).length; i++) if (fps[i].code === g.code) { p = fps[i]; break; }
     if (!p) p = { code: g.code, cat: g.cat, sup: '' };
-    var grp = fpCatGroup(p.cat || g.cat);
-    if (grp === '부자재·포장지' || grp === '야채·소스') return '부자재·소스';
-    if (selfMadeLog(g) || s(p.sup).indexOf('자체생산') >= 0) return '완제품(자체생산)';
-    return '완제품(외부매입)';
+    return uniGroupName(uniCatGroupOfName(p.cat || g.cat));
   }
   function uniTxRows(st) {
     st = st || {};
@@ -3179,7 +3258,7 @@ var ERP = (function () {
       var isIn = !(e.t === 'out' || e.t === 'thaw' || e.t === 're');
       out.push({
         kind: 'meat', id: e.dbid, d: e.d || '', seq: Number(e.dbid) || 0, t: e.t,
-        tk: e.t === 'base' ? '입고' : kindName(e), gc: '원료육', g: 'meat', cat: '원료육',
+        tk: e.t === 'base' ? '입고' : kindName(e), gc: '원료육', g: 'meat', cat: '원료육', flag: '',
         code: uniMeatCodeOf(codes, e), n: e.n, spec: 'kg', unit: 'kg',
         lot: e.lid ? uniLotNo(e.i, Number(e.lid)) : '-',
         p: uniPartnerText(e), inQ: isIn ? r2(e.k) : 0, outQ: e.t === 'out' ? r2(e.k) : 0,
@@ -3196,12 +3275,14 @@ var ERP = (function () {
         kind: 'fp', id: g.id, d: g.d || '', seq: 1000000 + (Number(g.id) || 0), t: g.t,
         tk: g.t === 'IN' ? '입고' : (isFpSiteUse(g) ? '현장' : '출고'),
         gc: cat, g: uniGroupOf(cat), cat: cat, code: g.code, n: g.n,
+        flag: cat === '완제품' ? (selfMadeLog(g) ? '자체' : '매입') : '',
         spec: g.spec || '-', unit: g.unit || '개', lot: g.lot || (g.lotId ? uniLotNo(g.inD, g.lotId) : '-'),
         p: g.t === 'IN' ? (selfMadeLog(g) ? '자체생산' : (g.p || ''))
           : (isFpSiteUse(g) ? ('현장' + (s(g.p) ? ' · ' + s(g.p) : '')) : (g.p || '')),
         inQ: g.t === 'IN' ? r3(g.q) : 0, outQ: g.t === 'OUT' ? r3(g.q) : 0, bal: 0,
         price: g.t === 'IN' ? r2(g.inp) : r2(g.outp), amt: r2(g.amt),
-        worker: g.worker || '', email: g.email || '', note: g.note || '', act: true, wh: 'A',
+        worker: g.worker || '', email: g.email || '', note: g.note || '', act: true,
+        wh: uniWhOfMemo(fpLotMemoOf(st, g.code, g.lotId)),
         lotKey: 'F|' + g.code + '|' + (g.lotId || g.lot || '')
       });
     }
@@ -3289,12 +3370,11 @@ var ERP = (function () {
     return out;
   }
   function uniTxCounts(rows) {
-    var out = { all: 0, meat: 0, fg: 0, fgself: 0, fgbuy: 0, sub: 0, tk: {} }, i, r;
+    var out = { all: 0, meat: 0, fg: 0, sauce: 0, spice: 0, veg: 0, sub: 0, etc: 0, tk: {} }, i, r;
     for (i = 0; i < (rows || []).length; i++) {
       r = rows[i];
       out.all++;
       out[r.g] = (out[r.g] || 0) + 1;
-      if (r.g === 'fgself' || r.g === 'fgbuy') out.fg++;
       out.tk[r.tk] = (out.tk[r.tk] || 0) + 1;
     }
     return out;
@@ -3303,6 +3383,10 @@ var ERP = (function () {
 
   return {
     UNI_CATS: UNI_CATS, UNI_WH_NAME: UNI_WH_NAME, UNI_GROUPS: UNI_GROUPS, UNI_COLS: UNI_COLS,
+    UNI_GROUP_KEYS: UNI_GROUP_KEYS, UNI_WH_KEYS: UNI_WH_KEYS, UNI_WH_TAG: UNI_WH_TAG,
+    uniCatGroupOfName: uniCatGroupOfName, uniGroupName: uniGroupName, uniGroupOrder: uniGroupOrder,
+    uniWhOfMemo: uniWhOfMemo, uniMemoWh: uniMemoWh, uniFpFlag: uniFpFlag, uniWhText: uniWhText,
+    fpLotMemoOf: fpLotMemoOf,
     UNI_TX_COLS: UNI_TX_COLS, UNI_TX_KINDS: UNI_TX_KINDS,
     uniLotNo: uniLotNo, uniMeatCodes: uniMeatCodes, uniMeatCodeOf: uniMeatCodeOf,
     uniFpCat: uniFpCat, uniFpCatForLog: uniFpCatForLog, uniGroupOf: uniGroupOf,
@@ -3649,6 +3733,14 @@ var SB = (function () {
     } });
   }
   function fpUndo(id) { return rest('rpc/fp_tx_undo', { method: 'POST', body: { p_log_id: Number(id) } }); }
+  /* v17 — 로트의 보관 위치(냉동/냉장/상온)를 fp_lots.memo 의 wh:F 꼬리표로 저장한다.
+     fp_tx_apply 에는 창고 인자가 없어서(새 SQL 금지) 이미 있는 memo 열을 쓴다. */
+  function fpLotMemo(lotId, memo) {
+    return rest('fp_lots?id=eq.' + Number(lotId), {
+      method: 'PATCH', body: { memo: memo || '' },
+      headers: { Prefer: 'return=minimal' }
+    });
+  }
   function fpBatch(rows, allowNegative) {
     return rest('rpc/fp_batch', { method: 'POST', body: { p_rows: rows || [], p_allow_negative: !!allowNegative } });
   }
@@ -3718,7 +3810,7 @@ var SB = (function () {
     auth: { signIn: signIn, signUp: signUp, signOut: signOut, refresh: refresh, ensure: ensure, restore: restore, session: function () { return ses; } },
     db: { loadAll: loadAll, apply: apply, update: update, lotUpdate: lotUpdate, undo: undo, rest: rest,
       loadAllV4: loadAllV4,
-      fpProductSave: fpProductSave, fpApply: fpApply, fpUndo: fpUndo,
+      fpProductSave: fpProductSave, fpApply: fpApply, fpUndo: fpUndo, fpLotMemo: fpLotMemo,
       fpBatch: fpBatch, fpBatchPrice: fpBatchPrice,
       accVoucherSave: accVoucherSave, accVoucherDelete: accVoucherDelete, accReflect: accReflect,
       accPaymentSave: accPaymentSave, accPaymentDelete: accPaymentDelete,
@@ -6057,8 +6149,8 @@ var LIVE = (function () {
   var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
   var PANE_CAT = { uni: 'stock', unitx: 'stock', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
-    uni: ['통합 재고 현황', '원료육 · 완제품 · 부자재를 구분 없이 한 표에서 봅니다. 칸 이름과 순서는 어느 품목이든 같습니다.', '물류 · 통합 재고'],
-    unitx: ['통합 입출고 내역', '원료육 · 완제품 · 부자재의 입고·출고·해동·현장이 한 줄기로 이어지고, 줄마다 잔여재고가 남습니다.', '물류 · 통합 입출고'],
+    uni: ['통합 재고 현황', '일곱 구분(원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타)을 냉동·냉장·상온 한 표에서 봅니다. 칸 이름과 순서는 어느 품목이든 같습니다.', '물류 · 통합 재고'],
+    unitx: ['통합 입출고 내역', '일곱 구분의 입고·출고·해동·현장이 한 줄기로 이어지고, 줄마다 잔여재고가 남습니다.', '물류 · 통합 입출고'],
     meat: ['원료육 재고', '냉동고·냉장고를 나눠 보고, 표에서 바로 해동·출고로 이어집니다.', '물류 · 창고별 원료육'],
     fg: ['완제품·부자재 재고', '완제품·부자재를 대분류로 나눠 보고, 단가와 재고금액을 확인합니다.', '품목 · 완제품 상세'],
     buy: ['매입 내역', '거래처·기간별 매입 전표와 지급 상태를 한 표에서 봅니다.', '회계 · 매입 내역'],
@@ -6297,10 +6389,22 @@ var LIVE = (function () {
      ========================================================================== */
   var UNI_ACT = 76;
   function setTxt(id, v) { var el = $(id); if (el) el.textContent = v; }
+  /* 일곱 구분 색 — 원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타 */
   function uniCatClass(cat) {
-    return cat === '원료육' ? 'raw' : (cat === '완제품(자체생산)' ? 'fg' : (cat === '완제품(외부매입)' ? 'fgb' : 'ms'));
+    var t = String(cat || '');
+    if (t === '원료육') return 'raw';
+    if (t === '완제품') return 'fg';
+    if (t === '소스') return 'sauce';
+    if (t === '향신료') return 'spice';
+    if (t === '야채') return 'veg';
+    if (t === '부자재') return 'ms';
+    return 'etc';
   }
-  function uniWhClass(wh) { return wh === 'F' ? '' : (wh === 'C' ? ' chl' : ' amb'); }
+  function uniWhClass(wh, thaw) {
+    if (wh === 'F') return '';
+    if (wh === 'C') return thaw ? ' chl thaw' : ' chl';
+    return ' amb';
+  }
   function uniTagClass(tk) {
     return tk === '입고' ? 'blue' : (tk === '출고' ? 'gray' : (tk === '해동' ? 'amber' : (tk === '현장' ? 'line' : 'gray')));
   }
@@ -6310,7 +6414,11 @@ var LIVE = (function () {
     setTxt('navCntStock', c.all);
     setTxt('navCntMeat', c.meat);
     setTxt('navCntFg', c.fg);
+    setTxt('navCntSauce', c.sauce);
+    setTxt('navCntSpice', c.spice);
+    setTxt('navCntVeg', c.veg);
     setTxt('navCntSub', c.sub);
+    setTxt('navCntEtc', c.etc);
     setTxt('navCntTx', ERP.uniTxRows(st).length);
     if ($('sideAsOf')) $('sideAsOf').textContent = '재고 기준일 ' + today();
   }
@@ -6341,19 +6449,26 @@ var LIVE = (function () {
     if (dl <= 30) return '<span class="d warn">D-' + dl + '</span>';
     return '<span class="d">D-' + dl + '</span>';
   }
+  /* 품목명 옆 꼬리표 — 완제품만 [자체] / [매입] */
+  function uniFlagHtml(r) {
+    if (!r || r.cat !== '완제품' || !r.flag) return '';
+    var t = r.flag === '자체' ? '자체' : '매입';
+    return '<span class="fbadge ' + (t === '자체' ? 'self' : 'buy') + '" title="' +
+      (t === '자체' ? '자체생산 — 매입 전표를 만들지 않습니다' : '외부매입 — 매입 전표에 반영합니다') + '">' + t + '</span>';
+  }
   function uniRowHtml(r) {
     return '<tr class="unirow" data-kind="' + esc(r.kind) + '" data-lot="' + esc(r.kind === 'meat' ? r.lotId : '') + '"' +
       ' data-code="' + esc(r.kind === 'fp' ? r.code : '') + '" data-name="' + esc(r.n) + '" data-wh="' + esc(r.wh) + '"' +
       ' data-price="' + esc(r.price > 0 ? r.price : '') + '" data-vendor="' + esc(r.vendor || r.sup || '') + '"' +
-      ' data-lotno="' + esc(r.lot) + '" data-exp="' + esc(r.e || '') + '">' +
+      ' data-lotno="' + esc(r.lot) + '" data-exp="' + esc(r.e || '') + '" data-lotid="' + esc(r.kind === 'fp' ? (r.lotId || '') : '') + '">' +
       '<td><span class="cat ' + uniCatClass(r.cat) + '">' + esc(r.cat) + '</span></td>' +
       '<td class="sub">' + esc(r.sub || '-') + '</td>' +
       '<td><span class="code">' + esc(r.code || '-') + '</span></td>' +
-      '<td><span class="name" title="' + esc(r.n) + '">' + esc(r.n) + '</span></td>' +
+      '<td><span class="name" title="' + esc(r.n) + '">' + esc(r.n) + '</span>' + uniFlagHtml(r) + '</td>' +
       '<td class="sub">' + esc(ERP.uniSpecText(r.spec, r.unit)) + '</td>' +
       '<td class="sub" title="' + esc(r.ob) + '">' + esc(r.ob || '-') + '</td>' +
       '<td><span class="code">' + esc(r.lot || '-') + '</span></td>' +
-      '<td><span class="whchip' + uniWhClass(r.wh) + '">' + (ERP.UNI_WH_NAME[r.wh] || '-') + '</span></td>' +
+      '<td><span class="whchip' + uniWhClass(r.wh, r.thaw) + '">' + esc(ERP.uniWhText(r)) + '</span></td>' +
       '<td class="num dim">' + esc(r.inD || '-') + '</td>' +
       '<td><span class="num">' + esc(r.e || '-') + '</span>' + uniDday(r.e) + '</td>' +
       '<td class="r num b' + (r.qty <= ERP.EPS ? ' zero' : '') + '">' + fmtQty(r.qty) + '</td>' +
@@ -6362,8 +6477,9 @@ var LIVE = (function () {
       '<td class="c actcell actcol">' + actMenuBtn('uni', {
         kind: r.kind, lot: r.kind === 'meat' ? r.lotId : '', code: r.kind === 'fp' ? r.code : '',
         name: r.n, wh: r.wh, price: r.price > 0 ? r.price : '', exp: r.e || '',
-        vendor: r.vendor || r.sup || '', lotno: r.lot, ucat: r.cat
-      }, '해동·창고이동 · 입고 · 출고 · 정보 수정 · 수불 이력') + '</td></tr>';
+        vendor: r.vendor || r.sup || '', lotno: r.lot, ucat: r.cat,
+        lotid: r.kind === 'fp' ? (r.lotId || '') : '', flag: r.flag || ''
+      }, r.kind === 'fp' ? '보관 위치 변경 · 입고 · 출고 · 정보 수정 · 수불 이력' : '해동·창고이동 · 입고 · 출고 · 정보 수정 · 수불 이력') + '</td></tr>';
   }
   function renderUni() {
     var wrap = $('uniTableWrap');
@@ -6375,18 +6491,19 @@ var LIVE = (function () {
       sortKey: cur.uni.sortKey, sortDir: cur.uni.sortDir
     });
     var c = ERP.uniCatCounts(all);
-    setTxt('uniCntAll', c.all); setTxt('uniCntMeat', c.meat);
-    setTxt('uniCntSelf', c.fgself); setTxt('uniCntBuy', c.fgbuy); setTxt('uniCntSub', c.sub);
+    setTxt('uniCntAll', c.all); setTxt('uniCntMeat', c.meat); setTxt('uniCntFg', c.fg);
+    setTxt('uniCntSauce', c.sauce); setTxt('uniCntSpice', c.spice); setTxt('uniCntVeg', c.veg);
+    setTxt('uniCntSub', c.sub); setTxt('uniCntEtc', c.etc);
     var soon = 0, i;
     for (i = 0; i < all.length; i++) { var dl = daysLeft(all[i].e); if (dl !== null && dl >= 0 && dl <= 30) soon++; }
-    setTxt('uniHint', '규격이 달라도 같은 13개 칸에 들어갑니다' + (soon ? ' · 소비기한 임박 ' + soon + '건' : ''));
+    setTxt('uniHint', '일곱 구분 · 냉동/냉장/상온을 같은 13개 칸에 담습니다' + (soon ? ' · 소비기한 임박 ' + soon + '건' : ''));
     var tot = ERP.uniStockTotals(rows);
     if ($('uniSum')) $('uniSum').innerHTML = '<b>' + tot.items + '</b> 품목 · <b>' + tot.rows + '</b> 로트 · 재고금액 <b>' + fmtInt(tot.amount) + '원</b>';
     /* 칩 · 창고 칩 표시 */
     var g = cur.uni.g, btns = document.querySelectorAll('#uniCatChips [data-ucat]');
     for (i = 0; i < btns.length; i++) {
       var v = btns[i].getAttribute('data-ucat');
-      btns[i].classList.toggle('on', g === 'all' ? v === 'all' : (g === 'fg' ? (v === 'fgself' || v === 'fgbuy') : v === g));
+      btns[i].classList.toggle('on', g === 'all' ? v === 'all' : v === g);
     }
     btns = document.querySelectorAll('#uniWhChips [data-uwh]');
     for (i = 0; i < btns.length; i++) btns[i].classList.toggle('on', btns[i].getAttribute('data-uwh') === (cur.uni.wh || 'all'));
@@ -6434,7 +6551,7 @@ var LIVE = (function () {
       '<td><span class="cat ' + uniCatClass(e.gc) + '">' + esc(e.gc) + '</span></td>' +
       '<td><span class="tag ' + uniTagClass(e.tk) + '">' + esc(e.tk) + '</span></td>' +
       '<td><span class="code">' + esc(e.code || '-') + '</span></td>' +
-      '<td><span class="name" title="' + esc(e.n) + '">' + esc(e.n) + '</span></td>' +
+      '<td><span class="name" title="' + esc(e.n) + '">' + esc(e.n) + '</span>' + uniFlagHtml(e) + '</td>' +
       '<td class="sub">' + esc(ERP.uniSpecText(e.spec, e.unit)) + '</td>' +
       '<td><span class="code">' + esc(e.lot || '-') + '</span></td>' +
       '<td class="sub" title="' + esc(e.p) + '">' + esc(e.p || '-') + '</td>' +
@@ -6458,7 +6575,9 @@ var LIVE = (function () {
     var keep = wrap.scrollTop, keepL = wrap.scrollLeft;
     var base = ERP.uniFilterTx(ERP.uniTxRows(st), { g: cur.utx.g, from: cur.utx.from, to: cur.utx.to, sortKey: 'd', sortDir: -1 });
     var c = ERP.uniTxCounts(base);
-    setTxt('utxCntAll', c.all); setTxt('utxCntMeat', c.meat); setTxt('utxCntFg', c.fg); setTxt('utxCntSub', c.sub);
+    setTxt('utxCntAll', c.all); setTxt('utxCntMeat', c.meat); setTxt('utxCntFg', c.fg);
+    setTxt('utxCntSauce', c.sauce); setTxt('utxCntSpice', c.spice); setTxt('utxCntVeg', c.veg);
+    setTxt('utxCntSub', c.sub); setTxt('utxCntEtc', c.etc);
     var rows = utxPeriodRows();
     var i, inSum = 0, outSum = 0, amtSum = 0;
     for (i = 0; i < rows.length; i++) { inSum += rows[i].inQ; outSum += rows[i].outQ; amtSum += rows[i].amt; }
@@ -6538,9 +6657,12 @@ var LIVE = (function () {
     var kind = btn.getAttribute('data-kind'), lot = btn.getAttribute('data-lot') || '';
     var o = { kind: kind, lot: lot, code: btn.getAttribute('data-code') || '', name: btn.getAttribute('data-name') || '',
       wh: btn.getAttribute('data-wh') || '', price: btn.getAttribute('data-price') || '', exp: btn.getAttribute('data-exp') || '',
-      vendor: btn.getAttribute('data-vendor') || '', lotno: btn.getAttribute('data-lotno') || '', ucat: btn.getAttribute('data-ucat') || '' };
+      vendor: btn.getAttribute('data-vendor') || '', lotno: btn.getAttribute('data-lotno') || '', ucat: btn.getAttribute('data-ucat') || '',
+      lotid: btn.getAttribute('data-lotid') || '', flag: btn.getAttribute('data-flag') || '' };
     return [
-      { label: '해동 · 창고이동', act: 'umove', o: o, dis: kind !== 'meat' },
+      kind === 'fp'
+        ? { label: '보관 위치 변경', act: 'uwh', o: o }
+        : { label: '해동 · 창고이동', act: 'umove', o: o },
       { label: '입고', act: 'uin', o: o },
       { label: '출고', act: 'uout', o: o },
       { sep: true },
@@ -6568,7 +6690,7 @@ var LIVE = (function () {
   /* 통합 재고의 [작업 ▾] → 수불 이력: 그 품목·로트만 통합 입출고에 걸러 보여준다 */
   function uniViewHistory(o) {
     cur.utx.q = o.lotno || o.code || o.name || '';
-    cur.utx.g = o.ucat === '원료육' ? 'meat' : (o.ucat === '부자재·소스' ? 'sub' : (o.ucat ? 'fg' : 'all'));
+    cur.utx.g = o.ucat ? ERP.uniGroupOf(o.ucat) : 'all';
     cur.utx.tk = 'all';
     cur.utx.from = ''; cur.utx.to = ''; cur.utx.preset = 'all';
     if ($('utxSearch')) $('utxSearch').value = cur.utx.q;
@@ -6577,7 +6699,7 @@ var LIVE = (function () {
   function uniOpenForm(o, type) {
     var preset = { kind: o.kind, g: o.kind === 'meat' ? 'meat' : ERP.uniGroupOf(o.ucat),
       name: o.name, code: o.code, wh: o.wh, price: o.price, expiry: type === 'IN' ? '' : o.exp,
-      lotId: o.kind === 'meat' ? o.lot : null, lotNo: o.lotno, vendor: o.vendor };
+      lotId: o.kind === 'meat' ? o.lot : null, lotNo: o.lotno, vendor: o.vendor, flag: o.flag || '매입' };
     openIoSheet(type, preset);
   }
   function uniMove(o) {
@@ -6678,14 +6800,64 @@ var LIVE = (function () {
       $('uniMoveMsg').textContent = e.message;
     });
   }
+  /* ---------- v17 완제품·부자재 로트의 보관 위치 변경 (냉동/냉장/상온) ---------- */
+  var fwh = { lotId: '', wh: 'A', code: '', name: '', lotno: '', qty: '', unit: '' };
+  function openFpWh(o) {
+    o = o || {};
+    fwh.lotId = o.lotid || '';
+    fwh.wh = o.wh === 'F' || o.wh === 'C' ? o.wh : 'A';
+    fwh.code = o.code || '';
+    fwh.name = o.name || '';
+    fwh.lotno = o.lotno || '';
+    fwh.qty = ''; fwh.unit = '';
+    var i, L;
+    for (i = 0; i < (st.fpLots || []).length; i++) {
+      if (o.lotid && Number(st.fpLots[i].id) === Number(o.lotid)) {
+        L = st.fpLots[i]; fwh.qty = L.qty; fwh.unit = L.unit; fwh.name = L.n || fwh.name; fwh.lotno = L.lot || fwh.lotno;
+        break;
+      }
+    }
+    fpWhPaint();
+    if ($('fpWhMsg')) $('fpWhMsg').textContent = fwh.lotId ? '' : '이 품목은 아직 로트가 없어 보관 위치를 저장할 수 없습니다. 입고하면 로트가 생깁니다.';
+    var m = $('fpWhModal');
+    if (m) m.classList.remove('hidden');
+  }
+  function closeFpWh() { var m = $('fpWhModal'); if (m) m.classList.add('hidden'); }
+  function fpWhPaint() {
+    var btns = document.querySelectorAll('#fpWhSeg [data-wh]'), i;
+    for (i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-wh') === fwh.wh);
+    if ($('fpWhSub')) $('fpWhSub').textContent = fwh.name ? (fwh.name + (fwh.lotno ? ' · ' + fwh.lotno : '')) : '이 로트를 어느 창고에 두는지 고릅니다. 수량은 그대로입니다.';
+    if ($('fpWhStat')) {
+      $('fpWhStat').innerHTML = fwh.lotId
+        ? '현재 <b>' + esc(ERP.UNI_WH_NAME[fwh.wh] || '상온') + '</b> · 재고 <b>' + fmtQty(fwh.qty) + '</b> ' + esc(fwh.unit || '') + ' — 바꿔도 수량·금액은 그대로입니다.'
+        : '로트가 없는 품목입니다.';
+    }
+    if ($('fpWhSave')) $('fpWhSave').disabled = !fwh.lotId;
+  }
+  function fpWhPick(w) {
+    fwh.wh = w === 'F' || w === 'C' ? w : 'A';
+    fpWhPaint();
+  }
+  function saveFpWh() {
+    if (!fwh.lotId) { $('fpWhMsg').textContent = '로트가 없어 저장할 수 없습니다.'; return; }
+    var b = $('fpWhSave');
+    if (b) { b.disabled = true; b.textContent = '저장 중…'; }
+    fpSaveWh(fwh.lotId, fwh.wh).then(function () {
+      toast('보관 위치를 ' + (ERP.UNI_WH_NAME[fwh.wh] || '상온') + '으로 바꿨습니다: ' + (fwh.name || fwh.lotno), 'ok');
+      closeFpWh();
+      return reload({ silent: true });
+    }).then(function () {
+      if (b) { b.disabled = false; b.textContent = '저장'; }
+    }, function (e) {
+      if (b) { b.disabled = false; b.textContent = '저장'; }
+      if ($('fpWhMsg')) $('fpWhMsg').textContent = e.message;
+    });
+  }
   /* ---------- 왼쪽 메뉴 ---------- */
   function navKeyFor() {
     if (cur.erp === 'uni') {
       var g = cur.uni.g || 'all';
-      if (g === 'all') return 'stock:all';
-      if (g === 'meat') return 'stock:meat';
-      if (g === 'sub') return 'stock:sub';
-      return 'stock:fg';
+      return g === 'all' ? 'stock:all' : ('stock:' + g);
     }
     if (cur.erp === 'unitx') return 'tx';
     if (cur.erp === 'buy') return cur.buyView === 'status' ? 'buy-status' : 'buy-list';
@@ -6699,7 +6871,7 @@ var LIVE = (function () {
     for (var i = 0; i < items.length; i++) items[i].classList.toggle('on', items[i].getAttribute('data-nav') === key);
   }
   function navGo(nav) {
-    if (nav === 'stock:all' || nav === 'stock:fg' || nav === 'stock:meat' || nav === 'stock:sub') {
+    if (nav.indexOf('stock:') === 0) {
       uniCatGo(nav === 'stock:all' ? 'all' : nav.slice(6));
     } else if (nav === 'tx') {
       setPane('unitx');
@@ -6786,6 +6958,15 @@ var LIVE = (function () {
     /* 해동 · 창고이동 팝업 */
     if ($('uniMoveClose')) $('uniMoveClose').addEventListener('click', closeUniMove);
     if ($('uniMoveCancel')) $('uniMoveCancel').addEventListener('click', closeUniMove);
+    /* v17 보관 위치 변경 팝업 */
+    if ($('fpWhClose')) $('fpWhClose').addEventListener('click', closeFpWh);
+    if ($('fpWhCancel')) $('fpWhCancel').addEventListener('click', closeFpWh);
+    if ($('fpWhSave')) $('fpWhSave').addEventListener('click', saveFpWh);
+    if ($('fpWhModal')) $('fpWhModal').addEventListener('click', function (ev) { if (ev.target === this) closeFpWh(); });
+    var fwbtns = document.querySelectorAll('#fpWhSeg [data-wh]');
+    for (var fw = 0; fw < fwbtns.length; fw++) {
+      fwbtns[fw].addEventListener('click', function () { fpWhPick(this.getAttribute('data-wh')); });
+    }
     if ($('uniMoveSave')) $('uniMoveSave').addEventListener('click', mvSave);
     if ($('uniMoveModal')) $('uniMoveModal').addEventListener('click', function (ev) { if (ev.target === this) closeUniMove(); });
     var mvbtns = document.querySelectorAll('#uniMoveSeg [data-mv]');
@@ -7401,21 +7582,30 @@ var LIVE = (function () {
      ========================================================================== */
   var ios = { type: 'IN', wh: 'F', rows: [], seq: 0 };
   var IOS_MAX = 30;
-  /* v16 — 구분 4가지: 원료육 / 완제품(자체생산) / 완제품(외부매입) / 부자재·소스 */
-  var IOS_KINDS = [['meat', '원료육'], ['fgself', '완제품(자체생산)'], ['fgbuy', '완제품(외부매입)'], ['sub', '부자재·소스']];
+  /* v17 — 구분 일곱 가지: 원료육 / 완제품 / 소스 / 향신료 / 야채 / 부자재 / 기타 */
+  var IOS_KINDS = [['meat', '원료육'], ['fg', '완제품'], ['sauce', '소스'], ['spice', '향신료'],
+    ['veg', '야채'], ['sub', '부자재'], ['etc', '기타']];
+  var IOS_KIND_KEYS = ['meat', 'fg', 'sauce', 'spice', 'veg', 'sub', 'etc'];
   function iosTrim(v) { return String(v === null || v === undefined ? '' : v).replace(/^\s+|\s+$/g, ''); }
   function iosRow(i) { return ios.rows[i] || null; }
   function iosGroupOf(r) {
-    if (!r || r.kind !== 'fp') return 'meat';
-    return r.g === 'fgself' || r.g === 'fgbuy' || r.g === 'sub' ? r.g : 'fgbuy';
+    if (!r || r.kind !== 'meat') return (r && IOS_KIND_KEYS.indexOf(r.g) >= 0) ? r.g : 'fg';
+    return 'meat';
   }
   function iosKindLabel(g) {
-    return g === 'meat' ? '원료육' : (g === 'fgself' ? '완제품(자체생산)' : (g === 'sub' ? '부자재·소스' : '완제품(외부매입)'));
+    var i;
+    for (i = 0; i < IOS_KINDS.length; i++) if (IOS_KINDS[i][0] === g) return IOS_KINDS[i][1];
+    return '완제품';
+  }
+  /* 줄마다 고를 수 있는 창고 — 원료육은 냉동·냉장(DB가 F/C만 받는다), 나머지는 냉동·냉장·상온 */
+  function iosWhKeys(r) {
+    return (r && r.kind === 'meat') ? ['F', 'C'] : ['F', 'C', 'A'];
   }
   function iosNewRow(kind) {
     ios.seq += 1;
-    var g = kind === 'fp' ? 'fgbuy' : (kind === 'fgself' || kind === 'sub' || kind === 'fgbuy' ? kind : 'meat');
-    return { key: ios.seq, kind: g === 'meat' ? 'meat' : 'fp', g: g, name: '', code: '', unit: g === 'meat' ? 'kg' : '개',
+    var g = IOS_KIND_KEYS.indexOf(kind) >= 0 ? kind : (kind === 'fp' ? 'fg' : 'meat');
+    return { key: ios.seq, kind: g === 'meat' ? 'meat' : 'fp', g: g, flag: '매입', name: '', code: '',
+      unit: g === 'meat' ? 'kg' : '개',
       wh: g === 'meat' ? (ios.wh === 'C' ? 'C' : 'F') : 'A', lotNo: '', lotId: null, expiry: '', qty: '', price: '' };
   }
   function iosResetRows(n) {
@@ -7427,7 +7617,7 @@ var LIVE = (function () {
     var q = Number(r && r.qty || 0), p = Number(r && r.price || 0);
     return q > 0 ? Math.round(q * p) : 0;
   }
-  function iosWhName(wh) { return wh === 'C' ? '냉장고' : '냉동고'; }
+  function iosWhName(wh) { return wh === 'C' ? '냉장' : (wh === 'A' ? '상온' : '냉동'); }
 
   /* 원료육 — 그 이름의 재고 있는 로트 (소비기한 빠른 순) */
   function iosMeatLots(name, wh) {
@@ -7451,6 +7641,24 @@ var LIVE = (function () {
   function iosPickMeatLot(r) {
     var list = iosMeatLots(r.name, r.wh || ios.wh), i;
     for (i = 0; i < list.length; i++) if (Number(list[i].dbid) === Number(r.lotId)) return list[i];
+    return list.length ? list[0] : null;
+  }
+  /* 완제품·부자재 — 그 창고(냉동/냉장/상온)에 있는 로트만, 소비기한 빠른 순 */
+  function iosFpLots(r) {
+    var p = iosProduct(r), out = [], i, list, wh = r.wh || 'A';
+    if (!p) return out;
+    list = ERP.fpLotsOf(st, p.code);
+    for (i = 0; i < list.length; i++) {
+      if (!(list[i].qty > 0.0004)) continue;
+      if (ERP.uniWhOfMemo(list[i].memo) !== wh) continue;
+      out.push(list[i]);
+    }
+    return out;
+  }
+  /* 완제품 출고 — 고른 로트, 없으면 그 창고의 소비기한 빠른 로트 */
+  function iosPickFpLot(r) {
+    var list = iosFpLots(r), i;
+    for (i = 0; i < list.length; i++) if (Number(list[i].id) === Number(r.lotId)) return list[i];
     return list.length ? list[0] : null;
   }
   function iosProduct(r) {
@@ -7478,13 +7686,13 @@ var LIVE = (function () {
       }
       var p = iosProduct(r);
       if (!p) return '<span class="vlotro muted">품목을 먼저 고르세요</span>';
-      var lots = ERP.fpLotsOf(st, p.code);
-      h = ['<select data-f="lotpick"><option value="">자동 · 소비기한 빠른 로트</option>'];
+      var lots = iosFpLots(r);
+      h = ['<select data-f="lotpick"><option value="">자동 · 그 창고 소비기한 빠른 로트</option>'];
       for (i = 0; i < lots.length; i++) {
-        if (!(lots[i].qty > 0.0004)) continue;
         h.push('<option value="' + lots[i].id + '"' + (Number(r.lotId) === Number(lots[i].id) ? ' selected' : '') + '>' +
           esc(lots[i].lot || '로트') + (lots[i].e ? ' · ~' + esc(lots[i].e) : '') + ' · ' + fmtQty(lots[i].qty) + esc(lots[i].unit) + '</option>');
       }
+      if (!lots.length) h.push('<option value="" disabled>' + esc(iosWhName(r.wh || 'A')) + ' 재고 없음</option>');
       h.push('</select>');
       return h.join('');
     }
@@ -7507,11 +7715,11 @@ var LIVE = (function () {
     if (r.kind === 'fp') {
       var p = iosProduct(r);
       if (!p) return '<span class="vlotro muted">—</span>';
-      var lots = ERP.fpLotsOf(st, p.code), L = null, i;
+      var lots = iosFpLots(r), L = null, i;
       for (i = 0; i < lots.length; i++) if (Number(lots[i].id) === Number(r.lotId)) L = lots[i];
-      if (!L) for (i = 0; i < lots.length; i++) if (lots[i].qty > 0.0004) { L = lots[i]; break; }
+      if (!L) L = lots.length ? lots[0] : null;
       return '<span class="vlotro">' + esc(L ? (L.e || '—') : '—') + '</span>' +
-        '<span class="vlotstock">' + (L ? '현재고 ' + fmtQty(L.qty) + esc(L.unit) : '재고 없음') + '</span>';
+        '<span class="vlotstock">' + (L ? '현재고 ' + fmtQty(L.qty) + esc(L.unit) : esc(iosWhName(r.wh || 'A')) + ' 재고 없음') + '</span>';
     }
     var mLot = iosPickMeatLot(r);
     return '<span class="vlotro">' + esc(mLot ? (mLot.e || '—') : '—') + '</span>' +
@@ -7547,22 +7755,29 @@ var LIVE = (function () {
     var p = iosProduct(r);
     return (p && p.unit) || r.unit || '개';
   }
+  /* 구분 칸 — 일곱 구분 + 완제품 줄은 바로 아래에 자체/매입 */
   function iosKindCellHtml(r) {
     var g = iosGroupOf(r), h = ['<select data-f="kind" aria-label="구분">'], i;
     for (i = 0; i < IOS_KINDS.length; i++) {
       h.push('<option value="' + IOS_KINDS[i][0] + '"' + (g === IOS_KINDS[i][0] ? ' selected' : '') + '>' + IOS_KINDS[i][1] + '</option>');
     }
     h.push('</select>');
+    if (g === 'fg') {
+      h.push('<select data-f="flag" class="uflag" aria-label="자체생산 / 외부매입">' +
+        '<option value="자체"' + (r.flag === '자체' ? ' selected' : '') + '>자체</option>' +
+        '<option value="매입"' + (r.flag === '자체' ? '' : ' selected') + '>매입</option></select>');
+    }
     return h.join('');
   }
-  /* 창고 칸 — 원료육만 고를 수 있고, 완제품·부자재는 상온/기타로 잠긴다 */
+  /* 창고 칸 — 일곱 구분 모두 고른다 (원료육은 DB가 받는 냉동·냉장 두 가지) */
   function iosWhCellHtml(r) {
-    if (r.kind !== 'fp') {
-      return '<select data-f="wh" class="uwh" aria-label="창고">' +
-        '<option value="F"' + (r.wh !== 'C' ? ' selected' : '') + '>냉동고</option>' +
-        '<option value="C"' + (r.wh === 'C' ? ' selected' : '') + '>냉장고</option></select>';
+    var keys = iosWhKeys(r), h = ['<select data-f="wh" class="uwh" aria-label="창고">'], i, w;
+    for (i = 0; i < keys.length; i++) {
+      w = keys[i];
+      h.push('<option value="' + w + '"' + (r.wh === w ? ' selected' : '') + '>' + ERP.UNI_WH_NAME[w] + '</option>');
     }
-    return '<select data-f="wh" class="uwh auto" disabled aria-label="상온/기타 (자동 배정)"><option>상온/기타</option></select>';
+    h.push('</select>');
+    return h.join('');
   }
   function iosRowHtml(r, i) {
     return '<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '" data-g="' + esc(iosGroupOf(r)) + '">' +
@@ -7617,8 +7832,8 @@ var LIVE = (function () {
       ni.placeholder = isFp ? '예: 떡갈비 / W00100016' : '예: 등갈비';
       if (document.activeElement !== ni && ni.value !== r.name) ni.value = r.name;
     }
-    var kc = tr.querySelector('[data-f="kind"]');
-    if (kc) kc.value = iosGroupOf(r);
+    var kc = tr.children[0];
+    if (kc) kc.innerHTML = iosKindCellHtml(r);   /* 구분 + (완제품)자체/매입 함께 다시 그린다 */
     var cc = tr.querySelector('[data-cell="code"]');
     if (cc) cc.textContent = iosCodeOf(r) || '코드 자동';
     var wc = tr.querySelector('[data-cell="wh"]');
@@ -7638,13 +7853,13 @@ var LIVE = (function () {
     var isIn = iosIsIn();
     if ($('ioSheetTitle')) $('ioSheetTitle').textContent = isIn ? '통합 입고' : '통합 출고';
     if ($('ioSheetSub')) $('ioSheetSub').textContent = isIn
-      ? '원료육 · 완제품 · 부자재를 한 팝업에서 처리합니다. 구분에 따라 창고 칸만 열립니다.'
+      ? '원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재·기타를 한 팝업에서 처리합니다. 줄마다 창고를 고릅니다.'
       : '한 업체로 여러 품목이 같이 나가면 구분을 골라 이 표에 줄로 적고 한 번에 출고합니다.';
     if ($('ioSheetDateLabel')) $('ioSheetDateLabel').innerHTML = (isIn ? '입고일' : '출고일') + ' <span class="req">*</span>';
     if ($('ioSheetSave')) $('ioSheetSave').textContent = isIn ? '입고 저장' : '출고 저장';
     if ($('ioSheetHint')) $('ioSheetHint').innerHTML = isIn
       ? '원료육은 <b>이름·업체·입고일·소비기한</b>이 같으면 같은 로트로 모입니다. 완제품·부자재 로트번호를 비우면 <b>상품코드-입고일</b>로 자동 채워집니다.'
-      : '출고는 고른 로트에서 나가고, 로트를 비우면 <b>소비기한이 빠른 로트</b>부터 나갑니다. 재고보다 많으면 그 줄만 실패합니다.';
+      : '출고는 고른 로트에서 나가고, 로트를 비우면 <b>그 창고의 소비기한이 빠른 로트</b>부터 나갑니다. 재고보다 많으면 그 줄만 실패합니다.';
   }
   /* preset: 그 품목이 채워진 줄로 팝업을 연다 (통합 재고의 [작업 ▾] → 입고 / 출고) */
   function openIoSheet(type, preset) {
@@ -7654,17 +7869,18 @@ var LIVE = (function () {
     iosResetRows(3);
     if (preset && (preset.name || preset.code)) {
       var r = ios.rows[0];
-      r.g = preset.g || (preset.kind === 'fp' ? 'fgbuy' : 'meat');
+      r.g = preset.g && IOS_KIND_KEYS.indexOf(preset.g) >= 0 ? preset.g : (preset.kind === 'fp' ? 'fg' : 'meat');
       r.kind = r.g === 'meat' ? 'meat' : 'fp';
+      r.flag = preset.flag === '자체' ? '자체' : '매입';
       r.name = preset.name || '';
       r.code = preset.code || '';
       r.unit = preset.unit || (r.kind === 'meat' ? 'kg' : '개');
-      r.wh = r.kind === 'meat' ? (preset.wh === 'C' ? 'C' : 'F') : 'A';
+      r.wh = r.kind === 'meat' ? (preset.wh === 'C' ? 'C' : 'F') : (preset.wh === 'F' || preset.wh === 'C' ? preset.wh : 'A');
       r.lotNo = preset.lotNo || '';
       r.lotId = preset.lotId || null;
       r.expiry = preset.expiry || '';
       r.price = preset.price || '';
-      ios.wh = r.wh;
+      ios.wh = r.kind === 'meat' ? r.wh : ios.wh;
     }
     if ($('ioSheetDate')) $('ioSheetDate').value = today();
     if ($('ioSheetPartner')) $('ioSheetPartner').value = preset && preset.vendor ? preset.vendor : '';
@@ -7682,6 +7898,46 @@ var LIVE = (function () {
   /* 기본 창고 — 원료육 새 줄은 이 창고로 시작한다(줄마다 바꿀 수 있음) */
   function iosSetWh(wh) {
     ios.wh = wh === 'C' ? 'C' : 'F';
+  }
+  /* 완제품 입고 로트번호 — 비우면 상품코드-입고일. 같은 코드·입고일·소비기한에
+     다른 창고 로트가 있으면 창고 글자를 붙여 따로 만든다(창고가 섞이지 않게). */
+  function iosFpLotNo(rw, p, date) {
+    var typed = iosTrim(rw.lotNo);
+    if (typed) return typed;
+    var auto = p.code + '-' + String(date || '').replace(/[^0-9]/g, '');
+    if ((rw.wh || 'A') === 'A') return auto;
+    var i, L, clash = false, same = false, exp = rw.expiry || '';
+    for (i = 0; i < (st.fpLots || []).length; i++) {
+      L = st.fpLots[i];
+      if (!L || L.code !== p.code) continue;
+      if ((L.inD || '') !== date) continue;
+      if ((L.e || '') !== exp) continue;
+      if (ERP.uniWhOfMemo(L.memo) === rw.wh) same = true; else clash = true;
+    }
+    return (clash && !same) ? auto + '-' + rw.wh : auto;
+  }
+  /* 그 품목을 가장 최근에 넣은 로트의 창고 — 새 줄의 기본값(상온이 아닌 경우만) */
+  function iosLastWh(code) {
+    var i, L, best = null;
+    for (i = 0; i < (st.fpLots || []).length; i++) {
+      L = st.fpLots[i];
+      if (!L || L.code !== code) continue;
+      if (!best || String(L.inD || '') > String(best.inD || '')) best = L;
+    }
+    if (!best) return '';
+    var w = ERP.uniWhOfMemo(best.memo);
+    return w === 'A' ? '' : w;
+  }
+  /* fp_lots 의 보관 위치 꼬리표 저장 — 지금 화면의 메모를 읽어 wh:F/wh:C 만 바꿔 쓴다 */
+  function fpSaveWh(lotId, wh) {
+    if (!lotId) return Promise.resolve(null);
+    var memo = '', i;
+    for (i = 0; i < (st.fpLots || []).length; i++) {
+      if (Number(st.fpLots[i].id) === Number(lotId)) { memo = st.fpLots[i].memo || ''; break; }
+    }
+    var next = ERP.uniMemoWh(memo, wh);
+    if (next === memo) return Promise.resolve(null);
+    return SB.db.fpLotMemo(lotId, next);
   }
   /* 저장 — 줄마다 재고를 움직인다 */
   function iosSave() {
@@ -7712,14 +7968,28 @@ var LIVE = (function () {
         if (rw.kind === 'fp') {
           var p = iosProduct(rw);
           if (!p) throw new Error((ln.i + 1) + '번째 줄: 완제품·부자재 품목을 찾을 수 없습니다. (품목 등록 후 다시 입력)' );
+          var fwh = rw.wh === 'F' || rw.wh === 'C' ? rw.wh : 'A';
+          var self = rw.g === 'fg' && rw.flag === '자체';
+          var fpartner = self ? '자체생산' : partner;
+          if (iosIsIn()) {
+            return SB.db.fpApply({
+              code: p.code, type: 'IN', qty: ln.qty, date: date,
+              price: Number(rw.price || 0) > 0 ? Number(rw.price) : null,
+              expiry: rw.expiry || null,
+              partner: fpartner, note: self ? ('[자체생산]' + (note ? ' ' + note : '')) : note,
+              allowNegative: false, source: 'manual',
+              lotNo: iosFpLotNo(rw, p, date), lotId: null, inDate: date
+            }).then(function (log) {
+              return fpSaveWh(log && log.lot_id, fwh);
+            });
+          }
+          var fLot = iosPickFpLot(rw);
+          if (!fLot) throw new Error((ln.i + 1) + '번째 줄: ' + iosWhName(fwh) + '에 출고할 ' + iosTrim(rw.name) + ' 재고가 없습니다.');
           return SB.db.fpApply({
-            code: p.code, type: ios.type, qty: ln.qty, date: date,
+            code: p.code, type: 'OUT', qty: ln.qty, date: date,
             price: Number(rw.price || 0) > 0 ? Number(rw.price) : null,
-            expiry: iosIsIn() ? (rw.expiry || null) : null,
-            partner: partner, note: note, allowNegative: false, source: 'manual',
-            lotNo: iosIsIn() ? iosTrim(rw.lotNo) : '',
-            lotId: iosIsIn() || !rw.lotId ? null : Number(rw.lotId),
-            inDate: iosIsIn() ? date : null
+            expiry: null, partner: partner, note: note, allowNegative: false, source: 'manual',
+            lotNo: '', lotId: Number(fLot.id), inDate: null
           });
         }
         var mwh = rw.wh === 'C' ? 'C' : 'F';
@@ -7792,27 +8062,34 @@ var LIVE = (function () {
       var f = el.getAttribute('data-f');
       if (f === 'kind') {
         var g = el.value;
-        r.g = g === 'fgself' || g === 'fgbuy' || g === 'sub' ? g : 'meat';
+        r.g = IOS_KIND_KEYS.indexOf(g) >= 0 ? g : 'meat';
         r.kind = r.g === 'meat' ? 'meat' : 'fp';
         r.lotId = null; r.lotNo = '';
         if (r.kind === 'meat') {
           r.wh = r.wh === 'C' ? 'C' : 'F';
           r.unit = 'kg';
           r.code = '';
+          r.flag = '';
         } else {
-          r.wh = 'A';
+          if (r.wh !== 'F' && r.wh !== 'C') r.wh = 'A';
+          if (!r.flag) r.flag = '매입';
           var pp = iosProduct(r);
           r.unit = (pp && pp.unit) || r.unit || '개';
           r.code = pp ? pp.code : '';
         }
         iosRefreshRow(idx);
+      } else if (f === 'flag') {
+        r.flag = el.value === '자체' ? '자체' : '매입';
+        r.flagTouched = true;                 /* 사람이 고른 값은 품목 정보로 덮지 않는다 */
+        iosRefreshRow(idx);
       } else if (f === 'wh') {
-        r.wh = el.value === 'C' ? 'C' : 'F';
+        r.wh = el.value === 'C' ? 'C' : (el.value === 'A' ? 'A' : 'F');
         iosRefreshRow(idx);
       } else if (f === 'lotpick') {
         r.lotId = el.value ? Number(el.value) : null;
         iosRefreshRow(idx);
       } else if (f === 'name') {
+        var prevCode = r.code;
         r.name = el.value;
         r.lotId = null;
         if (r.kind === 'fp') {
@@ -7821,6 +8098,12 @@ var LIVE = (function () {
             r.code = p2.code;
             r.unit = p2.unit || '개';
             r.g = ERP.uniGroupOf(ERP.uniFpCat(p2, st.fpLogs));
+            if (r.g === 'fg' && !r.flagTouched) r.flag = ERP.uniFpFlag(p2, st.fpLogs);
+            if (r.g !== 'fg') r.flag = '';
+            if (iosIsIn() && r.wh === 'A' && p2.code !== prevCode) {
+              var lastWh = iosLastWh(p2.code);
+              if (lastWh) r.wh = lastWh;
+            }
             if (!Number(r.price || 0)) r.price = iosIsIn() ? (p2.inp || '') : (p2.outp || '');
           } else {
             r.code = '';
@@ -7856,7 +8139,8 @@ var LIVE = (function () {
       $('fgNewCat').value = p.cat; $('fgNewName').value = p.n;
       $('fgNewSpec').value = p.spec; $('fgNewUnit').value = p.unit || '개';
       $('fgNewIn').value = p.inp > 0 ? p.inp : ''; $('fgNewOut').value = p.outp > 0 ? p.outp : '';
-      $('fgNewExpiry').value = p.e || ''; $('fgNewSupplier').value = p.sup; $('fgNewBarcode').value = p.bc;
+      $('fgNewExpiry').value = p.e || ''; $('fgNewSupplier').value = p.sup === '자체생산' ? '' : p.sup; $('fgNewBarcode').value = p.bc;
+      if ($('fgNewFlag')) $('fgNewFlag').value = p.sup === '자체생산' ? '자체' : '매입';
       $('fgNewStockWrap').classList.add('hidden');
       $('fgNewHint').textContent = '단가를 비워 두면 기존 단가가 그대로 남습니다.';
       $('fgNewSave').textContent = '수정 저장';
@@ -7868,6 +8152,7 @@ var LIVE = (function () {
       $('fgNewName').value = ''; $('fgNewSpec').value = ($('fgSpec') && $('fgSpec').value) || '';
       $('fgNewUnit').value = '개'; $('fgNewIn').value = ''; $('fgNewOut').value = '';
       $('fgNewExpiry').value = ''; $('fgNewSupplier').value = ''; $('fgNewBarcode').value = '';
+      if ($('fgNewFlag')) $('fgNewFlag').value = '매입';
       $('fgNewStock').value = '';
       $('fgNewStockWrap').classList.remove('hidden');
       $('fgNewHint').innerHTML = '초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.';
@@ -7882,11 +8167,12 @@ var LIVE = (function () {
     var name = ($('fgNewName').value || '').replace(/^\s+|\s+$/g, '');
     if (!code) { $('fgNewMsg').textContent = '상품코드를 입력하세요.'; return; }
     if (!name) { $('fgNewMsg').textContent = '상품명을 입력하세요.'; return; }
+    var flagSelf = $('fgNewFlag') && $('fgNewFlag').value === '자체';
     var p = {
       code: code, cat: ($('fgNewCat').value || '완제품').replace(/^\s+|\s+$/g, '') || '완제품',
       name: name, spec: $('fgNewSpec').value || '', unit: $('fgNewUnit').value || '개',
       inp: Number($('fgNewIn').value || 0), outp: Number($('fgNewOut').value || 0),
-      expiry: $('fgNewExpiry').value || null, sup: $('fgNewSupplier').value || '',
+      expiry: $('fgNewExpiry').value || null, sup: flagSelf ? '자체생산' : ($('fgNewSupplier').value || ''),
       bc: $('fgNewBarcode').value || '', active: true
     };
     var stock = Number($('fgNewStock').value || 0);
@@ -10788,6 +11074,7 @@ var LIVE = (function () {
     ioHubModal: function () { closeIoHub(); },
     ioSheetModal: function () { closeIoSheet(); },
     uniMoveModal: function () { closeUniMove(); },
+    fpWhModal: function () { closeFpWh(); },
     meatFormModal: function () { closeMeatForm(); },
     fgFormModal: function () { closeFgForm(); },
     fgNewModal: function () { closeFgNew(); },
@@ -11795,6 +12082,8 @@ var LIVE = (function () {
         if (!it) return;
         if (it.act === 'umove') {
           uniMove(it.o);
+        } else if (it.act === 'uwh') {
+          openFpWh(it.o);
         } else if (it.act === 'uin') {
           uniOpenForm(it.o, 'IN');
         } else if (it.act === 'uout') {

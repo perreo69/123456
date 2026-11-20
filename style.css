@@ -2208,7 +2208,17 @@ table.tblu{font-size:13px;border-collapse:separate;border-spacing:0;table-layout
 .tblu .cat.raw{color:#1d4ed8}
 .tblu .cat.fg{color:#0b6b3a}
 .tblu .cat.fgb{color:#8a5a00}
+.tblu .cat.sauce{color:#8a5a00}
+.tblu .cat.spice{color:#8b3a62}
+.tblu .cat.veg{color:#2f6b16}
 .tblu .cat.ms{color:#4d5b70}
+.tblu .cat.etc{color:#6b5ca5}
+/* v17: 완제품 이름 옆 [자체]/[매입] 꼬리표 */
+.tblu .name{margin-right:6px}
+.tblu .fbadge{display:inline-flex;align-items:center;height:17px;padding:0 5px;border-radius:4px;
+  font-size:10px;font-weight:800;letter-spacing:-.1px;vertical-align:1px;white-space:nowrap}
+.tblu .fbadge.self{background:#e9f8f0;color:#0b6b3a;border:1px solid #cbe9da}
+.tblu .fbadge.buy{background:#fff6e6;color:#8a5a00;border:1px solid #f0dcb4}
 .tblu .code{font-size:12.3px;color:#4a5a70;font-variant-numeric:tabular-nums;letter-spacing:-.1px}
 .tblu .name{font-weight:600;color:#1d2837}
 .tblu .tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:5px;font-size:10.9px;font-weight:700;white-space:nowrap}
@@ -2224,6 +2234,7 @@ table.tblu{font-size:13px;border-collapse:separate;border-spacing:0;table-layout
 .tblu .whchip{display:inline-flex;align-items:center;height:21px;padding:0 8px;border-radius:6px;font-size:11.6px;font-weight:700;
   background:#e8f0fe;color:#1d4ed8}
 .tblu .whchip.chl{background:#e7f6f2;color:#0b6b53}
+.tblu .whchip.chl.thaw{background:#fff4e0;color:#8a5a00;border:1px solid #f3ddb4}
 .tblu .whchip.amb{background:#f2f5f9;color:#5f6d81}
 .tblu td.balcell{background:#f3f8ff}
 .tblu td.balcell .num{color:#1d4ed8;font-weight:700}
@@ -2255,10 +2266,18 @@ table.iosheet td .uqty input{flex:1 1 auto}
 table.iosheet td .uqty .u{font-size:10.8px;color:#7c8a9d;font-weight:700;flex:0 0 auto;min-width:18px}
 table.iosheet select.uwh{font-size:11.8px;font-weight:700;color:#1d4ed8;background:#f7faff;border-color:#d5e3fb}
 table.iosheet select.uwh.auto{color:#98a4b5;background:#f8fafd;border-style:dashed;font-weight:600;cursor:not-allowed;opacity:.85}
+/* v17: 구분 칸 = 일곱 구분 select + (완제품만) 자체/매입 select */
+table.iosheet td:first-child{display:flex;flex-direction:column;gap:3px;align-items:stretch}
+table.iosheet td:first-child select{width:100%;min-width:0}
+table.iosheet select.uflag{font-size:11px;font-weight:750;color:#0b6b3a;background:#f2fbf6;border-color:#cbe9da;height:24px}
+table.iosheet select.uflag option[value="매입"]{color:#8a5a00}
 table.iosheet tbody tr[data-g="meat"] td:first-child select{color:#1d4ed8}
-table.iosheet tbody tr[data-g="fgself"] td:first-child select,
-table.iosheet tbody tr[data-g="fgbuy"] td:first-child select{color:#0b6b3a}
-table.iosheet tbody tr[data-g="sub"] td:first-child select{color:#4d5b70}
+table.iosheet tbody tr[data-g="fg"] td:first-child select[data-f="kind"]{color:#0b6b3a}
+table.iosheet tbody tr[data-g="sauce"] td:first-child select[data-f="kind"]{color:#8a5a00}
+table.iosheet tbody tr[data-g="spice"] td:first-child select[data-f="kind"]{color:#8b3a62}
+table.iosheet tbody tr[data-g="veg"] td:first-child select[data-f="kind"]{color:#2f6b16}
+table.iosheet tbody tr[data-g="sub"] td:first-child select[data-f="kind"]{color:#4d5b70}
+table.iosheet tbody tr[data-g="etc"] td:first-child select[data-f="kind"]{color:#6b5ca5}
 #rowMenu button.dis,#rowMenu button:disabled{opacity:.5;cursor:not-allowed}
 
 @media (max-width:1100px){

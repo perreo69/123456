@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261120_23">
+<link rel="stylesheet" href="style.css?v=20261120_24">
 </head>
 <body>
 
@@ -111,10 +111,22 @@
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span><span class="cnt" id="navCntMeat">0</span>
       </button>
       <button class="nitem" type="button" data-nav="stock:fg" data-ucat="fg">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>완제품</span><span class="cnt" id="navCntFg">0</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>완제품</span><span class="cnt" id="navCntFg">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:sauce" data-ucat="sauce">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v4l2 3v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9l2-3z"/><path d="M7 14h10"/></svg><span>소스</span><span class="cnt" id="navCntSauce">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:spice" data-ucat="spice">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v5M5.5 9h13l-1.6 11H7.1z"/><path d="M9.5 13h5"/></svg><span>향신료</span><span class="cnt" id="navCntSpice">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:veg" data-ucat="veg">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-5 0-7-3.5-7-8 0-4 3-7 7-7s7 3 7 7c0 4.5-2 8-7 8z"/><path d="M12 6c0-1.7 1.3-3 3-3"/></svg><span>야채</span><span class="cnt" id="navCntVeg">0</span>
       </button>
       <button class="nitem" type="button" data-nav="stock:sub" data-ucat="sub">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H5v6l9 9 6-6-9-9z"/><circle cx="8" cy="7" r="1.2"/></svg><span>부자재 · 소스</span><span class="cnt" id="navCntSub">0</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H5v6l9 9 6-6-9-9z"/><circle cx="8" cy="7" r="1.2"/></svg><span>부자재</span><span class="cnt" id="navCntSub">0</span>
+      </button>
+      <button class="nitem" type="button" data-nav="stock:etc" data-ucat="etc">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/></svg><span>기타</span><span class="cnt" id="navCntEtc">0</span>
       </button>
 
       <div class="glabel" data-grp="acc">회계<span class="ln"></span></div>
@@ -281,9 +293,12 @@
           <div class="chips" id="uniCatChips">
             <button class="chip on" type="button" data-ucat="all">전체<span class="n" id="uniCntAll">0</span></button>
             <button class="chip" type="button" data-ucat="meat">원료육<span class="n" id="uniCntMeat">0</span></button>
-            <button class="chip" type="button" data-ucat="fgself">완제품(자체생산)<span class="n" id="uniCntSelf">0</span></button>
-            <button class="chip" type="button" data-ucat="fgbuy">완제품(외부매입)<span class="n" id="uniCntBuy">0</span></button>
-            <button class="chip" type="button" data-ucat="sub">부자재·소스<span class="n" id="uniCntSub">0</span></button>
+            <button class="chip" type="button" data-ucat="fg">완제품<span class="n" id="uniCntFg">0</span></button>
+            <button class="chip" type="button" data-ucat="sauce">소스<span class="n" id="uniCntSauce">0</span></button>
+            <button class="chip" type="button" data-ucat="spice">향신료<span class="n" id="uniCntSpice">0</span></button>
+            <button class="chip" type="button" data-ucat="veg">야채<span class="n" id="uniCntVeg">0</span></button>
+            <button class="chip" type="button" data-ucat="sub">부자재<span class="n" id="uniCntSub">0</span></button>
+            <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="uniCntEtc">0</span></button>
           </div>
           <span class="sp"></span>
           <label class="usearch">
@@ -306,9 +321,9 @@
           <span class="lbl">창고</span>
           <div class="chips" id="uniWhChips">
             <button class="chip soft on" type="button" data-uwh="all">전체 창고</button>
-            <button class="chip soft" type="button" data-uwh="F">냉동고</button>
-            <button class="chip soft" type="button" data-uwh="C">냉장고</button>
-            <button class="chip soft" type="button" data-uwh="A">상온/기타</button>
+            <button class="chip soft" type="button" data-uwh="F">냉동</button>
+            <button class="chip soft" type="button" data-uwh="C">냉장</button>
+            <button class="chip soft" type="button" data-uwh="A">상온</button>
           </div>
           <span class="divv"></span>
           <span class="hint" id="uniHint">규격이 달라도 같은 13개 칸에 들어갑니다</span>
@@ -354,7 +369,11 @@
             <button class="chip on" type="button" data-ucat="all">전체<span class="n" id="utxCntAll">0</span></button>
             <button class="chip" type="button" data-ucat="meat">원료육<span class="n" id="utxCntMeat">0</span></button>
             <button class="chip" type="button" data-ucat="fg">완제품<span class="n" id="utxCntFg">0</span></button>
-            <button class="chip" type="button" data-ucat="sub">부자재·소스<span class="n" id="utxCntSub">0</span></button>
+            <button class="chip" type="button" data-ucat="sauce">소스<span class="n" id="utxCntSauce">0</span></button>
+            <button class="chip" type="button" data-ucat="spice">향신료<span class="n" id="utxCntSpice">0</span></button>
+            <button class="chip" type="button" data-ucat="veg">야채<span class="n" id="utxCntVeg">0</span></button>
+            <button class="chip" type="button" data-ucat="sub">부자재<span class="n" id="utxCntSub">0</span></button>
+            <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="utxCntEtc">0</span></button>
           </div>
           <span class="divv"></span>
           <span class="lbl">거래구분</span>
@@ -833,7 +852,7 @@
         <label class="field"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
       </div>
 
-      <p class="minfo"><span class="dot"></span>구분이 <b>원료육</b>일 때만 창고(냉동고·냉장고)를 고릅니다. 완제품·부자재는 <b>상온/기타</b>로 자동 배정됩니다.
+      <p class="minfo"><span class="dot"></span>일곱 구분 모두 <b>창고</b>를 고릅니다(냉동 · 냉장 · 상온). 완제품 줄은 <b>자체 / 매입</b>도 함께 고릅니다.
         <span class="sp"></span><span class="way" id="ioSheetWay">품목 0줄 · 수량합 0</span></p>
 
       <div class="vsheet" id="ioSheetWrap">
@@ -900,6 +919,28 @@
       <div class="modal-actions">
         <button class="btn" id="uniMoveCancel" type="button">취소</button>
         <button class="submit" id="uniMoveSave" type="button">이동 저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== v17 · 보관 위치 변경 (완제품·소스·향신료·야채·부자재·기타) ===================== -->
+  <div class="modal hidden" id="fpWhModal">
+    <div class="modal-card mvcard" role="dialog" aria-modal="true" aria-labelledby="fpWhTitle">
+      <div class="modal-head">
+        <h2 id="fpWhTitle">보관 위치 변경</h2>
+        <button class="modal-x" id="fpWhClose" type="button" aria-label="닫기">✕</button>
+      </div>
+      <p class="modal-sub" id="fpWhSub">이 로트를 어느 창고에 두는지 고릅니다. 수량은 그대로입니다.</p>
+      <div class="modes" id="fpWhSeg" role="tablist" aria-label="보관 위치">
+        <button class="mode" data-wh="F" type="button">냉동</button>
+        <button class="mode" data-wh="C" type="button">냉장</button>
+        <button class="mode active" data-wh="A" type="button">상온</button>
+      </div>
+      <p class="mvstat" id="fpWhStat"></p>
+      <p class="msg" id="fpWhMsg"></p>
+      <div class="modal-actions">
+        <button class="btn" id="fpWhCancel" type="button">취소</button>
+        <button class="submit" id="fpWhSave" type="button">저장</button>
       </div>
     </div>
   </div>
@@ -1190,7 +1231,7 @@
       <p class="modal-sub" id="fgNewSub">상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.</p>
       <div class="grid2">
         <label class="field"><span>상품코드 <span class="req">*</span></span><input id="fgNewCode" placeholder="W00100001"></label>
-        <label class="field"><span>대분류</span><input id="fgNewCat" list="dlFgCats" placeholder="완제품"></label>
+        <label class="field"><span>세부분류</span><input id="fgNewCat" list="dlFgCats" placeholder="예: 치킨 · 피자 · 소시지"></label>
       </div>
       <label class="field"><span>상품명 <span class="req">*</span></span><input id="fgNewName" placeholder="예: 떡갈비 500g*2"></label>
       <div class="grid2">
@@ -1206,7 +1247,13 @@
         <label class="field"><span>소비기한</span><input type="date" id="fgNewExpiry"></label>
       </div>
       <div class="grid2">
+        <label class="field"><span>자체 / 매입</span><select id="fgNewFlag">
+          <option value="매입">외부매입</option>
+          <option value="자체">자체생산</option>
+        </select></label>
         <label class="field"><span>매입처</span><input id="fgNewSupplier" list="dlFgPartners" placeholder="선택 입력"></label>
+      </div>
+      <div class="grid2">
         <label class="field"><span>바코드</span><input id="fgNewBarcode" placeholder="선택 입력"></label>
       </div>
       <p class="hint" id="fgNewHint">초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.</p>
@@ -1605,7 +1652,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261120_23"></script>
-<script src="app.js?v=20261120_23"></script>
+<script src="partners_data.js?v=20261120_24"></script>
+<script src="app.js?v=20261120_24"></script>
 </body>
 </html>
