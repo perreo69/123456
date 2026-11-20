@@ -1,0 +1,262 @@
+/* ==========================================================================
+   Mirrstar Food ERP — visual refresh v1
+   Presentation-only overrides. Existing data, events, and business logic stay intact.
+   ========================================================================== */
+:root{
+  --bg:#f5f7fa;
+  --panel:#ffffff;
+  --line:#e5e9f0;
+  --line2:#edf0f5;
+  --ink:#202b3a;
+  --muted:#68778b;
+  --muted2:#97a2b2;
+  --blue:#2563eb;
+  --blue-bg:#eff6ff;
+  --blue-ink:#1d4ed8;
+  --green:#16835d;
+  --green-bg:#edf8f2;
+  --orange:#a96a17;
+  --orange-bg:#fff7e9;
+  --red:#b54745;
+  --red-bg:#fff1f0;
+  --radius:11px;
+  --shadow:0 1px 2px rgba(16,24,40,.035),0 4px 14px rgba(16,24,40,.035);
+}
+html{background:var(--bg)}
+body{background:var(--bg);color:var(--ink);font-size:13.5px;line-height:1.5}
+button,input,select,textarea{font-family:inherit}
+button{transition:background-color .14s,border-color .14s,color .14s,box-shadow .14s}
+:focus-visible{outline:3px solid rgba(37,99,235,.18);outline-offset:1px}
+
+/* Brand and global header */
+.top{
+  min-height:64px;padding:9px 22px;background:rgba(255,255,255,.97);
+  border-bottom:1px solid #e7ebf1;box-shadow:0 1px 2px rgba(20,32,50,.025);
+  -webkit-backdrop-filter:saturate(150%) blur(14px);backdrop-filter:saturate(150%) blur(14px)
+}
+.brand{gap:11px;min-width:0}
+.brand-mark{
+  width:34px;height:34px;display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 34px;border:1px solid #dce8fb;border-radius:10px;background:#f2f7ff;color:#2563eb
+}
+.brand-mark svg{width:19px;height:19px;display:block}
+.brand-copy{display:flex;flex-direction:column;gap:1px;min-width:0}
+.brand-line{display:flex;align-items:baseline;gap:9px;min-width:0;flex-wrap:wrap}
+.brand h1{font-size:15.5px;font-weight:700;letter-spacing:-.35px;color:#202b3a}
+.brand p{font-size:11.2px;color:#8b97a8;font-weight:450}
+.brand-credit{font-size:9.5px;color:#a0aaba;font-weight:500;letter-spacing:.05px;white-space:nowrap}
+.brand-credit .credit-dot{padding:0 3px;color:#c0c8d3}
+.top-actions{gap:9px}
+.sync{font-size:11px;color:#8491a3}
+.sync .dot{width:6px;height:6px}
+.who{font-size:10.8px;color:#8b97a8}
+.who b{font-size:12px;font-weight:650;color:#344256}
+.top-actions .btn{height:32px;padding:0 11px;border-radius:7px;font-size:11.8px}
+.top-actions .btn.ghost{background:#fff;border-color:#e3e8ef;color:#59677a}
+.top-actions .btn.ghost:hover{background:#f7f9fc;border-color:#cfd8e5}
+.btn{border-radius:7px;border-color:#dfe5ed;color:#344256;font-weight:600;box-shadow:none}
+.btn:hover{background:#f7f9fc;border-color:#cbd5e1}
+.btn.primary,.utool .btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+.btn.primary:hover,.utool .btn.primary:hover{background:#1d4ed8;border-color:#1d4ed8}
+.btn.ghost{background:#fff;color:#526176}
+
+/* App frame and navigation */
+.v8shell{
+  grid-template-columns:214px minmax(0,1fr);gap:18px;
+  max-width:1880px;padding:18px 22px 44px;align-items:start
+}
+.v8side{
+  top:80px;max-height:calc(100vh - 96px);padding:10px 9px 12px;
+  border:1px solid #e5e9f0;border-radius:11px;background:#fff;box-shadow:0 1px 3px rgba(16,24,40,.025)
+}
+.v8nav{gap:2px}
+.glabel{height:27px;margin-top:10px;padding:0 9px;color:#9aa5b4;font-size:10.2px;font-weight:750;letter-spacing:.55px}
+.glabel .ln{background:#edf1f6}
+.nitem{
+  height:35px;padding:0 10px;gap:9px;border-radius:7px;
+  color:#566579;font-size:12.4px;font-weight:500;letter-spacing:-.18px
+}
+.nitem .ic{width:16px;height:16px;flex-basis:16px;color:#9aa6b6}
+.nitem:hover{background:#f6f8fb;color:#344256}
+.nitem.on{background:#eff5ff;color:#1d4ed8;font-weight:650}
+.nitem.on .ic{color:#2563eb}
+.nitem .cnt{font-size:10.5px;color:#9aa5b4}
+.nitem.on .cnt{color:#3569c9}
+.sidefoot{padding:10px 9px 2px;border-top:1px solid #edf0f5;color:#9aa5b4;font-size:10.5px}
+.sidefoot b{font-size:11px;color:#637186}
+.sflinks button{border-color:#e5e9f0;background:#fafbfd;color:#7a8798}
+.v8main{min-width:0}
+.v8pagehead{align-items:flex-end;gap:16px;margin:1px 1px 14px}
+.v8pagehead h2{font-size:20px;font-weight:650;letter-spacing:-.55px;color:#202b3a}
+.v8pagehead p{margin-top:4px;color:#8a96a7;font-size:12px;line-height:1.5}
+.v8crumb{border:1px solid #e7ebf1;background:#fff;border-radius:6px;padding:5px 9px;color:#7b8797;font-size:10.8px;font-weight:600}
+
+/* Summary cards: calm hierarchy, no loud color bars */
+.v8main .kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:0;padding:0}
+.kpi{
+  min-width:0;padding:12px 13px 11px;border:1px solid #e6eaf0;border-radius:10px;
+  background:#fff;box-shadow:none
+}
+.kpi:before{display:none}
+.kpi-label{font-size:10.8px;color:#7e8a9b;font-weight:600;letter-spacing:-.12px}
+.kpi-line{gap:5px;margin-top:5px}
+.kpi-value{font-size:22px;font-weight:680;letter-spacing:-.65px;line-height:1.2;color:#263447!important}
+.kpi-unit{font-size:11px;color:#8995a5;font-weight:550}
+.kpi-sub{margin-top:4px;font-size:10.3px;color:#a0aaba;line-height:1.35}
+.kpi.value .kpi-value,.kpi.freeze .kpi-value,.kpi.chill .kpi-value,.kpi.live .kpi-value,.kpi.today .kpi-value{color:#263447!important}
+
+/* Shared cards, panels and work surfaces */
+.panel,.v8cards,.acc-quick,.unicard{
+  border:1px solid #e5e9f0;border-radius:10px;background:#fff;box-shadow:none
+}
+.v8main .panel.list-panel{margin-top:12px}
+.v8main .v8cards{margin-top:12px}
+.v8panehead{padding:13px 15px 0}
+.v8panehead h3{font-size:14px;font-weight:650;color:#344256}
+.unipane{margin-top:12px}
+.unipane .unicard{border-radius:10px;border-color:#e3e8ef;overflow:hidden}
+
+/* Toolbars and filters */
+.utool{gap:8px;padding:12px 14px;background:#fff;border-bottom:1px solid #edf0f4}
+.utrow{gap:7px}
+.utool .chip{
+  height:29px;padding:0 10px;border-radius:6px;border:1px solid #e4e9f0;
+  background:#fff;color:#68778b;font-size:11.5px;font-weight:600
+}
+.utool .chip:hover{border-color:#cbd7e7;background:#f8faff}
+.utool .chip.on{background:#eff5ff;border-color:#d6e4ff;color:#245cc4;box-shadow:none}
+.utool .chip.on .n{color:#4776ca}
+.utool .chip.soft{background:#f8fafc;border-color:#e8edf3;color:#68778b}
+.utool .chip.soft.on{background:#eff5ff;border-color:#d6e4ff;color:#245cc4}
+.utool .lbl{font-size:10.8px;color:#8b97a7;font-weight:700}
+.utool .hint{font-size:10.8px;color:#9aa5b4}
+.utool .divv{height:18px;background:#e9edf3}
+.usearch{height:31px;gap:7px;padding:0 9px;border:1px solid #e1e7ef;border-radius:6px;color:#9aa6b5}
+.usearch input{width:190px;font-size:11.8px;color:#344256}
+.usearch:focus-within{border-color:#9bb9ef;box-shadow:0 0 0 3px rgba(37,99,235,.07)}
+.utool .btn{height:30px;border-radius:6px;font-size:11.6px}
+.utool .utog{height:29px;padding:0 9px;border-radius:6px;background:#fafbfd;border-color:#e5eaf1;font-size:10.8px}
+.utool .utog.on{background:#eff5ff;border-color:#d6e4ff;color:#245cc4}
+.utool .rng input{height:29px;border-color:#e2e8ef;border-radius:6px;font-size:11px}
+
+/* Tables — compact but breathable, strong alignment */
+#uniTableWrap,#utxTableWrap{max-height:calc(100vh - 250px)}
+table.tblu{font-size:12px}
+.tblu thead th{
+  height:37px;padding:0 9px;background:#f7f9fc;border-bottom:1px solid #e5eaf1;
+  color:#748196;font-size:10.8px;font-weight:650
+}
+.uhd{font-size:10.8px;font-weight:650;color:inherit}
+.tblu tbody td{
+  height:45px;padding:0 9px;border-bottom:1px solid #eff2f6;
+  color:#344256;font-size:11.8px;letter-spacing:-.12px
+}
+.tblu tbody tr:hover td{background:#f9fbfe}
+.tblu .name{font-size:11.9px;font-weight:620;color:#263447}
+.tblu .code,.tblu .sub{font-size:10.9px;color:#8491a2}
+.tblu .cat{font-size:10.9px;font-weight:650}
+.tblu .tag{height:18px;padding:0 6px;font-size:9.8px;border-radius:4px}
+.tblu .whchip{height:19px;padding:0 7px;border-radius:5px;font-size:10.5px}
+.tblu .d{height:17px;padding:0 5px;font-size:9.5px;border-radius:4px}
+.tblu td.balcell{background:#f5f8fd}
+.tblu td.balcell .num{color:#315fae}
+.tblu td.actcell .actmenu{height:25px;padding:0 8px;border-radius:6px;font-size:10.8px}
+.tblu tbody tr.ugroup td{height:34px;background:#f5f7fa;font-size:11.2px}
+.utfoot{padding:9px 13px;background:#fbfcfe;border-top:1px solid #e8edf3;color:#8290a2;font-size:10.8px}
+.utfoot b{color:#526176}
+.more{height:27px;border-radius:6px;font-size:10.8px}
+.uempty{padding:42px 16px;color:#8c98a8;font-size:12px}
+
+/* Other tables and data entry surfaces */
+.table-wrap{border-color:#edf0f4}
+table:not(.tblu){font-size:12px}
+table:not(.tblu) thead th{background:#f7f9fc;color:#718095;font-size:10.8px;font-weight:650;border-bottom:1px solid #e5eaf1}
+table:not(.tblu) tbody td{border-bottom:1px solid #eff2f6;color:#344256}
+.toolbar{gap:8px;padding:11px 13px;background:#fbfcfe;border-bottom:1px solid #edf0f4}
+.toolbar input[type=search],.toolbar select{
+  min-height:32px;border:1px solid #e1e7ef;border-radius:6px;background:#fff;
+  padding:6px 9px;font-size:11.8px;color:#344256
+}
+.field>span{font-size:10.8px;color:#6f7d90;font-weight:650}
+.field input,.field select,.modal-card input,.modal-card select,.modal-card textarea{
+  border:1px solid #dfe5ed;border-radius:6px;background:#fff;color:#344256;font-size:12px
+}
+.field input:focus,.field select:focus,.modal-card input:focus,.modal-card select:focus{
+  border-color:#9bb9ef;box-shadow:0 0 0 3px rgba(37,99,235,.08)
+}
+.tabs{padding:8px 12px 0;border-bottom-color:#e9edf3}
+.tab{padding:8px 11px 9px;font-size:11.8px;color:#8390a2;border-bottom-width:2px}
+.tab.active{color:#245cc4;border-bottom-color:#2563eb}
+.note{background:#fafbfd;border-bottom-color:#edf0f4;color:#8793a4;font-size:10.8px}
+
+/* Dialogs: neutral, focused, and consistent */
+.modal{padding:18px}
+.modal-card{
+  border:1px solid #dce3ec;border-radius:11px;box-shadow:0 18px 48px rgba(20,32,50,.18);
+  padding:17px 18px 16px
+}
+.modal-head h2{font-size:14px;font-weight:700;color:#263447}
+.modal-x{width:27px;height:27px;border-radius:6px;background:#f3f5f8;color:#718095}
+.modal-sub{font-size:10.8px;color:#8491a2}
+.modal-actions .btn{border-radius:7px}
+.banner{border-radius:8px;box-shadow:none}
+
+/* Login uses the same restrained visual language */
+.login-view{background:linear-gradient(180deg,#f7f9fc 0%,#f2f5f9 100%)}
+.login-card{border:1px solid #e3e8ef;border-radius:12px;box-shadow:0 8px 28px rgba(24,39,60,.07)}
+.login-brand .brand-mark{width:38px;height:38px;flex-basis:38px}
+.login-brand h1{font-size:17px;font-weight:700;color:#263447}
+.login-brand p{font-size:10.8px;color:#8b97a7}
+.ltabs{border-radius:7px;background:#f1f4f8}
+.ltab{border-radius:5px;font-size:11.8px}
+.ltab.active{color:#245cc4;box-shadow:0 1px 2px rgba(16,24,40,.08)}
+.lform .submit{border-radius:7px;background:#2563eb;box-shadow:none;font-size:12.5px}
+
+/* Responsive layout */
+@media (max-width:1280px){
+  .v8shell{grid-template-columns:196px minmax(0,1fr);gap:14px;padding:15px 16px 40px}
+  .v8main .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .usearch input{width:145px}
+}
+@media (max-width:900px){
+  .v8shell{grid-template-columns:1fr;gap:10px;padding:10px 12px 36px}
+  .v8side{position:sticky;top:0;z-index:35;max-height:none;padding:7px 8px;border-radius:0 0 9px 9px}
+  .v8nav{display:flex;flex-direction:row;flex-wrap:wrap;gap:4px}
+  .glabel{display:none}
+  .nitem{width:auto;flex:0 0 auto;height:31px;padding:0 9px;font-size:11px}
+  .nitem .cnt{display:none}
+  .sidefoot{display:none}
+  .v8pagehead{align-items:flex-start;flex-wrap:wrap;margin:3px 1px 10px}
+  .v8main .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #uniTableWrap,#utxTableWrap{max-height:none}
+}
+@media (max-width:600px){
+  .top{padding:9px 12px;gap:7px}
+  .brand{flex:1 1 auto;gap:8px}
+  .brand-mark{width:31px;height:31px;flex-basis:31px}
+  .brand-line{gap:6px}
+  .brand h1{font-size:13.5px}
+  .brand-credit{font-size:8.5px}
+  .brand p{display:none}
+  .top-actions{gap:5px}
+  .top-actions .btn{height:29px;padding:0 8px;font-size:10.5px}
+  .v8shell{padding:8px 9px 28px}
+  .v8nav{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;padding-bottom:3px}
+  .nitem{height:30px;font-size:10.6px}
+  .v8pagehead h2{font-size:17px}
+  .v8pagehead p{font-size:10.8px}
+  .v8main .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+  .kpi{padding:9px 10px}
+  .kpi-value{font-size:18px}
+  .kpi-label{font-size:10px}
+  .kpi-sub{font-size:9.5px}
+  .utool{padding:9px}
+  .utrow{gap:6px}
+  .utool .chip{height:27px;padding:0 8px;font-size:10.5px}
+  .usearch{flex:1 1 130px}
+  .usearch input{width:100%}
+  .utool .btn{height:28px;font-size:10.5px}
+  .toolbar{padding:9px}
+  .modal{padding:8px}
+  .modal-card{padding:13px;border-radius:9px}
+}
