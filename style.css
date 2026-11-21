@@ -2363,3 +2363,46 @@ table.iosheet tbody tr[data-g="etc"] td:first-child select[data-f="kind"]{color:
 @media (max-width:768px){
   .utool .utog{height:28px;padding:0 9px;font-size:11.6px}
 }
+
+/* ==========================================================================
+   v23 — 왼쪽 메뉴 시안 3 (카드 블록 구획형)
+     · 사이드바 바탕 #F1F5F9 위에 세 묶음을 흰 둥근 카드로 구획
+     · 카드 맨 위 진한 제목(14px/800) + 파란 세로 포인트 바 + 얇은 구분선
+     · 메뉴 클릭·배지·선택 표시는 v22 그대로 (마크업만 감쌌다)
+   ========================================================================== */
+.v8side{background:#F1F5F9;border:1px solid #E2E8F0;border-radius:12px;padding:10px 8px 12px;
+  box-shadow:0 1px 3px rgba(15,23,42,.05)}
+.v8nav{gap:9px;padding:0 1px}
+.v8nav>.nav-card{background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:6px 6px 8px;
+  box-shadow:0 1px 2px rgba(15,23,42,.04);flex:0 0 auto;min-width:0}
+.v8nav>.nav-card>.glabel{position:relative;display:flex;align-items:center;gap:7px;
+  height:auto;min-height:0;margin:0 0 5px;padding:2px 3px 8px 13px;
+  font-size:14px;font-weight:800;color:#0F172A;letter-spacing:-.4px;
+  border-bottom:1px solid #E2E8F0;border-radius:0}
+.v8nav>.nav-card>.glabel::before{content:"";position:absolute;left:0;top:6px;
+  width:3px;height:13px;border-radius:2px;background:#2563EB}
+.v8nav>.nav-card>.glabel .ln{display:none}
+.nitem{height:32px;padding:0 8px;font-size:13px;font-weight:500;color:#334155;letter-spacing:-.3px;border-radius:7px}
+.nitem .ic{color:#64748B}
+.nitem:hover{background:#F1F5F9;color:#0F172A}
+.nitem:hover .ic{color:#1D4ED8}
+.nitem .cnt{color:#8494A8;font-weight:600}
+.nitem:hover .cnt{color:#1D4ED8}
+.nitem.on{background:#EFF6FF;color:#1D4ED8;font-weight:700;box-shadow:inset 3px 0 0 #2563EB;border-radius:0 7px 7px 0}
+.nitem.on .ic{color:#2563EB}
+.nitem.on .cnt{color:#2563EB}
+.v8nav>.sidefoot{margin:auto 0 0;padding:10px 4px 2px;border-top:1px solid #DDE4EE;color:#64748B;font-size:11.2px}
+.v8nav>.sidefoot b{color:#334155}
+.sflinks button{border:1px solid #DCE3EE;background:#FFFFFF;color:#475569}
+.sflinks button:hover{border-color:#BFD3F7;color:#1D4ED8;background:#EFF6FF}
+
+/* 폰: 카드 상자 없이 지금까지처럼 가로 메뉴로 (레이아웃 그대로) */
+@media (max-width:768px){
+  .v8nav{gap:6px;padding:0}
+  .v8nav>.nav-card{display:contents}
+  .v8nav>.nav-card>.glabel{margin-top:6px;padding:0 6px 2px 9px;font-size:11.4px;border-bottom:0}
+  .v8nav>.nav-card>.glabel::before{top:2px;height:11px}
+  .nitem{border-radius:8px}
+  .nitem.on{border-radius:8px;box-shadow:none}
+  .v8nav>.sidefoot{display:none}
+}
