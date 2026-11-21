@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261121_33">
+<link rel="stylesheet" href="style.css?v=20261121_34">
 </head>
 <body>
 
@@ -200,7 +200,6 @@
 
   <!-- ===================== v22 · 품목별 화면 탭 (재고현황 · 입출고 내역) ===================== -->
   <div class="itemtabs hidden" id="itemTabs" role="tablist" aria-label="품목별 화면">
-    <span class="itlbl" id="itemTabsName">원료육</span>
     <div class="seg its">
       <button class="active" type="button" data-itab="stock" role="tab">재고현황</button>
       <button type="button" data-itab="tx" role="tab">입출고 내역</button>
@@ -341,7 +340,6 @@
         </div>
         <div class="utrow" id="uniFilterRow">
           <div class="chipset" id="uniViewChips"></div>
-          <span class="hint" id="uniHint">일곱 구분 · 원산지와 브랜드를 나눠 한 표에 담습니다</span>
           <span class="sp"></span>
           <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
           <label class="check utog" id="uniGroupWrap" title="같은 품명끼리 묶고 위에 로트 수 · 재고 · 재고금액 합계 줄을 넣습니다"><input type="checkbox" id="uniGroupByName">품명 묶어보기</label>
@@ -382,7 +380,7 @@
           </div>
         </div>
         <div class="utrow">
-          <span class="lbl">품목구분</span>
+          <span class="lbl" id="utxCatLbl">품목구분</span>
           <div class="chips" id="utxCatChips">
             <button class="chip on" type="button" data-ucat="all">전체<span class="n" id="utxCntAll">0</span></button>
             <button class="chip" type="button" data-ucat="meat">원료육<span class="n" id="utxCntMeat">0</span></button>
@@ -393,7 +391,7 @@
             <button class="chip" type="button" data-ucat="sub">부자재<span class="n" id="utxCntSub">0</span></button>
             <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="utxCntEtc">0</span></button>
           </div>
-          <span class="divv"></span>
+          <span class="divv" id="utxCatDiv"></span>
           <span class="lbl">거래구분</span>
           <div class="chips" id="utxKindChips">
             <button class="chip soft on" type="button" data-utk="all">전체</button>
@@ -1667,7 +1665,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261121_33"></script>
-<script src="app.js?v=20261121_33"></script>
+<script src="partners_data.js?v=20261121_34"></script>
+<script src="app.js?v=20261121_34"></script>
 </body>
 </html>

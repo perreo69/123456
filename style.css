@@ -2651,3 +2651,232 @@ input[type=email]:focus,input[type=password]:focus,input[type=tel]:focus,textare
 @media (max-width:768px){
   .qb.active{color:#fff;font-weight:700}
 }
+
+/* ==========================================================================
+   v27 — 정갈한 문서형 (선과 네모 박스를 덜어낸 업무 문서)
+     · 표 안 네모 박스 없음: 창고 = 작은 색 점 ● + 담백한 글자,
+       소비기한 D-day = 날짜 옆 옅은 보조 글자, [작업 ▾] = 테두리 없는 글자 링크
+     · 표 = 세로선 없음, 가로 헤어라인만(1px #EAEEF3)
+       머리글 = #F8FAFC 바탕 + 하단 1px #CBD5E1 + #0F172A 글자
+     · 상단 툴바 = ＋입고 하나만 파란 채움, 나머지는 테두리 없는 회색 글자 버튼
+     · 창고·화면 필터 = 둥근 알약 대신 밑줄 탭
+     · 사이드바 = #F8FAFC 바탕 위 흰 카드 다섯 장(테두리 #E5E7EB)
+   ========================================================================== */
+:root{
+  --v27-rule:#EAEEF3;
+  --v27-rule-soft:#F1F5F9;
+  --v27-head:#F8FAFC;
+  --v27-headrule:#CBD5E1;
+  --v27-ink:#111827;
+  --v27-body:#334155;
+  --v27-sub:#6B7280;
+  --v27-soft:#A6AEBB;
+  --v27-card:#E5E7EB;
+  --line:#EAEEF3; --line2:#F1F5F9; --hair:#EAEEF3;
+  --doc-line:#EAEEF3; --doc-head:#F8FAFC; --doc-headline:#CBD5E1;
+  --doc-ink:#111827; --doc-sub:#475569;
+}
+
+/* ---------- 0. 바탕 · 상단 바 ---------- */
+body{background:#F7F8FA;color:var(--v27-ink)}
+.top{background:#fff;border-bottom:1px solid #ECEEF2;backdrop-filter:none;-webkit-backdrop-filter:none}
+.brand h1{color:#0F172A}
+.top .btn{border:0;background:none;color:#475569;font-weight:600;font-size:11.8px;
+  border-radius:6px;padding:0 10px;height:28px;box-shadow:none}
+.top .btn:hover{background:#F4F6F8;color:#0F172A;border:0}
+.top .pbadge{background:#EEF1F5;color:#64748B}
+
+/* ---------- 1. 사이드바 — 회색 바탕 위 흰 카드 다섯 장 ---------- */
+.v8shell{gap:20px}
+.v8side{background:#F8FAFC;border:0;border-radius:14px;padding:8px;box-shadow:none}
+.v8nav{gap:8px}
+.v8nav>.nav-card{background:#fff;border:1px solid var(--v27-card);border-radius:10px;padding:3px 5px 6px;
+  box-shadow:0 1px 2px rgba(15,23,42,.035)}
+.v8nav>.nav-card>.glabel{height:30px;padding:0 8px;margin:0;border-bottom:0;
+  color:var(--v27-soft);font-size:10.6px;font-weight:700;letter-spacing:.06em}
+.v8nav>.nav-card>.glabel::before{display:none}
+.v8nav>.nav-card>.glabel .ln{background:#F4F6F9}
+.nitem{height:32px;border-radius:7px;color:#475569;font-weight:500;font-size:12.8px}
+.nitem .ic{color:#9AA5B4}
+.nitem:hover{background:#F8FAFC;color:#0F172A}
+.nitem.on{background:#F1F5F9;color:#0F172A;font-weight:700;border-radius:7px;box-shadow:none}
+.nitem.on .ic{color:#0F172A}
+.nitem .cnt{color:#A6AEBB;font-weight:600;font-size:11px}
+.nitem.on .cnt{color:#64748B}
+.v8nav>.sidefoot{border-top:0;margin-top:4px;padding:10px 9px 2px;color:#A6AEBB;font-size:11px;line-height:1.6}
+.v8nav>.sidefoot b{display:block;color:#64748B;font-weight:700;font-size:10.8px;margin-bottom:3px}
+.sflinks{gap:12px;margin-top:6px}
+.sflinks button{border:0;background:none;border-radius:0;padding:0;font-size:10.8px;color:#64748B;font-weight:600}
+.sflinks button:hover{background:none;border:0;color:#0F172A;text-decoration:underline}
+
+/* ---------- 2. 머리글 ---------- */
+.v8pagehead{margin:4px 2px 14px;align-items:flex-start}
+.v8pagehead h2{font-size:22px;font-weight:700;letter-spacing:-.6px;color:#0F172A}
+.v8pagehead p{color:#8A94A6;font-size:12.6px;margin-top:5px}
+.v8crumb{background:none;border:0;border-radius:0;padding:0;margin-top:9px;
+  color:#A6AEBB;font-size:11.4px;font-weight:600}
+
+/* ---------- 3. 패널 ---------- */
+.panel,.unicard,.unipane .unicard,.list-panel{background:#fff;border:1px solid #EEF1F5;border-radius:12px;box-shadow:none}
+
+/* ---------- 4. 화면 탭(재고현황 · 입출고 내역) — 밑줄 탭 ---------- */
+.itemtabs{gap:14px;margin:2px 2px 12px;align-items:center}
+.itemtabs .itlbl{background:none;border:0;border-radius:0;padding:0;color:#94A3B8;
+  font-size:12.2px;font-weight:600;letter-spacing:-.1px}
+.itemtabs .seg{background:none;padding:0;gap:20px;border-radius:0;box-shadow:none}
+.itemtabs .seg button{background:none;border:0;border-radius:0;padding:1px 1px 7px;box-shadow:none;
+  color:#8A94A6;font-size:12.5px;font-weight:600}
+.itemtabs .seg button:hover{background:none;color:#0F172A}
+.itemtabs .seg button.active{background:none;box-shadow:inset 0 -2px 0 #0F172A;color:#0F172A;font-weight:700}
+.itemtabs .seg button.active[data-wh="F"],.itemtabs .seg button.active[data-wh="C"]{color:#0F172A}
+
+/* ---------- 5. 상단 툴바 — 입고 하나만 파란 채움 ---------- */
+.utool{background:#fff;border-bottom:1px solid #EFF2F6;padding:14px 18px 12px;gap:10px}
+#uniMode .utool>.utrow:first-child>.sp{flex:0 1 10px}
+#uniMode .utool .xlmenu{margin-left:2px}
+.usearch{height:32px;border:0;border-bottom:1px solid #E5E7EB;border-radius:0;background:none;padding:0 2px;color:#A6AEBB}
+.usearch input{width:224px;font-size:12.6px;color:#0F172A}
+.usearch:focus-within{border-bottom-color:#94A3B8;box-shadow:none}
+.utool .btn{height:32px;border:0;background:none;color:#64748B;font-weight:600;font-size:12.6px;
+  border-radius:7px;padding:0 11px;box-shadow:none}
+.utool .btn:hover{background:#F4F6F8;color:#0F172A;border:0;box-shadow:none}
+.utool .btn:active{transform:none}
+.utool .btn.primary{background:#2563EB;color:#fff;font-weight:700;padding:0 16px}
+.utool .btn.primary:hover{background:#1D4ED8;color:#fff}
+.utool .xlbtn{background:none;border:0;color:#64748B;padding:0 9px}
+.utool .xlbtn .car{color:#A6AEBB}
+.utool .chips{gap:0}
+.utool .chip{height:32px;border:0;background:none;border-radius:0;box-shadow:none;
+  color:#8A94A6;font-weight:600;font-size:12.6px;padding:0 2px;margin-right:20px}
+.utool .chip .n{color:#B4BCC8;font-weight:600}
+.utool .chip:hover{border:0;background:none;color:#0F172A}
+.utool .chip.soft{background:none;border:0;color:#8A94A6}
+.utool .chip.soft:hover{background:none;color:#0F172A}
+.utool .chip.on,.utool .chip.soft.on{background:none;border:0;color:#0F172A;font-weight:700;
+  box-shadow:inset 0 -2px 0 #0F172A}
+.utool .chip.on .n{color:#64748B}
+.utool .utog{height:30px;border:0;background:none;border-radius:0;padding:0 2px;
+  color:#8A94A6;font-weight:600;font-size:12.2px}
+.utool .utog:hover{border:0;background:none;color:#0F172A}
+.utool .utog.on{background:none;border:0;color:#0F172A;font-weight:700}
+.utool .utog input{accent-color:#475569}
+.utool .hint{color:#A6AEBB;font-size:11.8px}
+.utool .hint b{color:#0F172A;font-weight:700}
+.utool .divv{background:#EEF1F5;height:14px;margin:0 4px}
+
+/* ---------- 6. 표 — 세로선 없이 가로 헤어라인만 ---------- */
+#uniTableWrap{max-height:calc(100vh - 344px)}
+table.tblu{border:0;border-collapse:separate;border-spacing:0}
+table.tblu thead th{height:38px;padding:0 12px;background:var(--v27-head);color:#0F172A;
+  border:0;border-bottom:1px solid var(--v27-headrule);border-right:0;
+  font-size:11.5px;font-weight:700;letter-spacing:-.1px;box-shadow:none}
+table.tblu tbody td,table.tblu tbody th{height:46px;padding:0 12px;background:#fff;
+  border:0;border-bottom:1px solid var(--v27-rule);border-right:0;
+  color:var(--v27-ink);font-size:12.9px;box-shadow:none}
+table.tblu tr>:first-child{padding-left:18px}
+table.tblu tr>:last-child{padding-right:18px}
+table.tblu tbody tr:hover td{background:#FAFBFC}
+table.tblu tbody tr:last-child td{border-bottom:0}
+table.tblu thead th.actcol{background:var(--v27-head);border-left:0;border-right:0;box-shadow:none}
+table.tblu td.actcol,table.tblu td.actcell{background:#fff;border-left:0;border-right:0;box-shadow:none}
+table.tblu tbody tr:hover td.actcol{background:#FAFBFC}
+table.tblu tr>:last-child{border-right:0}
+.table-wrap thead th{border-right:0;border-bottom:1px solid var(--v27-headrule)}
+.table-wrap tbody td{border-right:0;border-bottom:1px solid var(--v27-rule)}
+.uhd{font-size:11.5px;font-weight:700;color:#0F172A}
+.uhd .car{color:#C3C9D4;opacity:0;transition:opacity .12s}
+table.tblu thead th:hover .car{opacity:1}
+table.tblu thead th.on{background:#F1F5F9;color:#0F172A;box-shadow:inset 0 -2px 0 #94A3B8}
+table.tblu thead th.on .car{color:#94A3B8;opacity:1}
+.hdfilt{color:#0F172A;font-weight:700}
+.hdfilt:hover{background:#EEF2F6;color:#0F172A}
+.hdfilt.on{background:#E7ECF2;color:#0F172A}
+.hdfilt .harrow{color:#A6AEBB}
+.table-wrap tbody td{padding:6px 12px}
+.table-wrap tbody tr:hover td{background:#FAFBFC}
+.tblu .name{color:#111827;font-weight:600}
+.tblu .b{color:#111827;font-weight:700}
+.tblu .sub{color:var(--v27-sub);font-size:12.4px;font-weight:500}
+.tblu .code{color:var(--v27-sub);font-size:12.4px}
+.tblu .cat{font-weight:600;font-size:12.4px}
+.tblu .dim{color:#A6AEBB}
+.tblu td.zero,.num.zero{color:#A6AEBB}
+tr.group td{background:#F8FAFC;color:#0F172A;border-bottom:1px solid var(--v27-rule);font-weight:700}
+
+/* 품명 묶어보기 합계 줄 — 옅은 띠 + 굵은 품명·합계 */
+table.tblu tbody tr.ugroup td{height:40px;background:#F8FAFC;border-bottom:1px solid var(--v27-rule);color:#111827}
+table.tblu tbody tr.ugroup:hover td{background:#F8FAFC}
+table.tblu tbody tr.ugroup td.actcol{background:#F8FAFC;border-left:0}
+.tblu tbody tr.ugroup .g-name{color:#111827;font-weight:700;font-size:12.9px}
+.tblu tbody tr.ugroup .g-meta{color:#A6AEBB;font-size:11.4px;font-weight:500;margin-left:8px}
+.tblu tbody tr.ugroup .g-meta b{color:#64748B;font-weight:700}
+.tblu tbody tr.ugroup .gsum{color:#111827;font-weight:700}
+
+/* 머리글 열 경계 손잡이 — 평소엔 보이지 않게 */
+table.tblu thead th .colrz:before,.table-wrap thead th .colrz:before{background:none}
+table.tblu thead th .colrz:hover:before,table.tblu thead th .colrz.on:before{background:#94A3B8;width:2px;left:1px}
+
+/* 작업 열 — 테두리 없는 글자 링크 */
+table.tblu td.actcell{padding:0 12px}
+table.tblu .actmenu,table.tblu td.actcell .actmenu{height:auto;min-height:0;padding:3px 2px;border:0;background:none;
+  border-radius:0;box-shadow:none;color:#A6AEBB;font-weight:600;font-size:11.8px;letter-spacing:-.2px}
+table.tblu .actmenu:hover,table.tblu .actmenu.on{background:none;border:0;color:#1D4ED8;text-decoration:underline}
+table.tblu td.actcell .actmenu.dis{background:none;border:0}
+.utfoot{background:#F8FAFC;border-top:1px solid var(--v27-rule);color:#64748B}
+
+/* ---------- 7. 창고 · 소비기한 — 박스 대신 점과 옅은 글자 ---------- */
+.tblu .whchip{display:inline-flex;align-items:center;height:auto;padding:0;border:0;background:none;border-radius:0;
+  box-shadow:none;color:var(--v27-body);font-size:12.5px;font-weight:600}
+.tblu .whchip::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:#2563EB;margin-right:7px;flex:0 0 6px}
+.tblu .whchip.chl{background:none;border:0;color:var(--v27-body)}
+.tblu .whchip.chl::before{background:#0E9384}
+.tblu .whchip.chl.thaw{background:none;border:0;color:var(--v27-body)}
+.tblu .whchip.chl.thaw::before{background:#D97706}
+.tblu .whchip.amb{background:none;border:0;color:var(--v27-body)}
+.tblu .whchip.amb::before{background:#94A3B8}
+.tblu .d{display:inline;height:auto;padding:0;margin-left:8px;border:0;background:none;border-radius:0;
+  box-shadow:none;color:#A6AEBB;font-size:11.4px;font-weight:600}
+.tblu .d::before{content:'·';margin-right:4px;color:#CBD5E1;font-weight:700}
+.tblu .d.warn{background:none;border:0;color:#B45309}
+.tblu .d.hot{background:none;border:0;color:#B42318;font-weight:700}
+.tblu .tag{border:0;background:none;border-radius:0;padding:0;height:auto;font-weight:600;color:#64748B;font-size:11.8px}
+.tblu .tag.blue{color:#1D4ED8}
+.tblu .tag.green{color:#0E7C5A}
+.tblu .tag.amber{color:#B45309}
+.tblu .tag.gray{color:#64748B}
+.tblu .fbadge{border:0;background:none;border-radius:0;padding:0;height:auto;font-weight:600;font-size:11.4px}
+.tblu .fbadge.self{color:#0E7C5A}
+.tblu .fbadge.buy{color:#B45309}
+
+/* ---------- 8. 폰 ---------- */
+@media (max-width:768px){
+  .utool{padding:11px 12px 10px}
+  table.tblu tbody td{height:42px;padding:0 9px}
+  .table-wrap tbody td{padding:5px 9px}
+  .utool .chip{margin-right:14px}
+}
+
+/* ==========================================================================
+   v27-2 — 품명 묶어보기 : 기본 접힘 + 눌러 펼침 · 불필요한 줄 정리
+     · 대표 줄 기본 = 흰 바탕에 ▶ 품명 · 로트 N건 · 총재고 · 총재고금액 한 줄
+     · 대표 줄을 누르면 ▼ 로 바뀌며 그때만 연한 하늘색(#EFF6FF) 바탕
+     · 재고현황 = 창고 칩 줄·안내 문구 없이 체크·합계만 (두 번째 줄이 짧아짐)
+   ========================================================================== */
+table.tblu tbody tr.ugroup{cursor:pointer;user-select:none}
+table.tblu tbody tr.ugroup td{background:#fff;border-bottom:1px solid var(--v27-rule)}
+table.tblu tbody tr.ugroup:hover td{background:#FAFBFC}
+table.tblu tbody tr.ugroup.open td,table.tblu tbody tr.ugroup.open:hover td{background:#EFF6FF}
+table.tblu tbody tr.ugroup td.actcol{background:#fff}
+table.tblu tbody tr.ugroup.open td.actcol{background:#EFF6FF}
+table.tblu tbody tr.ugroup .gtog{display:inline-block;width:10px;margin-right:8px;color:#A6AEBB;
+  font-size:9px;font-weight:700;vertical-align:1px}
+table.tblu tbody tr.ugroup:hover .gtog{color:#64748B}
+table.tblu tbody tr.ugroup.open .gtog{color:#2563EB}
+table.tblu tbody tr.ugroup.open .g-name{color:#0F172A}
+.tblu tbody tr.unirow.gin td:first-child{box-shadow:inset 3px 0 0 #EFF6FF}
+.tblu tbody tr.unirow.gin:last-child td{border-bottom:1px solid var(--v27-rule)}
+/* 창고 칸이 빠진 냉동고·냉장고 화면 — 창고 이름은 화면 제목이 알려 준다 */
+.tblu tbody tr.utxrow td .cat{white-space:nowrap}
+.utool .chipset:empty{display:none}
+.itemtabs .seg.gap,.itemtabs{gap:18px}
