@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261121_28">
+<link rel="stylesheet" href="style.css?v=20261121_29">
 </head>
 <body>
 
@@ -89,24 +89,21 @@
   <!-- ========= v16: 왼쪽 메뉴 = 물류 · 품목 · 회계 세 묶음 (얇은 선 아이콘) ========= -->
   <aside class="v8side" id="v8Side" aria-label="통합 메뉴">
     <nav class="v8nav" id="v8Nav">
-      <div class="glabel" data-grp="logi">물류<span class="ln"></span></div>
+      <div class="glabel" data-grp="logi">통합 관리<span class="ln"></span></div>
       <button class="nitem" type="button" data-nav="stock:all" data-ucat="all">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg><span>통합 재고</span><span class="cnt" id="navCntStock">0</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/></svg><span>재고현황</span><span class="cnt" id="navCntStock">0</span>
       </button>
       <button class="nitem" type="button" data-nav="tx">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg><span>통합 입출고</span><span class="cnt" id="navCntTx">0</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13l-3-3M20 16H7l3 3"/></svg><span>입출고내역</span><span class="cnt" id="navCntTx">0</span>
       </button>
       <button class="nitem" type="button" data-nav="in">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4M4 20h16"/></svg><span>통합 입고</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v10M8 9l4 4 4-4M4 20h16"/></svg><span>입고등록</span>
       </button>
       <button class="nitem" type="button" data-nav="out">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V11M8 15l4 4 4-4M4 4h16"/></svg><span>통합 출고</span>
-      </button>
-      <button class="nitem" type="button" data-nav="move">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9a7 7 0 0 1 12-2M19 15a7 7 0 0 1-12 2"/><path d="M17 3v4h-4M7 21v-4h4"/></svg><span>해동 · 창고이동</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V11M8 15l4 4 4-4M4 4h16"/></svg><span>출고등록</span>
       </button>
 
-      <div class="glabel" data-grp="item">품목<span class="ln"></span></div>
+      <div class="glabel" data-grp="item">품목별 관리<span class="ln"></span></div>
       <button class="nitem" type="button" data-nav="stock:meat" data-ucat="meat">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span><span class="cnt" id="navCntMeat">0</span>
       </button>
@@ -150,7 +147,7 @@
       </button>
 
       <div class="sidefoot">
-        <b id="sideAsOf">재고 기준일 —</b>원료육·완제품·부자재를<br>한 표에서 같은 자리로 봅니다.
+        <b id="sideAsOf">재고 기준일 —</b>관리자는 통합으로,<br>실무자는 품목별로 봅니다.
         <span class="sflinks" id="sideMore">
           <button type="button" data-legacy="prod">생산·원가</button>
           <button type="button" data-legacy="price">단가 변동</button>
@@ -164,8 +161,8 @@
 
   <div class="v8pagehead">
     <div>
-      <h2 id="v8Title">재고관리 · 냉동고 재고</h2>
-      <p id="v8Desc">원료육 재고를 창고별로 보고, 표에서 바로 해동·출고로 이어집니다.</p>
+      <h2 id="v8Title">재고현황</h2>
+      <p id="v8Desc">일곱 구분의 재고를 한 표에서 봅니다. 품목별 관리로 들어가면 그 품목 안에서 입고·출고·해동/냉동을 끝냅니다.</p>
     </div>
     <div class="v8pgright">
       <div class="pacts hidden" id="tradeActs">
@@ -182,7 +179,16 @@
           <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
         </div>
       </div>
-      <span class="v8crumb" id="v8Crumb">2. 재고 · 원료육</span>
+      <span class="v8crumb" id="v8Crumb">통합 관리 · 재고현황</span>
+    </div>
+  </div>
+
+  <!-- ===================== v22 · 품목별 화면 탭 (재고현황 · 입출고 내역) ===================== -->
+  <div class="itemtabs hidden" id="itemTabs" role="tablist" aria-label="품목별 화면">
+    <span class="itlbl" id="itemTabsName">원료육</span>
+    <div class="seg its">
+      <button class="active" type="button" data-itab="stock" role="tab">재고현황</button>
+      <button type="button" data-itab="tx" role="tab">입출고 내역</button>
     </div>
   </div>
 
@@ -303,7 +309,9 @@
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
             <input type="search" id="uniSearch" placeholder="품명 · 로트번호 검색" autocomplete="off">
           </label>
-          <button class="btn primary" id="uniBtnIn" type="button">＋ 입고</button>
+          <button class="btn primary" id="uniBtnIn" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 입고 팝업이 열립니다">＋ 입고</button>
+          <button class="btn" id="uniBtnOut" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 출고 팝업이 열립니다">＋ 출고</button>
+          <button class="btn hidden" id="uniBtnMove" type="button" title="원료육을 냉동고 ↔ 냉장고로 옮깁니다">＋ 해동/냉동</button>
           <button class="btn ghost" id="uniBtnItem" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다">＋ 품목 등록</button>
           <div class="xlmenu" id="xlUni">
             <button class="btn xlbtn" id="xlUniBtn" type="button" aria-haspopup="true" aria-expanded="false">엑셀<span class="car"></span></button>
@@ -836,7 +844,7 @@
   <div class="modal hidden" id="ioSheetModal">
     <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="ioSheetTitle">
       <div class="modal-head">
-        <h2 id="ioSheetTitle">통합 입고</h2>
+        <h2 id="ioSheetTitle">입고 등록</h2>
         <button class="modal-x" id="ioSheetClose" type="button" aria-label="닫기">✕</button>
       </div>
       <p class="modal-sub" id="ioSheetSub">원료육 · 완제품 · 부자재를 한 팝업에서 처리합니다. 구분에 따라 창고 칸만 열립니다.</p>
@@ -893,10 +901,10 @@
   <div class="modal hidden" id="uniMoveModal">
     <div class="modal-card mvcard" role="dialog" aria-modal="true" aria-labelledby="uniMoveTitle">
       <div class="modal-head">
-        <h2 id="uniMoveTitle">해동 · 창고이동</h2>
+        <h2 id="uniMoveTitle">해동/냉동</h2>
         <button class="modal-x" id="uniMoveClose" type="button" aria-label="닫기">✕</button>
       </div>
-      <p class="modal-sub" id="uniMoveSub">냉동고 재고를 냉장고로 옮깁니다. 로트를 고르면 단가가 채워집니다.</p>
+      <p class="modal-sub" id="uniMoveSub">해동은 냉동고 재고를 냉장고로, 재냉동은 냉장고 재고를 냉동고로 옮깁니다. 로트를 고르면 단가가 채워집니다.</p>
       <div class="modes" id="uniMoveSeg" role="tablist" aria-label="이동 방향">
         <button class="mode active" data-mv="thaw" type="button">해동 (냉동고 → 냉장고)</button>
         <button class="mode" data-mv="re" type="button">재냉동 (냉장고 → 냉동고)</button>
@@ -913,7 +921,7 @@
       <p class="msg" id="uniMoveMsg"></p>
       <div class="modal-actions">
         <button class="btn" id="uniMoveCancel" type="button">취소</button>
-        <button class="submit" id="uniMoveSave" type="button">이동 저장</button>
+        <button class="submit" id="uniMoveSave" type="button">해동/냉동 저장</button>
       </div>
     </div>
   </div>
@@ -1644,7 +1652,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261121_28"></script>
-<script src="app.js?v=20261121_28"></script>
+<script src="partners_data.js?v=20261121_29"></script>
+<script src="app.js?v=20261121_29"></script>
 </body>
 </html>

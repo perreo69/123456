@@ -149,6 +149,12 @@ form{padding:12px}
 .seg button.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.14)}
 .seg button.active[data-wh="F"]{color:var(--blue-ink)}
 .seg button.active[data-wh="C"]{color:var(--green-ink)}
+/* v22 — 품목별 화면 상단 탭 (재고현황 · 입출고 내역) */
+.itemtabs{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.itemtabs .itlbl{font-size:12.5px;font-weight:800;color:var(--blue-ink);background:var(--blue-bg);border-radius:20px;padding:5px 12px;white-space:nowrap}
+.itemtabs .seg{grid-auto-columns:auto}
+.itemtabs .seg button{padding:7px 16px;font-size:12.5px}
+.itemtabs .seg button.active{color:var(--blue-ink)}
 .flow{display:flex;align-items:center;gap:8px;background:#f7f9fd;border:1px dashed #d5deec;border-radius:10px;padding:9px 11px}
 .chip{font-size:12px;font-weight:750;padding:4px 9px;border-radius:20px}
 .chip.b{background:var(--blue-bg);color:var(--blue-ink)}
