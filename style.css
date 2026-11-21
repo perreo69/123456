@@ -3000,3 +3000,34 @@ table.tblu .lot-subtbl td.actcell .actmenu:hover,table.tblu .lot-subtbl td.actce
   table.tblu tbody tr.ugsub>td.ugsubcell{padding:2px 8px 10px 12px}
   .utool .chip{height:28px;padding:0 9px;font-size:11.8px}
 }
+
+/* ==========================================================================
+   v29 — 재고 단위는 숫자 옆으로 · 표 폭을 1120px 로 조여 칸 사이 거리 줄이기
+     · 품명 칸에서는 옅은 단위(kg · 팩) 표시를 없애고 품명만
+     · 바깥 표 「총 재고」 · 안쪽 소표 「재고」 숫자 바로 뒤에 작은 단위
+     · 1920px 넓은 화면에서도 다섯 칸이 한눈에 들어오게 표(툴바 포함)를 1120px 로
+   ========================================================================== */
+
+/* ---------- 1. 표 · 툴바 폭 — 1120px 왼쪽 정렬(품목 재고현황만) ---------- */
+#uniMode .unicard{max-width:1120px}
+/* 좁은 화면(1120px 이하)에서는 예전처럼 화면 폭을 그대로 쓴다 */
+@media (max-width:1120px){
+  #uniMode .unicard{max-width:none}
+}
+/* 폭이 좁아진 만큼 툴바 칩을 살짝 조여 한 줄에 자연스럽게 앉힌다 */
+#uniMode .utool .chip{height:29px;padding:0 10px;font-size:12.2px}
+#uniMode .usearch input{width:210px}
+
+/* ---------- 2. 재고 숫자 옆 단위 — 옅고 작게, 숫자가 또렷하게 ---------- */
+table.tblu tbody td .unit{margin-left:4px;color:#64748B;font-size:11px;font-weight:600;
+  letter-spacing:0;vertical-align:0}
+table.tblu tbody tr.ugroup td.gsum .unit{margin-left:4px;font-size:11.2px;font-weight:600;color:#64748B}
+table.tblu table.lot-subtbl tbody td .unit{margin-left:3px;font-size:10.6px;font-weight:600;color:#64748B}
+
+/* ---------- 3. 품명 칸 = 품명만(단위·규격은 숫자 옆과 줄 설명으로) ---------- */
+table.tblu tbody tr.ugroup .g-name{letter-spacing:-.2px}
+table.tblu tbody tr.ugroup td.gn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- 4. 안쪽 로트 상세 소표 — 1120px 안에서 한 줄로 ---------- */
+table.tblu table.lot-subtbl thead th,table.tblu table.lot-subtbl tbody td{padding:0 8px}
+table.tblu .lot-subtbl td.actcell .actmenu{padding:0 8px}

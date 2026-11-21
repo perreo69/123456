@@ -6765,7 +6765,7 @@ var LIVE = (function () {
     if (k === 'inD') return '<td class="num dim">' + esc(r.inD || '-') + '</td>';
     if (k === 'mfg') return '<td class="num">' + esc(r.mfg || '-') + '</td>';
     if (k === 'e') return '<td><span class="num">' + esc(r.e || '-') + '</span>' + uniDday(r.e) + '</td>';
-    if (k === 'qty') return '<td class="r num b' + (r.qty <= ERP.EPS ? ' zero' : '') + '">' + fmtQty(r.qty) + '</td>';
+    if (k === 'qty') return '<td class="r num b' + (r.qty <= ERP.EPS ? ' zero' : '') + '">' + fmtQty(r.qty) + uniUnitTag(r.unit) + '</td>';
     if (k === 'price') return '<td class="r num">' + (r.price > 0 ? fmtInt(r.price) : '<span class="dim">-</span>') + '</td>';
     if (k === 'amt') return uniAmtCell(r);
     return '<td></td>';
@@ -6833,35 +6833,43 @@ var LIVE = (function () {
      모든 칸에 값이 차는 다섯 칸(통합 재고는 구분을 더해 여섯 칸)만 둔다.
      로트번호·원산지·브랜드·창고·입고일·소비기한·단가 같은 로트별 값은
      대표 줄을 눌렀을 때 펼쳐지는 안쪽 로트 상세 소표에서 본다. */
+  /* v29 — 칸 사이 거리를 줄이려 폭을 고르게 나누고, 표 전체는 style.css 의 1120px 안에서 채운다 */
   var UNI_GROUP_COLS = [
-    { k: 'cat', t: '구분', w: 120, f: 1 },
-    { k: 'sub', t: '세부분류', w: 152, f: 1 },
-    { k: 'n', t: '품명', w: 452, f: 1 },
-    { k: 'lots', t: '로트', w: 96 },
-    { k: 'qty', t: '총 재고', w: 156, num: true },
-    { k: 'amt', t: '총 재고금액', w: 176, num: true }
+    { k: 'cat', t: '구분', w: 116, f: 1 },
+    { k: 'sub', t: '세부분류', w: 140, f: 1 },
+    { k: 'n', t: '품명', w: 292, f: 1 },
+    { k: 'lots', t: '로트', w: 88 },
+    { k: 'qty', t: '총 재고', w: 176, num: true },
+    { k: 'amt', t: '총 재고금액', w: 196, num: true }
   ];
   function uniGroupColsNow() {
     if (uniView()) return UNI_GROUP_COLS.filter(function (c) { return c.k !== 'cat'; });
     return UNI_GROUP_COLS;
   }
-  /* v28 — 대표 줄 : 세부분류 · 품명(+규격) · 로트 N건 · 총 재고 · 총 재고금액
-     기본은 접힘(흰 바탕 · ▶)이고, 눌러 펼쳤을 때만 연한 하늘색(#EFF6FF)이 들어간다. */
+  /* v29 — 재고 숫자 바로 뒤에 붙는 옅은 단위(kg · 팩 · 개 …). 품명 칸에서는 단위를 뺐다. */
+  function uniUnitTag(u) {
+    var un = (u === undefined || u === null) ? '' : String(u).replace(/^\s+|\s+$/g, '');
+    return un ? '<span class="unit">' + esc(un) + '</span>' : '';
+  }
+  /* v28 — 대표 줄 : 세부분류 · 품명 · 로트 N건 · 총 재고(+단위) · 총 재고금액
+     v29 — 품명 뒤 옅은 단위 표시를 없애고(품명만), 단위는 총 재고 숫자 옆에 붙인다.
+     규격은 지우지 않고 줄 설명(title)에 남긴다. 기본은 접힘(흰 바탕 · ▶)이고,
+     눌러 펼쳤을 때만 연한 하늘색(#EFF6FF)이 들어간다. */
   function uniGroupRowHtml(g, cols, open) {
     var h = ['<tr class="ugroup' + (open ? ' open' : '') + '" data-gname="' + esc(g.n) + '" data-gcat="' + esc(g.cat) + '"' +
-      ' data-gkey="' + esc(ERP.uniGroupKey(uniView(), g)) + '" title="' + (open ? '누르면 접힙니다' : '누르면 로트 ' + g.lots + '건을 펼칩니다') + '">'], i, k;
+      ' data-gkey="' + esc(ERP.uniGroupKey(uniView(), g)) + '" title="' + (open ? '누르면 접힙니다' : '누르면 로트 ' + g.lots + '건을 펼칩니다') +
+      (g.spec && g.spec !== '-' ? ' · 규격 ' + esc(g.spec) : '') + '">'], i, k;
     for (i = 0; i < cols.length; i++) {
       k = cols[i].k;
       if (k === 'n') {
         h.push('<td class="gn"><span class="gtog">' + (open ? '▼' : '▶') + '</span>' +
-          '<span class="g-name">' + esc(g.n) + '</span>' +
-          (g.spec && g.spec !== '-' ? '<span class="g-spec">' + esc(g.spec) + '</span>' : '') + '</td>');
+          '<span class="g-name">' + esc(g.n) + '</span></td>');
       } else if (k === 'sub') {
         h.push('<td class="sub">' + esc(g.sub || '-') + '</td>');
       } else if (k === 'lots') {
         h.push('<td class="num glots"><b>' + g.lots + '</b>건</td>');
       } else if (k === 'qty') {
-        h.push('<td class="r num gsum">' + fmtQty(g.qty) + '</td>');
+        h.push('<td class="r num gsum">' + fmtQty(g.qty) + uniUnitTag(g.unit) + '</td>');
       } else if (k === 'amt') {
         h.push('<td class="r num gsum">' +
           (Math.abs(g.amt) > 0.004 ? fmtInt(g.amt) + '<span class="won">원</span>' : '<span class="dim">-</span>') + '</td>');
@@ -6876,16 +6884,17 @@ var LIVE = (function () {
   }
   /* v28 — 안쪽 로트 상세 소표. 대표 줄 바로 아래 한 줄(colspan)로 들어가고,
      원료육 냉동고·냉장고 화면에서는 「창고」 칸을 뺀다(화면 이름이 이미 알려 준다). */
+  /* v29 — 바깥 표가 1120px 로 좁아진 만큼 소표 열도 그 안에(약 1048px) 깔끔히 들어가게 */
   var UNI_LOT_SUB_COLS = [
-    { k: 'org', t: '원산지', w: 92 },
-    { k: 'brnd', t: '브랜드', w: 118 },
-    { k: 'lot', t: '로트번호', w: 134 },
-    { k: 'wh', t: '창고', w: 106 },
-    { k: 'inD', t: '입고일', w: 104 },
-    { k: 'e', t: '소비기한', w: 176 },
-    { k: 'qty', t: '재고', w: 96, num: true },
+    { k: 'org', t: '원산지', w: 88 },
+    { k: 'brnd', t: '브랜드', w: 108 },
+    { k: 'lot', t: '로트번호', w: 124 },
+    { k: 'wh', t: '창고', w: 96 },
+    { k: 'inD', t: '입고일', w: 96 },
+    { k: 'e', t: '소비기한', w: 158 },
+    { k: 'qty', t: '재고', w: 100, num: true },
     { k: 'price', t: '단가', w: 92, num: true },
-    { k: 'amt', t: '재고금액', w: 122, num: true },
+    { k: 'amt', t: '재고금액', w: 102, num: true },
     { k: '_act', t: '작업', w: 84 }
   ];
   function uniLotSubColsNow() {
