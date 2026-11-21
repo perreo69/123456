@@ -3031,3 +3031,23 @@ table.tblu tbody tr.ugroup td.gn{overflow:hidden;text-overflow:ellipsis;white-sp
 /* ---------- 4. 안쪽 로트 상세 소표 — 1120px 안에서 한 줄로 ---------- */
 table.tblu table.lot-subtbl thead th,table.tblu table.lot-subtbl tbody td{padding:0 8px}
 table.tblu .lot-subtbl td.actcell .actmenu{padding:0 8px}
+
+/* ==========================================================================
+   v30 — 통합 출고 팝업의 출고 구분(현장(생산) · 업체(판매) · 기타)
+     · 출고(OUT)일 때만 위쪽에 한 줄로 보이고, 입고 모드에서는 감춘다.
+     · 현장(생산)을 고르면 아래 «업체·거래처» 칸이 «생산품목 (선택)» 으로 바뀐다.
+   ========================================================================== */
+.iosdest{display:flex;align-items:center;gap:9px;margin:11px 0 0;padding:7px 9px;
+  border:1px solid var(--line);border-radius:10px;background:#f7fafe}
+.iosdest>span{font-size:11.5px;font-weight:800;color:#33477a;letter-spacing:-.1px;white-space:nowrap}
+.iosdest .seg{grid-auto-flow:column;grid-auto-columns:auto;gap:4px;padding:3px;background:#e9eef7;border-radius:9px}
+.iosdest .seg button{padding:6px 16px;font-size:12px;font-weight:750;color:#63708a;border-radius:7px;white-space:nowrap}
+.iosdest .seg button:hover{color:#33477a}
+.iosdest .seg button.active{background:#fff;color:#1d4ed8;font-weight:800;
+  box-shadow:0 1px 2px rgba(16,24,40,.14),0 0 0 .5px rgba(37,99,235,.18)}
+#ioSheetPartnerLabel{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:768px){
+  .iosdest{flex-wrap:wrap;gap:6px}
+  .iosdest .seg{grid-auto-columns:1fr;width:100%}
+  .iosdest .seg button{padding:8px 4px;font-size:11.5px}
+}

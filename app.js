@@ -8190,8 +8190,12 @@ var LIVE = (function () {
                출고는 고른 로트(없으면 소비기한 빠른 로트)에서 나갑니다.
                매입·매출 전표는 구매·판매관리의 [미반영 입고 가져오기]로 한 번에 넘길 수 있습니다.
      ========================================================================== */
-  var ios = { type: 'IN', wh: 'F', rows: [], seq: 0 };
+  var ios = { type: 'IN', wh: 'F', rows: [], seq: 0, dest: 'site' };
   var IOS_MAX = 30;
+  /* v30 — 출고 구분: 현장(생산) / 업체(판매) / 기타.
+     SQL 은 그대로 — 원료육은 tx_apply 의 dest_type(dest), 완제품은 fp_tx_apply 의 source(partner) 로만 나뉩니다. */
+  var IOS_DESTS = ['site', 'vendor', 'other'];
+  var IOS_DEST_NAME = { site: '현장(생산)', vendor: '업체(판매)', other: '기타' };
   /* v17 — 구분 일곱 가지: 원료육 / 완제품 / 소스 / 향신료 / 야채 / 부자재 / 기타 */
   var IOS_KINDS = [['meat', '원료육'], ['fg', '완제품'], ['sauce', '소스'], ['spice', '향신료'],
     ['veg', '야채'], ['sub', '부자재'], ['etc', '기타']];
@@ -8224,6 +8228,11 @@ var LIVE = (function () {
     for (var i = 0; i < (n || 3); i++) ios.rows.push(iosNewRow('meat'));
   }
   function iosIsIn() { return ios.type === 'IN'; }
+  /* v30 — 출고 구분 값 읽기/쓰기
+     주의: 서버 함수 tx_apply 는 출고(p_type='out')에서 빈 출고처를 받지 않는다(400).
+     그래서 현장(생산)도 생산품목을 비우면 «현장» 으로 채워 보낸다(비워도 저장은 된다). */
+  function iosDestNow() { return IOS_DESTS.indexOf(ios.dest) >= 0 ? ios.dest : 'site'; }
+  function iosDestDest(dk) { return dk === 'vendor' ? '업체' : (dk === 'other' ? '기타' : '현장'); }
   function iosAmt(r) {
     var q = Number(r && r.qty || 0), p = Number(r && r.price || 0);
     return q > 0 ? Math.round(q * p) : 0;
@@ -8475,24 +8484,66 @@ var LIVE = (function () {
     tr.setAttribute('data-g', iosGroupOf(r));
     iosPaint();
   }
+  /* v30 — 출고 구분 버튼·거래처 칸의 라벨/placeholder/자동완성을 한 번에 맞춘다 */
+  function iosPaintDest() {
+    var dk = iosDestNow(), btns, i, lab, pt;
+    var seg = $('ioSheetDestSeg');
+    if (seg) {
+      btns = seg.querySelectorAll('button[data-dest]');
+      for (i = 0; i < btns.length; i++) btns[i].classList.toggle('active', btns[i].getAttribute('data-dest') === dk);
+    }
+    if ($('ioSheetDestWrap')) $('ioSheetDestWrap').classList.toggle('hidden', iosIsIn());
+    lab = $('ioSheetPartnerLabel');
+    pt = $('ioSheetPartner');
+    if (lab) {
+      lab.innerHTML = iosIsIn() ? '업체·거래처'
+        : (dk === 'site' ? '생산품목 (선택)' : (dk === 'other' ? '사유 / 수령처 (선택)' : '거래처/업체'));
+    }
+    if (pt) {
+      if (iosIsIn()) {
+        pt.placeholder = '예: 도드람푸드';
+        pt.setAttribute('list', 'dlVendors');
+      } else if (dk === 'site') {
+        /* 현장(생산) — 생산품목 이름을 적는 칸이라 거래처 자동완성을 붙이지 않는다(비워도 저장) */
+        pt.placeholder = '예: 오븐바베큐치킨 (비워둬도 됨)';
+        pt.removeAttribute('list');
+      } else if (dk === 'other') {
+        pt.placeholder = '예: 샘플 제공 / 폐기';
+        pt.setAttribute('list', 'dlVendors');
+      } else {
+        pt.placeholder = '예: 도드람푸드';
+        pt.setAttribute('list', 'dlVendors');
+      }
+    }
+  }
+  /* v30 — 출고 구분 바꾸기 (입고 팝업에서는 줄 자체가 숨겨져 눌리지 않는다) */
+  function iosSetDest(k) {
+    ios.dest = IOS_DESTS.indexOf(k) >= 0 ? k : 'site';
+    iosPaintDest();
+  }
   function iosSetType(t) {
     ios.type = t === 'OUT' ? 'OUT' : 'IN';
     var isIn = iosIsIn();
     if ($('ioSheetTitle')) $('ioSheetTitle').textContent = isIn ? '입고 등록' : '출고 등록';
     if ($('ioSheetSub')) $('ioSheetSub').textContent = isIn
       ? '원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재·기타를 한 팝업에서 처리합니다. 줄마다 창고를 고릅니다.'
-      : '한 업체로 여러 품목이 같이 나가면 구분을 골라 이 표에 줄로 적고 한 번에 출고합니다.';
+      : '위에서 출고 구분(현장(생산) · 업체(판매) · 기타)을 고르고, 한 번에 여러 품목을 줄로 적어 저장합니다.';
     if ($('ioSheetDateLabel')) $('ioSheetDateLabel').innerHTML = (isIn ? '입고일' : '출고일') + ' <span class="req">*</span>';
     if ($('ioSheetSave')) $('ioSheetSave').textContent = isIn ? '입고 저장' : '출고 저장';
     if ($('ioSheetHint')) $('ioSheetHint').innerHTML = isIn
       ? '원료육은 <b>이름·업체·입고일·소비기한</b>이 같으면 같은 로트로 모입니다. 완제품 줄은 <b>제조일</b>까지 적으면 재고 표에 그대로 나오고, 로트번호를 비우면 <b>상품코드-입고일</b>로 자동 채워집니다.'
-      : '출고는 고른 로트에서 나가고, 로트를 비우면 <b>그 창고의 소비기한이 빠른 로트</b>부터 나갑니다. 재고보다 많으면 그 줄만 실패합니다.';
+      : '출고는 고른 로트에서 나가고, 로트를 비우면 <b>그 창고의 소비기한이 빠른 로트</b>부터 나갑니다. 재고보다 많으면 그 줄만 실패합니다. <b>현장(생산)</b>은 매출·미수금 없이 재고 차감과 <b>생산원가</b>로만 집계됩니다.';
+    iosPaintDest();
   }
   /* preset: 그 품목이 채워진 줄로 팝업을 연다 (통합 재고의 [작업 ▾] → 입고 / 출고) */
   function openIoSheet(type, preset) {
     iosSetType(type);
     ios.codes = null;
     ios.rows = [];
+    /* v30 — 출고 구분 기본값: 원료육(프리셋 g=meat 또는 지금 화면이 원료육)이면 현장(생산), 그 외는 업체(판매) */
+    var defSite = !!(preset && (preset.g === 'meat' || preset.kind === 'meat'))
+      || !!(cur && cur.uni && cur.uni.view === 'meat');
+    iosSetDest(defSite ? 'site' : 'vendor');
     iosResetRows(3);
     /* v22 — 품목별 관리 화면에서 연 입고·출고 팝업은 그 품목 구분을 기본값으로 둔다 */
     if (preset && preset.g && IOS_KIND_KEYS.indexOf(preset.g) >= 0 && !preset.name && !preset.code) {
@@ -8587,6 +8638,12 @@ var LIVE = (function () {
     if (!date) { $('ioSheetMsg').textContent = '날짜를 입력하세요.'; return; }
     var partner = iosTrim($('ioSheetPartner') ? $('ioSheetPartner').value : '');
     var note = iosTrim($('ioSheetNote') ? $('ioSheetNote').value : '');
+    /* v30 — 출고 구분(현장(생산)·업체(판매)·기타): 원료육 dest_type·dest, 완제품 source·partner 만 바꾼다.
+       tx_apply 는 빈 출고처를 거부하므로 비워 두면 구분 이름(현장/업체/기타)을 채워 보낸다. */
+    var dk = iosDestNow();
+    var dDest = partner || iosDestDest(dk);
+    var fSource = dk === 'site' ? 'site' : 'manual';
+    var fPartner = dk === 'vendor' ? partner : dDest;
     var lines = [], i, r, q;
     for (i = 0; i < ios.rows.length; i++) {
       r = ios.rows[i];
@@ -8633,7 +8690,7 @@ var LIVE = (function () {
           return SB.db.fpApply({
             code: p.code, type: 'OUT', qty: ln.qty, date: date,
             price: Number(rw.price || 0) > 0 ? Number(rw.price) : null,
-            expiry: null, partner: partner, note: note, allowNegative: false, source: 'manual',
+            expiry: null, partner: fPartner, note: note, allowNegative: false, source: fSource,
             lotNo: '', lotId: Number(fLot.id), inDate: null
           });
         }
@@ -8649,7 +8706,7 @@ var LIVE = (function () {
         if (!lot) throw new Error((ln.i + 1) + '번째 줄: ' + iosWhName(mwh) + '에 출고할 ' + iosTrim(rw.name) + ' 재고가 없습니다.');
         return SB.db.apply({
           date: date, type: 'out', wh: mwh, lot_id: Number(lot.dbid),
-          dest_type: 'vendor', dest: partner || '업체', kg: ln.qty,
+          dest_type: dk, dest: dDest, kg: ln.qty,
           price: Number(rw.price || 0), note: note
         });
       }).then(function () {
@@ -8661,7 +8718,7 @@ var LIVE = (function () {
     });
     chain.then(function () {
       b.disabled = false; b.textContent = iosIsIn() ? '입고 저장' : '출고 저장';
-      var msg = (iosIsIn() ? '입고 ' : '출고 ') + ok + '줄 저장' + (fail ? ' · 실패 ' + fail + '줄' : '');
+      var msg = (iosIsIn() ? '입고 ' : ('출고 · ' + (IOS_DEST_NAME[dk] || '') + ' ')) + ok + '줄 저장' + (fail ? ' · 실패 ' + fail + '줄' : '');
       toast(msg, fail ? 'warn' : 'in');
       if (errs.length) $('ioSheetMsg').textContent = errs.slice(0, 3).join(' / ');
       if (whWarn) toast('보관 위치를 저장하지 못했습니다: ' + whWarn, 'warn');
@@ -8682,6 +8739,13 @@ var LIVE = (function () {
       iosRenderRows();
     });
     if ($('ioSheetSave')) $('ioSheetSave').addEventListener('click', iosSave);
+    /* v30 — 출고 구분 버튼 */
+    var dseg = $('ioSheetDestSeg');
+    if (dseg) dseg.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('button[data-dest]') : null;
+      if (!btn) return;
+      iosSetDest(btn.getAttribute('data-dest'));
+    });
     var body = $('ioSheetBody');
     if (!body) return;
     body.addEventListener('input', function (ev) {

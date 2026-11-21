@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261121_36">
+<link rel="stylesheet" href="style.css?v=20261121_37">
 </head>
 <body>
 
@@ -861,9 +861,19 @@
       </div>
       <p class="modal-sub" id="ioSheetSub">원료육 · 완제품 · 부자재를 한 팝업에서 처리합니다. 구분에 따라 창고 칸만 열립니다.</p>
 
+      <!-- v30 — 출고일 때만 보이는 출고 구분: 현장(생산) · 업체(판매) · 기타 -->
+      <div class="iosdest" id="ioSheetDestWrap">
+        <span>출고 구분</span>
+        <div class="seg" id="ioSheetDestSeg">
+          <button type="button" data-dest="site" class="active" title="원료육을 생산 현장에 투입 — 매출·미수금 없이 재고 차감 + 생산원가">현장(생산)</button>
+          <button type="button" data-dest="vendor" title="거래처로 판매·납품 — 매출 전표와 미수금으로 잡힘">업체(판매)</button>
+          <button type="button" data-dest="other" title="판매도 생산 투입도 아닌 출고 — 사유를 적어 둡니다">기타</button>
+        </div>
+      </div>
+
       <div class="vhead">
         <label class="field"><span id="ioSheetDateLabel">입고일 <span class="req">*</span></span><input type="date" id="ioSheetDate"></label>
-        <label class="field"><span>업체·거래처</span><input id="ioSheetPartner" list="dlVendors" placeholder="예: 도드람푸드"></label>
+        <label class="field"><span id="ioSheetPartnerLabel">업체·거래처</span><input id="ioSheetPartner" list="dlVendors" placeholder="예: 도드람푸드"></label>
         <label class="field"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
       </div>
 
@@ -1664,7 +1674,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261121_36"></script>
-<script src="app.js?v=20261121_36"></script>
+<script src="partners_data.js?v=20261121_37"></script>
+<script src="app.js?v=20261121_37"></script>
 </body>
 </html>
