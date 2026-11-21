@@ -2880,3 +2880,123 @@ table.tblu tbody tr.ugroup.open .g-name{color:#0F172A}
 .tblu tbody tr.utxrow td .cat{white-space:nowrap}
 .utool .chipset:empty{display:none}
 .itemtabs .seg.gap,.itemtabs{gap:18px}
+
+/* ==========================================================================
+   v28 — 단단하고 정갈한 업무 프로그램 톤 (v27의 밋밋함 되살리기)
+     · 대표 품목 줄에는 작업 열이 없고, 값이 차는 다섯(통합은 여섯) 칸만 둔다
+     · 상단 버튼 = 흰 바탕 + 옅은 실선(#D1D5DB) + 6px 모서리, ＋ 입고만 파란 채움
+     · 검색창·체크 = 흰 입력 박스(1px #D1D5DB · 6px)
+     · 표 = 바깥 1px #E2E8F0 테두리 · 머리글 #F1F5F9 + 하단 #CBD5E1 · 행 1px #E2E8F0
+     · 펼친 안쪽 로트 상세 소표 = #F8FAFC 바탕 + 작은 머리글 + 옅은 테두리 [작업 ▾]
+   ========================================================================== */
+
+/* ---------- 1. 상단 툴바 — 버튼·입력창을 버튼/입력창답게 ---------- */
+.usearch{height:34px;padding:0 10px;border:1px solid #D1D5DB;border-radius:6px;background:#fff;color:#94A3B8}
+.usearch:hover{border-color:#B9C1CC}
+.usearch:focus-within{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.10)}
+.usearch input{width:236px;font-size:12.6px;color:#0F172A}
+.utool .btn{height:32px;padding:0 12px;border:1px solid #D1D5DB;border-radius:6px;background:#fff;
+  color:#334155;font-weight:600;font-size:12.6px;box-shadow:0 1px 1px rgba(15,23,42,.03)}
+.utool .btn:hover{background:#F8FAFC;border-color:#B9C1CC;color:#0F172A;box-shadow:0 1px 1px rgba(15,23,42,.05)}
+.utool .btn:active{transform:none;background:#F1F5F9}
+.utool .btn.primary{background:#2563EB;border-color:#2563EB;color:#fff;font-weight:700;padding:0 16px}
+.utool .btn.primary:hover{background:#1D4ED8;border-color:#1D4ED8;color:#fff}
+.utool .btn.ghost{background:#fff;border:1px solid #D1D5DB;color:#334155}
+.utool .btn.ghost:hover{background:#F8FAFC;border-color:#B9C1CC;color:#0F172A}
+.utool .btn.xs{height:28px;padding:0 9px;font-size:11.8px}
+.utool .xlbtn{background:#fff;border:1px solid #D1D5DB;color:#334155;padding:0 10px}
+.utool .xlbtn:hover{background:#F8FAFC;border-color:#B9C1CC;color:#0F172A}
+.utool .xlbtn .car{color:#94A3B8}
+
+/* 칩 = 옅은 테두리 알약(고른 칩만 연한 파랑 #EFF6FF) */
+.utool .chips{gap:6px}
+.utool .chip{height:30px;margin-right:0;padding:0 11px;border:1px solid #E2E8F0;border-radius:6px;
+  background:#fff;color:#475569;font-weight:600;font-size:12.4px;box-shadow:none}
+.utool .chip .n{color:#94A3B8;font-weight:700}
+.utool .chip:hover{border-color:#CBD5E1;background:#F8FAFC;color:#0F172A}
+.utool .chip.soft{background:#fff;border:1px solid #E2E8F0;color:#475569}
+.utool .chip.soft:hover{background:#F8FAFC;border-color:#CBD5E1;color:#0F172A}
+.utool .chip.on,.utool .chip.soft.on{background:#EFF6FF;border-color:#BFD8FE;color:#1D4ED8;
+  font-weight:700;box-shadow:none}
+.utool .chip.on .n{color:#2563EB}
+.utool .utog{height:30px;padding:0 10px;border:1px solid #E2E8F0;border-radius:6px;background:#fff;
+  color:#475569;font-weight:600;font-size:12.2px}
+.utool .utog:hover{border-color:#CBD5E1;background:#F8FAFC;color:#0F172A}
+.utool .utog.on{border-color:#BFD8FE;background:#EFF6FF;color:#1D4ED8;font-weight:700}
+.utool .utog input{accent-color:#2563EB}
+
+/* ---------- 2. 표 — 바깥 테두리 · 회색 머리 띠 · 선명한 행 구분선 ---------- */
+#uniTableWrap,#utxTableWrap{background:#fff;border:1px solid #E2E8F0;border-radius:8px}
+table.tblu{border:0}
+table.tblu thead th{height:38px;padding:0 12px;background:#F1F5F9;color:#0F172A;
+  border:0;border-bottom:1px solid #CBD5E1;border-right:1px solid #E8EDF3;
+  font-size:11.6px;font-weight:700;letter-spacing:-.1px;box-shadow:none}
+table.tblu thead th:last-child{border-right:0}
+table.tblu tbody td,table.tblu tbody th{height:44px;padding:0 12px;background:#fff;
+  border:0;border-bottom:1px solid #E2E8F0;border-right:1px solid #F4F7FA;
+  color:#111827;font-size:12.9px;box-shadow:none}
+table.tblu tbody td:last-child,table.tblu tbody th:last-child{border-right:0}
+table.tblu tbody tr:last-child td{border-bottom:0}
+table.tblu tbody tr:hover td{background:#F8FAFC}
+table.tblu thead th.on{background:#E7EDF6;color:#0F172A;box-shadow:inset 0 -2px 0 #64748B}
+table.tblu thead th .uhd{color:#0F172A}
+table.tblu .num,table.tblu .gsum{font-variant-numeric:tabular-nums}
+
+/* ---------- 3. 대표 품목 줄 — 기본 접힘(흰색) · 펼치면 연한 하늘색 ---------- */
+table.tblu tbody tr.ugroup{cursor:pointer;user-select:none}
+table.tblu tbody tr.ugroup td{height:46px;background:#fff;border-bottom:1px solid #E2E8F0;color:#111827}
+table.tblu tbody tr.ugroup:hover td{background:#F8FAFC}
+table.tblu tbody tr.ugroup.open td,table.tblu tbody tr.ugroup.open:hover td{background:#EFF6FF;border-bottom-color:#DBEAFE}
+.tblu tbody tr.ugroup .g-name{color:#0F172A;font-weight:700;font-size:13.2px}
+.tblu tbody tr.ugroup .g-spec{display:inline-block;margin-left:9px;color:#94A3B8;
+  font-size:11.6px;font-weight:500;letter-spacing:-.1px}
+.tblu tbody tr.ugroup .g-meta{color:#A6AEBB;font-size:11.4px;font-weight:500;margin-left:8px}
+.tblu tbody tr.ugroup .g-meta b{color:#64748B;font-weight:700}
+.tblu tbody tr.ugroup .glots{color:#64748B;font-size:12.2px}
+.tblu tbody tr.ugroup .glots b{color:#0F172A;font-weight:700}
+.tblu tbody tr.ugroup .gsum{color:#0F172A;font-weight:700;font-size:13px}
+.tblu tbody tr.ugroup .gsum .won{margin-left:2px;color:#94A3B8;font-size:11px;font-weight:600}
+.tblu tbody tr.ugroup .sub{color:#475569;font-size:12.4px}
+.tblu tbody tr.ugroup .gtog{display:inline-block;width:12px;margin-right:9px;color:#94A3B8;
+  font-size:9px;font-weight:700;vertical-align:1px;transition:color .12s}
+table.tblu tbody tr.ugroup:hover .gtog{color:#64748B}
+table.tblu tbody tr.ugroup.open .gtog{color:#2563EB}
+
+/* ---------- 4. 펼친 안쪽 로트 상세 소표 ---------- */
+table.tblu tbody tr.ugsub>td.ugsubcell{height:auto;padding:2px 14px 12px 40px;background:#fff;
+  border-bottom:1px solid #E2E8F0;border-right:0;color:#334155;font-size:12.2px}
+table.tblu tbody tr.ugsub:hover>td.ugsubcell{background:#fff}
+table.tblu table.lot-subtbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;
+  background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;overflow:hidden}
+table.tblu table.lot-subtbl thead th{height:30px;padding:0 10px;background:#EEF2F7;color:#64748B;
+  font-size:11px;font-weight:700;letter-spacing:-.1px;text-align:left;position:static;
+  border:0;border-bottom:1px solid #DFE5EC;border-right:1px solid #E5EAF1;box-shadow:none}
+table.tblu table.lot-subtbl thead th:last-child{border-right:0}
+table.tblu table.lot-subtbl thead th.r{text-align:right}
+table.tblu table.lot-subtbl tbody td{height:36px;padding:0 10px;background:#F8FAFC;
+  border:0;border-bottom:1px solid #E8EDF3;border-right:1px solid #EDF1F6;
+  color:#334155;font-size:12.2px;font-weight:500}
+table.tblu table.lot-subtbl tbody td:last-child{border-right:0}
+table.tblu table.lot-subtbl tbody tr:last-child td{border-bottom:0}
+table.tblu table.lot-subtbl tbody tr:hover td{background:#F1F6FC}
+table.tblu table.lot-subtbl .name{color:#111827;font-weight:600}
+table.tblu table.lot-subtbl .code{color:#475569;font-size:12px}
+table.tblu table.lot-subtbl .sub{color:#4B5563;font-size:12.2px}
+table.tblu table.lot-subtbl .d{margin-left:7px;font-size:11px}
+table.tblu table.lot-subtbl .d::before{color:#94A3B8}
+table.tblu table.lot-subtbl .whchip{font-size:12.2px}
+table.tblu table.lot-subtbl td.actcell{padding:0 8px;background:transparent;border-right:0}
+table.tblu table.lot-subtbl tbody tr:hover td.actcell{background:transparent}
+table.tblu .lot-subtbl td.actcell .actmenu{height:24px;min-height:0;padding:0 9px;border:1px solid #D1D5DB;
+  border-radius:5px;background:#fff;color:#475569;font-weight:600;font-size:11.4px;box-shadow:none}
+table.tblu .lot-subtbl td.actcell .actmenu:hover,table.tblu .lot-subtbl td.actcell .actmenu.on{
+  border-color:#93B4F5;background:#F8FAFC;color:#1D4ED8;text-decoration:none}
+.utfoot{border-top:1px solid #E2E8F0;background:#F8FAFC;color:#64748B}
+
+/* ---------- 5. 폰 ---------- */
+@media (max-width:768px){
+  .usearch{flex:1 1 150px}
+  .usearch input{width:100%}
+  table.tblu tbody tr.ugsub>td.ugsubcell{padding:2px 8px 10px 12px}
+  .utool .chip{height:28px;padding:0 9px;font-size:11.8px}
+}
