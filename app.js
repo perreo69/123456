@@ -6948,8 +6948,10 @@ var LIVE = (function () {
       '<td class="c actcell actcol">' + actMenuBtn('utx', { kind: e.kind, id: e.id, t: e.t, act: e.act ? 1 : '', name: e.n }, '수정 · 취소 · 명세표') + '</td></tr>';
   }
   function utxPeriodRows() {
+    /* v25 — 품목 화면의 완제품 자체/매입 조건도 입출고 표에 그대로 건다 */
+    var tflag = cur.utx.view === 'fg' ? (cur.uni.flag || 'all') : 'all';
     return ERP.uniFilterTx(ERP.uniTxRows(st), {
-      g: cur.utx.g, tk: cur.utx.tk, q: cur.utx.q, from: cur.utx.from, to: cur.utx.to,
+      g: cur.utx.g, flag: tflag, tk: cur.utx.tk, q: cur.utx.q, from: cur.utx.from, to: cur.utx.to,
       cols: cur.fUtx, sortKey: cur.utx.sortKey, sortDir: cur.utx.sortDir
     });
   }
