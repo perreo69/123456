@@ -2421,3 +2421,233 @@ table.iosheet tbody tr[data-g="etc"] td:first-child select[data-f="kind"]{color:
   .btn.btn-hrefresh{height:26px;padding:0 8px;font-size:11.3px;gap:3px;order:3}
   .btn.btn-hrefresh .rf{font-size:12px}
 }
+
+/* ==========================================================================
+   v26 — 업무 문서/장부 스타일 (이카운트 · 엑셀)
+     · 표 = 또렷한 실선 격자 (칸마다 1px #CBD5E1 가로·세로)
+     · 머리글 = 단단한 회색 띠 #EEF2F6 + 하단 #94A3B8 + 진한 글자 #0F172A
+     · 데이터 = 짙은 먹색 #111827, 보조 글자 #334155 이상, 행 높이는 촘촘하게
+     · 배지·라벨 = 3~4px 각진 사각 라벨 + 1px 실선 (알약·그림자 없음)
+     · 패널·툴바·버튼·입력창 = 4~6px 각진 톤 + 1px #CBD5E1 테두리 · 그림자 없음
+     · 사이드바 v25 다섯 카드 구조 그대로, 테두리·글자만 문서 톤으로
+   ========================================================================== */
+
+/* ---------- 1. 색·모서리 토큰 ---------- */
+:root{
+  --line:#CBD5E1; --line2:#E2E8F0; --hair:#CBD5E1;
+  --ink:#111827; --muted:#334155; --muted2:#475569;
+  --radius:6px; --shadow:none;
+  --doc-line:#CBD5E1; --doc-head:#EEF2F6; --doc-headline:#94A3B8;
+  --doc-ink:#111827; --doc-sub:#334155;
+}
+
+/* ---------- 2. 표 — 또렷한 실선 격자 ---------- */
+table.tblu,
+.table-wrap table,
+table.t-bal,
+table.stltbl,
+table.vsheet-table{
+  border:1px solid var(--doc-line);
+  border-collapse:separate; border-spacing:0;
+}
+table.tblu thead th,
+.table-wrap thead th,
+.t-bal thead th,
+.stltbl thead th,
+.vsheet-table thead th{
+  background:var(--doc-head); color:#0F172A; font-weight:700; letter-spacing:-.1px;
+  border-bottom:1px solid var(--doc-headline);
+  border-right:1px solid var(--doc-line);
+}
+table.tblu tbody td,
+.table-wrap tbody td,
+.t-bal tbody td,
+.stltbl tbody td,
+table.vsheet-table tbody td,
+table.vsheet-table tfoot td{
+  border-bottom:1px solid var(--doc-line);
+  border-right:1px solid var(--doc-line);
+  color:var(--doc-ink);
+}
+/* 마지막 칸은 표 바깥 테두리가 대신한다 (선이 두 겹으로 굵어지지 않게) */
+table.tblu tr>:last-child,
+.table-wrap tr>:last-child,
+table.t-bal tr>:last-child,
+table.stltbl tr>:last-child,
+table.vsheet-table tr>:last-child{border-right:0}
+/* 매입·매출 표도 같은 회색 머리 띠 (색 구분은 첫 칸 표시로) */
+.t-buy thead th,.t-sale thead th{background:var(--doc-head);color:#0F172A}
+/* 고정된 오른쪽 [작업] 열 */
+thead th.actcol{background:var(--doc-head);border-left:1px solid var(--doc-line);box-shadow:none}
+td.actcol{border-left:1px solid var(--doc-line);box-shadow:none}
+
+/* ---------- 3. 머리글 · 정렬/필터 버튼 ---------- */
+table.tblu thead th{height:34px;padding:0 8px;font-size:11.4px}
+.uhd{font-size:11.4px;font-weight:700;color:#0F172A}
+.uhd .uarrow{opacity:.7}
+table.tblu thead th.on{background:#E2EBFA;color:#1D4ED8}
+thead th .th-plain{padding:6px 8px;font-size:11.3px;font-weight:700;color:#0F172A}
+.hdfilt{padding:6px 7px 6px 8px;font-size:11.3px;font-weight:700;color:#0F172A}
+.hdfilt:hover{background:#E8EEF7;color:#0F172A}
+.hdfilt.on{background:#E2EBFA;color:#1D4ED8}
+.hdfilt .harrow{color:#64748B}
+
+/* ---------- 4. 밀도 · 데이터 글자 ---------- */
+table.tblu tbody td{height:40px;padding:0 8px;font-size:12.8px;background:#fff}
+.tblu tbody tr:hover td{background:#F8FAFC}
+.tblu tbody tr.ugroup td{height:34px;background:#F1F5F9;border-bottom:1px solid var(--doc-line);color:#0F172A}
+.tblu tbody tr.ugroup:hover td{background:#F1F5F9}
+.tblu tbody tr.ugroup .g-name{color:#0F172A;font-weight:700}
+.tblu tbody tr.ugroup .g-meta{color:#475569;font-weight:600}
+.tblu tbody tr.ugroup .g-meta b{color:#0F172A}
+.tblu tbody tr.ugroup .gsum{color:#0F172A}
+.tblu tbody td.balcell{background:#EFF6FF}
+.tblu td.actcell{padding:0 6px}
+.table-wrap tbody td{padding:5px 8px;font-size:12.8px}
+.table-wrap thead th{padding:6px 8px;font-size:11.3px}
+.table-wrap tbody tr:hover td{background:#F8FAFC}
+tr.group td{background:#F1F5F9;color:#0F172A;border-bottom:1px solid var(--doc-line);font-weight:700}
+.table-wrap tbody td.actcol,td.actcol{background:#fff}
+tbody tr:hover td.actcol{background:#F8FAFC}
+tbody tr.ugroup td.actcol{background:#F1F5F9}
+.tblu .b,.tblu .name{color:#0F172A}
+.tblu .sub,.tblu .code{color:var(--doc-sub)}
+.tblu .dim{color:#475569}
+.utfoot{background:#F8FAFC;border-top:1px solid var(--doc-line);color:var(--doc-sub)}
+.utfoot b{color:#0F172A}
+.uempty{color:#475569}
+td.zero,.num.zero{color:#64748B}
+
+/* ---------- 5. 배지 · 라벨 — 각 잡힌 사각 라벨 ---------- */
+.tblu .whchip,.tblu .tag,.tblu .d,.tblu .fbadge,
+.badge,.dday,.dtype,.mtag,.cat-tag,.src-tag,.tax-tag,.move,.worker,
+.v8crumb,.itemtabs .itlbl,.chip,.utool .chip,.utool .utog{
+  border-radius:3px; box-shadow:none;
+}
+.tblu .whchip{height:20px;padding:0 6px;font-size:11px;font-weight:700;
+  background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+.tblu .whchip.chl{background:#EBF7F1;color:#0B6B53;border-color:#B7E0D0}
+.tblu .whchip.chl.thaw{background:#FFF5E5;color:#8A5A00;border-color:#EFD9AE}
+.tblu .whchip.amb{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+.tblu .d{height:18px;padding:0 5px;margin-left:6px;font-size:10.6px;font-weight:700;
+  background:#F1F5F9;color:#475569;border:1px solid #CBD5E1}
+.tblu .d.warn{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
+.tblu .d.hot{background:#FEF2F1;color:#B42318;border-color:#F3C9C4}
+.tblu .tag{height:19px;padding:0 6px;font-size:10.8px;font-weight:700;border:1px solid transparent}
+.tblu .tag.blue{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE}
+.tblu .tag.green{background:#EBF8F0;color:#0B6B3A;border-color:#B7E0D0}
+.tblu .tag.amber{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
+.tblu .tag.gray{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+.tblu .tag.line{background:#fff;color:#334155;border-color:#CBD5E1}
+.tblu .fbadge{height:17px;padding:0 4px;font-size:10px;font-weight:700;
+  background:#EBF8F0;color:#0B6B3A;border:1px solid #B7E0D0}
+.tblu .fbadge.buy{background:#FFF6E6;color:#8A5A00;border-color:#EBD9B0}
+.badge{padding:2px 6px;font-size:10.8px;font-weight:700;border:1px solid transparent}
+.badge.in{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE}
+.badge.thaw{background:#EEF2FF;color:#4338CA;border-color:#C7D2FE}
+.badge.re{background:#EBF8F0;color:#0B6B3A;border-color:#B7E0D0}
+.badge.out{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
+.badge.base{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+.dday{padding:1px 5px;font-size:10.5px;font-weight:700;background:#F1F5F9;color:#475569;border:1px solid #CBD5E1}
+.dday.ok{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+.dday.warn{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
+.dday.danger{background:#FEF2F1;color:#B42318;border-color:#F3C9C4}
+.dtype{padding:1px 5px;border:1px solid transparent}
+.dtype.site{background:#FEF2F1;color:#B42318;border-color:#F3C9C4}
+.dtype.vendor{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE}
+.dtype.courier{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
+.dtype.other{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
+.mtag{padding:2px 6px;border:1px solid #CBD5E1;background:#F1F5F9;color:#334155}
+.cat-tag{border:1px solid #CBD5E1;background:#F1F5F9;color:#334155}
+.src-tag,.tax-tag{border:1px solid #CBD5E1}
+.move,.worker{background:#F1F5F9;color:#334155;border:1px solid #CBD5E1}
+.utool .chip{height:29px;padding:0 10px;font-size:12.2px;font-weight:600;border:1px solid #CBD5E1;color:#334155;background:#fff}
+.utool .chip:hover{border-color:#94A3B8;background:#F8FAFC}
+.utool .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.utool .utog{border:1px solid #CBD5E1;background:#fff}
+.itemtabs .itlbl{border:1px solid #BFDBFE;background:#EFF6FF;color:#1D4ED8;padding:4px 9px;font-size:12px;font-weight:700}
+.v8crumb{border:1px solid #CBD5E1;background:#F1F5F9;color:#334155;padding:4px 9px}
+/* [작업 ▾] — 표 안의 각진 단추 */
+.actmenu,.tblu td.actcell .actmenu{height:26px;padding:0 8px;border-radius:3px;
+  border:1px solid #CBD5E1;background:#fff;color:#334155;font-size:11.5px;font-weight:600;box-shadow:none}
+.actmenu:hover,.actmenu.on{background:#F1F5F9;border-color:#94A3B8;color:#1D4ED8}
+
+/* ---------- 6. 패널 · 툴바 · 버튼 · 입력창 ---------- */
+.panel,.kpi,.unicard,.unipane .unicard,.v8side,.reflectbox,.acc-quick,.login-card,
+.vsheet,.accwrap .panel{
+  border-radius:6px; border-color:#CBD5E1; box-shadow:none;
+}
+.modal-card{border-radius:6px;border-color:#CBD5E1;box-shadow:0 8px 24px rgba(15,23,42,.10)}
+.rowmenu,.fpop,.acpop{border-radius:4px;border-color:#CBD5E1;box-shadow:0 8px 20px rgba(15,23,42,.12)}
+.rowmenu button{border-radius:3px}
+.btn,.btn.tiny,.btn-row .btn,.accbtn,.act,.cancel,.docbtn,.more,.mini,.with-btn .mini,
+.v8mini,.v8st,.v8add,.submit,.utool .btn,.itemtabs .seg button,.sflinks button{
+  border-radius:4px; border-color:#CBD5E1; box-shadow:none;
+}
+.btn:hover,.accbtn:hover,.act:hover{box-shadow:none}
+.btn.primary,.btn.fgnew,.submit{box-shadow:none}
+.seg,.modes,.ltabs,.presets{border-radius:4px}
+.seg button,.mode,.ltab,.pr{border-radius:3px}
+.seg button.active,.mode.active,.ltab.active,.pr.active{box-shadow:none;border:1px solid #CBD5E1}
+input[type=search],input[type=text],input[type=date],input[type=number],input[type=email],
+input[type=password],input[type=tel],textarea,select,
+.field input,.field select,.toolbar input[type=search],.toolbar select,.rng select,.rng input,
+.utool .rng input,.utool .btn,.usearch,.vsheet-table input,.vsheet-table select,.mvgrid input,.mvgrid select{
+  border-radius:4px; border-color:#CBD5E1;
+}
+.usearch{height:30px;background:#fff}
+.usearch:focus-within{border-color:#2563EB;box-shadow:0 0 0 2px rgba(37,99,235,.12)}
+input[type=text]:focus,input[type=search]:focus,input[type=number]:focus,input[type=date]:focus,
+input[type=email]:focus,input[type=password]:focus,input[type=tel]:focus,textarea:focus,select:focus,
+.field input:focus,.field select:focus{
+  border-color:#2563EB; box-shadow:0 0 0 2px rgba(37,99,235,.14);
+}
+.utool{background:#fff;border-bottom:1px solid #CBD5E1;padding:9px 10px}
+.utool .divv{background:#CBD5E1}
+.utool .lbl,.utool .hint{color:#475569}
+.utool .hint b{color:#0F172A}
+
+/* ---------- 7. 사이드바 — v25 다섯 카드 구조 그대로 ---------- */
+.v8side{background:#F1F5F9;border:1px solid #CBD5E1;border-radius:6px;padding:8px;box-shadow:none}
+.v8nav{gap:8px}
+.v8nav>.nav-card{border-radius:6px;border:1px solid #CBD5E1;box-shadow:none;background:#fff}
+.v8nav>.nav-card>.glabel{color:#0F172A;border-bottom:1px solid #CBD5E1}
+.v8nav>.nav-card>.glabel::before{background:#2563EB}
+.nitem{height:31px;border-radius:3px;color:#334155}
+.nitem:hover{background:#F1F5F9;color:#0F172A}
+.nitem.on{background:#EFF6FF;color:#1D4ED8;border-radius:0 3px 3px 0;box-shadow:inset 3px 0 0 #2563EB}
+.nitem .cnt{color:#64748B}
+.sflinks button{border-radius:3px;border:1px solid #CBD5E1;background:#fff;color:#334155}
+.v8nav>.sidefoot{border-top:1px solid #CBD5E1;color:#475569}
+
+/* ---------- 8. 상단 바 ---------- */
+.top{background:#fff;border-bottom:1px solid #CBD5E1;backdrop-filter:none;-webkit-backdrop-filter:none}
+.brand h1{color:#0F172A}
+.brand p,.who,.sync{color:#475569}
+
+/* ---------- 9. 폰: 격자·여백 유지 ---------- */
+@media (max-width:768px){
+  table.tblu tbody td{height:38px;padding:0 7px}
+  .table-wrap tbody td{padding:5px 7px}
+  .utool{padding:9px 8px}
+}
+/* v26 보정 — 툴바 칩 그림자 없음 */
+.utool .chip,.utool .chip:hover,.utool .chip.on,.utool .chip.soft,.utool .chip.soft.on{box-shadow:none}
+
+/* v26 보정 — 폰 화면도 같은 각진 문서 톤 */
+@media (max-width:768px){
+  .quickbar{background:#fff;border-top:1px solid #CBD5E1;box-shadow:none;
+    -webkit-backdrop-filter:none;backdrop-filter:none}
+  .qb{border-radius:4px;border-color:#CBD5E1;background:#F8FAFC}
+  .qb.active{background:#1B2431;border-color:#1B2431}
+  .modal-card{border-radius:6px}
+  .field input,.field select{border-radius:4px}
+  .seg button{border-radius:3px}
+  .btn,.act,.cancel,.docbtn,.accbtn{border-radius:4px}
+  .pr,.hdfilt{border-radius:3px}
+  .rng input,.rng select{border-radius:4px}
+}
+/* v26 보정 — 폰 퀵 바 선택 버튼 글자는 흰색(진한 바탕 위 파란 글자 방지) */
+@media (max-width:768px){
+  .qb.active{color:#fff;font-weight:700}
+}
