@@ -12818,6 +12818,11 @@ var LIVE = (function () {
       $(id).addEventListener('input', renderXls);
     });
     $('btnLogout').addEventListener('click', function () { doLogout(false); });
+    /* v24: 오른쪽 상단 「새로고침」 — 브라우저 캐시를 건너뛰고 서버의 최신 index.html·CSS·JS를 다시 받는다 */
+    $('btnHardRefresh').addEventListener('click', function () {
+      this.classList.add('spin');
+      location.replace(location.pathname + '?v=' + Date.now() + (location.hash || ''));
+    });
 
     var nums = document.querySelectorAll('#entryForm input[type=number]');
     for (var d = 0; d < nums.length; d++) nums[d].addEventListener('keydown', function (ev) {
