@@ -2945,7 +2945,7 @@ var ERP = (function () {
   /* 원료육은 냉동고 · 냉장고로 부른다 */
   var UNI_WH_MEAT = { F: '냉동고', C: '냉장고', A: '냉장고' };
   var UNI_WH_KEYS = ['F', 'C', 'A'];
-  var UNI_GROUPS = { all: '전체', meat: '원료육', fg: '완제품', sauce: '소스', spice: '향신료',
+  var UNI_GROUPS = { all: '전체', meat: '원료육', fg: '완제품', mat: '부재료', sauce: '소스', spice: '향신료',
     veg: '야채', sub: '부자재', etc: '기타' };
   /* 기존 표기(부자재·소스 · 완제품(자체생산) · 야채류 · 부재료 …)를 일곱 구분으로 옮긴다.
      모르는 이름은 완제품으로 둔다(fp_products 의 기본 대분류가 완제품이다). */
@@ -3036,7 +3036,7 @@ var ERP = (function () {
   function uniViewCols(g) {
     if (g === 'meat') return UNI_VIEW_COLS.meat;
     if (g === 'fg') return UNI_VIEW_COLS.fg;
-    if (g && UNI_GROUP_KEYS.indexOf(g) >= 0) return UNI_VIEW_COLS.etc;
+    if (g && (UNI_GROUP_KEYS.indexOf(g) >= 0 || g === 'mat')) return UNI_VIEW_COLS.etc;
     return UNI_COLS;
   }
   var UNI_TX_COLS = [
@@ -3244,6 +3244,8 @@ var ERP = (function () {
   function uniGroupHit(g, sel) {
     if (!sel || sel === 'all') return true;
     if (sel === 'fgself' || sel === 'fgbuy') return g === 'fg';   /* v16 칩 이름 호환 */
+    /* v25 — 부재료(전체 재고) = 소스 + 향신료 + 야채를 함께 */
+    if (sel === 'mat') return g === 'sauce' || g === 'spice' || g === 'veg';
     return g === sel;
   }
   function uniSortStock(list, key, dir) {
@@ -3347,6 +3349,38 @@ var ERP = (function () {
       seen[k] = 1;
       out.all++;
       out[r.g] = (out[r.g] || 0) + 1;
+    }
+    return out;
+  }
+
+  /* v25 — 왼쪽 네 품목 카드의 배지 숫자. 화면과 같은 조건으로 센다(품목 단위).
+     원료육 전체/냉동고/냉장고 · 완제품 전체/자체/매입 · 부재료 전체/소스/향신료/야채 · 부자재 */
+  function uniNavCounts(rows) {
+    var out = { meatAll: 0, meatF: 0, meatC: 0, fgAll: 0, fgSelf: 0, fgBuy: 0,
+      matAll: 0, sauce: 0, spice: 0, veg: 0, sub: 0 };
+    var seen = {}, i, r, item, k;
+    function bump(key, itemKey) {
+      var s = key + '|' + itemKey;
+      if (seen[s]) return;
+      seen[s] = 1; out[key]++;
+    }
+    for (i = 0; i < (rows || []).length; i++) {
+      r = rows[i];
+      item = r.kind + '|' + r.code;
+      if (r.g === 'meat') {
+        bump('meatAll', item);
+        if (r.wh === 'F') bump('meatF', item);
+        else if (r.wh === 'C') bump('meatC', item);
+      } else if (r.g === 'fg') {
+        bump('fgAll', item);
+        if (r.flag === '자체') bump('fgSelf', item);
+        else if (r.flag === '매입') bump('fgBuy', item);
+      } else if (r.g === 'sauce' || r.g === 'spice' || r.g === 'veg') {
+        bump('matAll', item);
+        bump(r.g, item);
+      } else if (r.g === 'sub') {
+        bump('sub', item);
+      }
     }
     return out;
   }
@@ -3484,6 +3518,7 @@ var ERP = (function () {
       if (o.from && r.d < o.from) continue;
       if (o.to && r.d > o.to) continue;
       if (!uniGroupHit(r.g, o.g)) continue;
+      if (o.flag && o.flag !== 'all' && r.flag !== o.flag) continue;
       if (o.tk && o.tk !== 'all' && r.tk !== o.tk) continue;
       if (o.q && !textHit([r.d, r.gc, r.tk, r.code, r.n, r.spec, r.lot, r.p, r.note, r.worker].join(' '), o.q)) continue;
       skip = false;
@@ -3530,7 +3565,7 @@ var ERP = (function () {
     uniFpCat: uniFpCat, uniFpCatForLog: uniFpCatForLog, uniGroupOf: uniGroupOf,
     uniStockRows: uniStockRows, uniCell: uniCell, uniFilterStock: uniFilterStock,
     uniStockTotals: uniStockTotals, uniCatCounts: uniCatCounts, uniGroupHit: uniGroupHit,
-    uniGroupRows: uniGroupRows, uniGroupDefault: uniGroupDefault,
+    uniGroupRows: uniGroupRows, uniGroupDefault: uniGroupDefault, uniNavCounts: uniNavCounts,
     uniTxRows: uniTxRows, uniTxCell: uniTxCell, uniFilterTx: uniFilterTx, uniTxCounts: uniTxCounts,
     uniPartnerText: uniPartnerText, uniSpecText: uniSpecText,
     EPS: EPS, r2: r2, r0: r0, MAJORS: MAJORS, MAJOR_DEFAULT: MAJOR_DEFAULT, majorName: majorName,
@@ -5703,6 +5738,11 @@ var LIVE = (function () {
     try { savedMode = localStorage.getItem(MODE_KEY) || 'uni'; } catch (e) { }
     /* v16 — 예전 화면(원료육·완제품·생산)을 저장해 둔 브라우저는 통합 재고로 들어온다 */
     if (savedMode === 'meat' || savedMode === 'fg' || savedMode === 'prod' || !PANE_HOSTS[savedMode]) savedMode = 'uni';
+    /* v25 — 기본 진입 화면 = 왼쪽 「원료육 → 전체 재고」 */
+    if (savedMode === 'uni' && !cur.uni.view) {
+      cur.uni.view = 'meat'; cur.utx.view = 'meat';
+      cur.uni.g = 'all'; cur.uni.wh = 'all'; cur.uni.flag = 'all';
+    }
     setErpMode(savedMode);
     setFgType('IN');
     reload().then(function () {
@@ -6340,14 +6380,27 @@ var LIVE = (function () {
   };
   /* v18 — 품목 메뉴의 일곱 전용 화면 머리말(통합 재고 문구는 여기서 나오지 않는다) */
   var UNI_VIEW_HEAD = {
-    meat: ['원료육 재고', '냉동고 · 냉장고 · 해동 재고를 한 표에서 보고, 표에서 바로 해동·출고로 이어집니다.', '품목별 관리 · 원료육'],
-    fg: ['완제품 재고', '자체생산과 외부매입을 나눠 보고, 제조일 · 보관방법 · 소비기한을 함께 봅니다.', '품목별 관리 · 완제품'],
-    sauce: ['소스 재고', '소스 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '품목별 관리 · 소스'],
-    spice: ['향신료 재고', '향신료 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '품목별 관리 · 향신료'],
-    veg: ['야채 재고', '야채 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '품목별 관리 · 야채'],
-    sub: ['부자재 재고', '부자재 재고를 보관방법(냉동 · 냉장 · 실온)과 단가 중심으로 봅니다.', '품목별 관리 · 부자재'],
-    etc: ['기타 재고', '기타 품목 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '품목별 관리 · 기타']
+    meat: ['원료육 재고', '냉동고 · 냉장고 · 해동 재고를 한 표에서 보고, 표에서 바로 해동·출고로 이어집니다.', '원료육 · 전체 재고'],
+    fg: ['완제품 재고', '자체생산과 외부매입을 나눠 보고, 제조일 · 보관방법 · 소비기한을 함께 봅니다.', '완제품 · 전체 재고'],
+    mat: ['부재료 재고', '소스 · 향신료 · 야채를 한 표에서 보고, 위 칩으로 하나만 골라 볼 수 있습니다.', '부재료 · 전체 재고'],
+    sauce: ['소스 재고', '소스 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '부재료 · 소스'],
+    spice: ['향신료 재고', '향신료 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '부재료 · 향신료'],
+    veg: ['야채 재고', '야채 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '부재료 · 야채'],
+    sub: ['부자재 재고', '부자재 재고를 보관방법(냉동 · 냉장 · 실온)과 단가 중심으로 봅니다.', '부자재'],
+    etc: ['기타 재고', '기타 품목 재고를 보관방법(냉동 · 냉장 · 실온)과 소비기한 중심으로 봅니다.', '기타']
   };
+  /* v25 — 지금 품목 화면의 조건까지 붙인 이름(원료육 · 냉동고 / 완제품 · 자체생산 …) */
+  function uniViewSubLabel(v) {
+    if (v === 'meat') return cur.uni.wh === 'F' ? '냉동고' : (cur.uni.wh === 'C' ? '냉장고' : (cur.uni.wh === 'T' ? '해동' : '전체 재고'));
+    if (v === 'fg') return cur.uni.flag === '자체' ? '자체생산' : (cur.uni.flag === '매입' ? '매입판매' : '전체 재고');
+    if (v === 'mat') return cur.uni.g === 'sauce' ? '소스' : (cur.uni.g === 'spice' ? '향신료' : (cur.uni.g === 'veg' ? '야채' : '전체 재고'));
+    return '';
+  }
+  function uniViewLabel(v) {
+    var base = ERP.UNI_GROUPS[v] || '';
+    var sub = uniViewSubLabel(v);
+    return sub ? base + ' · ' + sub : base;
+  }
   /* v13 — 회계 탭마다 머리말 */
   var ACC_HEAD = {
     V: ['손익 요약', '미수금·미지급금·이번 달 매출·매입·생산투입·예상 순이익을 한눈에 봅니다.', '회계 · 손익 요약'],
@@ -6476,12 +6529,15 @@ var LIVE = (function () {
   function updatePageHead() {
     var h = PANE_HEAD[cur.erp] || PANE_HEAD.uni;
     /* v18 — 품목 메뉴의 전용 화면은 통합 재고 문구를 쓰지 않는다 */
-    if (cur.erp === 'uni' && cur.uni.view && UNI_VIEW_HEAD[cur.uni.view]) h = UNI_VIEW_HEAD[cur.uni.view];
+    if (cur.erp === 'uni' && cur.uni.view && UNI_VIEW_HEAD[cur.uni.view]) {
+      var hd = UNI_VIEW_HEAD[cur.uni.view];
+      h = [uniViewLabel(cur.uni.view) + (cur.uni.view === 'sub' ? ' 재고' : ''), hd[1], hd[2]];
+    }
     /* v22 — 품목별 관리 화면에서 '입출고 내역' 탭을 누르면 그 품목만의 입출고 내역이 된다 */
     if (cur.erp === 'unitx' && cur.utx.view) {
-      var vn = ERP.UNI_GROUPS[cur.utx.view] || '';
+      var vn = uniViewLabel(cur.utx.view);
       h = [vn + ' 입출고 내역', vn + '만 모아 입고·출고·해동·현장 기록을 한 줄씩 보고, 줄마다 잔여재고를 확인합니다.',
-        '품목별 관리 · ' + vn + ' 입출고 내역'];
+        vn + ' · 입출고 내역'];
     }
     /* v11 — 회계는 탭마다 머리말이 다르다(정산 관리 …) */
     if (cur.erp === 'acc') h = ACC_HEAD[cur.accTab] || ACC_HEAD.V;
@@ -6611,14 +6667,21 @@ var LIVE = (function () {
   function uniCounts() { return ERP.uniCatCounts(ERP.uniStockRows(st)); }
   function refreshSideCounts() {
     var c = ERP.uniCatCounts(ERP.uniStockRows(st));
-    setTxt('navCntStock', c.all);
-    setTxt('navCntMeat', c.meat);
-    setTxt('navCntFg', c.fg);
-    setTxt('navCntSauce', c.sauce);
-    setTxt('navCntSpice', c.spice);
-    setTxt('navCntVeg', c.veg);
-    setTxt('navCntSub', c.sub);
-    setTxt('navCntEtc', c.etc);
+    var n = ERP.uniNavCounts(ERP.uniStockRows(st));
+    setTxt('navCntMeatAll', n.meatAll);
+    setTxt('navCntMeatF', n.meatF);
+    setTxt('navCntMeatC', n.meatC);
+    setTxt('navCntFgAll', n.fgAll);
+    setTxt('navCntFgSelf', n.fgSelf);
+    setTxt('navCntFgBuy', n.fgBuy);
+    setTxt('navCntMatAll', n.matAll);
+    setTxt('navCntSauce', n.sauce);
+    setTxt('navCntSpice', n.spice);
+    setTxt('navCntVeg', n.veg);
+    setTxt('navCntSub', n.sub);
+    setTxt('uniCntAll', c.all); setTxt('uniCntMeat', c.meat); setTxt('uniCntFg', c.fg);
+    setTxt('uniCntSauce', c.sauce); setTxt('uniCntSpice', c.spice); setTxt('uniCntVeg', c.veg);
+    setTxt('uniCntSub', c.sub); setTxt('uniCntEtc', c.etc);
     setTxt('navCntTx', ERP.uniTxRows(st).length);
     if ($('sideAsOf')) $('sideAsOf').textContent = '재고 기준일 ' + today();
   }
@@ -6698,11 +6761,15 @@ var LIVE = (function () {
     meat: [{ k: 'wh', lbl: '창고', items: [['all', '전체'], ['F', '냉동고'], ['C', '냉장고'], ['T', '해동']] }],
     fg: [{ k: 'flag', lbl: '자체/매입', items: [['all', '전체'], ['자체', '자체'], ['매입', '매입']] },
       { k: 'wh', lbl: '보관방법', items: [['all', '전체'], ['F', '냉동'], ['C', '냉장'], ['A', '실온']] }],
+    /* v25 — 부재료 화면 = 소스 + 향신료 + 야채. 위 칩으로 셋을 오가고, 기본은 전체 */
+    mat: [{ k: 'g', lbl: '구분', items: [['all', '전체'], ['sauce', '소스'], ['spice', '향신료'], ['veg', '야채']] },
+      { k: 'wh', lbl: '보관방법', items: [['all', '전체'], ['F', '냉동'], ['C', '냉장'], ['A', '실온']] }],
     etc: [{ k: 'wh', lbl: '보관방법', items: [['all', '전체'], ['F', '냉동'], ['C', '냉장'], ['A', '실온']] }]
   };
   function uniChipSet(g) {
     if (g === 'meat') return UNI_VIEW_CHIPS.meat;
     if (g === 'fg') return UNI_VIEW_CHIPS.fg;
+    if (g === 'mat') return UNI_VIEW_CHIPS.mat;
     if (g) return UNI_VIEW_CHIPS.etc;
     return [];
   }
@@ -6713,7 +6780,8 @@ var LIVE = (function () {
     var set = uniChipSet(view), h = [], i, j, grp, on, cur2;
     for (i = 0; i < set.length; i++) {
       grp = set[i];
-      cur2 = grp.k === 'wh' ? (cur.uni.wh || 'all') : (cur.uni.flag || 'all');
+      cur2 = grp.k === 'wh' ? (cur.uni.wh || 'all')
+        : (grp.k === 'g' ? (cur.uni.g || 'all') : (cur.uni.flag || 'all'));
       if (i) h.push('<span class="divv"></span>');
       if (grp.lbl) h.push('<span class="lbl">' + esc(grp.lbl) + '</span>');
       h.push('<div class="chips">');
@@ -6772,9 +6840,12 @@ var LIVE = (function () {
     if ($('uniGroupWrap')) $('uniGroupWrap').classList.toggle('on', grpOn);
     var all = ERP.uniStockRows(st, { zero: !!cur.uni.zero });
     var allLive = cur.uni.zero ? ERP.uniStockRows(st) : all;   /* 칩 수 · 임박 알림은 재고 있는 로트 기준 */
-    var g = view || cur.uni.g;
+    /* v25 — 부재료 화면은 기본이 소스+향신료+야채(전체), 칩으로 하나만 고를 수 있다 */
+    var gsel = view;
+    if (view === 'mat') gsel = (cur.uni.g === 'sauce' || cur.uni.g === 'spice' || cur.uni.g === 'veg') ? cur.uni.g : 'mat';
+    else if (!view) gsel = cur.uni.g;
     var rows = ERP.uniFilterStock(all, {
-      g: g, wh: cur.uni.wh, flag: cur.uni.flag, q: cur.uni.q, cols: cur.fUni,
+      g: gsel, wh: cur.uni.wh, flag: cur.uni.flag, q: cur.uni.q, cols: cur.fUni,
       sortKey: cur.uni.sortKey, sortDir: cur.uni.sortDir
     });
     var c = ERP.uniCatCounts(allLive);
@@ -6789,7 +6860,8 @@ var LIVE = (function () {
     renderUniChips(view);
     setTxt('uniHint', (view
       ? (view === 'meat' ? '냉동고 · 냉장고 · 해동 재고를 한 표에서 봅니다'
-        : (view === 'fg' ? '자체 · 매입과 제조일을 함께 봅니다' : '냉동 · 냉장 · 실온 재고를 한 표에서 봅니다'))
+        : (view === 'fg' ? '자체 · 매입과 제조일을 함께 봅니다'
+          : (view === 'mat' ? '소스 · 향신료 · 야채를 한 표에서 봅니다' : '냉동 · 냉장 · 실온 재고를 한 표에서 봅니다')))
       : '일곱 구분 · 원산지와 브랜드를 나눠 한 표에 담습니다') + (soon ? ' · 소비기한 임박 ' + soon + '건' : ''));
     var tot = ERP.uniStockTotals(rows);
     if ($('uniSum')) $('uniSum').innerHTML = '<b>' + tot.items + '</b> 품목 · <b>' + tot.rows + '</b> 로트 · 재고금액 <b>' + fmtInt(tot.amount) + '원</b>' +
@@ -6887,9 +6959,15 @@ var LIVE = (function () {
     var keep = wrap.scrollTop, keepL = wrap.scrollLeft;
     /* v22 — 품목 화면 안에서 연 입출고 내역은 그 구분으로 고정한다(구분 칩은 감춤) */
     if ($('utxCatChips')) $('utxCatChips').classList.toggle('hidden', !!cur.utx.view);
-    if (cur.utx.view) cur.utx.g = cur.utx.view;
+    if (cur.utx.view) {
+      /* v25 — 부재료는 고른 구분만, 완제품은 자체/매입까지 그대로 따라간다 */
+      cur.utx.g = cur.utx.view === 'mat'
+        ? ((cur.uni.g === 'sauce' || cur.uni.g === 'spice' || cur.uni.g === 'veg') ? cur.uni.g : 'mat')
+        : cur.utx.view;
+    }
     renderItemTabs('tx');
-    var base = ERP.uniFilterTx(ERP.uniTxRows(st), { g: cur.utx.g, from: cur.utx.from, to: cur.utx.to, sortKey: 'd', sortDir: -1 });
+    var tflag = cur.utx.view === 'fg' ? (cur.uni.flag || 'all') : 'all';
+    var base = ERP.uniFilterTx(ERP.uniTxRows(st), { g: cur.utx.g, flag: tflag, from: cur.utx.from, to: cur.utx.to, sortKey: 'd', sortDir: -1 });
     var c = ERP.uniTxCounts(base);
     setTxt('utxCntAll', c.all); setTxt('utxCntMeat', c.meat); setTxt('utxCntFg', c.fg);
     setTxt('utxCntSauce', c.sauce); setTxt('utxCntSpice', c.spice); setTxt('utxCntVeg', c.veg);
@@ -6942,13 +7020,16 @@ var LIVE = (function () {
     if (cur.erp !== 'uni') setPane('uni');
     else { updatePageHead(); renderUni(); markNav(); }
   }
-  /* 품목 메뉴 — 그 구분만의 전용 화면으로 들어간다(통합 재고 칩·제목 감춤) */
-  function uniItemGo(g) {
+  /* 품목 메뉴 — 그 구분만의 전용 화면으로 들어간다(통합 재고 칩·제목 감춤)
+     v25 — opt.wh/opt.flag/opt.g 로 창고 · 자체/매입 · 부재료 구분을 바로 걸어 준다 */
+  function uniItemGo(g, opt) {
+    opt = opt || {};
     var v = (g && g !== 'all' && ERP.UNI_GROUPS[g]) ? g : '';
     cur.uni.view = v;
     cur.utx.view = v;
-    cur.uni.g = v || 'all';
-    cur.uni.wh = 'all'; cur.uni.flag = 'all';
+    cur.uni.g = (v === 'mat' && (opt.g === 'sauce' || opt.g === 'spice' || opt.g === 'veg')) ? opt.g : 'all';
+    cur.uni.wh = opt.wh === 'F' || opt.wh === 'C' ? opt.wh : 'all';
+    cur.uni.flag = opt.flag === '자체' || opt.flag === '매입' ? opt.flag : 'all';
     cur.uni.q = '';
     if ($('uniSearch')) $('uniSearch').value = '';
     cur.uni.limit = 400;
@@ -6974,7 +7055,7 @@ var LIVE = (function () {
     var v = itemTabView();
     box.classList.toggle('hidden', !v);
     if (!v) return;
-    setTxt('itemTabsName', ERP.UNI_GROUPS[v] || '');
+    setTxt('itemTabsName', uniViewLabel(v));
     var btns = box.querySelectorAll('[data-itab]'), i;
     for (i = 0; i < btns.length; i++) {
       btns[i].classList.toggle('active', btns[i].getAttribute('data-itab') === which);
@@ -6997,7 +7078,10 @@ var LIVE = (function () {
   /* 지금 보고 있는 품목 구분을 입고·출고 팝업 기본값으로 */
   function uniPresetOf() {
     var v = uniView();
-    return v ? { g: v } : null;
+    if (!v) return null;
+    /* v25 — 부재료 화면은 소스·향신료·야채 중 골라 본 구분을 그대로, 전체면 팝업은 기본값 */
+    if (v === 'mat') return (cur.uni.g === 'sauce' || cur.uni.g === 'spice' || cur.uni.g === 'veg') ? { g: cur.uni.g } : null;
+    return { g: v, flag: (v === 'fg' && (cur.uni.flag === '자체' || cur.uni.flag === '매입')) ? cur.uni.flag : '' };
   }
   /* ---------- CSV (지금 화면 그대로) ---------- */
   function uniCsvExport() {
@@ -7239,13 +7323,18 @@ var LIVE = (function () {
     });
   }
   /* ---------- 왼쪽 메뉴 ---------- */
+  /* v25 — 품목 화면 + 그 화면의 조건(창고 · 자체/매입 · 부재료 구분)을 메뉴 키로 */
+  function uniNavKey(v) {
+    if (!v) return '';
+    if (v === 'meat') return 'stock:meat' + (cur.uni.wh === 'F' ? ':F' : (cur.uni.wh === 'C' ? ':C' : ''));
+    if (v === 'fg') return 'stock:fg' + (cur.uni.flag === '자체' ? ':self' : (cur.uni.flag === '매입' ? ':buy' : ''));
+    if (v === 'mat') return 'stock:mat' + (cur.uni.g === 'sauce' ? ':sauce' : (cur.uni.g === 'spice' ? ':spice' : (cur.uni.g === 'veg' ? ':veg' : '')));
+    return 'stock:' + v;
+  }
   function navKeyFor() {
     /* v18 — 왼쪽 품목 메뉴는 전용 화면이다. 통합 재고의 칩은 메뉴 표시를 바꾸지 않는다. */
-    if (cur.erp === 'uni') {
-      var v = cur.uni.view || '';
-      return v ? ('stock:' + v) : 'stock:all';
-    }
-    if (cur.erp === 'unitx') return cur.utx.view ? ('stock:' + cur.utx.view) : 'tx';
+    if (cur.erp === 'uni') return cur.uni.view ? uniNavKey(cur.uni.view) : 'stock:all';
+    if (cur.erp === 'unitx') return cur.utx.view ? uniNavKey(cur.utx.view) : 'tx';
     if (cur.erp === 'buy') return cur.buyView === 'status' ? 'buy-status' : 'buy-list';
     if (cur.erp === 'sale') return cur.saleView === 'status' ? 'sale-status' : 'sale-list';
     if (cur.erp === 'acc') return cur.accTab === 'E' ? 'expense' : (cur.accTab === 'R' ? 'ledger' : '');
@@ -7258,7 +7347,13 @@ var LIVE = (function () {
   }
   function navGo(nav) {
     if (nav.indexOf('stock:') === 0) {
-      uniItemGo(nav === 'stock:all' ? '' : nav.slice(6));
+      var parts = nav.slice(6).split(':'), tag = parts[0] || '', sub = parts[1] || '';
+      /* v25 — 카드마다 하위 메뉴가 그 화면의 조건을 정한다 */
+      if (tag === 'all' || !ERP.UNI_GROUPS[tag]) uniCatGo('all');
+      else if (tag === 'meat') uniItemGo('meat', { wh: sub === 'F' ? 'F' : (sub === 'C' ? 'C' : 'all') });
+      else if (tag === 'fg') uniItemGo('fg', { flag: sub === 'self' ? '자체' : (sub === 'buy' ? '매입' : 'all') });
+      else if (tag === 'mat') uniItemGo('mat', { g: (sub === 'sauce' || sub === 'spice' || sub === 'veg') ? sub : 'all' });
+      else uniItemGo(tag);
     } else if (nav === 'tx') {
       cur.utx.view = '';
       cur.utx.g = 'all';
@@ -7308,7 +7403,9 @@ var LIVE = (function () {
       var b = ev.target && ev.target.closest ? ev.target.closest('[data-uchip]') : null;
       if (!b) return;
       var k = b.getAttribute('data-uchip'), v = b.getAttribute('data-uval') || 'all';
-      if (k === 'flag') cur.uni.flag = v; else cur.uni.wh = v;
+      if (k === 'flag') cur.uni.flag = v;
+      else if (k === 'g') cur.uni.g = v;
+      else cur.uni.wh = v;
       cur.uni.limit = 400;
       renderUni();
     });
@@ -7328,7 +7425,9 @@ var LIVE = (function () {
       itabs[it].addEventListener('click', function () {
         var k = this.getAttribute('data-itab'), v = itemTabView();
         if (!v) return;
-        if (k === 'tx') itemTxGo(v); else uniItemGo(v);
+        if (k === 'tx') itemTxGo(v);
+        /* v25 — 입출고 내역에서 돌아와도 보던 창고·자체매입·부재료 구분을 그대로 둔다 */
+        else uniItemGo(v, { wh: cur.uni.wh, flag: cur.uni.flag, g: cur.uni.g });
       });
     }
     if ($('uniBtnItem')) $('uniBtnItem').addEventListener('click', function () { openFgNew(null); });
@@ -8302,6 +8401,7 @@ var LIVE = (function () {
         gr.kind = preset.g === 'meat' ? 'meat' : 'fp';
         gr.unit = preset.g === 'meat' ? 'kg' : '개';
         gr.wh = preset.g === 'meat' ? (ios.wh === 'C' ? 'C' : 'F') : 'A';
+        if (preset.flag === '자체' || preset.flag === '매입') gr.flag = preset.flag;
       }
     }
     if (preset && (preset.name || preset.code)) {
