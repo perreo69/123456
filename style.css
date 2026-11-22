@@ -2962,42 +2962,13 @@ table.tblu tbody tr.ugroup.open td,table.tblu tbody tr.ugroup.open:hover td{back
 table.tblu tbody tr.ugroup:hover .gtog{color:#64748B}
 table.tblu tbody tr.ugroup.open .gtog{color:#2563EB}
 
-/* ---------- 4. 펼친 안쪽 로트 상세 소표 ---------- */
-table.tblu tbody tr.ugsub>td.ugsubcell{height:auto;padding:2px 14px 12px 40px;background:#fff;
-  border-bottom:1px solid #E2E8F0;border-right:0;color:#334155;font-size:12.2px}
-table.tblu tbody tr.ugsub:hover>td.ugsubcell{background:#fff}
-table.tblu table.lot-subtbl{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;
-  background:#F8FAFC;border:1px solid #E2E8F0;border-radius:6px;overflow:hidden}
-table.tblu table.lot-subtbl thead th{height:30px;padding:0 10px;background:#EEF2F7;color:#64748B;
-  font-size:11px;font-weight:700;letter-spacing:-.1px;text-align:left;position:static;
-  border:0;border-bottom:1px solid #DFE5EC;border-right:1px solid #E5EAF1;box-shadow:none}
-table.tblu table.lot-subtbl thead th:last-child{border-right:0}
-table.tblu table.lot-subtbl thead th.r{text-align:right}
-table.tblu table.lot-subtbl tbody td{height:36px;padding:0 10px;background:#F8FAFC;
-  border:0;border-bottom:1px solid #E8EDF3;border-right:1px solid #EDF1F6;
-  color:#334155;font-size:12.2px;font-weight:500}
-table.tblu table.lot-subtbl tbody td:last-child{border-right:0}
-table.tblu table.lot-subtbl tbody tr:last-child td{border-bottom:0}
-table.tblu table.lot-subtbl tbody tr:hover td{background:#F1F6FC}
-table.tblu table.lot-subtbl .name{color:#111827;font-weight:600}
-table.tblu table.lot-subtbl .code{color:#475569;font-size:12px}
-table.tblu table.lot-subtbl .sub{color:#4B5563;font-size:12.2px}
-table.tblu table.lot-subtbl .d{margin-left:7px;font-size:11px}
-table.tblu table.lot-subtbl .d::before{color:#94A3B8}
-table.tblu table.lot-subtbl .whchip{font-size:12.2px}
-table.tblu table.lot-subtbl td.actcell{padding:0 8px;background:transparent;border-right:0}
-table.tblu table.lot-subtbl tbody tr:hover td.actcell{background:transparent}
-table.tblu .lot-subtbl td.actcell .actmenu{height:24px;min-height:0;padding:0 9px;border:1px solid #D1D5DB;
-  border-radius:5px;background:#fff;color:#475569;font-weight:600;font-size:11.4px;box-shadow:none}
-table.tblu .lot-subtbl td.actcell .actmenu:hover,table.tblu .lot-subtbl td.actcell .actmenu.on{
-  border-color:#93B4F5;background:#F8FAFC;color:#1D4ED8;text-decoration:none}
+/* ---------- 4. (v36) 로트 줄은 바깥 표 안의 한 줄로 바뀌었다 — 이중 소표 스타일 삭제 ---------- */
 .utfoot{border-top:1px solid #E2E8F0;background:#F8FAFC;color:#64748B}
 
 /* ---------- 5. 폰 ---------- */
 @media (max-width:768px){
   .usearch{flex:1 1 150px}
   .usearch input{width:100%}
-  table.tblu tbody tr.ugsub>td.ugsubcell{padding:2px 8px 10px 12px}
   .utool .chip{height:28px;padding:0 9px;font-size:11.8px}
 }
 
@@ -3008,9 +2979,9 @@ table.tblu .lot-subtbl td.actcell .actmenu:hover,table.tblu .lot-subtbl td.actce
      · 1920px 넓은 화면에서도 다섯 칸이 한눈에 들어오게 표(툴바 포함)를 1120px 로
    ========================================================================== */
 
-/* ---------- 1. 표 · 툴바 폭 — 1120px 왼쪽 정렬(품목 재고현황만) ---------- */
-#uniMode .unicard{max-width:1120px}
-/* 좁은 화면(1120px 이하)에서는 예전처럼 화면 폭을 그대로 쓴다 */
+/* ---------- 1. 표 · 툴바 폭 — (v36) 화면 오른쪽 끝까지 꽉 차게 ---------- */
+#uniMode .unicard{max-width:none}
+/* 좁은 화면에서도 그대로 화면 폭을 쓴다 */
 @media (max-width:1120px){
   #uniMode .unicard{max-width:none}
 }
@@ -3022,15 +2993,12 @@ table.tblu .lot-subtbl td.actcell .actmenu:hover,table.tblu .lot-subtbl td.actce
 table.tblu tbody td .unit{margin-left:4px;color:#64748B;font-size:11px;font-weight:600;
   letter-spacing:0;vertical-align:0}
 table.tblu tbody tr.ugroup td.gsum .unit{margin-left:4px;font-size:11.2px;font-weight:600;color:#64748B}
-table.tblu table.lot-subtbl tbody td .unit{margin-left:3px;font-size:10.6px;font-weight:600;color:#64748B}
 
 /* ---------- 3. 품명 칸 = 품명만(단위·규격은 숫자 옆과 줄 설명으로) ---------- */
 table.tblu tbody tr.ugroup .g-name{letter-spacing:-.2px}
 table.tblu tbody tr.ugroup td.gn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ---------- 4. 안쪽 로트 상세 소표 — 1120px 안에서 한 줄로 ---------- */
-table.tblu table.lot-subtbl thead th,table.tblu table.lot-subtbl tbody td{padding:0 8px}
-table.tblu .lot-subtbl td.actcell .actmenu{padding:0 8px}
+/* ---------- 4. (v36) 이중 소표는 없어졌고, 칸 간격은 v36 띠·로트 줄 규칙이 맡는다 ---------- */
 
 /* ==========================================================================
    v30 — 통합 출고 팝업의 출고 구분(현장(생산) · 업체(판매) · 기타)
@@ -3169,4 +3137,58 @@ input.sd-field.sd-bad{border-color:#f0a9a4;box-shadow:0 0 0 3px rgba(220,38,38,.
 @media (max-width:768px){
   .rng input.sd-field,.utool .rng input.sd-field{width:100%;min-width:0}
   .rangebar .rng input.sd-field{flex:1 1 0}
+}
+
+/* ==========================================================================
+   v36 — 오른쪽 재고 표 : 화면 끝까지 꽉 찬 «단일 1단 표»
+     · 안쪽 이중 소표 삭제 — 품목 띠 줄 아래로 로트 줄이「같은 열」에 그대로 이어진다
+     · 품목 띠 = 연한 하늘회색(#f3f6fb) · 굵은 품명 + ▾/▸ + 로트 N건 · 총 재고(단위) · 총 재고금액
+     · 기본 = 모두 펼침(띠를 눌러 접은 품목만 기억) · 검색해도 펼침 유지
+   ========================================================================== */
+
+/* ---------- 1. 폭 — 툴바·표가 본문 오른쪽 끝까지 (1120px 제한 해제) ---------- */
+#uniMode .unicard{max-width:none}
+#uniMode .utool{max-width:none}
+
+/* ---------- 2. 품목 띠 줄 — 굵은 품명 + 화살표 + 로트 수 + 합계 ---------- */
+table.tblu tbody tr.ugroup{cursor:pointer;user-select:none}
+table.tblu tbody tr.ugroup td{height:40px;background:#f3f6fb;color:#0F172A;font-size:12.8px;
+  border-bottom:1px solid #D9E1EC;border-top:1px solid #D9E1EC;border-right:1px solid #EDF1F7}
+table.tblu tbody tr.ugroup:hover td{background:#EBF1F9}
+table.tblu tbody tr.ugroup.open td,table.tblu tbody tr.ugroup.open:hover td{background:#f3f6fb}
+table.tblu tbody tr.ugroup.open:hover td{background:#EBF1F9}
+table.tblu tbody tr.ugroup td.gn{padding-left:18px}
+table.tblu tbody tr.ugroup .g-name{color:#0F172A;font-weight:800;font-size:13.2px;letter-spacing:-.2px}
+table.tblu tbody tr.ugroup .g-meta{margin-left:9px;color:#7C8798;font-size:11.6px;font-weight:600}
+table.tblu tbody tr.ugroup .g-meta b{color:#475569;font-weight:800}
+table.tblu tbody tr.ugroup .gtog{display:inline-block;width:11px;margin-right:8px;
+  color:#64748B;font-size:10px;font-weight:700;vertical-align:1px}
+table.tblu tbody tr.ugroup:hover .gtog{color:#334155}
+table.tblu tbody tr.ugroup.open .gtog{color:#2563EB}
+table.tblu tbody tr.ugroup .gsum{color:#0F172A;font-weight:800;font-size:13px}
+table.tblu tbody tr.ugroup td.gsum .won{margin-left:2px;color:#94A3B8;font-size:11px;font-weight:600}
+table.tblu tbody tr.ugroup .gdim .dim{color:#A6AEBB}
+table.tblu tbody tr.ugroup td.sub{color:#3F4B5C;font-size:12.4px;font-weight:600}
+/* 띠 줄의 「작업」 칸은 비어 있지만 오른쪽 고정 배경은 띠 색으로 맞춘다 */
+table.tblu tbody tr.ugroup td.actcol{background:#f3f6fb;border-left:1px solid #E2E8F0;box-shadow:none}
+table.tblu tbody tr.ugroup:hover td.actcol{background:#EBF1F9}
+
+/* ---------- 3. 로트 줄 — 띠 바로 아래, 같은 열에 이어지는 한 줄 ---------- */
+table.tblu tbody tr.ulot td{height:38px;background:#fff;color:#111827;font-size:12.8px;
+  border-bottom:1px solid #EEF2F7;border-top:0;border-right:1px solid #F4F7FA}
+table.tblu tbody tr.ulot:hover td{background:#F8FAFC}
+table.tblu tbody tr.ulot .name{color:#1F2937;font-weight:600}
+table.tblu tbody tr.ulot td.sub{color:#5B6676;font-size:12.4px}
+table.tblu tbody tr.ulot td.actcol{background:#fff;border-left:1px solid #E2E8F0;box-shadow:none}
+table.tblu tbody tr.ulot:hover td.actcol{background:#F8FAFC}
+table.tblu tbody tr.ulot .code{color:#475569;font-size:12.2px}
+table.tblu tbody tr.ulot .unit{margin-left:4px;color:#64748B;font-size:11px;font-weight:600}
+/* 품목 묶음의 마지막 로트 줄 — 다음 띠와 확실히 갈라지게 */
+table.tblu tbody tr.ulot.last td{border-bottom:1px solid #D9E1EC}
+/* 첫 띠 줄은 머리글과 맞닿아 위 선을 겹치지 않게 */
+table.tblu tbody tr.ugroup:first-child td{border-top:0}
+
+@media (max-width:768px){
+  table.tblu tbody tr.ugroup td.gn{padding-left:12px}
+  table.tblu tbody tr.ugroup .g-meta{display:none}
 }
