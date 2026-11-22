@@ -2972,67 +2972,51 @@ var ERP = (function () {
     var i = UNI_GROUP_KEYS.indexOf(g);
     return i < 0 ? UNI_GROUP_KEYS.length : i;
   }
-  /* v18 — 통합 재고 12칸(작업 별도): 구분 · 세부분류 · 품명 · 규격/단위 · 원산지 · 브랜드 ·
-     로트번호 · 소비기한 · 재고 · 단가 · 재고금액. 품목코드 · 창고 · 입고일은 뺐다. */
+  /* v38 — 오른쪽 재고 표를 «맨 처음 원료육 화면»처럼 슬림하게 되돌린다.
+     원료육 = 육류 · 원산지 · 업체명 · 브랜드 · 입고일 · 소비기한 · 재고 (+ 맨 끝 작업)
+     완제품 · 부재료 · 부자재 = 구분 · 규격/코드 · 거래처 · 입고일 · 소비기한 · 재고 (+ 작업)
+     품명은 품목 띠 줄에 한 번만, 창고는 전체 재고에서만 재고 숫자 앞 점으로 붙는다. */
   var UNI_COLS = [
-    { k: 'cat', t: '구분', w: 98, f: 1 },
-    { k: 'sub', t: '세부분류', w: 92, f: 1 },
-    { k: 'n', t: '품명', w: 260, f: 1 },
-    { k: 'spec', t: '규격/단위', w: 118 },
-    { k: 'org', t: '원산지', w: 86, f: 1 },
-    { k: 'brnd', t: '브랜드', w: 112, f: 1 },
-    { k: 'lot', t: '로트번호', w: 132, f: 1 },
-    { k: 'e', t: '소비기한', w: 156, f: 1 },
-    { k: 'qty', t: '재고', w: 88, num: true },
-    { k: 'price', t: '단가', w: 94, num: true },
-    { k: 'amt', t: '재고금액', w: 114, num: true }
+    { k: 'sub', t: '육류', w: 74, f: 1 },
+    { k: 'org', t: '원산지', w: 106, f: 1 },
+    { k: 'vendor', t: '업체명', w: 176, f: 1 },
+    { k: 'brnd', t: '브랜드', w: 150, f: 1 },
+    { k: 'inD', t: '입고일', w: 118, f: 1 },
+    { k: 'e', t: '소비기한', w: 188, f: 1 },
+    { k: 'qty', t: '재고', w: 196, num: true }
   ];
-  /* v18 — 품목 메뉴의 일곱 전용 화면 열. 통합 재고와 달리 창고 칸이 있고,
-     완제품은 입고일 대신 제조일을 쓴다. */
+  /* v38 — 완제품 · 부재료(소스·향신료·야채) · 부자재도 같은 1단 표 원리로 7칸 */
+  var UNI_FP_COLS = [
+    { k: 'sub', t: '구분', w: 96, f: 1 },
+    { k: 'spec', t: '규격/코드', w: 168 },
+    { k: 'vendor', t: '거래처', w: 208, f: 1 },
+    { k: 'inD', t: '입고일', w: 118, f: 1 },
+    { k: 'e', t: '소비기한', w: 188, f: 1 },
+    { k: 'qty', t: '재고', w: 168, num: true }
+  ];
   var UNI_VIEW_COLS = {
-    meat: [
-      { k: 'sub', t: '세부분류', w: 92, f: 1 },
-      { k: 'n', t: '품명', w: 280, f: 1 },
-      { k: 'org', t: '원산지', w: 86, f: 1 },
-      { k: 'brnd', t: '브랜드', w: 112, f: 1 },
-      { k: 'lot', t: '로트번호', w: 132, f: 1 },
-      { k: 'wh', t: '창고', w: 96, f: 1 },
-      { k: 'inD', t: '입고일', w: 104, f: 1 },
-      { k: 'e', t: '소비기한', w: 156, f: 1 },
-      { k: 'qty', t: '재고', w: 92, num: true },
-      { k: 'price', t: '단가', w: 94, num: true },
-      { k: 'amt', t: '재고금액', w: 116, num: true }
-    ],
-    fg: [
-      { k: 'sub', t: '세부분류(자체/매입)', w: 138, f: 1 },
-      { k: 'n', t: '품명', w: 260, f: 1 },
-      { k: 'spec', t: '규격/단위', w: 120 },
-      { k: 'org', t: '원산지', w: 86, f: 1 },
-      { k: 'brnd', t: '브랜드', w: 112, f: 1 },
-      { k: 'lot', t: '로트번호', w: 132, f: 1 },
-      { k: 'wh', t: '보관방법', w: 96, f: 1 },
-      { k: 'mfg', t: '제조일', w: 112, f: 1 },
-      { k: 'e', t: '소비기한', w: 156, f: 1 },
-      { k: 'qty', t: '재고', w: 92, num: true },
-      { k: 'price', t: '단가', w: 94, num: true },
-      { k: 'amt', t: '재고금액', w: 116, num: true }
-    ],
-    etc: [
-      { k: 'sub', t: '세부분류', w: 92, f: 1 },
-      { k: 'n', t: '품명', w: 260, f: 1 },
-      { k: 'spec', t: '규격/단위', w: 120 },
-      { k: 'org', t: '원산지', w: 86, f: 1 },
-      { k: 'brnd', t: '브랜드', w: 112, f: 1 },
-      { k: 'lot', t: '로트번호', w: 132, f: 1 },
-      { k: 'wh', t: '보관방법', w: 96, f: 1 },
-      { k: 'inD', t: '입고일', w: 104, f: 1 },
-      { k: 'e', t: '소비기한', w: 156, f: 1 },
-      { k: 'qty', t: '재고', w: 92, num: true },
-      { k: 'price', t: '단가', w: 94, num: true },
-      { k: 'amt', t: '재고금액', w: 116, num: true }
-    ]
+    meat: UNI_COLS,
+    fg: UNI_FP_COLS,
+    etc: UNI_FP_COLS
   };
-  /* 구분 키 → 그 전용 화면의 열. 빈 값(all)이면 통합 재고 12칸 */
+  /* CSV 는 화면보다 넓게 — 품명 · 로트번호 · 창고 · 단가 · 재고금액까지 «모든 필드»를 그대로 내보낸다. */
+  var UNI_CSV_COLS = [
+    { k: 'cat', t: '품목구분' },
+    { k: 'sub', t: '세부분류' },
+    { k: 'n', t: '품명' },
+    { k: 'spec', t: '규격/단위' },
+    { k: 'org', t: '원산지' },
+    { k: 'vendor', t: '업체명' },
+    { k: 'brnd', t: '브랜드' },
+    { k: 'lot', t: '로트번호' },
+    { k: 'wh', t: '창고' },
+    { k: 'inD', t: '입고일' },
+    { k: 'e', t: '소비기한' },
+    { k: 'qty', t: '재고' },
+    { k: 'price', t: '단가' },
+    { k: 'amt', t: '재고금액' }
+  ];
+  /* 구분 키 → 그 전용 화면의 열. 빈 값(all)이면 원료육과 같은 8칸(품목 칸은 띠 줄이 맡는다) */
   function uniViewCols(g) {
     if (g === 'meat') return UNI_VIEW_COLS.meat;
     if (g === 'fg') return UNI_VIEW_COLS.fg;
@@ -3162,7 +3146,7 @@ var ERP = (function () {
   function uniMeatStockRow(l, codes, wh, thaw, qty) {
     return { kind: 'meat', g: 'meat', cat: '원료육', sub: l.mt || '-', code: uniMeatCodeOf(codes, l),
       n: l.n, spec: 'kg', unit: 'kg', ob: uniObMeat(l), lot: uniLotNo(l.i, l.dbid),
-      org: l.o || '', brnd: l.b || l.v || '', mfg: '',
+      org: l.o || '', brnd: l.b || '', mfg: '',
       wh: wh, thaw: !!thaw, flag: '', inD: l.i || '', e: l.e || '', qty: r2(qty), price: r2(l.price),
       amt: r0(qty * l.price), lotId: l.id, dbid: l.dbid, vendor: l.v || '' };
   }
@@ -3233,6 +3217,7 @@ var ERP = (function () {
     if (k === 'brnd') return r.brnd || '';
     if (k === 'mfg') return r.mfg || '';
     if (k === 'lot') return r.lot;
+    if (k === 'vendor') return r.vendor || r.sup || '';
     if (k === 'wh') return uniWhText(r);
     if (k === 'inD') return r.inD || '';
     if (k === 'e') return r.e || '';
@@ -3333,6 +3318,12 @@ var ERP = (function () {
       g.qty = r2(g.qty);
       g.amt = r0(g.amt);
       g.price = g.qty > EPS ? Math.round(g.amt / g.qty) : 0;   /* 평균 단가(참고용) */
+      /* v38 — 띠 줄만으로 정렬할 수 있는 대표값(원산지 · 업체명 · 브랜드 · 입고일 · 소비기한) */
+      g.org = uniCell(g.rows[0], 'org');
+      g.vendor = uniCell(g.rows[0], 'vendor');
+      g.brnd = uniCell(g.rows[0], 'brnd');
+      g.inD = uniCell(g.rows[0], 'inD');
+      g.e = uniCell(g.rows[0], 'e');
       out.push(g);
     }
     out.sort(function (a, b) {
@@ -3341,6 +3332,11 @@ var ERP = (function () {
       else if (key === 'cat') c = String(a.cat).localeCompare(String(b.cat), 'ko');
       else if (key === 'sub') c = String(a.sub).localeCompare(String(b.sub), 'ko');
       else if (key === 'n') c = String(a.n).localeCompare(String(b.n), 'ko');
+      else if (key === 'org' || key === 'vendor' || key === 'brnd' || key === 'inD' || key === 'e') {
+        var as = a[key] === '' || a[key] === undefined ? '\uffff' : String(a[key]);
+        var bs = b[key] === '' || b[key] === undefined ? '\uffff' : String(b[key]);
+        c = as.localeCompare(bs, 'ko');
+      }
       if (c !== 0) return c * d;
       c = String(a.n).localeCompare(String(b.n), 'ko');
       if (c !== 0) return c;
@@ -3573,7 +3569,8 @@ var ERP = (function () {
 
   return {
     UNI_CATS: UNI_CATS, UNI_WH_NAME: UNI_WH_NAME, UNI_WH_MEAT: UNI_WH_MEAT, UNI_GROUPS: UNI_GROUPS,
-    UNI_COLS: UNI_COLS, UNI_VIEW_COLS: UNI_VIEW_COLS, uniViewCols: uniViewCols, uniSubText: uniSubText,
+    UNI_COLS: UNI_COLS, UNI_VIEW_COLS: UNI_VIEW_COLS, UNI_FP_COLS: UNI_FP_COLS, UNI_CSV_COLS: UNI_CSV_COLS,
+    uniViewCols: uniViewCols, uniSubText: uniSubText,
     uniMfgOfMemo: uniMfgOfMemo, uniMemoMfg: uniMemoMfg, UNI_MFG_TAG: UNI_MFG_TAG,
     UNI_GROUP_KEYS: UNI_GROUP_KEYS, UNI_WH_KEYS: UNI_WH_KEYS, UNI_WH_TAG: UNI_WH_TAG,
     uniCatGroupOfName: uniCatGroupOfName, uniGroupName: uniGroupName, uniGroupOrder: uniGroupOrder,
@@ -6941,35 +6938,109 @@ var LIVE = (function () {
     return '<span class="fbadge ' + (t === '자체' ? 'self' : 'buy') + '" title="' +
       (t === '자체' ? '자체생산 — 매입 전표를 만들지 않습니다' : '외부매입 — 매입 전표에 반영합니다') + '">' + t + '</span>';
   }
-  /* v18 — 열 목록을 그대로 돌면서 칸을 그린다(통합 12칸 · 전용 화면 13칸 모두 같은 함수) */
+  /* v38 — 첫 칸 배지: 원료육 = 육류 구분(우 · 돈 · 계 · 양), 그 외 = 구분(자체·매입 / 소스·향신료·야채·부자재) */
+  function uniKindBadge(r) {
+    if (r.kind === 'meat') {
+      var mt = String(r.sub === null || r.sub === undefined ? '' : r.sub).replace(/\s/g, '');
+      var ch = mt ? mt.slice(0, 1) : '';
+      if (!ch || ch === '-') return '<span class="dim">-</span>';
+      return '<span class="mtag umb mt-' + esc(ch) + '" title="' + esc(mt) + '">' + esc(ch) + '</span>';
+    }
+    var t = (r.cat === '완제품' && r.flag) ? r.flag : ERP.uniGroupName(r.g);
+    var cls = t === '자체' ? 'self' : (t === '매입' ? 'buy' : (r.g === 'sauce' ? 'sauce'
+      : (r.g === 'spice' ? 'spice' : (r.g === 'veg' ? 'veg' : (r.g === 'sub' ? 'ms' : 'etc')))));
+    return '<span class="ubd ' + cls + '" title="' + esc(t) + '">' + esc(t) + '</span>';
+  }
+  /* v38 — 업체명(원료육) · 거래처(완제품·부재료·부자재) 칸의 글자 */
+  function uniVendorText(r) {
+    var v = String(r.vendor === null || r.vendor === undefined ? '' : r.vendor).replace(/^\s+|\s+$/g, '');
+    if (!v) v = String(r.sup === null || r.sup === undefined ? '' : r.sup).replace(/^\s+|\s+$/g, '');
+    return v || '-';
+  }
+  /* v38 — 전체 재고 화면에서만 재고 숫자 앞에 붙는 ● 창고 표시(냉동고·냉장고·냉동·냉장·실온) */
+  function uniWhMark(r) {
+    if ((cur.uni.wh || 'all') !== 'all') return '';
+    var t = ERP.uniWhText(r);
+    if (!t || t === '-') return '';
+    var cls = r.wh === 'F' ? 'f' : (r.wh === 'C' ? (r.thaw ? 'thaw' : 'c') : 'a');
+    return '<span class="whdot ' + cls + '" title="보관 ' + esc(t) + '"><i></i>' + esc(t) + '</span>';
+  }
+  function uniQtyCell(r) {
+    return '<td class="r num qtycell"><span class="qcell">' + uniWhMark(r) +
+      '<span class="qmain"><b class="qv' + (r.qty <= ERP.EPS ? ' zero' : '') + '">' + fmtQty(r.qty) + '</b>' +
+      uniUnitTag(r.unit) + '</span></span></td>';
+  }
+  /* v18 — 열 목록을 그대로 돌면서 칸을 그린다(통합 7칸 · 전용 화면 6~7칸 모두 같은 함수) */
   function uniTdHtml(r, k) {
     if (k === 'cat') return '<td><span class="cat ' + uniCatClass(r.cat) + '">' + esc(r.cat) + '</span></td>';
-    /* v37 — 세부분류는 품목 띠 줄에 한 번만 깔고, 로트 줄의 이 칸은 비워 둔다.
-       표 머리글 필터·정렬과 CSV 내보내기는 ERP.uniCell 의 값 그대로라 영향이 없다. */
-    if (k === 'sub') return '<td class="sub"></td>';
+    /* v38 — 맨 왼쪽 첫 칸부터 바로 채운다(품명·세부분류 빈 구멍 없음) */
+    if (k === 'sub') return '<td class="sub ufirst">' + uniKindBadge(r) + '</td>';
     /* v37 — 품명도 띠 줄에만. 로트 줄은 같은 품목의 다른 로트라 이름을 되풀이하지 않는다. */
     if (k === 'n') return '<td></td>';
     if (k === 'spec') return '<td class="sub">' + esc(ERP.uniSpecText(r.spec, r.unit)) + '</td>';
     if (k === 'org') return '<td class="sub">' + esc(r.org || '-') + '</td>';
-    if (k === 'brnd') return '<td class="sub" title="' + esc(r.brnd || '') + '">' + esc(r.brnd || '-') + '</td>';
+    if (k === 'vendor') return '<td class="sub ellip" title="' + esc(uniVendorText(r)) + '">' + esc(uniVendorText(r)) + '</td>';
+    if (k === 'brnd') return '<td class="sub ellip" title="' + esc(r.brnd || '') + '">' + esc(r.brnd || '-') + '</td>';
     if (k === 'lot') return '<td><span class="code">' + esc(r.lot || '-') + '</span></td>';
     if (k === 'wh') return '<td><span class="whchip' + uniWhClass(r.wh, r.thaw) + '">' + esc(ERP.uniWhText(r)) + '</span></td>';
     if (k === 'inD') return '<td class="num dim">' + esc(r.inD || '-') + '</td>';
     if (k === 'mfg') return '<td class="num">' + esc(r.mfg || '-') + '</td>';
     if (k === 'e') return '<td><span class="num">' + esc(r.e || '-') + '</span>' + uniDday(r.e) + '</td>';
-    if (k === 'qty') return '<td class="r num b' + (r.qty <= ERP.EPS ? ' zero' : '') + '">' + fmtQty(r.qty) + uniUnitTag(r.unit) + '</td>';
+    if (k === 'qty') return uniQtyCell(r);
     if (k === 'price') return '<td class="r num">' + (r.price > 0 ? fmtInt(r.price) : '<span class="dim">-</span>') + '</td>';
     if (k === 'amt') return uniAmtCell(r);
     return '<td></td>';
   }
-  /* v28 — 안쪽 로트 줄의 [작업 ▾] (해동·창고이동 · 입고 · 출고 · 정보 수정 · 수불 이력) */
-  function uniLotActHtml(r) {
-    return '<td class="c actcell actcol">' + actMenuBtn('uni', {
-      kind: r.kind, lot: r.kind === 'meat' ? r.lotId : '', code: r.kind === 'fp' ? r.code : '',
+  /* v38 — 로트 줄의 작업 칸: 바로 누르는 [해동](냉장고면 [냉동]) · [출고] + 작은 [⋯](입고·정보 수정·수불 이력) */
+  function uniLotO(r) {
+    return { kind: r.kind, lot: r.kind === 'meat' ? r.lotId : '', code: r.kind === 'fp' ? r.code : '',
       name: r.n, wh: r.wh, price: r.price > 0 ? r.price : '', exp: r.e || '',
       vendor: r.vendor || r.sup || '', lotno: r.lot, ucat: r.cat, qty: r.qty,
-      lotid: r.kind === 'fp' ? (r.lotId || '') : '', flag: r.flag || ''
-    }, r.kind === 'fp' ? '보관 위치 변경 · 입고 · 출고 · 정보 수정 · 수불 이력' : '해동·창고이동 · 입고 · 출고 · 정보 수정 · 수불 이력') + '</td>';
+      lotid: r.kind === 'fp' ? (r.lotId || '') : '', flag: r.flag || '' };
+  }
+  function uniAttrStr(o) {
+    var a = '', k, v;
+    for (k in o) {
+      if (!Object.prototype.hasOwnProperty.call(o, k)) continue;
+      v = o[k];
+      if (v === null || v === undefined || v === '') continue;
+      a += ' data-' + k + '="' + esc(String(v)) + '"';
+    }
+    return a;
+  }
+  function uniLotActHtml(r) {
+    var o = uniLotO(r), a = uniAttrStr(o);
+    var empty = !(Number(r.qty) > ERP.EPS);
+    var dis = empty ? ' disabled' : '';
+    var h = ['<td class="c actcell actcol"><span class="uacts">'];
+    if (r.kind !== 'fp') {
+      h.push('<button type="button" class="uact thaw' + (empty ? ' dis' : '') + '" data-uact="thaw"' + a + dis +
+        ' title="' + (r.wh === 'C' ? '냉동 — 냉장고 재고를 냉동고로' : '해동 — 냉동고 재고를 냉장고로') + '">' +
+        (r.wh === 'C' ? '냉동' : '해동') + '</button>');
+    }
+    h.push('<button type="button" class="uact out' + (empty ? ' dis' : '') + '" data-uact="out"' + a + dis +
+      ' title="출고">출고</button>');
+    h.push('<button type="button" class="uact more" data-menu="uni"' + a +
+      ' title="' + (r.kind === 'fp' ? '보관 위치 변경 · 입고 · 출고 · 정보 수정 · 수불 이력' :
+        '해동·창고이동 · 입고 · 출고 · 정보 수정 · 수불 이력') + '">⋯</button>');
+    h.push('</span></td>');
+    return h.join('');
+  }
+  /* [⋯] 메뉴에서 바로 잇는 동작 — [해동]/[냉동] · [출고] 단추가 같은 길로 들어간다 */
+  function uniQuickAct(btn) {
+    var act = btn.getAttribute('data-uact'), o = {};
+    var keys = ['kind', 'lot', 'code', 'name', 'wh', 'price', 'exp', 'vendor', 'lotno', 'ucat', 'lotid', 'flag'];
+    for (var i = 0; i < keys.length; i++) {
+      var v = btn.getAttribute('data-' + keys[i]);
+      if (v !== null) o[keys[i]] = v;
+    }
+    if (act === 'thaw') {
+      if (o.kind === 'fp') openFpWh(o); else uniMove(o);
+    } else if (act === 'out') {
+      uniOpenForm(o, 'OUT');
+    } else if (act === 'in') {
+      uniOpenForm(o, 'IN');
+    }
   }
   /* ---------- 전용 화면(품목) 상단 칩 ---------- */
   /* v27 — 원료육 재고현황의 「창고 [전체][냉동고][냉장고][해동]」 칩 줄은 없앴다.
@@ -7015,13 +7086,11 @@ var LIVE = (function () {
   /* v36 — 표는 하나. 열은 그 화면의 로트 칸들 + 맨 끝 「작업 ▾」이고,
      품목 띠 줄도 같은 열 위에 앉는다(이중 표 없음).
      원료육 냉동고 · 냉장고 화면에서는 「창고」 칸을 뺀다(화면 이름이 이미 알려 준다). */
-  var UNI_ACT_COL = { k: '_act', t: '작업', w: 84 };
+  /* v38 — 작업 칸은 [해동]·[출고]·[⋯] 세 단추가 들어가도록 조금 넓다(오른쪽 고정) */
+  var UNI_ACT_COL = { k: '_act', t: '작업', w: 136 };
   function uniColsNow() {
     var v = uniView();
     var cols = v ? ERP.uniViewCols(v) : ERP.UNI_COLS;
-    if (v === 'meat' && (cur.uni.wh === 'F' || cur.uni.wh === 'C')) {
-      cols = cols.filter(function (c) { return c.k !== 'wh'; });
-    }
     return cols.concat([UNI_ACT_COL]);
   }
   /* v29 — 재고 숫자 바로 뒤에 붙는 옅은 단위(kg · 팩 · 개 …). 품명 칸에서는 단위를 뺐다. */
@@ -7029,48 +7098,31 @@ var LIVE = (function () {
     var un = (u === undefined || u === null) ? '' : String(u).replace(/^\s+|\s+$/g, '');
     return un ? '<span class="unit">' + esc(un) + '</span>' : '';
   }
-  /* v36 — 품목 띠 줄 : 같은 열 위에서
-     구분 · 세부분류 · [품명 ▾ + 로트 N건](품명~소비기한 칸을 합쳐 한 칸) ·
-     총 재고(+단위) · 단가(빈 칸) · 총 재고금액 · 작업(빈 칸).
-     띠 바탕은 연한 하늘회색(#f3f6fb)이고, 누르면 이 품목의 로트 줄이 접히거나 펼쳐진다. */
+  /* v38 — 품목 띠 줄 : 모든 열을 colspan 으로 합친 «한 줄».
+     굵은 품명 바로 옆에 `1개 로트 · 157.82 kg`(원료육) / `2건 · 360 팩`(그 외)를 붙여,
+     오른쪽 재고 칸에 같은 숫자를 또 찍지 않는다. 띠를 누르면 그 품목의 로트 줄이 접히거나 펼쳐진다. */
   function uniGroupRowHtml(g, cols, open) {
-    var h = ['<tr class="ugroup' + (open ? ' open' : '') + '" data-gname="' + esc(g.n) + '" data-gcat="' + esc(g.cat) + '"' +
-      ' data-gkey="' + esc(ERP.uniGroupKey(uniView(), g)) + '" title="' + (open ? '누르면 이 품목의 로트 ' + g.lots + '건을 접습니다' : '누르면 로트 ' + g.lots + '건을 펼칩니다') +
-      (g.spec && g.spec !== '-' ? ' · 규격 ' + esc(g.spec) : '') + '">'], i, j, k;
-    for (i = 0; i < cols.length; i++) {
-      k = cols[i].k;
-      if (k === 'cat') {
-        h.push('<td><span class="cat ' + uniCatClass(g.cat) + '">' + esc(g.cat) + '</span></td>');
-      } else if (k === 'sub') {
-        h.push('<td class="sub">' + esc(g.sub || '-') + '</td>');
-      } else if (k === 'n') {
-        /* 품명부터 「총 재고」 앞 칸까지를 한 칸으로 합친다 — 띠 한 줄에 품명 · 로트 수가 깔린다 */
-        var span = 1;
-        for (j = i + 1; j < cols.length && cols[j].k !== 'qty'; j++) span++;
-        h.push('<td class="gn" colspan="' + span + '"><span class="gtog">' + (open ? '▾' : '▸') + '</span>' +
-          '<span class="g-name">' + esc(g.n) + '</span>' +
-          '<span class="g-meta">로트 <b>' + g.lots + '</b>건</span></td>');
-        i = j - 1;
-      } else if (k === 'qty') {
-        h.push('<td class="r num gsum">' + fmtQty(g.qty) + uniUnitTag(g.unit) + '</td>');
-      } else if (k === 'price') {
-        h.push('<td class="r num gdim"><span class="dim">-</span></td>');
-      } else if (k === 'amt') {
-        h.push('<td class="r num gsum">' +
-          (Math.abs(g.amt) > 0.004 ? fmtInt(g.amt) + '<span class="won">원</span>' : '<span class="dim">-</span>') + '</td>');
-      } else if (k === '_act') {
-        h.push('<td class="c actcell actcol gact"></td>');
-      }
-    }
-    h.push('</tr>');
-    return h.join('');
+    var unit = g.unit || (g.cat === '원료육' ? 'kg' : '');
+    var qtyTxt = fmtQty(g.qty) + (unit ? ' <span class="unit">' + esc(unit) + '</span>' : '');
+    var meta = g.cat === '원료육'
+      ? '<b>' + g.lots + '</b>개 로트 · <b>' + qtyTxt + '</b>'
+      : '<b>' + g.lots + '</b>건 · 총 수량 <b>' + qtyTxt + '</b>';
+    var title = (open ? '누르면 이 품목의 로트 ' + g.lots + '건을 접습니다' : '누르면 로트 ' + g.lots + '건을 펼칩니다') +
+      (g.spec && g.spec !== '-' ? ' · 규격 ' + g.spec : '');
+    return '<tr class="ugroup' + (open ? ' open' : '') + '" data-gname="' + esc(g.n) + '" data-gcat="' + esc(g.cat) + '"' +
+      ' data-gkey="' + esc(ERP.uniGroupKey(uniView(), g)) + '" title="' + esc(title) + '">' +
+      '<td class="gn" colspan="' + cols.length + '"><span class="gtog">' + (open ? '▾' : '▸') + '</span>' +
+      '<span class="g-name">' + esc(g.n) + '</span><span class="g-meta">' + meta + '</span></td></tr>';
   }
   /* v36 — 로트 줄 : 품목 띠 바로 아래, 띠와 «같은 열»로 이어지는 한 줄.
      세부분류 · 품명 · 창고 · 원산지 · 브랜드 · 로트번호 ·
      입고일 · 소비기한(D-day) · 재고(+단위) · 단가 · 재고금액 · [작업 ▾].
      v37 — 그중 세부분류·품명 칸은 띠 줄과 겹치므로 비운다(칸은 같은 열에 그대로 남는다). */
+  /* v36 — 로트 줄 : 품목 띠 바로 아래, 띠와 «같은 열»로 이어지는 한 줄.
+     v38 — 첫 칸부터 바로 채운다: 육류 배지 · 원산지 · 업체명 · 브랜드 · 입고일 · 소비기한 · 재고 · 작업 */
   function uniLotRowHtml(r, cols, last) {
-    var h = ['<tr class="ulot' + (last ? ' last' : '') + '" data-kind="' + esc(r.kind || '') + '">'], i;
+    var h = ['<tr class="ulot' + (last ? ' last' : '') + '" data-kind="' + esc(r.kind || '') + '"' +
+      ' title="로트 ' + esc(r.lot || '-') + (r.price > 0 ? ' · 단가 ' + fmtInt(r.price) + '원 · 재고금액 ' + fmtInt(r.amt) + '원' : '') + '">'], i;
     for (i = 0; i < cols.length; i++) {
       if (cols[i].k === '_act') h.push(uniLotActHtml(r));
       else h.push(uniTdHtml(r, cols[i].k));
@@ -7301,7 +7353,8 @@ var LIVE = (function () {
   /* ---------- CSV (지금 화면 그대로) ---------- */
   function uniCsvExport() {
     var view = uniView();
-    var cols = uniColsNow().filter(function (c) { return c.k !== '_act'; });
+    /* v38 — 화면은 7~8칸으로 슬림해졌지만 CSV 는 예전처럼 품명 · 로트번호 · 창고 · 단가 · 재고금액까지 모든 필드를 남긴다 */
+    var cols = ERP.UNI_CSV_COLS;
     var rows = ERP.uniFilterStock(ERP.uniStockRows(st, { zero: !!cur.uni.zero }), {
       g: view || cur.uni.g, wh: cur.uni.wh, flag: cur.uni.flag, q: cur.uni.q, cols: cur.fUni,
       sortKey: cur.uni.sortKey, sortDir: cur.uni.sortDir
@@ -7728,8 +7781,10 @@ var LIVE = (function () {
     });
     if ($('btnUtxCsv')) $('btnUtxCsv').addEventListener('click', utxCsvExport);
     if ($('btnUtxStockCsv')) $('btnUtxStockCsv').addEventListener('click', uniCsvExport);
-    /* 표 클릭 — 정렬 · 필터 · [작업 ▾] */
+    /* 표 클릭 — 정렬 · 필터 · 바로 누르는 [해동]/[출고] · [⋯] */
     bindTableClicks('uniTableWrap', function (ev, t) {
+      var qbtn = t.closest ? t.closest('[data-uact]') : null;
+      if (qbtn) { ev.preventDefault(); uniQuickAct(qbtn); return; }
       var sbtn = t.closest ? t.closest('[data-usort]') : null;
       if (sbtn) { ev.preventDefault(); uniSortClick(sbtn.getAttribute('data-usort'), 'uni'); return; }
     }, 'uni');

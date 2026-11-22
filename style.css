@@ -3192,3 +3192,94 @@ table.tblu tbody tr.ugroup:first-child td{border-top:0}
   table.tblu tbody tr.ugroup td.gn{padding-left:12px}
   table.tblu tbody tr.ugroup .g-meta{display:none}
 }
+
+/* ==========================================================================
+   v38 — 오른쪽 재고 표 = 맨 처음 원료육 화면(downloads/원료육_ERP_웹앱_재고화면.png)
+     · 품목 띠 = 모든 열을 합친 «한 줄»(#eef2f6) + 굵은 품명 + `1개 로트 · 총 157.82 kg`
+     · 로트 줄 = 첫 칸부터 빈 구멍 없이 육류 배지 | 원산지 | 업체명 | 브랜드 | 입고일 | 소비기한 | 재고 | [해동][출고][⋯]
+     · 밀도·대비는 처음 화면처럼 — 줄 34px · 세로선 없음 · 얇은 가로선
+   ========================================================================== */
+
+/* ---------- 1. 품목 띠 줄 — 전체 열을 colspan 으로 합친 한 줄 ---------- */
+table.tblu tbody tr.ugroup td{height:30px;padding:0 12px;background:#eef2f6;color:#0F172A;
+  border-top:1px solid #D7DFE9;border-bottom:1px solid #D7DFE9;border-right:0}
+table.tblu tbody tr.ugroup:hover td{background:#E7EDF4}
+table.tblu tbody tr.ugroup.open td,table.tblu tbody tr.ugroup.open:hover td{background:#eef2f6}
+table.tblu tbody tr.ugroup.open:hover td{background:#E7EDF4}
+table.tblu tbody tr.ugroup:first-child td{border-top:0}
+table.tblu tbody tr.ugroup td.gn{padding-left:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.tblu tbody tr.ugroup .g-name{color:#0F172A;font-weight:800;font-size:13px;letter-spacing:-.3px}
+table.tblu tbody tr.ugroup .g-meta{margin-left:13px;color:#68758A;font-size:11.5px;font-weight:600;
+  letter-spacing:-.1px;font-variant-numeric:tabular-nums}
+table.tblu tbody tr.ugroup .g-meta b{color:#2F3D52;font-weight:800}
+table.tblu tbody tr.ugroup .g-meta .unit{margin-left:2px;color:#7C8798;font-size:10.6px;font-weight:700}
+table.tblu tbody tr.ugroup .gtog{display:inline-block;width:10px;margin-right:8px;color:#7C8798;
+  font-size:9.5px;font-weight:700;vertical-align:1px}
+table.tblu tbody tr.ugroup:hover .gtog{color:#334155}
+table.tblu tbody tr.ugroup.open .gtog{color:#2563EB}
+
+/* ---------- 2. 로트 줄 — 첫 칸부터 바로 채우기 ---------- */
+table.tblu tbody tr.ulot td{height:34px;padding:0 12px;background:#fff;color:#111827;font-size:12.6px;
+  border-bottom:1px solid #EDF1F6;border-top:0;border-right:0}
+table.tblu tbody tr.ulot:hover td{background:#F7FAFD}
+table.tblu tbody tr.ulot.last td{border-bottom:1px solid #D7DFE9}
+table.tblu tbody tr.ulot td.ufirst{padding-left:14px}
+table.tblu tbody tr.ulot td.sub{color:#4A5566;font-size:12.3px}
+table.tblu tbody tr.ulot td.ellip{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+table.tblu tbody tr.ulot .unit{margin-left:3px;color:#7C8798;font-size:10.8px;font-weight:700}
+
+/* 육류 배지 — 우(초록) · 돈(코랄) · 계(노랑) · 양(보라) */
+table.tblu .mtag.umb{display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;
+  padding:0 5px;border:0;border-radius:5px;font-size:11.4px;font-weight:800;letter-spacing:0;vertical-align:0}
+table.tblu .mtag.umb.mt-우{background:#E6F4EB;color:#12734A}
+table.tblu .mtag.umb.mt-돈{background:#FDECEB;color:#BA2F22}
+table.tblu .mtag.umb.mt-계{background:#FFF5DE;color:#8A5A09}
+table.tblu .mtag.umb.mt-양{background:#F1ECFB;color:#5B3EA8}
+table.tblu .mtag.umb.mt-기{background:#EEF1F6;color:#475569}
+
+/* 구분 배지(완제품 자체·매입 / 소스·향신료·야채·부자재·기타) */
+table.tblu .ubd{display:inline-flex;align-items:center;height:19px;padding:0 7px;border-radius:5px;
+  font-size:11px;font-weight:750;letter-spacing:-.1px;white-space:nowrap}
+table.tblu .ubd.self{background:#E9F8F0;color:#0B6B3A}
+table.tblu .ubd.buy{background:#FFF6E6;color:#8A5A00}
+table.tblu .ubd.sauce{background:#FDF3E3;color:#8A5A00}
+table.tblu .ubd.spice{background:#FBEEF4;color:#8B3A62}
+table.tblu .ubd.veg{background:#EEF7E8;color:#2F6B16}
+table.tblu .ubd.ms{background:#EEF1F6;color:#4D5B70}
+table.tblu .ubd.etc{background:#F3EEFB;color:#6B5CA5}
+
+/* ---------- 3. 재고 칸 — 전체 재고에서만 앞에 작은 ● 냉동고 · ● 냉장고 ---------- */
+table.tblu tbody tr.ulot td.qtycell{padding-right:14px}
+table.tblu .qcell{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:0}
+table.tblu .qmain{flex:0 0 auto;text-align:right}
+table.tblu .qv{font-weight:800;font-size:13.4px;color:#0F172A;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+table.tblu .qv.zero{color:#A6AEBB}
+table.tblu .whdot{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px;min-width:52px;
+  color:#7B8798;font-size:10.6px;font-weight:700;letter-spacing:-.1px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+table.tblu .whdot i{flex:0 0 auto;width:5px;height:5px;border-radius:50%;background:#94A3B8}
+table.tblu .whdot.f i{background:#3B82F6}
+table.tblu .whdot.c i{background:#0EA5A0}
+table.tblu .whdot.thaw i{background:#D97706}
+table.tblu .whdot.a i{background:#94A3B8}
+
+/* ---------- 4. 작업 칸 — 바로 누르는 [해동](냉장고면 [냉동]) · [출고] + 작은 [⋯] ---------- */
+table.tblu td.actcell.actcol{padding:0 8px;background:#fff}
+table.tblu tbody tr.ulot:hover td.actcell.actcol{background:#F7FAFD}
+table.tblu .uacts{display:inline-flex;align-items:center;gap:4px}
+table.tblu .uact{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:0 8px;
+  border:1px solid transparent;border-radius:5px;background:#fff;font:inherit;font-size:11.4px;font-weight:750;
+  letter-spacing:-.2px;cursor:pointer;white-space:nowrap;line-height:1}
+table.tblu .uact.thaw{background:#EFF6FF;border-color:#C7DCFB;color:#1D4ED8}
+table.tblu .uact.thaw:hover{background:#DFEDFE;border-color:#A6C8F7}
+table.tblu .uact.out{background:#FFF3EC;border-color:#FBD0B0;color:#C2410C}
+table.tblu .uact.out:hover{background:#FFE7D8;border-color:#F5B78A}
+table.tblu .uact.more{width:22px;padding:0;background:#fff;border-color:#E2E8F1;color:#7A8798;font-size:12.5px}
+table.tblu .uact.more:hover{background:#F4F7FB;border-color:#CBD5E1;color:#334155}
+table.tblu .uact.dis{opacity:.35;cursor:default}
+table.tblu .uact.dis:hover{background:inherit;border-color:inherit}
+table.tblu thead th.actcol{text-align:center}
+
+@media (max-width:768px){
+  table.tblu tbody tr.ugroup .g-meta{display:none}
+}
