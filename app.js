@@ -5766,8 +5766,6 @@ var LIVE = (function () {
     try { savedMode = localStorage.getItem(MODE_KEY) || 'uni'; } catch (e) { }
     /* v16 — 예전 화면(원료육·완제품·생산)을 저장해 둔 브라우저는 통합 재고로 들어온다 */
     if (savedMode === 'meat' || savedMode === 'fg' || savedMode === 'prod' || !PANE_HOSTS[savedMode]) savedMode = 'uni';
-    /* v32 — 입고·출고·재고 이동 전용 페이지는 화면 기억 대상이 아니다 → 재고 화면으로 */
-    if (savedMode === 'iopage' || savedMode === 'mpage') savedMode = 'uni';
     /* v25 — 기본 진입 화면 = 왼쪽 「원료육 → 전체 재고」 */
     if (savedMode === 'uni' && !cur.uni.view) {
       cur.uni.view = 'meat'; cur.utx.view = 'meat';
@@ -6396,13 +6394,11 @@ var LIVE = (function () {
 
   /* ---------- v8: 6대 메뉴 · 화면 전환 (v14: 물류/회계 대분류 · 거래 통합) ---------- */
   var MODE_KEY = 'meatERP.erpMode.v2';
-  /* v32 — 입고 · 출고 · 재고 이동 전용 페이지 상태 (setPane이 화면을 바꿀 때 같이 정리한다) */
-  var ioPage = { kind: '', from: '', homeIo: null, homeMv: null };
-  var IO_PAGE_OF = { in: 'ioSheetModal', out: 'ioSheetModal', move: 'uniMoveModal' };
-  var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode',
-    /* v32 — 왼쪽 「입고 · 출고 · 재고 이동」을 누르면 오른쪽 본문이 전용 입력 페이지가 된다 */
-    iopage: 'ioPageMode', mpage: 'movePageMode' };
-  var PANE_CAT = { uni: 'stock', unitx: 'stock', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc', iopage: 'io', mpage: 'io' };
+  /* v33 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 뒷배경 「입출고 내역」 + 통일 팝업
+     (v32의 본문 전용 페이지 모드 .is-page · #ioPageHost · #movePageHost 는 없앴다) */
+  var ioNavHold = '';   /* 팝업이 열려 있는 동안 왼쪽 메뉴에 물들일 줄(in/out/move) */
+  var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
+  var PANE_CAT = { uni: 'stock', unitx: 'stock', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
     uni: ['재고현황', '일곱 구분(원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타)을 한 표에서 봅니다. 원산지와 브랜드는 따로, 완제품은 자체 · 매입을 세부분류에 적습니다.', '통합 관리 · 재고현황'],
     unitx: ['입출고내역', '일곱 구분의 입고·출고·해동·현장이 한 줄기로 이어지고, 줄마다 잔여재고가 남습니다.', '통합 관리 · 입출고내역'],
@@ -6563,9 +6559,6 @@ var LIVE = (function () {
   }
   function updatePageHead() {
     var h = PANE_HEAD[cur.erp] || PANE_HEAD.uni;
-    /* v32 — 입고 · 출고 · 재고 이동 전용 페이지는 그 화면 이름을 제목으로 쓴다(부제목·경로 글씨는 감춤) */
-    if (cur.erp === 'iopage') h = [iosIsIn() ? '입고 등록' : '출고 등록', '', ''];
-    else if (cur.erp === 'mpage') h = ['재고 이동 · 해동', '', ''];
     /* v18 — 품목 메뉴의 전용 화면은 통합 재고 문구를 쓰지 않는다 */
     if (cur.erp === 'uni' && cur.uni.view && UNI_VIEW_HEAD[cur.uni.view]) {
       var hd = UNI_VIEW_HEAD[cur.uni.view];
@@ -6633,11 +6626,8 @@ var LIVE = (function () {
   function setPane(p, opt) {
     opt = opt || {};
     if (!PANE_HOSTS[p]) p = 'meat';
-    /* v32 — 전용 페이지(입고·출고·재고 이동)가 아닌 화면으로 넘어가면 페이지 모드를 먼저 거둔다 */
-    if (p !== 'iopage' && p !== 'mpage' && ioPage.kind) {
-      ioPage.kind = '';
-      ioPagePark('in'); ioPagePark('out'); ioPagePark('move');
-    }
+    /* v33 — 화면이 바뀌면 왼쪽 메뉴 표시도 새 화면을 따른다(팝업용 강조는 부르는 쪽이 다시 건다) */
+    ioNavHold = '';
     cur.erp = p;
     cur.pane = paneName(p);
     try { localStorage.setItem(MODE_KEY, p); } catch (e) { }
@@ -7373,6 +7363,9 @@ var LIVE = (function () {
     if ($('uniMovePrice') && !$('uniMovePrice').value && lot.price > 0) $('uniMovePrice').value = lot.price;
   }
   function openUniMove(lotId, wh) {
+    /* v33 — 해동 팝업을 열면 입고·출고 팝업은 닫는다(한 번에 하나만) */
+    var io = $('ioSheetModal');
+    if (io) io.classList.add('hidden');
     mv.lot = lotId || '';
     mv.mode = wh === 'C' ? 're' : 'thaw';
     if ($('uniMoveDate') && !$('uniMoveDate').value) $('uniMoveDate').value = today();
@@ -7387,9 +7380,9 @@ var LIVE = (function () {
     if (m) m.classList.remove('hidden');
   }
   function closeUniMove() {
-    /* v32 — 재고 이동 전용 페이지였다면 페이지를 닫고 직전 화면으로 */
-    if (ioPage.kind === 'move') { ioPageLeave(); return; }
     var m = $('uniMoveModal'); if (m) m.classList.add('hidden');
+    /* v33 — 왼쪽 메뉴로 연 팝업이 닫히면 메뉴 표시를 뒷배경 「입출고 내역」으로 되돌린다 */
+    if (ioNavHold) { ioNavHold = ''; markNav(); }
   }
   function mvSave() {
     var lot = ERP.getLot(st, ($('uniMoveLot') || {}).value || '');
@@ -7410,13 +7403,6 @@ var LIVE = (function () {
     SB.db.apply(p).then(function () {
       toast((mv.mode === 're' ? '재냉동(냉장고 → 냉동고)' : '해동(냉동고 → 냉장고)') + ' 저장: ' +
         lot.n + ' ' + fmt(kg) + 'kg', 'ok');
-      /* v32 — 전용 페이지에서는 저장 후 로트 목록을 새로 받아 다음 이동을 바로 입력한다 */
-      if (ioPage.kind === 'move') {
-        return reload({ silent: true }).then(function () {
-          openUniMove(null, 'F');
-          if ($('uniMoveMsg')) $('uniMoveMsg').textContent = '저장했습니다. 다음 이동을 입력하세요.';
-        });
-      }
       closeUniMove();
       return reload({ silent: true });
     }).then(function () {
@@ -7489,9 +7475,8 @@ var LIVE = (function () {
     return 'stock:' + v;
   }
   function navKeyFor() {
-    /* v32 — 입고·출고·재고 이동 전용 페이지에서는 왼쪽 메뉴 그 줄에 물을 들인다 */
-    if (cur.erp === 'iopage') return iosIsIn() ? 'in' : 'out';
-    if (cur.erp === 'mpage') return 'move';
+    /* v33 — 왼쪽 메뉴로 연 입고·출고·재고 이동 팝업이 떠 있는 동안은 그 줄에 물을 들인다 */
+    if (ioNavHold) return ioNavHold;
     /* v18 — 왼쪽 품목 메뉴는 전용 화면이다. 통합 재고의 칩은 메뉴 표시를 바꾸지 않는다. */
     if (cur.erp === 'uni') return cur.uni.view ? uniNavKey(cur.uni.view) : 'stock:all';
     if (cur.erp === 'unitx') return cur.utx.view ? uniNavKey(cur.utx.view) : 'tx';
@@ -7544,12 +7529,12 @@ var LIVE = (function () {
       cur.utx.g = 'all';
       setPane('unitx');
     } else if (nav === 'in') {
-      /* v32 — 지금 보고 있는 품목을 기본값으로, 오른쪽 본문을 입고 등록 전용 페이지로 */
-      ioPageOpen('in');
+      /* v33 — 지금 보고 있는 품목을 기본값으로, 뒷배경은 입출고 내역 + 통일 팝업 */
+      ioPopupOpen('in');
     } else if (nav === 'out') {
-      ioPageOpen('out');
+      ioPopupOpen('out');
     } else if (nav === 'move') {
-      ioPageOpen('move');
+      ioPopupOpen('move');
     } else if (nav === 'buy-list') {
       cur.buyView = 'list'; setPane('buy');
     } else if (nav === 'buy-status') {
@@ -8623,76 +8608,44 @@ var LIVE = (function () {
     iosPaintDest();
   }
   /* ==========================================================================
-     v32 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 팝업이 아니라 오른쪽 본문 전용 페이지
-       · 팝업 노드(#ioSheetModal · #uniMoveModal)를 본문 페이지 자리(#ioPageHost · #movePageHost)로
-         옮기고 .is-page 를 붙이면, CSS만 바꿔 팝업 → 페이지가 된다.
-         안쪽 폼·자동완성·검증·저장(iosSave)·이벤트는 하나도 고치지 않아도 그대로 동작한다.
-       · 저장·취소로 페이지를 나가면 원래 자리로 돌려놓고 직전 화면(없으면 재고 화면)으로 돌아간다.
+     v33 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 뒷배경 「입출고 내역」 + 통일된 팝업
+       · v32의 본문 전용 페이지(.is-page · #ioPageHost · #movePageHost)는 없앴다.
+         왼쪽 메뉴를 누르면 표의 [작업 ▾] 에서 열 때와 «완전히 같은» 팝업을 띄운다
+         (같은 노드 · 같은 폼 · 같은 저장(iosSave) — 모양과 동작이 한 가지로 통일된다).
+       · 팝업을 띄우기 직전에 본문을 통째로 입출고 내역(unitx) 화면으로 바꾼다.
+         → 저장하면 팝업이 닫히고 reload 되어 방금 넣은 줄이 뒷배경 표 맨 위에 보인다.
+       · 프리셋(품목 구분)은 화면을 바꾸기 «전에» 읽는다(입출고 내역 화면에는 품목 구분이 없다).
      ========================================================================== */
-  function ioPageModal(kind) { return $(IO_PAGE_OF[kind] || 'ioSheetModal'); }
-  function ioPageHostOf(kind) { return kind === 'move' ? $('movePageHost') : $('ioPageHost'); }
-  function ioPageOn(t) { return !!(t && (t === 'in' || t === 'out')); }
-  /* 페이지로 들어가기 — 자리·노드만 옮긴다(폼 채우기는 부르는 쪽에서) */
-  function ioPageEnter(kind) {
-    var m = ioPageModal(kind), host = ioPageHostOf(kind);
-    if (!m || !host) return false;
-    if (!ioPage.kind) ioPage.from = cur.erp;
-    else if (ioPage.kind !== kind) ioPagePark(ioPage.kind);   /* 다른 전용 페이지에서 건너올 때 */
-    ioPage.kind = kind;
-    if (kind === 'move') { if (!ioPage.homeMv) ioPage.homeMv = m.parentNode; }
-    else if (!ioPage.homeIo) ioPage.homeIo = m.parentNode;
-    if (m.parentNode !== host) host.appendChild(m);
-    m.classList.add('is-page');
-    m.classList.remove('hidden');
-    return true;
+  /* 본문을 전체 입출고 내역으로 — 방금 넣은 건이 바로 보이도록 기간·검색·구분을 모두 푼다 */
+  function utxShowAll() {
+    cur.utx.view = '';
+    cur.utx.g = 'all';
+    cur.utx.tk = 'all'; cur.utx.q = ''; cur.utx.preset = 'all';
+    cur.utx.from = ''; cur.utx.to = '';
+    cur.utx.sortKey = 'd'; cur.utx.sortDir = -1; cur.sortUtx = { k: 'd', dir: -1 };
+    cur.utx.limit = 400; cur.fUtx = {};
+    if ($('utxSearch')) $('utxSearch').value = '';
+    setPane('unitx');
   }
-  /* 페이지에서 나가기 — 노드를 원래 자리로 돌려놓고 next(없으면 직전 화면)로 */
-  /* 팝업 하나를 원래 자리로 되돌리고 페이지 모드 표시를 겁는다 */
-  function ioPagePark(kind) {
-    var m = ioPageModal(kind);
-    if (!m || !m.classList.contains('is-page')) return;
-    m.classList.add('hidden');
-    m.classList.remove('is-page');
-    var home = kind === 'move' ? ioPage.homeMv : ioPage.homeIo;
-    if (home && m.parentNode !== home) home.appendChild(m);
-  }
-  function ioPageLeave(next) {
-    var kind = ioPage.kind;
-    if (!kind) return;
-    /* 입고 페이지 → 바로 출고/재고이동 페이지로 건너뛰었을 때도 남은 팝업을 모두 제자리로 */
-    ioPagePark('in'); ioPagePark('out'); ioPagePark('move');
-    ioPage.kind = '';
-    var back = next || ioPage.from;
-    if (!back || back === 'iopage' || back === 'mpage' || !PANE_HOSTS[back]) back = 'uni';
-    setPane(back);
-  }
-  /* 왼쪽 메뉴(입고/출고/재고 이동) → 전용 페이지. 자리를 못 찾으면 예전처럼 팝업으로 */
-  function ioPageOpen(kind) {
-    var preset = kind === 'move' ? null : uniPresetOf();
-    if (!ioPageEnter(kind)) {
-      if (kind === 'move') openUniMove(null, 'F');
-      else openIoSheet(kind === 'in' ? 'IN' : 'OUT', preset);
-      return;
-    }
+  /* 왼쪽 메뉴(입고/출고/재고 이동) → 뒷배경 입출고 내역 + 통일 팝업 */
+  function ioPopupOpen(kind) {
+    var preset = kind === 'move' ? null : uniPresetOf();   /* 화면을 바꾸기 전에 지금 품목을 읽어 둔다 */
+    utxShowAll();
     if (kind === 'move') openUniMove(null, 'F');
     else {
       /* 품목 화면이 아니고 프리셋도 없으면 원료육 기본 = 출고 구분 현장(생산) */
       openIoSheet(kind === 'in' ? 'IN' : 'OUT', preset,
-        { page: true, dest: (!preset && kind === 'out') ? 'site' : '' });
+        { dest: (!preset && kind === 'out') ? 'site' : '' });
     }
-    setPane(kind === 'move' ? 'mpage' : 'iopage');
+    ioNavHold = kind;
     markNav();
-  }
-  /* 저장 뒤 — 같은 페이지에서 다음 건을 바로 적도록 입력칸만 깨끗이 되돌린다 */
-  function iosPageReset() {
-    var kind = ioPage.kind === 'in' ? 'IN' : 'OUT';
-    openIoSheet(kind, null, { page: true, dest: kind === 'OUT' ? 'site' : '' });
   }
   /* preset: 그 품목이 채워진 줄로 팝업을 연다 (통합 재고의 [작업 ▾] → 입고 / 출고) */
   function openIoSheet(type, preset, opt) {
     opt = opt || {};
-    /* 팝업으로 열 때는 전용 페이지에서 먼저 나온다(행 [작업 ▾] 등에서 여는 팝업은 그대로 팝업) */
-    if (!opt.page && ioPageOn(ioPage.kind)) ioPageLeave();
+    /* v33 — 입고·출고 팝업과 해동 팝업은 한 번에 하나만 */
+    var other = $('uniMoveModal');
+    if (other) other.classList.add('hidden');
     iosSetType(type);
     ios.codes = null;
     ios.rows = [];
@@ -8700,7 +8653,7 @@ var LIVE = (function () {
     var defSite = !!(preset && (preset.g === 'meat' || preset.kind === 'meat'))
       || !!(cur && cur.uni && cur.uni.view === 'meat');
     iosSetDest(defSite ? 'site' : 'vendor');
-    /* v32 — 전용 페이지로 열 때 부르는 쪽이 정한 출고 구분(원료육 기본 = 현장(생산)) */
+    /* v33 — 부르는 쪽이 정한 출고 구분(원료육 기본 = 현장(생산)) */
     if (opt.dest) iosSetDest(opt.dest);
     iosResetRows(3);
     /* v22 — 품목별 관리 화면에서 연 입고·출고 팝업은 그 품목 구분을 기본값으로 둔다 */
@@ -8739,10 +8692,10 @@ var LIVE = (function () {
     setTimeout(function () { try { document.querySelector('#ioSheetBody [data-f="name"]').focus(); } catch (e) { } }, 60);
   }
   function closeIoSheet() {
-    /* v32 — 전용 페이지였다면 페이지를 닫고 직전 화면으로 */
-    if (ioPageOn(ioPage.kind)) { ioPageLeave(); return; }
     var m = $('ioSheetModal');
     if (m) m.classList.add('hidden');
+    /* v33 — 왼쪽 메뉴로 연 팝업이 닫히면 메뉴 표시를 뒷배경 「입출고 내역」으로 되돌린다 */
+    if (ioNavHold) { ioNavHold = ''; markNav(); }
   }
   /* 기본 창고 — 원료육 새 줄은 이 창고로 시작한다(줄마다 바꿀 수 있음) */
   function iosSetWh(wh) {
@@ -8884,9 +8837,8 @@ var LIVE = (function () {
       if (whWarn) toast('보관 위치를 저장하지 못했습니다: ' + whWarn, 'warn');
       cur.hLimit = 250; cur.fgLimit = 300;
       return reload({ silent: true }).then(function () {
-        /* v32 — 전용 페이지에서는 저장 후 입력칸을 깨끗이 비워 다음 건을 바로 적는다 */
+        /* v33 — 저장하면 팝업은 닫히고, 뒷배경 「입출고 내역」 표에 방금 넣은 줄이 바로 보인다 */
         if (fail) iosRenderRows();
-        else if (ioPageOn(ioPage.kind)) iosPageReset();
         else closeIoSheet();
       });
     });
