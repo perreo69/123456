@@ -6626,7 +6626,13 @@ var LIVE = (function () {
   function setPane(p, opt) {
     opt = opt || {};
     if (!PANE_HOSTS[p]) p = 'meat';
-    /* v33 — 화면이 바뀌면 왼쪽 메뉴 표시도 새 화면을 따른다(팝업용 강조는 부르는 쪽이 다시 건다) */
+    /* v33 — 왼쪽 메뉴로 연 입고·출고·해동 팝업이 떠 있는 채로 다른 화면으로 가면 팝업도 같이 닫는다.
+       (다른 화면으로 넘어가면 왼쪽 메뉴 표시도 새 화면을 따른다) */
+    if (ioNavHold) {
+      var ioM = $('ioSheetModal'), mvM = $('uniMoveModal');
+      if (ioM) ioM.classList.add('hidden');
+      if (mvM) mvM.classList.add('hidden');
+    }
     ioNavHold = '';
     cur.erp = p;
     cur.pane = paneName(p);
