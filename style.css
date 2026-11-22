@@ -3102,3 +3102,73 @@ table.tblu .lot-subtbl td.actcell .actmenu{padding:0 8px}
   .nitem.nleaf{height:32px}
   #v8Nav .nitem.nleaf.on{box-shadow:none;border-radius:8px}
 }
+
+/* ==========================================================================
+   v32 — ① 최상단 바 다이어트  ② 본문 머리말 2줄 통일  ③ 입고·출고·재고 이동 전용 페이지
+     · 팝업(#ioSheetModal · #uniMoveModal)을 본문 페이지 자리로 옮기고 .is-page 만 붙인다
+       → 안쪽 폼·자동완성·저장 로직은 손대지 않고 모양만 페이지로 바뀐다.
+   ========================================================================== */
+
+/* ---------- 1. 최상단 바 : 자잘한 설명줄은 감춘다(JS 참조용 DOM은 그대로) ---------- */
+#baseLabel,.top .brand p{display:none!important}
+.top .sync #syncText{display:none}
+.top .sync{padding:0 1px}
+.top .who span{display:none}
+.top-actions{gap:7px}
+.top .brand h1{font-size:15px}
+
+/* ---------- 2. 본문 머리말 : 제목 줄 + 검색·요약 줄 (부제목 · 오른쪽 경로 글씨는 감춘다) ---------- */
+#v8Desc,#v8Crumb{display:none!important}
+.v8pagehead{align-items:center;margin:2px 2px 10px;min-height:36px}
+.v8pagehead h2{font-size:19px;font-weight:800;letter-spacing:-.5px}
+.v8pgright{gap:6px}
+.headacts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.headacts:empty{display:none}
+.headacts .btn{height:32px;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:700}
+.headacts .xlmenu{margin-left:0;position:relative}
+.headacts .xlbtn{height:32px;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:700;
+  border:1px solid #CFD8E5;background:#fff;color:#334155}
+.headacts .xlbtn:hover{background:#F8FAFC;border-color:#B9C1CC;color:#0F172A}
+
+/* 표 툴바의 중복 버튼(＋ 입고 · ＋ 출고 · ＋ 해동/냉동 · ↔ 열 너비)은 화면에서 감춘다 */
+.v32off,#uniBtnIn,#uniBtnOut,#uniBtnMove,#uniColReset,#utxColReset{display:none!important}
+/* 한 줄로 합친 통합 재고 상단 줄 — 검색 · 구분 칩 · 창고 칩 · 재고 0 포함 · 요약 */
+.utool.v32tool{padding:10px 12px;gap:0}
+.utool.v32tool .utrow{gap:7px 8px}
+.utool.v32tool .usearch{height:30px}
+.utool.v32tool .chip{height:28px;padding:0 10px}
+.utool.v32tool .utog{font-size:12px;white-space:nowrap}
+.utool.v32tool .hint{font-size:11.8px;white-space:nowrap}
+.utool.v32tool .chipset:empty{display:none}
+
+/* ---------- 3. 입고 · 출고 · 재고 이동 = 본문 전용 페이지 ---------- */
+.iopane{padding:0;margin:12px 0 0}
+.iopage-host{display:block;min-width:0}
+.modal.is-page{
+  position:static;inset:auto;display:block;padding:0;background:none;
+  pointer-events:auto;z-index:auto;
+}
+.modal.is-page>.modal-card{
+  width:100%!important;max-width:none!important;max-height:none!important;min-height:0;
+  margin:0;overflow:visible;border:1px solid #E2E8F0;border-radius:14px;box-shadow:none;
+  padding:16px 18px 18px;animation:none;
+}
+/* 재고 이동 · 해동은 입력 칸이 여섯 개라 너무 넓게 늘리지 않는다 */
+.modal.is-page#uniMoveModal>.modal-card{max-width:1040px!important}
+/* 페이지에서는 팝업 제목줄 · 설명줄을 쓰지 않는다(제목은 본문 머리말이 맡는다) */
+.modal.is-page .modal-head{display:none}
+.modal.is-page .modal-sub{display:none}
+.modal.is-page .vhead{margin-top:2px}
+.modal.is-page .vsheet-scroll{max-height:none}
+.modal.is-page #ioSheetHint{display:none}
+.modal.is-page .modal-actions{position:sticky;bottom:0;background:#fff;padding-top:10px;
+  border-top:1px solid #EEF2F8;margin-top:14px;z-index:2;
+  grid-template-columns:auto auto;justify-content:end;gap:8px}
+.modal.is-page .modal-actions .btn,.modal.is-page .modal-actions .submit{height:38px;font-size:13.5px;font-weight:750}
+.modal.is-page .modal-actions .submit{min-width:190px}
+@media (max-width:768px){
+  .v8pagehead{flex-wrap:wrap;gap:8px}
+  .headacts{width:100%;justify-content:flex-start}
+  .iopane{margin-top:10px}
+  .modal.is-page>.modal-card{padding:13px 12px 14px;border-radius:12px}
+}

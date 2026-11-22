@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261122_38">
+<link rel="stylesheet" href="style.css?v=20261122_39">
 </head>
 <body>
 
@@ -208,6 +208,8 @@
           <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
         </div>
       </div>
+      <!-- v32 — 제목 줄 오른쪽 끝 공통 보조 버튼(＋ 품목 등록 · 엑셀 ▾)이 화면에 따라 여기로 옮겨 붙는다 -->
+      <div class="headacts" id="headActs"></div>
       <span class="v8crumb" id="v8Crumb">통합 관리 · 재고현황</span>
     </div>
   </div>
@@ -320,8 +322,13 @@
   <!-- ===================== v16 · 1. 통합 재고 (원료육 + 완제품 + 부자재) ===================== -->
   <main class="v8pane unipane" id="uniMode">
     <section class="panel list-panel unicard">
-      <div class="utool">
-        <div class="utrow">
+      <div class="utool v32tool">
+        <!-- v32 — 상단 두 줄 규격: 제목 줄(#v8Title + 오른쪽 품목 등록·엑셀) + 검색·요약 줄(아래 한 줄) -->
+        <div class="utrow" id="uniFilterRow">
+          <label class="usearch">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <input type="search" id="uniSearch" placeholder="품명 · 로트번호 검색" autocomplete="off">
+          </label>
           <div class="chips" id="uniCatChips">
             <button class="chip on" type="button" data-ucat="all">전체<span class="n" id="uniCntAll">0</span></button>
             <button class="chip" type="button" data-ucat="meat">원료육<span class="n" id="uniCntMeat">0</span></button>
@@ -332,11 +339,12 @@
             <button class="chip" type="button" data-ucat="sub">부자재<span class="n" id="uniCntSub">0</span></button>
             <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="uniCntEtc">0</span></button>
           </div>
+          <div class="chipset" id="uniViewChips"></div>
           <span class="sp"></span>
-          <label class="usearch">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
-            <input type="search" id="uniSearch" placeholder="품명 · 로트번호 검색" autocomplete="off">
-          </label>
+          <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
+          <span class="divv"></span>
+          <span class="hint" id="uniSum"></span>
+          <!-- v32 — 왼쪽 메뉴(입고 · 출고 · 재고 이동)로 옮긴 중복 버튼: 화면에서만 감추고 JS 바인딩은 그대로 둔다. 품목 등록·엑셀은 제목 줄 오른쪽(#headActs)으로 옮겨 붙는다 -->
           <button class="btn primary" id="uniBtnIn" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 입고 팝업이 열립니다">＋ 입고</button>
           <button class="btn" id="uniBtnOut" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 출고 팝업이 열립니다">＋ 출고</button>
           <button class="btn hidden" id="uniBtnMove" type="button" title="원료육을 냉동고 ↔ 냉장고로 옮깁니다">＋ 해동/냉동</button>
@@ -351,14 +359,7 @@
               <button type="button" role="menuitem" id="btnUniSales" data-xl="sales">경리나라 매출 양식 (.xlsx)</button>
             </div>
           </div>
-        </div>
-        <div class="utrow" id="uniFilterRow">
-          <div class="chipset" id="uniViewChips"></div>
-          <span class="sp"></span>
-          <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
-          <span class="divv"></span>
-          <span class="hint" id="uniSum"></span>
-          <button class="btn ghost xs" id="uniColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
+          <button class="btn ghost xs v32off" id="uniColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
         </div>
       </div>
       <div class="table-wrap" id="uniTableWrap"></div>
@@ -416,7 +417,7 @@
           </div>
           <span class="sp"></span>
           <span class="hint">잔여재고 = 그 거래 직후 로트에 남은 수량</span>
-          <button class="btn ghost xs" id="utxColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
+          <button class="btn ghost xs v32off" id="utxColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
         </div>
       </div>
       <div class="table-wrap" id="utxTableWrap"></div>
@@ -799,6 +800,14 @@
       </div>
       <div class="table-wrap" id="prodCostWrap"></div>
     </section>
+  </main>
+
+  <!-- ===================== v32 · 왼쪽 「입고 · 출고 · 재고 이동」을 본문 전용 페이지로 ===================== -->
+  <main class="v8pane iopane hidden" id="ioPageMode" aria-label="입고·출고 전용 입력 페이지">
+    <div class="iopage-host" id="ioPageHost"></div>
+  </main>
+  <main class="v8pane iopane hidden" id="movePageMode" aria-label="재고 이동·해동 전용 페이지">
+    <div class="iopage-host" id="movePageHost"></div>
   </main>
 
   <!-- ===================== 완제품 입력 팝업 (v7) ===================== -->
@@ -1688,7 +1697,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261122_38"></script>
-<script src="app.js?v=20261122_38"></script>
+<script src="partners_data.js?v=20261122_39"></script>
+<script src="app.js?v=20261122_39"></script>
 </body>
 </html>
