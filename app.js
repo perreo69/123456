@@ -5768,7 +5768,7 @@ var LIVE = (function () {
     if (savedMode === 'meat' || savedMode === 'fg' || savedMode === 'prod' || !PANE_HOSTS[savedMode]) savedMode = 'uni';
     /* v25 — 기본 진입 화면 = 왼쪽 「원료육 → 전체 재고」 */
     if (savedMode === 'uni' && !cur.uni.view) {
-      cur.uni.view = 'meat'; cur.utx.view = 'meat';
+      cur.uni.view = 'meat'; cur.utx.view = '';
       cur.uni.g = 'all'; cur.uni.wh = 'all'; cur.uni.flag = 'all';
     }
     setErpMode(savedMode);
@@ -6394,9 +6394,8 @@ var LIVE = (function () {
 
   /* ---------- v8: 6대 메뉴 · 화면 전환 (v14: 물류/회계 대분류 · 거래 통합) ---------- */
   var MODE_KEY = 'meatERP.erpMode.v2';
-  /* v33 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 뒷배경 「입출고 내역」 + 통일 팝업
-     (v32의 본문 전용 페이지 모드 .is-page · #ioPageHost · #movePageHost 는 없앴다) */
-  var ioNavHold = '';   /* 팝업이 열려 있는 동안 왼쪽 메뉴에 물들일 줄(in/out/move) */
+  /* v34 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 지금 보고 있던 화면 그대로 + 팝업만
+     (v33의 뒷배경 「입출고 내역」 전환(utxShowAll)과 메뉴 물들이기(ioNavHold)는 없앴다 — v31과 같은 동작) */
   var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
   var PANE_CAT = { uni: 'stock', unitx: 'stock', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
@@ -6564,12 +6563,6 @@ var LIVE = (function () {
       var hd = UNI_VIEW_HEAD[cur.uni.view];
       h = [uniViewLabel(cur.uni.view) + (cur.uni.view === 'sub' ? ' 재고' : ''), hd[1], hd[2]];
     }
-    /* v22 — 품목별 관리 화면에서 '입출고 내역' 탭을 누르면 그 품목만의 입출고 내역이 된다 */
-    if (cur.erp === 'unitx' && cur.utx.view) {
-      var vn = uniViewLabel(cur.utx.view);
-      h = [vn + ' 입출고 내역', vn + '만 모아 입고·출고·해동·현장 기록을 한 줄씩 보고, 줄마다 잔여재고를 확인합니다.',
-        vn + ' · 입출고 내역'];
-    }
     /* v11 — 회계는 탭마다 머리말이 다르다(정산 관리 …) */
     if (cur.erp === 'acc') h = ACC_HEAD[cur.accTab] || ACC_HEAD.V;
     /* v13 — 메뉴 이름과 화면 이름을 맞춘다 */
@@ -6626,14 +6619,10 @@ var LIVE = (function () {
   function setPane(p, opt) {
     opt = opt || {};
     if (!PANE_HOSTS[p]) p = 'meat';
-    /* v33 — 왼쪽 메뉴로 연 입고·출고·해동 팝업이 떠 있는 채로 다른 화면으로 가면 팝업도 같이 닫는다.
-       (다른 화면으로 넘어가면 왼쪽 메뉴 표시도 새 화면을 따른다) */
-    if (ioNavHold) {
-      var ioM = $('ioSheetModal'), mvM = $('uniMoveModal');
-      if (ioM) ioM.classList.add('hidden');
-      if (mvM) mvM.classList.add('hidden');
-    }
-    ioNavHold = '';
+    /* v34 — 팝업은 지금 화면 위에만 뜬다. 화면을 옮기면 열려 있던 입고·출고·해동 팝업은 닫는다 */
+    var ioM = $('ioSheetModal'), mvM = $('uniMoveModal');
+    if (ioM) ioM.classList.add('hidden');
+    if (mvM) mvM.classList.add('hidden');
     cur.erp = p;
     cur.pane = paneName(p);
     try { localStorage.setItem(MODE_KEY, p); } catch (e) { }
@@ -6645,8 +6634,6 @@ var LIVE = (function () {
     if ($('meatKpi')) $('meatKpi').classList.toggle('hidden', p !== 'meat');
     if ($('fgKpi')) $('fgKpi').classList.toggle('hidden', p !== 'fg');
     if ($('accKpi')) $('accKpi').classList.toggle('hidden', p !== 'acc');
-    /* v22 — 품목별 화면 탭은 품목 화면(재고현황·입출고 내역)에서만 보인다 */
-    if (p !== 'uni' && p !== 'unitx' && $('itemTabs')) $('itemTabs').classList.add('hidden');
     openGroup(PANE_CAT[p] || 'stock');
     var item = null;
     if (p === 'meat') item = { key: 'data-tab', val: (cur.tab === 'H' ? 'H' : (cur.tab === 'V' ? 'V' : 'M')) };
@@ -6971,7 +6958,6 @@ var LIVE = (function () {
     var view = uniView();
     /* v22 — 지금 품목 화면에 맞춰 상단 작업 버튼과 탭을 맞춘다 */
     if ($('uniBtnMove')) $('uniBtnMove').classList.toggle('hidden', view !== 'meat');
-    renderItemTabs('stock');
     var cols = uniGroupColsNow();
     var keep = wrap.scrollTop, keepL = wrap.scrollLeft;
     if ($('uniShowZero')) $('uniShowZero').checked = !!cur.uni.zero;
@@ -7086,9 +7072,8 @@ var LIVE = (function () {
   }
   function utxPeriodRows() {
     /* v25 — 품목 화면의 완제품 자체/매입 조건도 입출고 표에 그대로 건다 */
-    var tflag = cur.utx.view === 'fg' ? (cur.uni.flag || 'all') : 'all';
     return ERP.uniFilterTx(ERP.uniTxRows(st), {
-      g: cur.utx.g, flag: tflag, tk: cur.utx.tk, q: cur.utx.q, from: cur.utx.from, to: cur.utx.to,
+      g: cur.utx.g, flag: 'all', tk: cur.utx.tk, q: cur.utx.q, from: cur.utx.from, to: cur.utx.to,
       cols: cur.fUtx, sortKey: cur.utx.sortKey, sortDir: cur.utx.sortDir
     });
   }
@@ -7096,21 +7081,11 @@ var LIVE = (function () {
     var wrap = $('utxTableWrap');
     if (!wrap) return;
     var keep = wrap.scrollTop, keepL = wrap.scrollLeft;
-    /* v22 — 품목 화면 안에서 연 입출고 내역은 그 구분으로 고정한다(구분 칩은 감춤)
-       v27 — 칩과 함께 빈 「품목구분」 제목과 그 구분선까지 통째로 숨긴다 */
-    var inView = !!cur.utx.view;
-    if ($('utxCatChips')) $('utxCatChips').classList.toggle('hidden', inView);
-    if ($('utxCatLbl')) $('utxCatLbl').classList.toggle('hidden', inView);
-    if ($('utxCatDiv')) $('utxCatDiv').classList.toggle('hidden', inView);
-    if (cur.utx.view) {
-      /* v25 — 부재료는 고른 구분만, 완제품은 자체/매입까지 그대로 따라간다 */
-      cur.utx.g = cur.utx.view === 'mat'
-        ? ((cur.uni.g === 'sauce' || cur.uni.g === 'spice' || cur.uni.g === 'veg') ? cur.uni.g : 'mat')
-        : cur.utx.view;
-    }
-    renderItemTabs('tx');
-    var tflag = cur.utx.view === 'fg' ? (cur.uni.flag || 'all') : 'all';
-    var base = ERP.uniFilterTx(ERP.uniTxRows(st), { g: cur.utx.g, flag: tflag, from: cur.utx.from, to: cur.utx.to, sortKey: 'd', sortDir: -1 });
+    /* v34 — 입출고 내역은 왼쪽 「입출고 내역」 한 곳에서만 본다. 구분은 위 칩으로 고른다(칩은 늘 보인다) */
+    if ($('utxCatChips')) $('utxCatChips').classList.remove('hidden');
+    if ($('utxCatLbl')) $('utxCatLbl').classList.remove('hidden');
+    if ($('utxCatDiv')) $('utxCatDiv').classList.remove('hidden');
+    var base = ERP.uniFilterTx(ERP.uniTxRows(st), { g: cur.utx.g, flag: 'all', from: cur.utx.from, to: cur.utx.to, sortKey: 'd', sortDir: -1 });
     var c = ERP.uniTxCounts(base);
     setTxt('utxCntAll', c.all); setTxt('utxCntMeat', c.meat); setTxt('utxCntFg', c.fg);
     setTxt('utxCntSauce', c.sauce); setTxt('utxCntSpice', c.spice); setTxt('utxCntVeg', c.veg);
@@ -7169,7 +7144,7 @@ var LIVE = (function () {
     opt = opt || {};
     var v = (g && g !== 'all' && ERP.UNI_GROUPS[g]) ? g : '';
     cur.uni.view = v;
-    cur.utx.view = v;
+    cur.utx.view = '';
     cur.uni.g = (v === 'mat' && (opt.g === 'sauce' || opt.g === 'spice' || opt.g === 'veg')) ? opt.g : 'all';
     cur.uni.wh = opt.wh === 'F' || opt.wh === 'C' ? opt.wh : 'all';
     cur.uni.flag = opt.flag === '자체' || opt.flag === '매입' ? opt.flag : 'all';
@@ -7185,38 +7160,8 @@ var LIVE = (function () {
     cur.utx.g = g || 'all';
     renderUniTx();
   }
-  /* ---------- v22 — 품목별 관리 화면 탭 (재고현황 · 입출고 내역) ---------- */
-  /* 지금 품목 화면에서 보고 있는 구분(원료육·소스·완제품 …) */
-  function itemTabView() {
-    if (cur.erp === 'uni') return cur.uni.view || '';
-    if (cur.erp === 'unitx') return cur.utx.view || '';
-    return '';
-  }
-  function renderItemTabs(which) {
-    var box = $('itemTabs');
-    if (!box) return;
-    var v = itemTabView();
-    box.classList.toggle('hidden', !v);
-    if (!v) return;
-    var btns = box.querySelectorAll('[data-itab]'), i;
-    for (i = 0; i < btns.length; i++) {
-      btns[i].classList.toggle('active', btns[i].getAttribute('data-itab') === which);
-      btns[i].setAttribute('aria-selected', btns[i].getAttribute('data-itab') === which ? 'true' : 'false');
-    }
-  }
-  /* 품목 화면 안에서 '입출고 내역' — 그 구분만 걸러 통합 입출고 표를 그대로 쓴다 */
-  function itemTxGo(v) {
-    var g = v || itemTabView();
-    if (!g) return;
-    cur.utx.view = g;
-    cur.utx.g = g;
-    cur.utx.tk = 'all'; cur.utx.q = ''; cur.utx.preset = 'all';
-    cur.utx.from = ''; cur.utx.to = '';
-    cur.utx.sortKey = 'd'; cur.utx.sortDir = -1; cur.sortUtx = { k: 'd', dir: -1 };
-    cur.utx.limit = 400; cur.fUtx = {};
-    if ($('utxSearch')) $('utxSearch').value = '';
-    setPane('unitx');
-  }
+  /* ---------- v34 — v22의 품목별 화면 탭(재고현황 · 입출고 내역)은 없앴다 ----------
+     재고관리 화면은 늘 재고현황 표만 보이고, 입출고 내역은 왼쪽 「입출고 내역」에서만 본다. */
   /* 지금 보고 있는 품목 구분을 입고·출고 팝업 기본값으로 */
   function uniPresetOf() {
     var v = uniView();
@@ -7387,8 +7332,6 @@ var LIVE = (function () {
   }
   function closeUniMove() {
     var m = $('uniMoveModal'); if (m) m.classList.add('hidden');
-    /* v33 — 왼쪽 메뉴로 연 팝업이 닫히면 메뉴 표시를 뒷배경 「입출고 내역」으로 되돌린다 */
-    if (ioNavHold) { ioNavHold = ''; markNav(); }
   }
   function mvSave() {
     var lot = ERP.getLot(st, ($('uniMoveLot') || {}).value || '');
@@ -7481,8 +7424,7 @@ var LIVE = (function () {
     return 'stock:' + v;
   }
   function navKeyFor() {
-    /* v33 — 왼쪽 메뉴로 연 입고·출고·재고 이동 팝업이 떠 있는 동안은 그 줄에 물을 들인다 */
-    if (ioNavHold) return ioNavHold;
+    /* v34 — 팝업을 띄워도 왼쪽 메뉴 표시는 지금 보고 있는 화면 그대로 둔다 */
     /* v18 — 왼쪽 품목 메뉴는 전용 화면이다. 통합 재고의 칩은 메뉴 표시를 바꾸지 않는다. */
     if (cur.erp === 'uni') return cur.uni.view ? uniNavKey(cur.uni.view) : 'stock:all';
     if (cur.erp === 'unitx') return cur.utx.view ? uniNavKey(cur.utx.view) : 'tx';
@@ -7599,16 +7541,6 @@ var LIVE = (function () {
     if ($('uniBtnIn')) $('uniBtnIn').addEventListener('click', function () { openIoSheet('IN', uniPresetOf()); });
     if ($('uniBtnOut')) $('uniBtnOut').addEventListener('click', function () { openIoSheet('OUT', uniPresetOf()); });
     if ($('uniBtnMove')) $('uniBtnMove').addEventListener('click', function () { openUniMove(null, 'F'); });
-    var itabs = document.querySelectorAll('#itemTabs [data-itab]');
-    for (var it = 0; it < itabs.length; it++) {
-      itabs[it].addEventListener('click', function () {
-        var k = this.getAttribute('data-itab'), v = itemTabView();
-        if (!v) return;
-        if (k === 'tx') itemTxGo(v);
-        /* v25 — 입출고 내역에서 돌아와도 보던 창고·자체매입·부재료 구분을 그대로 둔다 */
-        else uniItemGo(v, { wh: cur.uni.wh, flag: cur.uni.flag, g: cur.uni.g });
-      });
-    }
     if ($('uniBtnItem')) $('uniBtnItem').addEventListener('click', function () { openFgNew(null); });
     if ($('uniColReset')) $('uniColReset').addEventListener('click', function () {
       COLW.uni = {}; saveColW(); renderUni(); toast('열 너비를 기본값으로 되돌렸습니다.', 'ok');
@@ -8614,37 +8546,22 @@ var LIVE = (function () {
     iosPaintDest();
   }
   /* ==========================================================================
-     v33 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 뒷배경 「입출고 내역」 + 통일된 팝업
-       · v32의 본문 전용 페이지(.is-page · #ioPageHost · #movePageHost)는 없앴다.
-         왼쪽 메뉴를 누르면 표의 [작업 ▾] 에서 열 때와 «완전히 같은» 팝업을 띄운다
-         (같은 노드 · 같은 폼 · 같은 저장(iosSave) — 모양과 동작이 한 가지로 통일된다).
-       · 팝업을 띄우기 직전에 본문을 통째로 입출고 내역(unitx) 화면으로 바꾼다.
-         → 저장하면 팝업이 닫히고 reload 되어 방금 넣은 줄이 뒷배경 표 맨 위에 보인다.
-       · 프리셋(품목 구분)은 화면을 바꾸기 «전에» 읽는다(입출고 내역 화면에는 품목 구분이 없다).
+     v34 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 지금 화면 그대로 + 팝업만 (v31과 같은 동작)
+       · v33이 넣었던 뒷배경 「입출고 내역」 전환(utxShowAll)과 메뉴 물들이기(ioNavHold)를 없앴다.
+         왼쪽 메뉴를 누르면 사용자가 보고 있던 화면(재고현황 · 품목 · 회계 …)을 그대로 둔 채
+         표의 [작업 ▾] 에서 열 때와 «완전히 같은» 모달 팝업만 띄운다(같은 노드 · 같은 폼 · 같은 저장).
+       · 왼쪽 메뉴 표시도 지금 화면 그대로다(팝업은 떴다 닫히기만 한다).
+       · 프리셋(품목 구분)은 지금 품목 화면에서 읽어 팝업 기본값으로 쓴다.
      ========================================================================== */
-  /* 본문을 전체 입출고 내역으로 — 방금 넣은 건이 바로 보이도록 기간·검색·구분을 모두 푼다 */
-  function utxShowAll() {
-    cur.utx.view = '';
-    cur.utx.g = 'all';
-    cur.utx.tk = 'all'; cur.utx.q = ''; cur.utx.preset = 'all';
-    cur.utx.from = ''; cur.utx.to = '';
-    cur.utx.sortKey = 'd'; cur.utx.sortDir = -1; cur.sortUtx = { k: 'd', dir: -1 };
-    cur.utx.limit = 400; cur.fUtx = {};
-    if ($('utxSearch')) $('utxSearch').value = '';
-    setPane('unitx');
-  }
-  /* 왼쪽 메뉴(입고/출고/재고 이동) → 뒷배경 입출고 내역 + 통일 팝업 */
+  /* 왼쪽 메뉴(입고/출고/재고 이동) → 지금 화면 위에 통일 팝업만 */
   function ioPopupOpen(kind) {
-    var preset = kind === 'move' ? null : uniPresetOf();   /* 화면을 바꾸기 전에 지금 품목을 읽어 둔다 */
-    utxShowAll();
+    var preset = kind === 'move' ? null : uniPresetOf();
     if (kind === 'move') openUniMove(null, 'F');
     else {
       /* 품목 화면이 아니고 프리셋도 없으면 원료육 기본 = 출고 구분 현장(생산) */
       openIoSheet(kind === 'in' ? 'IN' : 'OUT', preset,
         { dest: (!preset && kind === 'out') ? 'site' : '' });
     }
-    ioNavHold = kind;
-    markNav();
   }
   /* preset: 그 품목이 채워진 줄로 팝업을 연다 (통합 재고의 [작업 ▾] → 입고 / 출고) */
   function openIoSheet(type, preset, opt) {
@@ -8700,8 +8617,6 @@ var LIVE = (function () {
   function closeIoSheet() {
     var m = $('ioSheetModal');
     if (m) m.classList.add('hidden');
-    /* v33 — 왼쪽 메뉴로 연 팝업이 닫히면 메뉴 표시를 뒷배경 「입출고 내역」으로 되돌린다 */
-    if (ioNavHold) { ioNavHold = ''; markNav(); }
   }
   /* 기본 창고 — 원료육 새 줄은 이 창고로 시작한다(줄마다 바꿀 수 있음) */
   function iosSetWh(wh) {
