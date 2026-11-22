@@ -4291,6 +4291,172 @@ var LIVE = (function () {
     var d = new Date();
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
   }
+
+  /* ================= v35 — 스마트 날짜 입력 =================
+     모든 날짜 칸(type=date)을 type=text 로 바꿔 「1112」·「261125」·「20261125」를 그대로 치게 한다.
+     · 칸을 클릭하면(=포커스) 이미 들어 있던 날짜가 전체 선택돼 바로 덮어쓴다.
+     · blur · Enter 에서 YYYY-MM-DD 로 맞추고, 값이 바뀌었으면 change 를 쏴 기존 필터·계산이 그대로 돈다. */
+  var SD_YEAR = (new Date()).getFullYear();
+  var SD_PICKER = null;   /* 달력에서 고르기용 숨은 date 칸 */
+
+  function sdPad2(n) { return (n < 10 ? '0' : '') + n; }
+  function sdBuild(y, m, d) {
+    if (!(m >= 1 && m <= 12) || !(d >= 1 && d <= 31)) return null;
+    var dt = new Date(y, m - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
+    return y + '-' + sdPad2(m) + '-' + sdPad2(d);
+  }
+  /* '1112' · '11-12' · '261125' · '26/11/25' · '2026-11-25' → 'YYYY-MM-DD' (알 수 없으면 null) */
+  function parseSmartDate(raw, refYear) {
+    var s = String(raw == null ? '' : raw).replace(/\s+/g, '').replace(/[./]/g, '-');
+    if (!s) return '';
+    var m, y0 = refYear || SD_YEAR;
+    if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return sdBuild(+m[1], +m[2], +m[3]);
+    if ((m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/))) return sdBuild(2000 + (+m[1]), +m[2], +m[3]);
+    if ((m = s.match(/^(\d{1,2})-(\d{1,2})$/))) return sdBuild(y0, +m[1], +m[2]);
+    if (/^\d{8}$/.test(s)) return sdBuild(+s.slice(0, 4), +s.slice(4, 6), +s.slice(6, 8));
+    if (/^\d{6}$/.test(s)) return sdBuild(2000 + (+s.slice(0, 2)), +s.slice(2, 4), +s.slice(4, 6));
+    if (/^\d{4}$/.test(s)) return sdBuild(y0, +s.slice(0, 2), +s.slice(2, 4));
+    return null;
+  }
+  function sdIsDate(el) {
+    return !!el && el.nodeName === 'INPUT' && String(el.getAttribute('type') || '').toLowerCase() === 'date';
+  }
+  function sdUpgrade(el) {
+    if (!el || el.nodeName !== 'INPUT' || el.getAttribute('data-sd-init') === '1') return;
+    if (!sdIsDate(el) && el.getAttribute('data-sd') !== '1') return;
+    el.setAttribute('data-sd-init', '1');
+    el.setAttribute('data-sd', '1');
+    if (sdIsDate(el)) el.setAttribute('type', 'text');
+    el.setAttribute('inputmode', 'numeric');
+    el.setAttribute('autocomplete', 'off');
+    el.spellcheck = false;
+    var host = el.closest ? el.closest('.field') : null;
+    /* 표 칸(입출고·회계 전표 줄)은 머리글이 이미 뜻을 말하므로 힌트 글씨를 넣지 않는다 */
+    if (!el.getAttribute('placeholder') && (host || (el.closest && el.closest('.rng')))) el.setAttribute('placeholder', 'YYMMDD');
+    el.classList.add('sd-field');
+    var v = parseSmartDate(el.value);
+    if (v) el.value = v;
+    el.setAttribute('data-sd-prev', el.value || '');
+
+    /* 폼 칸(.field)에만 오른쪽 달력 버튼 — 기간 막대·표 칸은 글자만 */
+    if (host && !el.closest('.sd-wrap')) {
+      var wrap = document.createElement('span');
+      wrap.className = 'sd-wrap has-cal';
+      el.parentNode.insertBefore(wrap, el);
+      wrap.appendChild(el);
+      var bt = document.createElement('button');
+      bt.type = 'button';
+      bt.className = 'sd-cal';
+      bt.title = '달력에서 고르기';
+      bt.setAttribute('aria-label', '달력에서 날짜 고르기');
+      bt.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
+      bt.addEventListener('mousedown', function (e) { e.preventDefault(); });
+      bt.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); sdPick(el); });
+      wrap.appendChild(bt);
+    }
+
+    /* 클릭해서 들어오면 전체 선택 — 지우지 않고 바로 1112 를 치면 덮어쓴다 */
+    el.addEventListener('focus', function () {
+      el.setAttribute('data-sd-prev', el.value || '');
+      try { el.select(); } catch (e) { }
+    });
+    el.addEventListener('mouseup', function (e) {
+      /* 크롬·엣지는 클릭의 mouseup 에서 선택을 풀어버린다 — 「클릭만」 한 경우엔 전체 선택을 유지한다 */
+      if (el.selectionStart === el.selectionEnd) {
+        try { el.select(); } catch (err) { }
+        e.preventDefault();
+      }
+    });
+    el.addEventListener('blur', function () { sdCommit(el); });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { sdCommit(el); }
+      else if (e.key === 'Escape') { el.value = el.getAttribute('data-sd-prev') || ''; el.blur(); }
+    });
+  }
+  function sdCommit(el) {
+    if (!el || el.getAttribute('data-sd') !== '1') return;
+    var prev = el.getAttribute('data-sd-prev') || '';
+    var raw = el.value;
+    var norm = parseSmartDate(raw);
+    if (norm === null) {
+      el.value = prev;
+      el.classList.add('sd-bad');
+      setTimeout(function () { el.classList.remove('sd-bad'); }, 1400);
+      if (typeof toast === 'function') toast('날짜를 알아볼 수 없습니다 — 예: 1112 · 261125', 'err');
+      /* 칸에 쳤던 글자는 행 상태에도 이미 들어갔을 수 있다 — 되돌린 값을 알려 준다 */
+      try {
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (e) { }
+      return;
+    }
+    el.value = norm;
+    el.setAttribute('data-sd-prev', norm);
+    if (norm !== prev) {
+      try {
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (e) { }
+    }
+  }
+  /* 달력 버튼 — 숨은 date 칸을 칸 옆에 띄워 고르게 한다 */
+  function sdPick(el) {
+    if (!SD_PICKER) {
+      SD_PICKER = document.createElement('input');
+      SD_PICKER.type = 'date';
+      SD_PICKER.tabIndex = -1;
+      SD_PICKER.setAttribute('aria-hidden', 'true');
+      SD_PICKER.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;padding:0;border:0;opacity:.01;pointer-events:none;z-index:2147483000';
+      document.body.appendChild(SD_PICKER);
+      SD_PICKER.addEventListener('change', function () {
+        var t = SD_PICKER.__sdTarget, v = SD_PICKER.value;
+        if (!t || !v) return;
+        t.value = v;
+        t.setAttribute('data-sd-prev', v);
+        try { t.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) { }
+      });
+    }
+    var r = el.getBoundingClientRect();
+    SD_PICKER.style.left = Math.round(r.left) + 'px';
+    SD_PICKER.style.top = Math.round(r.bottom) + 'px';
+    SD_PICKER.value = parseSmartDate(el.value) || today();
+    SD_PICKER.__sdTarget = el;
+    try {
+      if (SD_PICKER.showPicker) SD_PICKER.showPicker(); else SD_PICKER.focus();
+    } catch (e) {
+      /* 달력 창을 못 띄우는 브라우저에서는 최소한 그 칸을 골라 둔다 */
+      try { el.focus(); el.select(); } catch (e2) { }
+    }
+  }
+  function sdScan(root) {
+    var host = root || document;
+    if (!host.querySelectorAll) return;
+    var list = host.querySelectorAll('input[type="date"],input[data-sd="1"]');
+    for (var i = 0; i < list.length; i++) sdUpgrade(list[i]);
+  }
+  var sdQueued = false;
+  function sdQueue() {
+    if (sdQueued) return;
+    sdQueued = true;
+    var run = function () { sdQueued = false; sdScan(document); };
+    if (window.requestAnimationFrame) requestAnimationFrame(run); else setTimeout(run, 16);
+  }
+  function sdWatch() {
+    if (!window.MutationObserver || sdWatch.on) return;
+    sdWatch.on = true;
+    new MutationObserver(function (recs) {
+      for (var i = 0; i < recs.length; i++) {
+        var added = recs[i].addedNodes;
+        for (var j = 0; j < added.length; j++) {
+          var n = added[j];
+          if (!n || n.nodeType !== 1) continue;
+          if (sdIsDate(n) || n.getAttribute('data-sd') === '1'
+            || (n.querySelector && n.querySelector('input[type="date"],input[data-sd="1"]'))) { sdQueue(); return; }
+        }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  }
   function clock() {
     var d = new Date();
     return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
@@ -8345,7 +8511,7 @@ var LIVE = (function () {
   /* 소비기한 칸 */
   function iosExpCellHtml(r) {
     if (iosIsIn()) {
-      return '<input type="date" data-f="expiry" value="' + esc(r.expiry) + '" title="소비기한">';
+      return '<input type="text" data-sd="1" data-f="expiry" value="' + esc(r.expiry) + '" title="소비기한">';
     }
     if (r.kind === 'fp') {
       var p = iosProduct(r);
@@ -8417,7 +8583,7 @@ var LIVE = (function () {
   /* v18 — 제조일 칸: 완제품 입고 줄만 입력받는다(저장하면 fp_lots.memo 에 mfg: 꼬리표) */
   function iosMfgCellHtml(r) {
     if (r.kind !== 'fp' || r.g !== 'fg') return '<span class="vlotro muted">—</span>';
-    if (iosIsIn()) return '<input type="date" data-f="mfg" value="' + esc(r.mfg) + '" title="제조일">';
+    if (iosIsIn()) return '<input type="text" data-sd="1" data-f="mfg" value="' + esc(r.mfg) + '" title="제조일">';
     var L = iosPickFpLot(r);
     var m = L ? ERP.uniMfgOfMemo(L.memo) || (L.inD || '') : '';
     return '<span class="vlotro">' + esc(m || '—') + '</span>';
@@ -9739,7 +9905,7 @@ var LIVE = (function () {
       '<td class="num ' + (has ? (isIn ? 'pos' : 'warn') : 'zero') + '"><b class="stlleft">' + fmtInt(left) + '</b></td>' +
       '<td class="stlin"><input type="number" class="stlamt" data-amt="' + t + '" min="0" step="1" placeholder="0" value="' + esc(d.amt) + '"></td>' +
       '<td class="stlbal"><button class="btn tiny stlall" type="button" data-settle-all="' + t + '"' + (has ? '' : ' disabled') + '>전액</button></td>' +
-      '<td class="stldt"><input type="date" class="stldate" data-date="' + t + '" value="' + esc(d.date) + '"></td>' +
+      '<td class="stldt"><input type="text" data-sd="1" class="stldate" data-date="' + t + '" value="' + esc(d.date) + '"></td>' +
       '<td class="stlmd"><select class="stlmethod" data-method="' + t + '">' + stlMethodsHtml(t, d.method) + '</select></td>' +
       '<td class="stlgo"><button class="btn tiny primary stlsave" type="button" data-settle-save="' + t + '">' + (isIn ? '수금 저장' : '지급 저장') + '</button></td>' +
       '</tr>';
@@ -10349,7 +10515,7 @@ var LIVE = (function () {
   }
   function accVExpCellHtml(r) {
     if (r.kind === 'meat' && accVIsBuy()) {
-      return '<input type="date" data-f="expiry" value="' + esc(r.expiry) + '" title="소비기한">';
+      return '<input type="text" data-sd="1" data-f="expiry" value="' + esc(r.expiry) + '" title="소비기한">';
     }
     return '<div data-cell="exp">' + accVExpInfoHtml(r) + '</div>';
   }
@@ -12083,8 +12249,6 @@ var LIVE = (function () {
     ['buyFrom', 'buyTo'].forEach(function (id) {
       if (!$(id)) return;
       $(id).addEventListener('change', function () { setCustomRange('buyFrom', 'buyTo'); });
-      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
-      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
     });
     if ($('btnBuyColReset')) $('btnBuyColReset').addEventListener('click', function () { COLW.accB = {}; COLW.accS = {}; saveColW(); renderBuy(); toast('열 너비를 기본값으로 돌렸습니다.', 'ok'); });
 
@@ -12107,8 +12271,6 @@ var LIVE = (function () {
     ['saleFrom', 'saleTo'].forEach(function (id) {
       if (!$(id)) return;
       $(id).addEventListener('change', function () { setCustomRange('saleFrom', 'saleTo'); });
-      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
-      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
     });
     if ($('btnSaleColReset')) $('btnSaleColReset').addEventListener('click', function () { COLW.accS = {}; saveColW(); renderSale(); toast('열 너비를 기본값으로 돌렸습니다.', 'ok'); });
 
@@ -12140,8 +12302,6 @@ var LIVE = (function () {
     ['prodFrom', 'prodTo'].forEach(function (id) {
       if (!$(id)) return;
       $(id).addEventListener('change', function () { setCustomRange('prodFrom', 'prodTo'); });
-      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
-      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
     });
 
     /* 회계 메뉴 */
@@ -12279,8 +12439,6 @@ var LIVE = (function () {
     if ($('fgRangeDisplay')) $('fgRangeDisplay').addEventListener('click', openRange);
     ['fgFrom', 'fgTo'].forEach(function (id) {
       $(id).addEventListener('change', function () { setCustomRange('fgFrom', 'fgTo'); });
-      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
-      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
     });
     var fpresets = document.querySelectorAll('#fgPresets .pr');
     for (var p1 = 0; p1 < fpresets.length; p1++) {
@@ -12380,8 +12538,6 @@ var LIVE = (function () {
     if ($('accRangeDisplay')) $('accRangeDisplay').addEventListener('click', openRange);
     ['accFrom', 'accTo'].forEach(function (id) {
       $(id).addEventListener('change', function () { setCustomRange('accFrom', 'accTo'); });
-      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
-      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
     });
     var apresets = document.querySelectorAll('#accPresets .pr');
     for (var p2 = 0; p2 < apresets.length; p2++) {
@@ -12707,9 +12863,6 @@ var LIVE = (function () {
     }
     ['rangeFrom', 'rangeTo'].forEach(function (id) {
       $(id).addEventListener('change', function () { setCustomRange('rangeFrom', 'rangeTo'); });
-      /* 날짜칸을 눌러도 2개월 달력이 열린다 (브라우저 기본 달력 대신) */
-      $(id).addEventListener('mousedown', function (ev) { ev.preventDefault(); openRange(); });
-      $(id).addEventListener('focus', function () { if (!rngm.open) openRange(); });
     });
     $('rangeClear').addEventListener('click', function () { setPreset('all'); });
 
@@ -13234,6 +13387,8 @@ var LIVE = (function () {
     bindV16();
     popInit();
     acSetupAll();
+    sdScan(document);   /* v35 — 날짜 칸 전부 스마트 날짜 입력으로 */
+    sdWatch();
     setSync('wait', '확인 중');
     var ses = SB.auth.restore();
     if (ses) {

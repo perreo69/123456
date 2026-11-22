@@ -3148,3 +3148,25 @@ table.tblu .lot-subtbl td.actcell .actmenu{padding:0 8px}
   .v8pagehead{flex-wrap:wrap;gap:8px}
   .headacts{width:100%;justify-content:flex-start}
 }
+
+/* ---------- v35 — 스마트 날짜 입력 (1112 · 261125 · 20261125) ----------
+   날짜 칸은 전부 type=text 로 바뀌어 그대로 타이핑하고, blur/Enter 에서 YYYY-MM-DD 로 맞춘다.
+   폼 칸(.field)만 오른쪽에 작은 달력 버튼을 겹쳐 두고, 기간 막대(.rng)·표 칸은 글자만 둔다. */
+.sd-wrap{position:relative;display:block;min-width:0}
+.sd-wrap>input{width:100%;box-sizing:border-box}
+.sd-wrap.has-cal>input{padding-right:24px}
+.sd-cal{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:19px;height:19px;
+  display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;
+  background:transparent;color:#9aa8bc;cursor:pointer;line-height:0}
+.sd-cal:hover{background:#EEF4FF;color:#2563EB}
+.sd-cal svg{width:13px;height:13px;display:block}
+input.sd-field{font-variant-numeric:tabular-nums}
+input.sd-field::placeholder{color:#b9c3d2;font-weight:500;letter-spacing:.1px}
+input.sd-field.sd-bad{border-color:#f0a9a4;box-shadow:0 0 0 3px rgba(220,38,38,.10)}
+.rng input.sd-field{width:104px}
+.utool .rng input.sd-field{width:104px}
+.modal-card .field .sd-wrap>input{padding-right:24px}
+@media (max-width:768px){
+  .rng input.sd-field,.utool .rng input.sd-field{width:100%;min-width:0}
+  .rangebar .rng input.sd-field{flex:1 1 0}
+}

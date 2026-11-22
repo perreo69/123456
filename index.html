@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261122_41">
+<link rel="stylesheet" href="style.css?v=20261122_42">
 </head>
 <body>
 
@@ -371,7 +371,7 @@
             <button class="chip soft" type="button" data-upreset="month">이번 달</button>
           </div>
           <button class="btn tiny period" id="utxBtnPeriod" type="button" title="두 달 달력에서 기간 고르기">기간선택</button>
-          <label class="rng"><input type="date" id="utxFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="utxTo" aria-label="종료일"></label>
+          <label class="rng"><input type="text" data-sd="1" id="utxFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="utxTo" aria-label="종료일"></label>
           <span class="hint" id="utxRangeDisplay"></span>
           <span class="sp"></span>
           <label class="usearch">
@@ -465,7 +465,7 @@
           <button type="button" class="pr" data-preset="week">이번주</button>
           <button type="button" class="pr" data-preset="month">이번달</button>
         </div>
-        <label class="rng"><input type="date" id="rangeFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="rangeTo" aria-label="종료일"></label>
+        <label class="rng"><input type="text" data-sd="1" id="rangeFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="rangeTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="btnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="rangeClear" type="button">초기화</button>
         <span class="range-sum" id="rangeSum"></span>
@@ -513,7 +513,7 @@
               <button type="button" data-wh="C">❄️ 냉장고</button>
             </div>
           </label>
-          <label class="field"><span>날짜</span><input type="date" id="inDate"></label>
+          <label class="field"><span>날짜</span><input type="text" data-sd="1" id="inDate"></label>
           <div class="grid2">
             <label class="field"><span>육류</span>
               <input id="inMeat" list="dlMeats" placeholder="돈육 · 우육 · 계육 …">
@@ -526,10 +526,10 @@
           </div>
           <div class="grid2">
             <label class="field"><span>브랜드</span><input id="inBrand" list="dlBrands" placeholder="선택"></label>
-            <label class="field"><span>입고일 <span class="req">*</span></span><input type="date" id="inInDate"></label>
+            <label class="field"><span>입고일 <span class="req">*</span></span><input type="text" data-sd="1" id="inInDate"></label>
           </div>
           <div class="grid2">
-            <label class="field"><span>소비기한 <span class="req">*</span></span><input type="date" id="inExpiry"></label>
+            <label class="field"><span>소비기한 <span class="req">*</span></span><input type="text" data-sd="1" id="inExpiry"></label>
             <label class="field"><span>중량(kg) <span class="req">*</span></span><input type="number" id="inKg" step="0.01" min="0" placeholder="0.00"></label>
           </div>
           <div class="grid2">
@@ -545,7 +545,7 @@
         <!-- ===== 해동 ===== -->
         <div class="pane hidden" data-pane="thaw">
           <div class="flow"><span class="chip b">🧊 냉동고</span><span class="arrow">→</span><span class="chip g">❄️ 냉장고</span></div>
-          <label class="field"><span>날짜</span><input type="date" id="thDate"></label>
+          <label class="field"><span>날짜</span><input type="text" data-sd="1" id="thDate"></label>
           <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="thLot"></select></label>
           <div class="lotinfo empty" id="thInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>해동 중량(kg) <span class="req">*</span></span>
@@ -563,7 +563,7 @@
         <!-- ===== 재냉동 ===== -->
         <div class="pane hidden" data-pane="re">
           <div class="flow"><span class="chip g">❄️ 냉장고</span><span class="arrow">→</span><span class="chip b">🧊 냉동고</span></div>
-          <label class="field"><span>날짜</span><input type="date" id="reDate"></label>
+          <label class="field"><span>날짜</span><input type="text" data-sd="1" id="reDate"></label>
           <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="reLot"></select></label>
           <div class="lotinfo empty" id="reInfo">냉장고 재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>재냉동 중량(kg) <span class="req">*</span></span>
@@ -585,7 +585,7 @@
               <button type="button" data-wh="C" class="active">❄️ 냉장고</button>
             </div>
           </div>
-          <label class="field"><span>날짜</span><input type="date" id="outDate"></label>
+          <label class="field"><span>날짜</span><input type="text" data-sd="1" id="outDate"></label>
           <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="outLot"></select></label>
           <div class="lotinfo empty" id="outInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>출고처 <span class="req">*</span></span>
@@ -669,7 +669,7 @@
           <button type="button" class="pr" data-preset="week">이번주</button>
           <button type="button" class="pr" data-preset="month">이번달</button>
         </div>
-        <label class="rng"><input type="date" id="fgFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="fgTo" aria-label="종료일"></label>
+        <label class="rng"><input type="text" data-sd="1" id="fgFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="fgTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="fgBtnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="fgRangeClear" type="button">초기화</button>
         <span class="range-sum" id="fgRangeSum"></span>
@@ -710,7 +710,7 @@
       <div class="rangebar" id="buyRangeBar">
         <button class="btn tiny period" id="buyBtnPeriod" type="button">📅 기간선택</button>
         <button class="rangebox" id="buyRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
-        <label class="rng"><input type="date" id="buyFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="buyTo" aria-label="종료일"></label>
+        <label class="rng"><input type="text" data-sd="1" id="buyFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="buyTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="buyBtnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="buyRangeClear" type="button">초기화</button>
         <span class="range-sum" id="buyRangeSum"></span>
@@ -750,7 +750,7 @@
       <div class="rangebar" id="saleRangeBar">
         <button class="btn tiny period" id="saleBtnPeriod" type="button">📅 기간선택</button>
         <button class="rangebox" id="saleRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
-        <label class="rng"><input type="date" id="saleFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="saleTo" aria-label="종료일"></label>
+        <label class="rng"><input type="text" data-sd="1" id="saleFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="saleTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="saleBtnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="saleRangeClear" type="button">초기화</button>
         <span class="range-sum" id="saleRangeSum"></span>
@@ -780,7 +780,7 @@
       <div class="rangebar" id="prodRangeBar">
         <button class="btn tiny period" id="prodBtnPeriod" type="button">📅 기간선택</button>
         <button class="rangebox" id="prodRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
-        <label class="rng"><input type="date" id="prodFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="prodTo" aria-label="종료일"></label>
+        <label class="rng"><input type="text" data-sd="1" id="prodFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="prodTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="prodBtnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="prodRangeClear" type="button">초기화</button>
         <span class="range-sum" id="prodRangeSum"></span>
@@ -838,7 +838,7 @@
           <label class="field"><span>단위</span><input id="fgUnit" list="dlFgUnits" placeholder="개"></label>
         </div>
         <div class="grid2">
-          <label class="field"><span>날짜</span><input type="date" id="fgDate"></label>
+          <label class="field"><span>날짜</span><input type="text" data-sd="1" id="fgDate"></label>
           <label class="field"><span id="fgQtyLabel">수량 <span class="req">*</span></span><input type="number" id="fgQty" step="0.001" min="0" placeholder="0"></label>
         </div>
         <div class="grid2">
@@ -846,12 +846,12 @@
           <label class="field"><span>금액(원)</span><input type="number" id="fgAmount" step="1" min="0" readonly placeholder="0"></label>
         </div>
         <div class="grid2">
-          <label class="field"><span>소비기한</span><input type="date" id="fgExpiry"></label>
+          <label class="field"><span>소비기한</span><input type="text" data-sd="1" id="fgExpiry"></label>
           <label class="field"><span id="fgPartnerLabel">거래처</span><input id="fgPartner" list="dlFgPartners" placeholder="매입처 / 납품처"></label>
         </div>
         <div class="grid2" id="fgLotInWrap">
           <label class="field"><span>로트번호</span><input id="fgLotNo" placeholder="비우면 자동 (상품코드-입고일)"></label>
-          <label class="field"><span>입고일</span><input type="date" id="fgInDate"></label>
+          <label class="field"><span>입고일</span><input type="text" data-sd="1" id="fgInDate"></label>
         </div>
         <label class="field hidden" id="fgLotPickWrap"><span>출고 로트 <span class="tiny-hint">비우면 소비기한 빠른 로트부터</span></span><select id="fgLotPick"></select></label>
         <label class="field"><span>비고</span><input id="fgNote" placeholder="선택 입력"></label>
@@ -882,7 +882,7 @@
       </div>
 
       <div class="vhead">
-        <label class="field"><span id="ioSheetDateLabel">입고일 <span class="req">*</span></span><input type="date" id="ioSheetDate"></label>
+        <label class="field"><span id="ioSheetDateLabel">입고일 <span class="req">*</span></span><input type="text" data-sd="1" id="ioSheetDate"></label>
         <label class="field"><span id="ioSheetPartnerLabel">업체·거래처</span><input id="ioSheetPartner" list="dlVendors" placeholder="예: 도드람푸드"></label>
         <label class="field"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
       </div>
@@ -942,7 +942,7 @@
         <button class="mode" data-mv="re" type="button">재냉동 (냉장고 → 냉동고)</button>
       </div>
       <div class="mvgrid">
-        <label class="field"><span>날짜</span><input type="date" id="uniMoveDate"></label>
+        <label class="field"><span>날짜</span><input type="text" data-sd="1" id="uniMoveDate"></label>
         <label class="field"><span>로트 <span class="req">*</span></span><select id="uniMoveLot"></select></label>
         <label class="field"><span>수량(kg) <span class="req">*</span></span><input type="number" id="uniMoveKg" step="0.01" min="0" placeholder="0.00"></label>
         <label class="field"><span>단가(원/kg)</span><input type="number" id="uniMovePrice" step="1" min="0" placeholder="0"></label>
@@ -1037,7 +1037,7 @@
           <button type="button" class="pr" data-preset="week">이번주</button>
           <button type="button" class="pr" data-preset="month">이번달</button>
         </div>
-        <label class="rng"><input type="date" id="accFrom" aria-label="시작일"><span class="tilde">~</span><input type="date" id="accTo" aria-label="종료일"></label>
+        <label class="rng"><input type="text" data-sd="1" id="accFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="accTo" aria-label="종료일"></label>
         <button class="btn tiny primary" id="accBtnSearch" type="button">🔍 검색</button>
         <button class="btn ghost tiny" id="accRangeClear" type="button">초기화</button>
         <span class="range-sum" id="accRangeSum"></span>
@@ -1156,7 +1156,7 @@
       </div>
       <p class="modal-sub" id="editSub"></p>
       <div class="grid2">
-        <label class="field"><span>거래일 <span class="req">*</span></span><input type="date" id="edDate"></label>
+        <label class="field"><span>거래일 <span class="req">*</span></span><input type="text" data-sd="1" id="edDate"></label>
         <label class="field"><span>창고</span><select id="edWh"><option value="F">냉동고</option><option value="C">냉장고</option></select></label>
       </div>
       <div class="grid2">
@@ -1198,8 +1198,8 @@
         <label class="field"><span>기준단가(원/kg)</span><input type="number" id="ltPrice" step="1" min="0"></label>
       </div>
       <div class="grid2">
-        <label class="field"><span>입고일</span><input type="date" id="ltInDate"></label>
-        <label class="field"><span>소비기한</span><input type="date" id="ltExp"></label>
+        <label class="field"><span>입고일</span><input type="text" data-sd="1" id="ltInDate"></label>
+        <label class="field"><span>소비기한</span><input type="text" data-sd="1" id="ltExp"></label>
       </div>
       <p class="msg" id="lotMsg"></p>
       <div class="modal-actions">
@@ -1226,8 +1226,8 @@
         </div>
       </div>
       <div class="grid2 hidden" id="xlsRangeBox">
-        <label class="field"><span>시작일</span><input type="date" id="xlsFrom"></label>
-        <label class="field"><span>종료일</span><input type="date" id="xlsTo"></label>
+        <label class="field"><span>시작일</span><input type="text" data-sd="1" id="xlsFrom"></label>
+        <label class="field"><span>종료일</span><input type="text" data-sd="1" id="xlsTo"></label>
       </div>
 
       <div id="xlsOptSabang" class="hidden">
@@ -1276,7 +1276,7 @@
       </div>
       <div class="grid2">
         <label class="field" id="fgNewStockWrap"><span>초기재고</span><input type="number" id="fgNewStock" step="0.001" min="0" placeholder="0"></label>
-        <label class="field"><span>소비기한</span><input type="date" id="fgNewExpiry"></label>
+        <label class="field"><span>소비기한</span><input type="text" data-sd="1" id="fgNewExpiry"></label>
       </div>
       <div class="grid2">
         <label class="field"><span>자체 / 매입</span><select id="fgNewFlag">
@@ -1355,7 +1355,7 @@
             <button type="button" data-vtype="purchase">매입</button>
           </div>
         </label>
-        <label class="field"><span>전표일자 <span class="req">*</span></span><input type="date" id="accVDate"></label>
+        <label class="field"><span>전표일자 <span class="req">*</span></span><input type="text" data-sd="1" id="accVDate"></label>
         <label class="field"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
         <label class="field"><span>세금계산서</span>
           <select id="accVDoc"><option value="none">미발행</option><option value="issued">발행완료</option><option value="received">수령완료</option></select>
@@ -1438,7 +1438,7 @@
         </div>
       </label>
       <div class="grid2">
-        <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accPDate"></label>
+        <label class="field"><span>날짜 <span class="req">*</span></span><input type="text" data-sd="1" id="accPDate"></label>
         <label class="field"><span>거래처 <span class="req">*</span></span><input id="accPPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
       </div>
       <div class="paybal" id="accPBal">거래처를 입력하면 그 거래처의 남은 미수금·미지급금이 여기 표시됩니다.</div>
@@ -1471,7 +1471,7 @@
         </div>
       </label>
       <div class="grid2">
-        <label class="field"><span>날짜 <span class="req">*</span></span><input type="date" id="accEDate"></label>
+        <label class="field"><span>날짜 <span class="req">*</span></span><input type="text" data-sd="1" id="accEDate"></label>
         <label class="field"><span>항목</span><input id="accECat" list="dlAccCats" placeholder="택배비"></label>
       </div>
       <div class="grid2">
@@ -1649,7 +1649,7 @@
       <p class="modal-sub" id="reflectSub">금액이 있는 입출고를 골라 매입·매출 전표로 한 번에 넘깁니다. 이미 전표가 있는 건은 다시 들어가지 않습니다.</p>
       <div class="reflect-top">
         <div class="reflect-opts">
-          <label class="rng"><input type="date" id="accReflectFrom" aria-label="반영 시작일"><span class="tilde">~</span><input type="date" id="accReflectTo" aria-label="반영 종료일"></label>
+          <label class="rng"><input type="text" data-sd="1" id="accReflectFrom" aria-label="반영 시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="accReflectTo" aria-label="반영 종료일"></label>
           <label class="filt-sel"><span>부가세</span>
             <select id="accReflectTax">
               <option value="auto">자동 (원료육 면세 · 완제품 과세)</option>
@@ -1684,7 +1684,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261122_41"></script>
-<script src="app.js?v=20261122_41"></script>
+<script src="partners_data.js?v=20261122_42"></script>
+<script src="app.js?v=20261122_42"></script>
 </body>
 </html>
