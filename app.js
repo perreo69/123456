@@ -6944,13 +6944,11 @@ var LIVE = (function () {
   /* v18 — 열 목록을 그대로 돌면서 칸을 그린다(통합 12칸 · 전용 화면 13칸 모두 같은 함수) */
   function uniTdHtml(r, k) {
     if (k === 'cat') return '<td><span class="cat ' + uniCatClass(r.cat) + '">' + esc(r.cat) + '</span></td>';
-    if (k === 'sub') {
-      var st2 = ERP.uniSubText(r), fb = (r.cat === '완제품' && r.flag);
-      return '<td class="sub' + (fb ? ' flag' + (st2 === '자체' ? ' self' : ' buy') : '') + '"' +
-        (fb ? ' title="' + (st2 === '자체' ? '자체생산 — 매입 전표를 만들지 않습니다' : '외부매입 — 매입 전표에 반영합니다') + '"' : '') +
-        '>' + esc(st2) + '</td>';
-    }
-    if (k === 'n') return '<td><span class="name" title="' + esc(r.n) + '">' + esc(r.n) + '</span></td>';
+    /* v37 — 세부분류는 품목 띠 줄에 한 번만 깔고, 로트 줄의 이 칸은 비워 둔다.
+       표 머리글 필터·정렬과 CSV 내보내기는 ERP.uniCell 의 값 그대로라 영향이 없다. */
+    if (k === 'sub') return '<td class="sub"></td>';
+    /* v37 — 품명도 띠 줄에만. 로트 줄은 같은 품목의 다른 로트라 이름을 되풀이하지 않는다. */
+    if (k === 'n') return '<td></td>';
     if (k === 'spec') return '<td class="sub">' + esc(ERP.uniSpecText(r.spec, r.unit)) + '</td>';
     if (k === 'org') return '<td class="sub">' + esc(r.org || '-') + '</td>';
     if (k === 'brnd') return '<td class="sub" title="' + esc(r.brnd || '') + '">' + esc(r.brnd || '-') + '</td>';
@@ -7068,8 +7066,9 @@ var LIVE = (function () {
     return h.join('');
   }
   /* v36 — 로트 줄 : 품목 띠 바로 아래, 띠와 «같은 열»로 이어지는 한 줄.
-     세부분류 · 품명(띠와 같은 이름이라 옅게) · 창고 · 원산지 · 브랜드 · 로트번호 ·
-     입고일 · 소비기한(D-day) · 재고(+단위) · 단가 · 재고금액 · [작업 ▾]. */
+     세부분류 · 품명 · 창고 · 원산지 · 브랜드 · 로트번호 ·
+     입고일 · 소비기한(D-day) · 재고(+단위) · 단가 · 재고금액 · [작업 ▾].
+     v37 — 그중 세부분류·품명 칸은 띠 줄과 겹치므로 비운다(칸은 같은 열에 그대로 남는다). */
   function uniLotRowHtml(r, cols, last) {
     var h = ['<tr class="ulot' + (last ? ' last' : '') + '" data-kind="' + esc(r.kind || '') + '">'], i;
     for (i = 0; i < cols.length; i++) {
