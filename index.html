@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261121_37">
+<link rel="stylesheet" href="style.css?v=20261122_38">
 </head>
 <body>
 
@@ -87,54 +87,68 @@
 
   <div class="v8shell" id="v8Shell">
 
-  <!-- ========= v25: 왼쪽 메뉴 = 원료육 · 완제품 · 부재료 · 부자재 네 장의 재고 카드 + 회계 카드 ========= -->
+  <!-- ========= v31: 왼쪽 메뉴 = ① 입출고 관리 + 재고관리(원료육 · 완제품 · 부재료 아코디언 + 부자재) + 회계 ========= -->
   <aside class="v8side" id="v8Side" aria-label="통합 메뉴">
     <nav class="v8nav" id="v8Nav">
-      <section class="nav-card" role="group" aria-label="원료육">
-      <div class="glabel" data-grp="raw">원료육<span class="ln"></span></div>
-      <button class="nitem" type="button" data-nav="stock:meat">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>전체 재고</span><span class="cnt" id="navCntMeatAll">0</span>
+      <!-- v31 — ① 입출고 관리 : 어느 화면에서든 바로 입고·출고·재고이동·입출고내역 -->
+      <section class="nav-card" role="group" aria-label="입출고 관리">
+      <div class="glabel" data-grp="io">입출고 관리<span class="ln"></span></div>
+      <button class="nitem" type="button" data-nav="in" title="지금 보고 있는 품목으로 통합 입고 팝업을 엽니다">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v11"/><path d="M7.5 9.5L12 14l4.5-4.5"/><path d="M4 20h16"/></svg><span>입고</span>
       </button>
-      <button class="nitem" type="button" data-nav="stock:meat:F">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M4.2 7.5l15.6 9M19.8 7.5l-15.6 9M12 6l2.2-2.2M12 6L9.8 3.8M12 18l2.2 2.2M12 18l-2.2 2.2"/></svg><span>냉동고</span><span class="cnt" id="navCntMeatF">0</span>
+      <button class="nitem" type="button" data-nav="out" title="지금 보고 있는 품목으로 통합 출고 팝업을 엽니다">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20V9"/><path d="M7.5 13.5L12 9l4.5 4.5"/><path d="M4 4h16"/></svg><span>출고</span>
       </button>
-      <button class="nitem" type="button" data-nav="stock:meat:C">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 4a2 2 0 0 1 4 0v9.2a4.2 4.2 0 1 1-4 0z"/><path d="M12 9v6"/></svg><span>냉장고</span><span class="cnt" id="navCntMeatC">0</span>
+      <button class="nitem" type="button" data-nav="move" title="해동·재냉동으로 창고를 옮깁니다">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h13"/><path d="M14 5l3 3-3 3"/><path d="M20 16H7"/><path d="M10 13l-3 3 3 3"/></svg><span>재고 이동 · 해동</span>
       </button>
-      </section>
-
-      <section class="nav-card" role="group" aria-label="완제품">
-      <div class="glabel" data-grp="fg">완제품<span class="ln"></span></div>
-      <button class="nitem" type="button" data-nav="stock:fg">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>전체 재고</span><span class="cnt" id="navCntFgAll">0</span>
-      </button>
-      <button class="nitem" type="button" data-nav="stock:fg:self">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V10l5 3V10l5 3V7l5 3v10z"/><path d="M3 20h18M7 20v-3M12 20v-3M16 20v-3"/></svg><span>자체생산</span><span class="cnt" id="navCntFgSelf">0</span>
-      </button>
-      <button class="nitem" type="button" data-nav="stock:fg:buy">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2.2l2.3 10.4h9.6L20 7.2H6"/><circle cx="9.4" cy="18.4" r="1.5"/><circle cx="17" cy="18.4" r="1.5"/></svg><span>매입판매</span><span class="cnt" id="navCntFgBuy">0</span>
+      <button class="nitem" type="button" data-nav="tx">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/></svg><span>입출고 내역</span><span class="cnt" id="navCntTx">0</span>
       </button>
       </section>
 
-      <section class="nav-card" role="group" aria-label="부재료">
-      <div class="glabel" data-grp="mat">부재료<span class="ln"></span></div>
-      <button class="nitem" type="button" data-nav="stock:mat">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 8l1.6-4h12.8L20 8M9 12h6"/></svg><span>전체 재고</span><span class="cnt" id="navCntMatAll">0</span>
-      </button>
-      <button class="nitem" type="button" data-nav="stock:mat:sauce">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6v4l2 3v9a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-9l2-3z"/><path d="M7 14h10"/></svg><span>소스</span><span class="cnt" id="navCntSauce">0</span>
-      </button>
-      <button class="nitem" type="button" data-nav="stock:mat:spice">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v5M5.5 9h13l-1.6 11H7.1z"/><path d="M9.5 13h5"/></svg><span>향신료</span><span class="cnt" id="navCntSpice">0</span>
-      </button>
-      <button class="nitem" type="button" data-nav="stock:mat:veg">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21c-5 0-7-3.5-7-8 0-4 3-7 7-7s7 3 7 7c0 4.5-2 8-7 8z"/><path d="M12 6c0-1.7 1.3-3 3-3"/></svg><span>야채</span><span class="cnt" id="navCntVeg">0</span>
-      </button>
-      </section>
+      <!-- v31 — ② 재고관리 : 네 덩어리 아코디언 (원료육 · 완제품 · 부재료 펼침 / 부자재 바로 이동) -->
+      <section class="nav-card" role="group" aria-label="재고관리">
+      <div class="glabel" data-grp="stock">재고관리<span class="ln"></span></div>
 
-      <section class="nav-card" role="group" aria-label="부자재">
-      <div class="glabel" data-grp="sub">부자재<span class="ln"></span></div>
-      <button class="nitem" type="button" data-nav="stock:sub">
+      <div class="nacc open" data-accordion="meat">
+        <button class="nitem npar" type="button" data-acc-toggle="meat" aria-expanded="true" aria-controls="naccMeat">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="nsub" id="naccMeat">
+          <button class="nitem nleaf" type="button" data-nav="stock:meat"><span>전체 재고</span><span class="cnt" id="navCntMeatAll">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:meat:F"><span>냉동고</span><span class="cnt" id="navCntMeatF">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:meat:C"><span>냉장고</span><span class="cnt" id="navCntMeatC">0</span></button>
+        </div>
+      </div>
+
+      <div class="nacc" data-accordion="fg">
+        <button class="nitem npar" type="button" data-acc-toggle="fg" aria-expanded="false" aria-controls="naccFg">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>완제품</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="nsub" id="naccFg">
+          <button class="nitem nleaf" type="button" data-nav="stock:fg"><span>전체 재고</span><span class="cnt" id="navCntFgAll">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:fg:self"><span>자체생산</span><span class="cnt" id="navCntFgSelf">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:fg:buy"><span>매입판매</span><span class="cnt" id="navCntFgBuy">0</span></button>
+        </div>
+      </div>
+
+      <div class="nacc" data-accordion="mat">
+        <button class="nitem npar" type="button" data-acc-toggle="mat" aria-expanded="false" aria-controls="naccMat">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 8l1.6-4h12.8L20 8M9 12h6"/></svg><span>부재료</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="nsub" id="naccMat">
+          <button class="nitem nleaf" type="button" data-nav="stock:mat"><span>전체 재고</span><span class="cnt" id="navCntMatAll">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:mat:sauce"><span>소스</span><span class="cnt" id="navCntSauce">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:mat:spice"><span>향신료</span><span class="cnt" id="navCntSpice">0</span></button>
+          <button class="nitem nleaf" type="button" data-nav="stock:mat:veg"><span>야채</span><span class="cnt" id="navCntVeg">0</span></button>
+        </div>
+      </div>
+
+      <button class="nitem nflat" type="button" data-nav="stock:sub">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H5v6l9 9 6-6-9-9z"/><circle cx="8" cy="7" r="1.2"/></svg><span>부자재</span><span class="cnt" id="navCntSub">0</span>
       </button>
       </section>
@@ -1674,7 +1688,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261121_37"></script>
-<script src="app.js?v=20261121_37"></script>
+<script src="partners_data.js?v=20261122_38"></script>
+<script src="app.js?v=20261122_38"></script>
 </body>
 </html>

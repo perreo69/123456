@@ -7444,10 +7444,35 @@ var LIVE = (function () {
     if (cur.erp === 'acc') return cur.accTab === 'E' ? 'expense' : (cur.accTab === 'R' ? 'ledger' : '');
     return '';
   }
+  /* v31 — 재고관리 아코디언: 머리를 누르면 그 덩어리만 펴고 접는다(원료육은 기본 펼침) */
+  function accSet(name, open) {
+    var box = document.querySelector('#v8Nav .nacc[data-accordion="' + name + '"]');
+    if (!box) return;
+    box.classList.toggle('open', !!open);
+    var b = box.querySelector('[data-acc-toggle]');
+    if (b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  function accToggle(name) {
+    var box = document.querySelector('#v8Nav .nacc[data-accordion="' + name + '"]');
+    if (!box) return;
+    accSet(name, !box.classList.contains('open'));
+  }
   function markNav() {
     var key = navKeyFor();
     var items = document.querySelectorAll('#v8Side [data-nav]');
-    for (var i = 0; i < items.length; i++) items[i].classList.toggle('on', items[i].getAttribute('data-nav') === key);
+    for (var i = 0; i < items.length; i++) {
+      var it = items[i], on = it.getAttribute('data-nav') === key;
+      it.classList.toggle('on', on);
+      /* 지금 화면이 하위 메뉴 안에 있으면 그 덩어리를 펴 두고 머리도 표시한다 */
+      if (on && it.closest) {
+        var box = it.closest('.nacc');
+        if (box) accSet(box.getAttribute('data-accordion'), true);
+      }
+    }
+    var boxes = document.querySelectorAll('#v8Nav .nacc');
+    for (var j = 0; j < boxes.length; j++) {
+      boxes[j].classList.toggle('on-parent', !!boxes[j].querySelector('.nitem.on'));
+    }
   }
   function navGo(nav) {
     if (nav.indexOf('stock:') === 0) {
@@ -7463,9 +7488,10 @@ var LIVE = (function () {
       cur.utx.g = 'all';
       setPane('unitx');
     } else if (nav === 'in') {
-      openIoSheet('IN');
+      /* v31 — 지금 보고 있는 품목이 있으면 그 품목으로 연다 */
+      openIoSheet('IN', uniPresetOf());
     } else if (nav === 'out') {
-      openIoSheet('OUT');
+      openIoSheet('OUT', uniPresetOf());
     } else if (nav === 'move') {
       openUniMove(null, 'F');
     } else if (nav === 'buy-list') {
@@ -7488,6 +7514,11 @@ var LIVE = (function () {
     var items = document.querySelectorAll('#v8Side [data-nav]');
     for (var i = 0; i < items.length; i++) {
       items[i].addEventListener('click', function () { navGo(this.getAttribute('data-nav')); });
+    }
+    /* v31 — 재고관리 아코디언 머리(원료육 · 완제품 · 부재료) */
+    var togs = document.querySelectorAll('#v8Side [data-acc-toggle]');
+    for (var tg = 0; tg < togs.length; tg++) {
+      togs[tg].addEventListener('click', function () { accToggle(this.getAttribute('data-acc-toggle')); });
     }
     var legacy = document.querySelectorAll('#sideMore [data-legacy]');
     for (var lg = 0; lg < legacy.length; lg++) {
