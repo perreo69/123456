@@ -2906,7 +2906,7 @@ function v132Capture(from){
 }
 function v132Restore(next,changed){
  if(!v132Mobile())return;
- const draft=v132Drafts.get(next);
+ const draft=changed?v132Drafts.get(next):null;
  if(draft&&v132Fields[next])for(const [id,value] of Object.entries(draft)){const el=$(id);if(!el)continue;el.value=value;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal){const d=normalizeIntakeDate(value);if(d)cal.value=d;}}
  if(next==='operations'&&draft)v36Draw();
  if(v132StockViews.has(next)){
@@ -2917,11 +2917,10 @@ function v132Restore(next,changed){
 function v132MovementDirty(){return [...v36Lines.values()].some(x=>String(x.qty||'').trim()||String(x.production||'').trim());}
 function v132StartMove(l){
  if(v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화하고 선택한 LOT로 이동할까요?'))return false;
- if(view==='operations')v132Capture(view);
  v36Mode=l.zone==='frozen'?'move':'refreeze';v132OnlyPicked=false;v36Lines.clear();v132Drafts.delete('operations');v36Prefill=l.lotId;setView('operations');return true;
 }
 function v132StartShip(l){
- if(v123Kind==='field'&&!(l.src==='meat'&&l.zone==='chilled')){toast('작성 중인 현장 출고가 있습니다. 출고구분을 변경한 후 다시 선택해 주세요.');return false;}
+ if(v123Kind==='field'&&!(l.src==='meat'&&l.zone==='chilled')){alert('작성 중인 현장 출고가 있습니다. 출고구분을 변경한 후 다시 선택해 주세요.');return false;}
  if(view==='ship')v18Sync();
  const row=v18Lines.find(x=>!x.group&&!x.search&&!x.note&&!Object.keys(x.selected||{}).length)||v18NewLine();
  if(!v18Lines.includes(row))v18Lines.push(row);
@@ -6103,7 +6102,7 @@ function decorateSummary(){
   const cells=Array.from(row.cells);const key=[cells[0].textContent,cells[1].textContent,cells[2].textContent].join('|');
   row.classList.add('v130-summary-row');row.classList.toggle('v130-expanded',openKeys.has(key));
   cells[0].classList.add('v130-category');cells[1].classList.add('v130-name');cells[4].classList.add('v130-total');[2,3,5].forEach(i=>cells[i].classList.add('v130-extra'));
-  if(cells.length===6){const c=row.insertCell();c.className='v130-toggle';c.innerHTML='<button type="button" aria-label="재고 상세 보기" aria-expanded="'+openKeys.has(key)+'">'+svg('<path d="m9 5 7 7-7 7"/>')+'</button>';const b=c.firstElementChild;b.onclick=e=>{e.stopPropagation();const on=!row.classList.contains('v130-expanded');row.classList.toggle('v130-expanded',on);on?openKeys.add(key):openKeys.delete(key);b.setAttribute('aria-expanded',String(on));};}
+  if(cells.length===6){const c=row.insertCell();c.className='v130-toggle';c.innerHTML='<button type="button" aria-label="재고 LOT 상세 보기" aria-haspopup="dialog">'+svg('<path d="m9 5 7 7-7 7"/>')+'</button>';const b=c.firstElementChild;b.onclick=e=>{e.stopPropagation();const on=!row.classList.contains('v130-expanded');row.classList.toggle('v130-expanded',on);on?openKeys.add(key):openKeys.delete(key);b.setAttribute('aria-expanded',String(on));};}
  }
 }
 function decorateProduct(){
