@@ -31,6 +31,25 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Ma
 .panel .full{border-radius:11px;min-height:48px;font-weight:650}
 .panel #switchMode{background:#edf4ff;color:#006bd6;border:0}
 }
+</style><style id="v131-design-system-shell">
+@media screen{
+:root{--ds-bg:#f2f2f7;--ds-ink:#1c1c1e;--ds-secondary:#636366;--ds-rule:#e5e5ea;--ds-accent:#006bd6}
+#gate,#bar,dialog{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif}
+}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+#gate{background:var(--ds-bg)}
+.panel{border:0;border-radius:22px;box-shadow:none;padding:28px 22px}
+.panel h1{font-size:28px;font-weight:700;color:var(--ds-ink)}
+.panel p{color:var(--ds-secondary)}
+.panel label{font-size:13px;color:var(--ds-secondary);font-weight:500}
+.panel input{font-size:17px;min-height:48px;background:#f5f5f8;border:1px solid var(--ds-rule)}
+.panel #submit{background:var(--ds-accent);border-color:var(--ds-accent);font-size:16px}
+.panel #switchMode{font-size:15px;color:var(--ds-accent)}
+#bar{background:var(--ds-bg)!important}
+#bar button{color:var(--ds-accent)!important;min-height:36px!important}
+#status{color:var(--ds-secondary)}
+dialog{border:0;border-radius:18px;box-shadow:0 10px 36px #0002}
+}
 </style></head><body>
 <section id="gate"><div class="panel"><h1>미르스타푸드 ERP</h1><p>직원 전용 · 공동 재고 관리</p><form id="login"><label for="uid">아이디 또는 이메일</label><input id="uid" required autocomplete="username" maxlength="254" placeholder="아이디 또는 이메일"><label for="pw">비밀번호</label><input id="pw" type="password" required autocomplete="current-password"><div id="inviteField" hidden><label for="registerName">이름</label><input id="registerName" autocomplete="name" maxlength="50" placeholder="이름을 입력하세요"><input id="invite" type="hidden"><label for="confirmPw">비밀번호 확인</label><input id="confirmPw" type="password" autocomplete="new-password"></div><button class="primary full" id="submit">로그인</button></form><button id="switchMode" class="full" type="button">직원 계정 생성</button><p id="message" class="msg" role="status"></p></div></section>
 <section id="shell" hidden><header id="bar"><strong id="who"></strong><span id="status" aria-live="polite">연결 중</span><button id="refresh" title="최신 ERP 버전 및 서버 데이터 불러오기">새로고침</button><button id="changePw">내 정보</button><button id="logout">로그아웃</button></header><iframe id="app" title="미르스타푸드 ERP" referrerpolicy="no-referrer"></iframe></section>
@@ -67,7 +86,7 @@ async function openERP(){
   if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
   if(ticket!==epoch)return;session=s;window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;revision=Number(st.data.revision);lastJSON=st.data.body?JSON.stringify(st.data.body):'';blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=130&t='+Date.now();notice('연결됨 · 서버 저장');
+  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=131&t='+Date.now();notice('연결됨 · 서버 저장');
   if(!channel){channel=db.channel('mirrstar-erp-state-v85').on('postgres_changes',{event:'UPDATE',schema:'public',table:'erp_company_state',filter:'id=eq.1'},()=>{void sync();}).subscribe();}
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
