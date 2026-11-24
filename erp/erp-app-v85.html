@@ -1117,7 +1117,7 @@ input,select,textarea,button{accent-color:#555555}
 .v74frozen .v72inner tbody tr:hover td{background:#f4f4f4!important;}
 .v74frozen .v72pick:not(.active):not(:hover){background:#fff!important;}
 </style>
-<style>.ac-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 16px}.ac-metrics>div{border:1px solid #ddd;border-radius:8px;padding:12px;background:#fafafa}.ac-metrics span{display:block;font-size:12px;color:#666;margin-bottom:6px}.ac-metrics strong{font-size:18px;font-variant-numeric:tabular-nums}.ac-filters{flex-wrap:wrap;gap:8px}.ac-filters input,.ac-filters select{border:1px solid #ccc;border-radius:5px;padding:7px;background:#fff;min-width:105px}.ac-filters label{font-size:12px;display:flex;align-items:center;gap:5px}.ac-scroll{overflow:auto}.ac-table td{white-space:normal;min-width:65px}.ac-table td.numeric{white-space:nowrap}.ac-table button{margin:2px}.ac-modal{max-width:min(680px,95vw);max-height:85vh;overflow:auto}.ac-page .page-desc{max-width:850px;line-height:1.6}.ac-page .ac-panel-heading{display:flex;justify-content:flex-start;align-items:center;gap:12px;flex-wrap:wrap}.ac-page .ac-panel-heading>div{flex:0 0 auto}.ac-page .ac-panel-heading>.btn{flex:0 0 auto;margin:0}</style></head>
+<style>.ac-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 16px}.ac-metrics>div{border:1px solid #ddd;border-radius:8px;padding:12px;background:#fafafa}.ac-metrics span{display:block;font-size:12px;color:#666;margin-bottom:6px}.ac-metrics strong{font-size:18px;font-variant-numeric:tabular-nums}.ac-filters{flex-wrap:wrap;gap:8px}.ac-filters input,.ac-filters select{border:1px solid #ccc;border-radius:5px;padding:7px;background:#fff;min-width:105px}.ac-filters label{font-size:12px;display:flex;align-items:center;gap:5px}.ac-scroll{overflow:auto}.ac-table td{white-space:normal;min-width:65px}.ac-table td.numeric{white-space:nowrap}.ac-table button{margin:2px}.ac-modal{max-width:min(680px,95vw);max-height:85vh;overflow:auto}.ac-page .page-desc{max-width:850px;line-height:1.6}.ac-page .ac-panel-heading{display:flex;justify-content:flex-start;align-items:center;gap:12px;flex-wrap:wrap}.ac-page .ac-panel-heading>div{flex:0 0 auto}.ac-page .ac-panel-heading>.btn{flex:0 0 auto;margin:0}</style><style>.official-stock-notice{padding:9px 12px;margin:0 0 8px;border:1px solid #d1b788;background:#fffaf0;color:#6c4f20;font-size:12px}.v61-stock-header-title #officialStockExport{margin-left:12px;white-space:nowrap}</style></head>
 <body>
 <div class="app-shell">
 <aside class="sidebar" id="sidebar">
@@ -1223,7 +1223,7 @@ for(const [ko,en,aliases] of V67_BRAND_CANONICAL){
  for(const alias of [...aliases,label])V67_BRAND_MAP.set(v67BrandCompact(alias),label);
 }
 function v66BrandLabel(value){
- const raw=String(value||'').trim();if(!raw)return '';
+ const raw=String(value||'').trim();if(!raw)return '';const approved=officialBrand(raw);if(approved)return approved;
  const exact=V67_BRAND_MAP.get(v67BrandCompact(raw));if(exact)return exact;
  // Already-bilingual input must not acquire an extra slash or a duplicated name.
  const pair=raw.match(/^([^/]+)\s*\/\s*([^/]+)$/);
@@ -1431,7 +1431,75 @@ function v72Render(groups){
  if(!groups.length)root.innerHTML=`<tr><td colspan="${chilled?7:1}" class="empty">일치하는 재고가 없습니다.</td></tr>`;
  const n=groups.reduce((a,g)=>a+g.items.length,0),q=groups.reduce((a,g)=>a+g.all,0);$('filteredCount').textContent=`품목 ${groups.length}종 · LOT ${n}건 · ${fmt(amount(q))} kg`;$('tableFooterLeft').textContent='표시 재고 '+fmt(amount(q))+' kg';
 }
-function v72Export(){const chilled=selectedZone==='chilled',all=selectedZone==='all';const rows=v72Groups.flatMap(g=>g.items.map(l=>[g.name,l.origin,l.vendor,v66BrandLabel(l.brand),meatLotRef(l),l.received,l.expiry,...(all?[amount(stock(l)),amount(stock(l,'frozen')),amount(stock(l,'chilled'))]:[amount(stock(l,selectedZone))])]));download((all?'원료육_전체':chilled?'냉장고':'냉동고')+'_재고_'+today()+'.csv',csv([['품목','원산지','업체','브랜드','LOT / 기록번호','입고일','소비기한',...(all?['총재고(kg)','냉동고(kg)','냉장고(kg)']:['재고(kg)'])],...rows]),'text/csv;charset=utf-8');}
+
+function officialBrand(v){
+ const raw=String(v||'').trim();if(!raw)return '';
+ const pair=raw.match(/^([^/]+)\/([^/]+)$/);if(pair&&/[가-힣]/.test(pair[1])&&/[a-z]/i.test(pair[2]))return pair[1].trim()+'/'+pair[2].toUpperCase().replace(/[^A-Z]/g,'');
+ const ar=state.officialMeatArchive;if(!ar)return '';
+ const norm=x=>String(x||'').normalize('NFKC').replace(/[\s'’]/g,'').toUpperCase();
+ if(!window.__officialBrands||window.__officialBrands.archive!==ar){
+  const map=new Map();for(const row of [...ar.baseline,...ar.frozenHistory,...ar.chilledHistory]){const x=String(row[5]||'');if(!/^[^/]+\/[A-Za-z]+$/.test(x))continue;const [ko,en]=x.split('/');for(const k of [ko,en,x])map.set(norm(k),x);}
+  map.set(norm('올리메'),'올리멜/OLYMEL');window.__officialBrands={archive:ar,map};
+ }
+ return window.__officialBrands.map.get(norm(raw))||'';
+}
+function officialXml(v){return String(v??'').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
+function officialRows(st=state){
+ const ar=st.officialMeatArchive||{},heads=['날짜','육류','제품명','원산지','업체명','브랜드','입고일','소비기한','중량','입출고','재고중량','입출구분','생산품목','비고','단가(kg)','입출고금액','재고금액'],title=['','','원료육 재고현황 · '+today()+' · ERP 현재 재고중량 기준'],marker=['','','기준일','','','','','','기준일','','','기준일'],frozen=[title,[...heads,'','중량']],chilled=[title,heads],history=[title,heads,marker];
+ const fs=ar.frozenHistory||[],cs=ar.chilledHistory||[],exception=new Map((ar.exceptions||[]).map(e=>[e.id,e]));
+ const brand=(l)=>l.origin==='국내산'?'':officialBrand(l.brand)||v66BrandLabel(l.brand);
+ const toBase=(l)=>[l.created?.slice(0,10)||l.received||today(),l.type,l.name,l.origin,l.vendor,brand(l),l.received,l.expiry,'','','','','',l.note||'',l.price||'','',''];
+ const note=(row,msg)=>{row[13]=[row[13],msg].filter(Boolean).join(' · ');};
+ const clean=(row)=>row.map((v,i)=>{if([0,6,7].includes(i)&&/^\d{4}-\d{2}-\d{2}/.test(String(v)))return String(v).slice(0,10);if([8,10,14,15,16,18].includes(i)&&v!==''&&Number.isFinite(Number(v)))return Number(v);return v??'';});
+ const lots=st.items.slice().sort((a,b)=>(a.officialRow||1e9)-(b.officialRow||1e9)||String(a.name).localeCompare(String(b.name),'ko')||String(a.received).localeCompare(String(b.received)));
+ for(const l of lots){
+  const orig=l.officialRow?ar.baseline?.[l.officialRow-3]:null;
+  const fr=clean(orig?orig.slice():toBase(l));const cr=clean(orig?orig.slice(0,17):toBase(l));
+  for(const row of [fr,cr]){row[1]=l.type;row[2]=l.name;row[3]=l.origin;row[4]=l.vendor||'0';row[5]=brand(l);row[6]=l.received||'0';row[7]=l.expiry||'0';row[14]=l.price||row[14]||'';row[15]='';}
+  fr[8]=orig?clean(orig)[8]:Number(l.frozen)||0;fr[10]=Number(l.frozen)||0;fr[16]=l.price?Math.round(l.frozen*l.price*100)/100:'';
+  cr[8]=orig?Number(orig[18])||0:Number(l.chilled)||0;cr[10]=Number(l.chilled)||0;cr[16]=l.price?Math.round(l.chilled*l.price*100)/100:'';
+  if(!orig)fr[18]=Number(l.chilled)||0;
+  if(exception.has(l.id))note(cr,'원본 냉장고 음수 '+exception.get(l.id).sourceChilled+'kg · 확인 필요 (정상재고에 미포함)');
+  frozen.push(fr);chilled.push(cr);
+ }
+ frozen.push(marker);for(const row of fs)frozen.push(clean(row));for(const row of cs)history.push(clean(row));
+ const lotMap=new Map(st.items.map(l=>[l.id,l]));
+ for(const t of (st.transactions||[]).slice().reverse()){
+  const l=lotMap.get(t.lotId);if(!l||!Array.isArray(t.effects))continue;
+  for(const ef of t.effects){if(!['frozen','chilled'].includes(ef.zone)||!ef.delta)continue;const r=toBase(l);r[0]=v70Date(t);r[8]=Number(ef.delta);r[9]=t.destination==='external'?(t.recipient||'외부'):t.type==='move'?'냉장고':t.type==='refreeze'?'냉동고':'';r[10]='';r[11]=ef.delta>0?'입고':'출고';r[12]=t.productionTarget||'';r[13]=[t.note,t.type==='reverse'?'취소 반영':''].filter(Boolean).join(' · ');r[14]=t.unitCost||l.price||'';r[15]=r[14]?Math.round(r[8]*r[14]*100)/100:'';(ef.zone==='frozen'?frozen:history).push(r);}
+ }
+ return [{name:'냉동고',rows:frozen},{name:'냉장고-재고',rows:chilled},{name:'냉장고-입출고',rows:history},{name:'냉동고 재고중량 수식',rows:[['ERP에서 계산한 현재 재고중량(K열)을 값으로 출력합니다.'],['중량(I열)은 원본 기초 및 입출고 기록이며 K열을 재계산하지 않습니다.']]},{name:'냉장고재고 새수식',rows:[['ERP 현재 냉장고 재고중량(K열) 기준'],['음수 원본 재고는 비고에 별도 표시합니다.']]},{name:'월마감시 냉동고 시트 반드시 복사하여 새로 생성할것',rows:[['월마감시 냉동고 시트 반드시 복사하여 새로 생성할것'],['ERP 기준일 '+today()],['본 파일은 현재 재고 스냅샷 및 입출고 기록입니다.']]}];
+}
+function officialWorkbook(sheets){
+ const ns='http://schemas.openxmlformats.org/spreadsheetml/2006/main',rel='http://schemas.openxmlformats.org/officeDocument/2006/relationships',pkg='http://schemas.openxmlformats.org/package/2006/relationships',decl='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+ const xml=officialXml,files={};
+ files['[Content_Types].xml']=decl+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>'+sheets.map((_,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')+'</Types>';
+ files['_rels/.rels']=decl+`<Relationships xmlns="${pkg}"><Relationship Id="rId1" Type="${rel}/officeDocument" Target="xl/workbook.xml"/></Relationships>`;
+ files['xl/workbook.xml']=decl+`<workbook xmlns="${ns}" xmlns:r="${rel}"><sheets>`+sheets.map((sh,i)=>`<sheet name="${xml(sh.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join('')+'</sheets></workbook>';
+ files['xl/_rels/workbook.xml.rels']=decl+`<Relationships xmlns="${pkg}">`+sheets.map((_,i)=>`<Relationship Id="rId${i+1}" Type="${rel}/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join('')+`<Relationship Id="rId${sheets.length+1}" Type="${rel}/styles" Target="styles.xml"/></Relationships>`;
+ files['xl/styles.xml']=decl+`<styleSheet xmlns="${ns}"><numFmts count="2"><numFmt numFmtId="164" formatCode="yyyy-mm-dd"/><numFmt numFmtId="165" formatCode="#,##0.##;[Red]-#,##0.##;0"/></numFmts><fonts count="2"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9EAD3"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFD0D0D0"/></left><right style="thin"><color rgb="FFD0D0D0"/></right><top style="thin"><color rgb="FFD0D0D0"/></top><bottom style="thin"><color rgb="FFD0D0D0"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="165" fontId="1" fillId="3" borderId="1" xfId="0" applyNumberFormat="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+ const widths=[12.625,5.625,25.625,10.625,20.625,20.625,12.625,12.625,10.625,10.625,12.625,10.625,33.375,40.625,13.625,13.625,13.625,33.375,10.625];
+ sheets.forEach((sh,idx)=>{
+  const body=sh.rows.map((r,i)=>`<row r="${i+1}">`+r.map((v,j)=>{const ref=String.fromCharCode(65+j)+(i+1);if(v===null||v===undefined||v==='')return '';let n=typeof v==='number'?v:null,style=idx<3&&i===1?1:idx<3&&i>1?5:0;if(idx<3&&i>1&&[0,6,7].includes(j)&&/^\d{4}-\d{2}-\d{2}$/.test(String(v))){n=(Date.parse(v+'T00:00:00Z')-Date.UTC(1899,11,30))/864e5;style=2;}else if(n!==null&&idx<3&&i>1)style=j===10?4:3;if(n!==null&&Number.isFinite(n))return `<c r="${ref}" s="${style}"><v>${n}</v></c>`;return `<c r="${ref}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${xml(v)}</t></is></c>`;}).join('')+'</row>').join('');
+  files[`xl/worksheets/sheet${idx+1}.xml`]=decl+`<worksheet xmlns="${ns}">`+(idx<3?`<sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${widths.slice(0,idx===0?19:17).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join('')}</cols>`:'<cols><col min="1" max="1" width="90" customWidth="1"/></cols>')+`<sheetData>${body}</sheetData></worksheet>`;
+ });
+ return files;
+}
+function officialZip(files){
+ const encode=s=>{const b=[];for(const c of String(s)){const n=c.codePointAt(0);if(n<128)b.push(n);else if(n<2048)b.push(192|(n>>6),128|(n&63));else if(n<65536)b.push(224|(n>>12),128|((n>>6)&63),128|(n&63));else b.push(240|(n>>18),128|((n>>12)&63),128|((n>>6)&63),128|(n&63));}return Uint8Array.from(b);};
+ const tbl=Array.from({length:256},(_,i)=>{let c=i;for(let j=0;j<8;j++)c=(c>>>1)^((c&1)?0xedb88320:0);return c>>>0;});
+ const crc=b=>{let c=0xffffffff;for(const x of b)c=tbl[(c^x)&255]^(c>>>8);return(c^0xffffffff)>>>0;};
+ const chunks=[],central=[];let offset=0,centLen=0,count=0;
+ for(const [name,content] of Object.entries(files)){const n=encode(name),b=encode(content),sum=crc(b);const h=new Uint8Array(30),d=new DataView(h.buffer);d.setUint32(0,0x04034b50,true);d.setUint16(4,20,true);d.setUint16(10,0,true);d.setUint16(12,33,true);d.setUint32(14,sum,true);d.setUint32(18,b.length,true);d.setUint32(22,b.length,true);d.setUint16(26,n.length,true);
+ const ch=new Uint8Array(46),cd=new DataView(ch.buffer);cd.setUint32(0,0x02014b50,true);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(14,33,true);cd.setUint32(16,sum,true);cd.setUint32(20,b.length,true);cd.setUint32(24,b.length,true);cd.setUint16(28,n.length,true);cd.setUint32(42,offset,true);
+ chunks.push(h,n,b);central.push(ch,n);offset+=h.length+n.length+b.length;centLen+=ch.length+n.length;count++;
+ }
+ const e=new Uint8Array(22),v=new DataView(e.buffer);v.setUint32(0,0x06054b50,true);v.setUint16(8,count,true);v.setUint16(10,count,true);v.setUint32(12,centLen,true);v.setUint32(16,offset,true);return [...chunks,...central,e];
+}
+function officialStockDownload(){try{const chunks=officialZip(officialWorkbook(officialRows()));const blob=new Blob(chunks,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='원료육 재고 '+today().replaceAll('-','')+'.xlsx';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);toast('현재 원료육 재고 엑셀을 저장했습니다.');}catch(e){console.error(e);alert('엑셀 생성에 실패했습니다: '+e.message);}}
+function officialStockNotice(){const ex=state.officialMeatArchive?.exceptions||[];if(!ex.length)return;const box=document.createElement('div');box.className='official-stock-notice';box.textContent='공식 엑셀 재고 확인 필요: '+ex.map(e=>e.name+' (냉장 '+e.sourceChilled+'kg)').join(' / ')+' — 원본 음수량은 정상재고에서 제외했습니다.';$('mainView').prepend(box);}
+
+function v72ExportLegacy(){const chilled=selectedZone==='chilled',all=selectedZone==='all';const rows=v72Groups.flatMap(g=>g.items.map(l=>[g.name,l.origin,l.vendor,v66BrandLabel(l.brand),meatLotRef(l),l.received,l.expiry,...(all?[amount(stock(l)),amount(stock(l,'frozen')),amount(stock(l,'chilled'))]:[amount(stock(l,selectedZone))])]));download((all?'원료육_전체':chilled?'냉장고':'냉동고')+'_재고_'+today()+'.csv',csv([['품목','원산지','업체','브랜드','LOT / 기록번호','입고일','소비기한',...(all?['총재고(kg)','냉동고(kg)','냉장고(kg)']:['재고(kg)'])],...rows]),'text/csv;charset=utf-8');}
 function renderInventory(){
  let groups=candidateGroups();const term=$('searchInput').value;
  groups=groups.flatMap(g=>{
@@ -1596,7 +1664,7 @@ function makeQuickProduct(){
  const sel=$('f_productId');sel.innerHTML=productSelectOptions().map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');sel.value=r.product.id;wrap.classList.add('hidden');$('f_quickProductName').value='';$('quickProductError').textContent='';toast('제품을 등록하고 선택했습니다.');
 }
 
-function sectionHtml(){return `<section class="inventory-panel card v72stock ${selectedZone!=='chilled'?'v74frozen':''} ${selectedZone==='chilled'?'v75chilled':''} ${selectedZone==='all'?'v75all':''}"><div class="filters"><div class="search-field"><input id="searchInput" placeholder="전체 검색: 품목·브랜드·원산지·업체·LOT 등" aria-label="재고 검색"></div>${v22ZeroCheckbox('v22ZeroMeat')}<button type="button" class="reset-filters" id="resetFilters">필터 초기화</button><span class="filter-count" id="filteredCount"></span><button type="button" class="csv-link" id="btnExportCsv">엑셀(CSV) 저장</button></div><div class="table-scroll"><table class="inventory-table stock-table stock-table-v41"><thead id="inventoryHead"></thead><tbody id="inventoryBody"></tbody></table></div><div class="table-footer"><span id="tableFooterLeft"></span><span>작업 ▾에서 작업 선택 · 여러 LOT 동시 처리 가능</span></div></section>`;}
+function sectionHtml(){return `<section class="inventory-panel card v72stock ${selectedZone!=='chilled'?'v74frozen':''} ${selectedZone==='chilled'?'v75chilled':''} ${selectedZone==='all'?'v75all':''}"><div class="filters"><div class="search-field"><input id="searchInput" placeholder="전체 검색: 품목·브랜드·원산지·업체·LOT 등" aria-label="재고 검색"></div>${v22ZeroCheckbox('v22ZeroMeat')}<button type="button" class="reset-filters" id="resetFilters">필터 초기화</button><span class="filter-count" id="filteredCount"></span><button type="button" class="csv-link" id="btnExportCsv">오늘자 원료육 재고 엑셀</button></div><div class="table-scroll"><table class="inventory-table stock-table stock-table-v41"><thead id="inventoryHead"></thead><tbody id="inventoryBody"></tbody></table></div><div class="table-footer"><span id="tableFooterLeft"></span><span>작업 ▾에서 작업 선택 · 여러 LOT 동시 처리 가능</span></div></section>`;}
 const EXTRA_CATEGORIES={
  finished_all:'완제품 전체',finished_own:'완제품 · 자체생산',finished_buy:'완제품 · 매입판매',
  ingredients_all:'부재료 전체',sauce:'소스',spice:'향신료',vegetable:'야채',supplies:'부자재'
@@ -2404,8 +2472,8 @@ function v61StockPage(){
  else if(v61StockKind==='ingredients')externalCategoryPage('ingredients_all');
  else if(['sauce','spice','vegetable','supplies'].includes(v61StockKind))externalCategoryPage(v61StockKind);
  else v61AllStock();
- const tabs=`<section class="card v61-stock-header"><div class="v61-stock-header-title"><strong>재고현황</strong><span>전체 조회 또는 품목 분류 선택</span></div><div class="v61-tab-group" role="group" aria-label="재고 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v61StockKind===key?'active':''}" data-v61-stock="${key}" aria-pressed="${v61StockKind===key}">${label}</button>`).join('')}</div></section>`;
- $('mainView').insertAdjacentHTML('afterbegin',tabs);
+ const tabs=`<section class="card v61-stock-header"><div class="v61-stock-header-title"><strong>재고현황</strong><span>전체 조회 또는 품목 분류 선택</span><button type="button" class="btn btn-outline" id="officialStockExport">오늘자 원료육 재고 엑셀</button></div><div class="v61-tab-group" role="group" aria-label="재고 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v61StockKind===key?'active':''}" data-v61-stock="${key}" aria-pressed="${v61StockKind===key}">${label}</button>`).join('')}</div></section>`;
+ $('mainView').insertAdjacentHTML('afterbegin',tabs);$('officialStockExport').onclick=officialStockDownload;officialStockNotice();
  $('mainView').querySelectorAll('[data-v61-stock]').forEach(b=>b.onclick=()=>{v61StockKind=b.dataset.v61Stock;showZeroStock=false;columnFilters.clear();tableSort={key:'default',direction:'asc'};v80GroupSort={key:'name',direction:'asc'};dismissFilter();v61StockPage()});
 }
 // v61: History classifications are display-only. Move records never change the total stock.
@@ -2565,7 +2633,7 @@ function setView(next,accountingOrigin=''){
  $('pageDesc').textContent=acNames()[next]?'입출고 연동 · 사내 거래 및 정산 관리':v37Views.includes(next)?'품목 구분부터 생산실적·원가·매출까지 연결하는 생산관리 화면입니다.':next==='operations'?'해동과 재냉동을 기록합니다. 냉동고와 냉장고 사이의 이동으로 전체 재고량은 변하지 않습니다.':next==='ship'?'LOT를 선택해 해당 줄에서 출고수량을 입력합니다.':next==='intake'?'입고일·업체는 한 번만 입력하고 여러 품목을 일괄 등록합니다.':EXTRA_CATEGORIES[next]?'품목별 재고를 확인하고 LOT별 소비기한과 보관정보를 조회합니다.':next==='stock_overview'?'전체 재고를 보거나 원료육·완제품·부재료·부자재만 선택해 조회합니다.':next==='history'?'입고·출고·해동·재냉동 기록을 한 화면에서 확인합니다.':next==='products'?'원료육·완제품·소스·향신료·야채·부자재의 상품코드를 등록·관리합니다.':next==='backup'?'재고 데이터를 백업하거나 복원하고 초기 상태를 관리합니다.':next==='chilled'?'냉동고에서 이동한 LOT와 냉장고 재고를 관리합니다.':next==='frozen'?'품목별 냉동고 재고와 입고 LOT를 확인하세요.':'품목별 재고를 확인하고 LOT로 입출고를 처리하세요.';
  
  // 신규 입고는 좌측 입고 메뉴에서 실행: 상단 중복 버튼 제거
- if(acNames()[next])acPage(next);else if(next==='ops_home')v38Home();else if(next==='ops_plan')v38PlanPage();else if(next==='ops_trace')v38Trace();else if(next==='ops_audit')v38Audit();else if(next==='fg_catalog')v37Catalog();else if(next==='fg_recipe')v37Recipe();else if(next==='fg_make')v37MakePage();else if(next==='fg_records')v37Records();else if(next==='fg_margin')v37Margin();else if(next==='operations')v36Page();else if(next==='stock_overview')v61StockPage();else if(next==='ship')v18Page();else if(next==='intake')intakePage();else if(['dashboard','frozen','chilled'].includes(next)){selectedZone=next==='dashboard'?'all':next;$('mainView').innerHTML=sectionHtml();attachInventoryListeners();renderInventory();}
+ if(acNames()[next])acPage(next);else if(next==='ops_home')v38Home();else if(next==='ops_plan')v38PlanPage();else if(next==='ops_trace')v38Trace();else if(next==='ops_audit')v38Audit();else if(next==='fg_catalog')v37Catalog();else if(next==='fg_recipe')v37Recipe();else if(next==='fg_make')v37MakePage();else if(next==='fg_records')v37Records();else if(next==='fg_margin')v37Margin();else if(next==='operations')v36Page();else if(next==='stock_overview')v61StockPage();else if(next==='ship')v18Page();else if(next==='intake')intakePage();else if(['dashboard','frozen','chilled'].includes(next)){selectedZone=next==='dashboard'?'all':next;$('mainView').innerHTML=sectionHtml();attachInventoryListeners();renderInventory();officialStockNotice();}
  else if(EXTRA_CATEGORIES[next])externalCategoryPage(next);else if(next==='products')productPage();else if(next==='history')renderHistory();else renderBackup();
  v68Counts();
  $('sidebar').classList.remove('open');
@@ -2582,7 +2650,7 @@ function attachInventoryListeners(){
  };
  $('inventoryBody').onclick=e=>{const sort=e.target.closest('[data-v80-sort],[data-v80-group-sort]');if(sort){v80ToggleSort(sort.dataset.v80Sort||sort.dataset.v80GroupSort,!!sort.dataset.v80GroupSort);return;}const info=!e.target.closest('button')&&e.target.closest('[data-v73-lot]'); if(info){const l=state.items.find(x=>x.id===(info.dataset.v72Info||info.dataset.v73Lot));if(l)alert([l.name,'업체: '+(l.vendor||'—'),'브랜드: '+(v66BrandLabel(l.brand)||'—'),'입고일: '+sourceDate(l.received),'LOT: '+(l.lotNumber||l.lot||l.id),'비고: '+(l.note||'—')].join('\n'));return;}const pick=e.target.closest('[data-v72-select]');if(pick){const key=pick.dataset.v72Select;tableSort={key:'default',direction:'asc'};v72Selected=key;renderInventory();return;}const filter=e.target.closest('button[data-filter]');if(filter){e.preventDefault();e.stopPropagation();if(popupField===filter.dataset.filter&&$('columnFilterPopup'))dismissFilter();else openColumnFilter(filter.dataset.filter,filter);return;}const b=e.target.closest('button[data-work]');if(b){e.preventDefault();e.stopPropagation();showActionMenu(b,{productId:b.dataset.product||'',lotId:b.dataset.lot||'',from:selectedZone==='all'?'':selectedZone});return;}const r=e.target.closest('[data-toggle]');if(r){const key=r.dataset.toggle;expanded.has(key)?expanded.delete(key):expanded.add(key);renderInventory();}};
  $('inventoryBody').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-toggle],[data-v73-lot]')){e.preventDefault();e.target.click();}};
- $('btnExportCsv').onclick=v72Export;
+ $('btnExportCsv').onclick=officialStockDownload;
 }
 function field(label,name,opts={}){const required=opts.required?'<span class="req">*</span>':'';const id='f_'+name;let input;if(opts.options){input=`<select id="${id}" name="${name}" ${opts.required?'required':''}>${opts.options.map(([v,t])=>`<option value="${esc(v)}" ${v===opts.value?'selected':''}>${esc(t)}</option>`).join('')}</select>`;}else if(opts.textarea){input=`<textarea id="${id}" name="${name}" placeholder="${esc(opts.placeholder||'')}">${esc(opts.value||'')}</textarea>`;}else if(opts.type==='date')input=`<span class="quick-date"><input id="${id}" name="${name}" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" value="${esc(opts.value||'')}" ${opts.required?'required':''}><input class="quick-date-calendar" type="date" value="${esc(opts.value||'')}" aria-label="${esc(label)} 달력 선택" title="달력에서 선택"></span>`;else input=`<input id="${id}" name="${name}" type="${opts.type||'text'}" ${opts.type==='number'?'min="0.01" step="0.01"':''} value="${esc(opts.value||'')}" ${opts.placeholder?`placeholder="${esc(opts.placeholder)}"`:''} ${opts.required?'required':''}>`;
  return `<div class="form-field ${opts.full?'full':''}"><label for="${id}">${esc(label)}${required}</label>${input}${opts.help?`<div class="field-help">${esc(opts.help)}</div>`:''}</div>`;}
@@ -3355,6 +3423,7 @@ function saveIntake(){
   if(r.category!=='meat'&&r.weight!==''&&Number(r.weight)<0)return fail(`${pos}번 행: 중량이 잘못됐습니다.`);
   const dateToUse=r.category==='finished_own'?r.received:receiptDate;
   if(r.expiry&&r.expiry<dateToUse)return fail(`${pos}번 행: 소비기한이 ${r.category==='finished_own'?'제조일':'입고일'}보다 빠릅니다.`);
+  if(r.category==='meat')r.brand=/^(국내산?|대한민국|한국|한국산|korea|south korea)$/i.test(r.origin.trim())?'':(officialBrand(r.brand)||v66BrandLabel(r.brand));
   const actualVendor=r.category==='finished_own'?'':vendor;
   const actualPartner=r.category==='finished_own'?null:v17InboundPartner;
   if(r.category!=='finished_own'&&!actualPartner)return fail('상단 업체를 거래처 목록에서 선택해 주세요.');
