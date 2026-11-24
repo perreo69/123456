@@ -5086,4 +5086,46 @@ html{scrollbar-gutter:stable}
 #mainView .v97-commands .intake-save{min-width:130px!important}
 #mainView>.v97-transaction>.v97-note{margin:0!important;padding:9px 23px 12px!important;line-height:18px!important;font-size:12px!important;color:#626269!important}
 }
+</style><style id="v98-sidebar-typography">
+/* macOS-inspired navigation hierarchy; CSS pixel sizes adapted for the Windows web ERP. */
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+#sidebar.sidebar{
+ --nav-section-size:15px;--nav-section-weight:700;
+ --nav-parent-size:14px;--nav-parent-weight:600;
+ --nav-leaf-size:13px;--nav-leaf-weight:400;
+ --nav-count-size:11px;
+}
+#sidebar .v68-card>.v68-label{
+ font-size:var(--nav-section-size)!important;font-weight:var(--nav-section-weight)!important;
+ line-height:21px!important;letter-spacing:-.25px!important;color:#333337!important;
+ padding:7px 10px 5px!important;
+}
+#sidebar .v68-card>.side-menu>.v68-link,
+#sidebar .v68-card .v68-group>.v68-parent{
+ font-size:var(--nav-parent-size)!important;font-weight:var(--nav-parent-weight)!important;
+ line-height:20px!important;letter-spacing:-.15px!important;
+ padding:5px 10px 5px 20px!important;min-height:30px!important;
+}
+#sidebar .v68-card .nav-children{
+ padding:1px 0 4px!important;
+}
+#sidebar .v68-card .nav-children>.v68-link{
+ font-size:var(--nav-leaf-size)!important;font-weight:var(--nav-leaf-weight)!important;
+ line-height:19px!important;letter-spacing:0!important;
+ padding:4px 10px 4px 34px!important;min-height:28px!important;
+}
+#sidebar .v68-card>.side-menu>.v68-link[data-view="products"]{
+ font-size:var(--nav-section-size)!important;font-weight:var(--nav-section-weight)!important;
+ line-height:21px!important;letter-spacing:-.25px!important;padding-left:10px!important;
+ min-height:33px!important;
+}
+#sidebar .v68-card .v68-link.selected{font-weight:600!important}
+#sidebar .v68-card>.side-menu>.v68-link[data-view="products"].selected{font-weight:700!important}
+#sidebar .v68-card .v68-link>span:first-child,#sidebar .v68-card .v68-parent>span:first-child{min-width:0;white-space:nowrap}
+#sidebar .v68-card .v68-count{
+ font-size:var(--nav-count-size)!important;font-weight:400!important;line-height:16px!important;
+ letter-spacing:0!important;flex:0 0 auto;font-variant-numeric:tabular-nums!important;
+}
+#sidebar .v68-card .nav-chevron{flex:0 0 auto}
+}
 </style></body></html>
