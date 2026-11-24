@@ -3327,5 +3327,5 @@ table.t-items td .cat{display:inline-block;padding:0 6px;border:1px solid #E2E8F
   .phtop .headacts .btn,.phtop .pacts .btn{height:29px;font-size:11.8px}
 }
 /* v47 — 정렬 중인 열은 파란 밑줄 + ▲▼ 로만 알린다(머리글 전체를 파랗게 칠하지 않는다) */
-table.tblu thead th.on{background:transparent;box-shadow:inset 0 -2px 0 #2563EB;color:#1D4ED8}
+table.tblu thead th.on{background:#F1F5F9;box-shadow:inset 0 -2px 0 #2563EB;color:#1D4ED8}
 table.tblu thead th.on .uhd,table.tblu thead th.on .ht{color:#1D4ED8}
