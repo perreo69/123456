@@ -944,8 +944,8 @@ footer{padding-top:16px;color:#999;font-size:10px}footer small,footer span,.foot
 #v17StatementDialog:has(.v46-paper-sheet){width:min(1110px,98vw);max-width:1110px}
 #v17StatementBody:has(.v46-paper-sheet){padding:8px 0 22px;max-width:none}
 .v46-paper-sheet{background:#fff;margin:0 auto 14px;max-width:100%;padding:8px 0 0;box-sizing:border-box}
-.v46-copy{--doc:#575757;--line:rgba(87,87,87,.52);--shade:#f3f3f3;box-sizing:border-box;width:100%;padding:8px 10px 5px;min-height:0!important;border:0!important;background:#fff;color:#2f2f2f;font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;font-size:11px;line-height:1.38;overflow:visible}
-.v46-copy.blue{--doc:#4f4f4f;--line:rgba(79,79,79,.52);--shade:#f1f1f1}
+.v46-copy{--doc:#e0322c;--line:rgba(224,50,44,.52);--shade:#fff0ed;box-sizing:border-box;width:100%;padding:8px 10px 5px;min-height:0!important;border:0!important;background:#fff;color:#223147;font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;font-size:11px;line-height:1.38;overflow:visible}
+.v46-copy.blue{--doc:#1256be;--line:rgba(18,86,190,.52);--shade:#eaf2ff}
 .v46-copy *{box-sizing:border-box}
 .v46-title{height:56px;position:relative;text-align:center;color:var(--doc);padding-top:1px}
 .v46-title strong{font-size:22px;letter-spacing:8px;font-weight:800;line-height:32px;display:block}
@@ -975,7 +975,7 @@ footer{padding-top:16px;color:#999;font-size:10px}footer small,footer span,.foot
 .v46-items td{height:29px}
 .v46-items col.date{width:6.5%}.v46-items col.item{width:30.5%}.v46-items col.spec{width:12%}.v46-items col.qty{width:8.5%}.v46-items col.unitprice{width:9.5%}.v46-items col.amount{width:12.5%}.v46-items col.vat{width:10.5%}.v46-items col.remark{width:10%}
 .v46-items td.item{text-align:left;padding-left:8px}
-.v46-items .lot-desc{display:block;color:#626262;font-size:9.2px;line-height:1.25;margin-top:2px;white-space:normal}
+.v46-items .lot-desc{display:block;color:#53647b;font-size:9.2px;line-height:1.25;margin-top:2px;white-space:normal}
 .v46-items .number{text-align:right;padding-right:7px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .v46-items .empty-item td{height:26px}
 .v46-items .sum-row td{height:27px}
@@ -984,7 +984,7 @@ footer{padding-top:16px;color:#999;font-size:10px}footer small,footer span,.foot
 .v46-bank{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);margin-top:6px;padding-top:4px;color:var(--doc);font-size:9px;line-height:1.25}
 .v46-bank span:last-child{white-space:nowrap}
 .v46-separator{border:0;border-top:1px dashed #b2b2b2;margin:9px 10px 13px;height:0}
-.v46-tax-note{font-size:9px;color:#747474;margin-top:3px;text-align:right}
+.v46-tax-note{font-size:9px;color:#6b7586;margin-top:3px;text-align:right}
 @media(max-width:680px){#v17StatementDialog:has(.v46-paper-sheet){width:98vw}}
 @media print{
  @page{size:A4 portrait;margin:5mm}
@@ -1018,9 +1018,6 @@ footer{padding-top:16px;color:#999;font-size:10px}footer small,footer span,.foot
  .v46-tax-note{font-size:7.5px!important}
  .v46-separator{margin:1mm 1.3mm 4mm!important}
 }
-
-/* v60: 생산관리 메뉴만 임시 숨김. 복원하려면 이 규칙을 제거하고 위 두 요소의 v60-paused-production-nav 클래스 제거 */
-.v60-paused-production-nav{display:none!important;}
 </style>
 <style id="v61-menu-stock">
 .v61-stock-nav{padding-bottom:5px}
