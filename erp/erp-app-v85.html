@@ -1332,7 +1332,7 @@ function addProduct(type,name){
  state.products.push(p);return {product:p};
 }
 const typeChoices=[['돈','돈육'],['우','우육'],['계','계육'],['양','양육'],['오리','오리'],['기타','기타']];
-const productSelectOptions=()=>[['','등록된 제품을 선택하세요'],...state.products.filter(p=>v86IsActive('원료육',p.name,'',p.active)).sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(p=>[p.id,`${p.name}  (${p.type} · ${p.id})`])];
+const productSelectOptions=()=>[['','등록된 제품을 선택하세요'],...state.products.filter(p=>v86IsActive('원료육',p.name,'',p.active)).sort((a,b)=>a.name.localeCompare(b.name,'ko')).map(p=>[p.id,`${p.name}  (${p.type} · ${v95MeatCode(p)})`])];
 
 function stock(l,zone='all'){return zone==='all'?cents(l.frozen)+cents(l.chilled):cents(l[zone]);}
 function activeLots(zone='all'){return state.items.filter(l=>showZeroStock||stock(l,zone)>0);}
@@ -1611,6 +1611,12 @@ function openColumnFilter(key,anchor){
 
 // v66: Unified product-registration view. Inventory balances remain untouched.
 const V66_CATEGORIES=['전체','원료육','완제품','소스','향신료','야채류','부재료','부자재','분류 확인'];
+function v95CodeKey(v){return String(v??'').trim().normalize('NFKC').toUpperCase();}
+function v95CodeEntries(){return [...V17_ITEMS,...(state.v66CustomCatalog||[]),...(state.v37Custom||[]),...state.products.flatMap(p=>[{code:p.id,owner:p.id},{code:p.itemCode||p.id,owner:p.id}])];}
+function v95CodeTaken(code,owner=''){const k=v95CodeKey(code);return !!k&&v95CodeEntries().some(p=>v95CodeKey(p.code)===k&&(!owner||p.owner!==owner));}
+function v95NextCode(){let n=1;for(const p of v95CodeEntries()){const m=/^ITEM-(\d+)$/i.exec(String(p.code));if(m)n=Math.max(n,Number(m[1])+1);}while(v95CodeTaken('ITEM-'+String(n).padStart(6,'0')))n++;return 'ITEM-'+String(n).padStart(6,'0');}
+function v95MeatCode(p){return p?.itemCode||p?.id||'';}
+
 function v66GroupFor(p){return state.v66CategoryOverrides?.[p.code]||p.group;}
 function v86Group(category){return ({meat:'원료육',finished_own:'완제품',finished_buy:'완제품',finished_unspecified:'완제품',sauce:'소스',spice:'향신료',vegetable:'야채류',ingredient_other:'부재료',supplies:'부자재',pending:'분류 확인'})[category]||category||'분류 확인';}
 function v86Key(group,name,spec){return JSON.stringify([v86Group(group),normName(name),v86Group(group)==='원료육'?'':normName(spec)]);}
@@ -1635,7 +1641,7 @@ function v66ProductList(){
   const lots=state.items.filter(l=>l.productId===p.id);
   const brands=[...new Set(lots.map(l=>String(l.brand||'').trim()).filter(Boolean))];
   const origins=[...new Set(lots.map(l=>String(l.origin||'').trim()).filter(Boolean))];
-  catalog.push({kind:'meat',code:p.id,group:'원료육',name:p.name,spec:'',unit:'kg',type:p.type,active:p.active,
+  catalog.push({kind:'meat',code:v95MeatCode(p),internalId:p.id,group:'원료육',name:p.name,spec:'',unit:'kg',type:p.type,active:p.active,
    info:{source:'원료육 등록',brands,origins}});
  }
  const index=v86UsageIndex(),known=new Set(catalog.map(p=>v86Key(p.group,p.name,p.spec)));
@@ -1666,7 +1672,7 @@ function renderProducts(){
   const distinct=esc(distinctText);
   const distinctTitle=p.kind==='meat'?[`육종 ${p.type||'기타'}`,...(p.info.origins||[]),...displayBrands].filter(Boolean).join(' · '):distinctText;
   const sources=p.kind==='meat'?'내부 원료육':p.kind==='custom'?'직접 등록':(p.info.source||'기존 상품');
-  const edit=p.kind==='meat'?`<button type="button" class="mini-btn" data-edit-product="${esc(p.code)}">수정</button>`:p.kind==='extra'?'':
+  const edit=p.kind==='meat'?`<button type="button" class="mini-btn" data-edit-product="${esc(p.internalId||p.code)}">수정</button>`:p.kind==='extra'?'':
   `<select class="v66-assign" data-v66-cat="${esc(p.code)}" aria-label="${esc(p.name)} 분류">${V66_CATEGORIES.slice(1).map(g=>`<option value="${g}" ${g===p.group?'selected':''}>${v66GroupLabel(g)}</option>`).join('')}</select>`;
   const spec=p.spec||p.info.spec||'';
   const related=p.info.duplicateCodes?.length>1?' · 동명/동규격 코드 '+p.info.duplicateCodes.length+'개':'';
@@ -1678,21 +1684,30 @@ function renderProducts(){
  $('v66MoreProducts').textContent=`나머지 ${fmt(rows.length-limit)}개 더 표시`;
 }
 function productPage(){
- $('mainView').innerHTML=`<section class="inventory-panel card"><div class="panel-top"><div><h2>전체 상품(품목) 등록·관리</h2><p class="page-desc">상태 버튼을 누르면 사용 중 / 미사용으로 전환됩니다. 미사용 품목은 신규 입고 목록에서 제외되며 기존 재고와 기록은 유지됩니다.</p></div><div style="display:flex;gap:8px"><button type="button" class="btn btn-outline" id="v66NewGeneral">+ 일반 상품 등록</button><button type="button" class="btn btn-primary" id="addProduct">+ 원료육 품목 등록</button></div></div><div class="filters"><div class="search-field"><input id="productSearch" type="search" placeholder="품목코드·상품명·규격·원산지·브랜드 검색"></div><select id="v66ProductCategory" class="product-status-select">${V66_CATEGORIES.map(g=>`<option value="${g}">${v66GroupLabel(g)}</option>`).join('')}</select><select id="productStatus" class="product-status-select"><option value="all">전체 상태</option><option value="active">사용 중</option><option value="inactive">미사용</option></select><span class="filter-count" id="productCount"></span></div><div class="table-scroll"><table class="inventory-table product-table"><thead><tr><th>품목코드</th><th>구분</th><th>상품명</th><th>규격</th><th>단위</th><th>원산지 / 브랜드</th><th>사용 여부</th><th>관리 / 분류변경</th></tr></thead><tbody id="productBody"></tbody></table></div><div class="table-footer"><span>원본 코드 보존 · 불분명한 분류는 ‘분류 확인’에서 변경 가능</span><button type="button" id="v66MoreProducts" class="mini-btn" hidden>더 표시</button><select id="v66PageSize" class="product-status-select" aria-label="표시 개수"><option value="200">200개씩</option><option value="500">500개씩</option><option value="99999">전체 표시</option></select></div></section>
- <dialog id="v66NewDialog" class="v37-modal"><form id="v66NewForm" method="dialog"><h3>신규 상품 등록</h3><label>품목코드<input id="v66Code" required placeholder="예: W00100999"></label><label>상품명<input id="v66Name" required placeholder="상품명"></label><label>구분<select id="v66Group">${V66_CATEGORIES.slice(1).map(g=>`<option value="${g}">${v66GroupLabel(g)}</option>`).join('')}</select></label><label>규격<input id="v66Spec" placeholder="예: 1kg*10팩"></label><label>단위<input id="v66Unit" placeholder="예: 팩 / kg"></label><div class="v37-error" id="v66Err"></div><div class="v37-buttons"><button type="button" id="v66Cancel">취소</button><button class="primary" type="submit">상품 등록</button></div></form></dialog>`;
+ $('mainView').innerHTML=`<section class="inventory-panel card"><div class="panel-top"><div><h2>전체 상품(품목) 등록·관리</h2><p class="page-desc">상태 버튼을 누르면 사용 중 / 미사용으로 전환됩니다. 미사용 품목은 신규 입고 목록에서 제외되며 기존 재고와 기록은 유지됩니다.</p></div><button type="button" class="btn btn-primary" id="v66NewGeneral">+ 품목 등록</button></div><div class="filters"><div class="search-field"><input id="productSearch" type="search" placeholder="품목코드·상품명·규격·원산지·브랜드 검색"></div><select id="v66ProductCategory" class="product-status-select">${V66_CATEGORIES.map(g=>`<option value="${g}">${v66GroupLabel(g)}</option>`).join('')}</select><select id="productStatus" class="product-status-select"><option value="all">전체 상태</option><option value="active">사용 중</option><option value="inactive">미사용</option></select><span class="filter-count" id="productCount"></span></div><div class="table-scroll"><table class="inventory-table product-table"><thead><tr><th>품목코드</th><th>구분</th><th>상품명</th><th>규격</th><th>단위</th><th>원산지 / 브랜드</th><th>사용 여부</th><th>관리 / 분류변경</th></tr></thead><tbody id="productBody"></tbody></table></div><div class="table-footer"><span>원본 코드 보존 · 불분명한 분류는 ‘분류 확인’에서 변경 가능</span><button type="button" id="v66MoreProducts" class="mini-btn" hidden>더 표시</button><select id="v66PageSize" class="product-status-select" aria-label="표시 개수"><option value="200">200개씩</option><option value="500">500개씩</option><option value="99999">전체 표시</option></select></div></section>
+ <dialog id="v66NewDialog" class="v37-modal v95-product-modal" aria-labelledby="v95ProductTitle"><form id="v66NewForm" method="dialog"><header class="v95-titlebar" data-drag-handle><h3 id="v95ProductTitle">품목 등록</h3><button type="button" class="v95-close" id="v95CloseProduct" aria-label="닫기">×</button></header><div class="v95-product-fields"><label>품목 구분<select id="v66Group">${[['원료육','원료육'],['finished_own','생산제품'],['finished_buy','매입상품'],['소스','소스'],['향신료','향신료'],['야채류','야채'],['부재료','기타 부재료'],['부자재','부자재'],['분류 확인','분류 확인']].map(([g,t])=>`<option value="${g}">${t}</option>`).join('')}</select></label><label>품목코드<input id="v66Code" placeholder="기존 코드 입력 또는 자동 부여" autocomplete="off" maxlength="80"><small>기존 코드가 있으면 입력하세요. 비워 두면 자동 부여됩니다.</small></label><label>품목명<input id="v66Name" required placeholder="품목명"></label><div id="v95MeatFields"><label>육류 구분<select id="v95MeatType">${typeChoices.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label><label>단위<input value="kg" readonly></label></div><div id="v95GeneralFields" hidden><label>규격<input id="v66Spec" placeholder="예: 1kg*10팩"></label><label>단위<input id="v66Unit" placeholder="예: 팩 / kg"></label></div><div class="v37-error" id="v66Err" role="alert"></div></div><div class="v37-buttons v95-product-footer"><button type="button" id="v66Cancel">취소</button><button class="primary" type="submit">등록</button></div></form></dialog>`;
  $('productSearch').oninput=renderProducts;$('productStatus').onchange=renderProducts;$('v66ProductCategory').onchange=renderProducts;
  $('v66PageSize').onchange=renderProducts;
  $('v66MoreProducts').onclick=()=>{$('v66PageSize').value='99999';renderProducts()};
- $('addProduct').onclick=()=>openAction('product');
- $('v66NewGeneral').onclick=()=>$('v66NewDialog').showModal();
- $('v66Cancel').onclick=()=>$('v66NewDialog').close();
+ const switchKind=()=>{const meat=$('v66Group').value==='원료육';$('v95MeatFields').hidden=!meat;$('v95GeneralFields').hidden=meat;};
+ $('v66Group').onchange=switchKind;
+ $('v66NewGeneral').onclick=()=>{$('v66NewForm').reset();$('v66Err').textContent='';switchKind();$('v66NewDialog').showModal();};
+ $('v66Cancel').onclick=$('v95CloseProduct').onclick=()=>$('v66NewDialog').close();switchKind();
  $('v66NewForm').onsubmit=e=>{
-  e.preventDefault();const code=$('v66Code').value.trim(),name=canonicalName($('v66Name').value),group=$('v66Group').value,spec=$('v66Spec').value.trim(),unit=$('v66Unit').value.trim();
-  if(!code||!name){$('v66Err').textContent='품목코드와 상품명을 입력해 주세요.';return;}
-  if(v66ProductList().some(x=>normName(x.code)===normName(code))){$('v66Err').textContent='이미 등록된 품목코드입니다.';return;}
-  state.v66CustomCatalog=state.v66CustomCatalog||[];state.v66CustomCatalog.push({code,name,group,spec,unit,active:true});
-  if(!persist()){state.v66CustomCatalog.pop();return;}
-  $('v66NewDialog').close();renderProducts();toast('상품이 등록되었습니다. 재고 수량은 추가되지 않았습니다.');
+  e.preventDefault();const code=$('v66Code').value.trim()||v95NextCode(),name=canonicalName($('v66Name').value),kind=$('v66Group').value,group=kind.startsWith('finished_')?'완제품':kind,spec=$('v66Spec').value.trim(),unit=$('v66Unit').value.trim();
+  const err=$('v66Err');err.textContent='';
+  if(!name){err.textContent='품목명을 입력해 주세요.';return;}
+  if(v95CodeTaken(code)){err.textContent='이미 등록된 품목코드입니다. 기존 품목을 확인해 주세요.';return;}
+  const previous=structuredClone(state);
+  if(kind==='원료육'){
+   const result=addProduct($('v95MeatType').value,name);if(result.error){err.textContent=result.error;return;}
+   result.product.itemCode=code;
+  }else{
+   state.v66CustomCatalog=state.v66CustomCatalog||[];state.v66CustomCatalog.push({code,name,group,spec,unit,active:true});
+   if(kind.startsWith('finished_')){state.v37Kinds=state.v37Kinds||{};state.v37Kinds[code]=kind==='finished_own'?'own':'buy';}
+  }
+  if(!persist()){state=previous;err.textContent='서버 저장에 실패했습니다.';return;}
+  $('v66NewDialog').close();renderProducts();toast('품목이 등록되었습니다. 재고 수량은 추가되지 않았습니다.');
  };
  $('productBody').onclick=e=>{
   const edit=e.target.closest('[data-edit-product]');if(edit){openAction('product',{id:edit.dataset.editProduct});return;}
@@ -2865,7 +2880,7 @@ function openAction(mode,opts={}){
  $('saveAction').textContent=a?.button|| (mode==='receive'?'입고 등록':'제품 저장');
  const selected=state.items.find(x=>x.id===opts.id),selectedP=productOf(opts.id);let out='';
  if(mode==='product'){
-  out=`<div class="form-body"><div class="form-section">${selectedP?'제품 정보 수정':'신규 제품 등록'}</div><div class="form-grid">${selectedP?`<div class="form-field full"><label>제품코드</label><div class="code-line">${esc(selectedP.id)}</div></div>`:''}${field('육류 구분','productType',{required:true,options:typeChoices,value:selectedP?.type||'돈'})}${field('품목명','productName',{full:true,required:true,value:selectedP?.name||'',placeholder:'예: 돈지방, 한우잡육'})}</div><div class="product-form-hint">같은 육종·품목명은 중복으로 등록할 수 없습니다. 기존 LOT와 재고는 유지됩니다.</div></div>`;
+  out=`<div class="form-body"><div class="form-section">${selectedP?'제품 정보 수정':'신규 제품 등록'}</div><div class="form-grid">${field('품목코드','productCode',{full:true,value:v95MeatCode(selectedP),placeholder:'기존 코드 입력 또는 자동 부여'})}${field('육류 구분','productType',{required:true,options:typeChoices,value:selectedP?.type||'돈'})}${field('품목명','productName',{full:true,required:true,value:selectedP?.name||'',placeholder:'예: 돈지방, 한우잡육'})}</div><div class="product-form-hint">같은 육종·품목명은 중복으로 등록할 수 없습니다. 기존 LOT와 재고는 유지됩니다.</div></div>`;
  }else if(mode==='receive'){
   out=`<div class="form-body"><div class="form-section">01 · 등록 제품 선택</div><div class="form-grid">${field('입고 제품','productId',{full:true,required:true,options:productSelectOptions()})}</div><div class="quick-product-bar"><button type="button" class="mini-btn" id="toggleQuickProduct">+ 목록에 없는 제품 등록</button></div><div id="quickProductPanel" class="quick-product-panel hidden"><div class="form-grid">${field('신규 제품명','quickProductName',{full:true,placeholder:'등록할 품목명 입력'})}${field('육류 구분','quickProductType',{options:typeChoices})}</div><div id="quickProductError" class="form-error"></div><div class="quick-product-actions"><button type="button" class="btn btn-outline" id="cancelQuickProduct">취소</button><button type="button" class="btn btn-primary" id="saveQuickProduct">제품 등록·선택</button></div></div><div class="form-divider"></div><div class="form-section">02 · 입고 정보</div><div class="form-grid">${field('보관 창고','zone',{required:true,value:opts.zone||'frozen',options:[['frozen','냉동고'],['chilled','냉장고']]})}${field('업체명','vendor',{placeholder:'공급업체'})}${field('원산지','origin',{placeholder:'예: 국내산'})}${field('브랜드','brand',{placeholder:'선택 입력'})}${field('입고일','received',{type:'date',required:true,value:today()})}${field('소비기한','expiry',{type:'date'})}${field('입고 중량 (kg)','qty',{type:'number',required:true,full:true,placeholder:'0.00'})}${field('비고','note',{textarea:true,full:true,placeholder:'특이 사항'})}</div><div class="product-form-hint">저장하면 해당 제품 아래에 새 LOT가 자동 생성됩니다.</div></div>`;
  }else{
@@ -2940,11 +2955,12 @@ function receive(p){
 function saveProduct(p){
  const type=p.get('productType'),name=canonicalName(p.get('productName'));
  const selected=productOf(activeOptions.id);const err=checkProduct(type,name,selected?.id||'');if(err)return err;
+ const code=String(p.get('productCode')||'').trim()||v95MeatCode(selected)||v95NextCode();if(v95CodeTaken(code,selected?.id||''))return '이미 등록된 품목코드입니다.';
  if(selected){
-  selected.name=name;selected.type=type;
+  selected.name=name;selected.type=type;if(code!==selected.id)selected.itemCode=code;else delete selected.itemCode;
   for(const l of state.items.filter(x=>x.productId===selected.id)){l.name=name;l.type=type;}
  }else{
-  const result=addProduct(type,name);if(result.error)return result.error;
+  const result=addProduct(type,name);if(result.error)return result.error;result.product.itemCode=code;
  }
  return '';
 }
@@ -4866,7 +4882,7 @@ $('v33EditCancel').onclick=()=>$('v33EditDialog').close();
  const saved=new WeakMap();let drag=null,pending=false;
  const headerSelector='.v88-top,.drawer-header,.v33-edit-head,.v17-document-actions,[data-erp-window-grip],.dialog-header,.modal-header,[data-drag-handle]';
  const interactive='button,input,select,textarea,label,a,[contenteditable="true"],[role="button"],[role="link"]';
- const popupSelector='dialog[open],.modal-layer:not(.hidden)>.drawer,.excel-popup[role="dialog"],[role="dialog"][aria-modal="true"]:not(dialog)';
+ const popupSelector='dialog[open],.modal-layer:not(.hidden)>.drawer,.excel-popup,[role="dialog"]:not(dialog)';
  const props=['position','inset','left','top','right','bottom','margin','width','height','maxHeight','maxWidth','boxSizing','animation','transform','translate'];
  function getHeader(box){
   const found=box.querySelector(headerSelector);if(found)return found;
@@ -4892,7 +4908,7 @@ $('v33EditCancel').onclick=()=>$('v33EditDialog').close();
   saved.set(box,Object.fromEntries(props.map(k=>[k,box.style[k]])));
   const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;
   Object.assign(box.style,{position:'fixed',inset:'auto',right:'auto',bottom:'auto',margin:'0',boxSizing:'border-box',width:Math.min(rect.width,Math.max(1,w-16))+'px',maxWidth:'calc(100vw - 16px)',maxHeight:'calc(100vh - 16px)',animation:'none',transform:'none',translate:'none'});
-  if(box.classList.contains('drawer'))box.style.height=Math.min(rect.height,Math.max(1,h-48))+'px';
+  if(box.classList.contains('drawer'))box.style.height=Math.min(rect.height,Math.max(1,h-16))+'px';
   place(box,rect.left,rect.top);
  }
  document.addEventListener('pointerdown',e=>{
@@ -5012,5 +5028,26 @@ dialog::backdrop{background:#1d1d1f33!important}
 /* Disabled controls always override every enabled role, including selected tabs. */
 body button:disabled:not(#mac-style-reserved-id),body input:is([type=button],[type=submit],[type=reset]):disabled:not(#mac-style-reserved-id){background:#e5e5ea!important;color:#818187!important;border-color:#d1d1d6!important;box-shadow:none!important;opacity:1!important;cursor:not-allowed}
 body .expiry.danger{color:#b42332!important}body .expiry.warning{color:#8a5c00!important}
+}
+</style><style id="v95-product-window">
+.v95-product-modal{padding:0!important;width:min(490px,calc(100vw - 24px))!important;max-height:calc(100vh - 20px);overflow:auto;box-sizing:border-box}
+.v95-product-modal form{gap:0!important;margin:0}
+.v95-titlebar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 18px;background:#f4f4f6;border-bottom:1px solid #d1d1d6;cursor:move;touch-action:none;user-select:none;flex-shrink:0}
+.v95-titlebar h3{margin:0;font-size:16px;font-weight:650}
+.v95-titlebar .v95-close{font-size:18px;line-height:20px;min-width:28px;padding:2px 7px}
+.v95-product-fields{padding:17px 18px 10px;display:flex;flex-direction:column;gap:11px}
+.v95-product-fields label{display:flex;flex-direction:column;gap:4px;font-weight:500;font-size:12px;color:#333}
+.v95-product-fields input,.v95-product-fields select{min-height:32px;padding:5px 8px;box-sizing:border-box;border:1px solid #d1d1d6;border-radius:5px;font-size:13px;font-weight:400}
+.v95-product-fields small{font-size:11px;font-weight:400;color:#666}
+#v95MeatFields,#v95GeneralFields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#v95MeatFields[hidden],#v95GeneralFields[hidden]{display:none!important}
+.v95-product-footer{border-top:1px solid #e5e5ea;padding:12px 18px;margin:0!important;background:#fafafa}
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+#modalLayer:not(.hidden){align-items:center;justify-content:center}
+#modalLayer .drawer{position:relative;width:min(520px,calc(100vw - 32px));height:auto;max-height:calc(100vh - 32px);max-width:calc(100vw - 32px);animation:none!important;overflow:auto;border-radius:9px!important}
+#modalLayer .drawer.wide{width:min(960px,calc(100vw - 32px))}
+#modalLayer .drawer-header{cursor:move;touch-action:none;flex-shrink:0;padding:13px 18px!important}
+#modalLayer .drawer-header h2{font-size:17px;margin:0 0 4px}
+#modalLayer .drawer-bottom{padding:12px 18px!important}
 }
 </style></body></html>
