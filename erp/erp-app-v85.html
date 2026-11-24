@@ -2002,7 +2002,6 @@ function v36Page(){
     <thead><tr><th>품목 / LOT</th><th>현재 창고</th><th>소비기한</th><th>재고 kg</th><th>이동 kg</th></tr></thead><tbody id="v36Body"></tbody>
   </table></div></div>
   <p class="v36-foot" id="v36Help"></p>
-  <div class="v36-recent"><h3>최근 이동 기록</h3><table><thead><tr><th>일자</th><th>구분</th><th>품목 / LOT</th><th>수량</th><th>이동 경로</th></tr></thead><tbody id="v36History"></tbody></table></div>
  </section>`;
  bindIntakeQuickDates($('mainView'));
  $('v36Search').addEventListener('input',v36Draw);
@@ -2034,7 +2033,7 @@ function v36Draw(){
    <td>${esc(ZONE[zone])}</td><td>${esc(l.expiry||'미기재')}</td><td class="v36-stock">${fmt(available)}</td>
    <td><input type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${esc(ZONE[zone])} 이동 중량"></td></tr>`;
  }).join(''):'<tr><td colspan="5" class="v36-empty">해당 LOT가 없습니다.</td></tr>';
- v36Summary();v36History();
+ v36Summary();
 }
 function v36Picked(){
  return v36Eligible().flatMap(row=>{
@@ -2045,10 +2044,6 @@ function v36Picked(){
 function v36Summary(){
  const picked=v36Picked(),total=picked.reduce((v,x)=>v+x.qty,0);
  $('v36Summary').innerHTML=`선택 LOT <strong>${picked.length}건</strong> · 이동 <strong>${fmt(total)} kg</strong> · 전체 재고 증감 <strong>0 kg</strong>`;
-}
-function v36History(){
- const entries=state.transactions.filter(t=>!t.undone&&['move','refreeze'].includes(t.type)).slice(0,10);
- $('v36History').innerHTML=entries.length?entries.map(t=>`<tr><td>${esc((t.operationDate||t.at||'').slice(0,10))}</td><td>${t.type==='move'?'해동':'재냉동'}</td><td>${esc(t.name)} <span class="v36-muted">${esc(t.lotId||'')}</span></td><td>${fmt(t.qty)} kg</td><td>${t.type==='move'?'냉동고 → 냉장고':'냉장고 → 냉동고'}</td></tr>`).join(''):'<tr><td colspan="5" class="v36-empty">아직 이동 기록이 없습니다.</td></tr>';
 }
 function v36Save(){
  const error=$('v36Error'),date=normalizeIntakeDate($('v36Date').value),picked=v36Picked();
@@ -5384,7 +5379,7 @@ body :is(.drawer-bottom,.v95-product-footer,.v33-edit-foot){background:var(--wor
 #mainView #v36Save{min-width:76px}
 #mainView .v36-pane>.v36-msg{min-height:0;padding:8px 18px;color:#a12626}
 #mainView .v36-pane>.v36-msg:empty{display:none}
-#mainView .v36-table-wrap{max-height:clamp(180px,46vh,520px);overflow:auto;padding:0 18px 8px}
+#mainView .v36-table-wrap{max-height:clamp(180px,calc(100vh - 340px),850px);overflow:auto;padding:0 18px 8px}
 #mainView .v36-table thead th{position:sticky;top:0;z-index:2;background:#eee}
 @media(max-width:700px){#mainView .v36-pane>.v36-summary{padding:10px 12px;gap:6px}#mainView .v36-table-wrap{max-height:50vh;padding:0 12px 8px}}
 </style></body></html>
