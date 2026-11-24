@@ -1117,7 +1117,7 @@ input,select,textarea,button{accent-color:#555555}
 .v74frozen .v72inner tbody tr:hover td{background:#f4f4f4!important;}
 .v74frozen .v72pick:not(.active):not(:hover){background:#fff!important;}
 </style>
-</head>
+<style>.ac-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:12px 16px}.ac-metrics>div{border:1px solid #ddd;border-radius:8px;padding:12px;background:#fafafa}.ac-metrics span{display:block;font-size:12px;color:#666;margin-bottom:6px}.ac-metrics strong{font-size:18px;font-variant-numeric:tabular-nums}.ac-filters{flex-wrap:wrap;gap:8px}.ac-filters input,.ac-filters select{border:1px solid #ccc;border-radius:5px;padding:7px;background:#fff;min-width:105px}.ac-filters label{font-size:12px;display:flex;align-items:center;gap:5px}.ac-scroll{overflow:auto}.ac-table td{white-space:normal;min-width:65px}.ac-table td.numeric{white-space:nowrap}.ac-table button{margin:2px}.ac-modal{max-width:min(680px,95vw);max-height:85vh;overflow:auto}.ac-page .page-desc{max-width:850px;line-height:1.6}</style></head>
 <body>
 <div class="app-shell">
 <aside class="sidebar" id="sidebar">
@@ -1128,6 +1128,7 @@ input,select,textarea,button{accent-color:#555555}
 <nav class="side-menu v67-hidden-nav" aria-label="ERP 운영 메뉴"><button class="side-link" data-view="ops_home" type="button">운영 현황</button></nav>
 <!-- v63: 재고관리 아래 입고/출고/이동/재고현황/입출고내역 메뉴를 구분선 없이 배치. 기능 및 데이터 변경 없음. -->
 <section class="v68-card"><div class="v68-label">입출고 관리</div><nav class="side-menu"><button class="side-link v68-link" data-view="intake" type="button"><span>입고입력</span></button><button class="side-link v68-link" data-view="ship" type="button"><span>출고입력</span></button><button class="side-link v68-link" data-view="operations" type="button"><span>이동입력</span></button><button class="side-link v68-link" data-view="history" type="button"><span>입출고 내역</span><span class="v68-count" data-count="history"></span></button></nav></section><section class="v68-card"><div class="v68-label">재고 관리</div><nav class="side-menu"><button class="side-link v68-link" data-view="stock_overview" type="button"><span>전체 재고</span></button><div class="v68-group"><button class="nav-heading v68-parent" data-group-toggle="meat68" aria-expanded="true" type="button"><span>원료육</span><span class="nav-chevron">⌄</span></button><div class="nav-children" data-group-content="meat68"><button class="side-link v68-link" data-view="dashboard" type="button"><span>전체 재고</span><span class="v68-count" data-count="dashboard"></span></button><button class="side-link v68-link" data-view="frozen" type="button"><span>냉동고</span><span class="v68-count" data-count="frozen"></span></button><button class="side-link v68-link" data-view="chilled" type="button"><span>냉장고</span><span class="v68-count" data-count="chilled"></span></button></div></div><div class="v68-group"><button class="nav-heading v68-parent" data-group-toggle="fg68" aria-expanded="true" type="button"><span>완제품</span><span class="nav-chevron">⌄</span></button><div class="nav-children" data-group-content="fg68"><button class="side-link v68-link" data-view="finished_all" type="button"><span>전체 재고</span><span class="v68-count" data-count="finished_all"></span></button><button class="side-link v68-link" data-view="finished_own" type="button"><span>자체생산</span><span class="v68-count" data-count="finished_own"></span></button><button class="side-link v68-link" data-view="finished_buy" type="button"><span>매입판매</span><span class="v68-count" data-count="finished_buy"></span></button></div></div><div class="v68-group"><button class="nav-heading v68-parent" data-group-toggle="mat68" aria-expanded="true" type="button"><span>부재료</span><span class="nav-chevron">⌄</span></button><div class="nav-children" data-group-content="mat68"><button class="side-link v68-link" data-view="ingredients_all" type="button"><span>전체 재고</span><span class="v68-count" data-count="ingredients_all"></span></button><button class="side-link v68-link" data-view="sauce" type="button"><span>소스</span><span class="v68-count" data-count="sauce"></span></button><button class="side-link v68-link" data-view="spice" type="button"><span>향신료</span><span class="v68-count" data-count="spice"></span></button><button class="side-link v68-link" data-view="vegetable" type="button"><span>야채</span><span class="v68-count" data-count="vegetable"></span></button></div></div><button class="side-link v68-link" data-view="supplies" type="button"><span>부자재</span><span class="v68-count" data-count="supplies"></span></button></nav></section><section class="v68-card"><nav class="side-menu"><button class="side-link v68-link" data-view="products" type="button"><span>품목관리</span></button></nav></section>
+<section class="v68-card"><div class="v68-label">회계</div><nav class="side-menu"><button class="side-link v68-link" data-view="ac_purchase" type="button"><span>매입 내역</span></button><button class="side-link v68-link" data-view="ac_sale" type="button"><span>매출 내역</span></button><button class="side-link v68-link" data-view="ac_payable" type="button"><span>미지급금</span></button><button class="side-link v68-link" data-view="ac_receivable" type="button"><span>미수금</span></button><button class="side-link v68-link" data-view="ac_expense" type="button"><span>일반 경비</span></button><button class="side-link v68-link" data-view="ac_ledger" type="button"><span>거래처 원장</span></button></nav></section>
 <!-- v60: 생산관리 내비게이션 임시 숨김. 기능과 데이터는 유지. 복원 시 v60-paused-production-nav 클래스를 제거하세요. -->
 <div class="nav-section-title second v37-menu-title v60-paused-production-nav">생산관리</div>
 <nav aria-label="생산관리 메뉴" class="side-menu v37-side v60-paused-production-nav">
@@ -2431,21 +2432,127 @@ function v70Calendar(){
 }
 
 function v68Counts(){const lots=v18CatalogLots();const filters={dashboard:l=>l.category==='meat',frozen:l=>l.category==='meat'&&l.zone==='frozen',chilled:l=>l.category==='meat'&&l.zone==='chilled',finished_all:l=>EXTRA_GROUPS.finished_all.includes(l.category),ingredients_all:l=>EXTRA_GROUPS.ingredients_all.includes(l.category)};document.querySelectorAll('[data-count]').forEach(el=>{const k=el.dataset.count;el.textContent=fmt(k==='history'?state.transactions.length:new Set(lots.filter(filters[k]|| (l=>l.category===k)).map(l=>l.product)).size);});}
+
+function acNames(){return {ac_purchase:'매입 내역',ac_sale:'매출 내역',ac_payable:'미지급금',ac_receivable:'미수금',ac_expense:'일반 경비',ac_ledger:'거래처 원장'};}
+function acMoney(n){return Number(n||0).toLocaleString('ko-KR',{maximumFractionDigits:2});}
+function acRound(n){return Math.round((Number(n)||0)*100)/100;}
+function acPartnerKey(p,name){return p?.no?'biz:'+String(p.no).replace(/\D/g,''):p?.id!=null?'id:'+p.id:'name:'+normName(name);}
+function acDocuments(st=state){
+ const rows=[],seen=new Set(),undone=new Set((st.transactions||[]).filter(t=>t.undone&&['receive','receiveExtra','ship','shipExtra'].includes(t.type)).map(t=>t.lotId));
+ for(const [kind,batches] of [['purchase',st.receiptBatches||[]],['sale',st.shippingBatches||[]]])for(const b of batches){
+  const key=kind+':'+b.id;if(seen.has(key))continue;seen.add(key);
+  const all=kind==='purchase'?(b.entries||[]).filter(l=>l.category!=='finished_own'):(b.lines||[]);
+  if(!all.length)continue;
+  const lines=kind==='purchase'?all.filter(l=>!undone.has(l.id)):all;
+  const canceled=!!b.canceled||!!b.cancelled||!lines.length;
+  const unknown=lines.filter(l=>!Number.isFinite(Number(l.price))||Number(l.price)<=0).length;
+  const amount=acRound(lines.reduce((n,l)=>n+(Number(l.price)>0?acRound(Number(l.qty)*Number(l.price)):0),0));
+  const name=(kind==='purchase'?b.vendor:b.partnerName)||b.partner?.a||b.partner?.n||'미등록 거래처';
+  const payments=(st.acPayments||[]).filter(p=>p.doc===key&&!p.voided);
+  const settled=acRound(payments.reduce((n,p)=>n+Number(p.amount||0),0));
+  rows.push({key,kind,id:b.id,date:b.date||'',name,partner:acPartnerKey(b.partner,name),lines,unknown,amount,settled,balance:canceled?0:acRound(Math.max(0,amount-settled)),canceled,review:(canceled&&settled>0)||settled>amount,note:b.note||'',payments});
+ }
+ return rows.sort((a,b)=>b.date.localeCompare(a.date)||b.id.localeCompare(a.id));
+}
+function acState(){return window.__acFilters||(window.__acFilters={from:'',to:'',query:'',partner:'',status:'all'});}
+function acDateOK(date,f){return (!f.from||date>=f.from)&&(!f.to||date<=f.to);}
+function acDocsFiltered(docs,f){return docs.filter(d=>acDateOK(d.date,f)&&(!f.partner||f.partner===d.partner)&&matchesSearch(f.query,[d.id,d.name,d.note,...d.lines.map(l=>l.name)]));}
+function acCommit(change){const before=structuredClone(state);try{change();if(!persist())throw Error('서버 저장 실패 또는 동시 변경 충돌입니다. 새로고침 후 다시 시도해 주세요.');return true;}catch(e){state=before;alert(e.message);return false;}}
+function acID(prefix){return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);}
+function acStatus(d){return d.review?'정산 확인 필요':d.canceled?'취소':d.unknown?'단가 미확정':d.balance===0?'완료':d.settled>0?'부분 정산':'미정산';}
+function acDateValid(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&normalizeIntakeDate(d)===d;}
+function acDialog(title,body,handler){
+ const dlg=document.createElement('dialog');dlg.className='v37-modal ac-modal';dlg.innerHTML=`<form><h3>${esc(title)}</h3>${body}<div class="v37-error" data-ac-error role="alert"></div><div class="v37-buttons"><button type="button" data-ac-close>닫기</button><button class="primary" type="submit">저장</button></div></form>`;
+ document.body.appendChild(dlg);dlg.querySelector('[data-ac-close]').onclick=()=>dlg.close();dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{if(handler(new FormData(e.currentTarget))){dlg.close();acPage(view);}}catch(err){dlg.querySelector('[data-ac-error]').textContent=err.message;}};dlg.showModal();return dlg;
+}
+function acSettle(key){
+ const d=acDocuments().find(x=>x.key===key);if(!d||d.canceled||d.unknown||d.balance<=0||d.review)return toast('금액 또는 전표 상태를 먼저 확인해 주세요.');
+ const label=d.kind==='purchase'?'지급':'수금';
+ acDialog(label+' 등록',`<p>${esc(d.name)} · ${esc(d.id)}</p><p>남은 금액: <b>${acMoney(d.balance)}원</b></p><label>날짜<input name="date" type="date" required value="${today()}"></label><label>${label}액 (원)<input name="amount" type="number" min="0.01" step="0.01" max="${d.balance}" value="${d.balance}" required></label><label>방법<select name="method"><option>계좌이체</option><option>현금</option><option>카드</option><option>기타</option></select></label><label>비고<input name="note" maxlength="300"></label>`,f=>{
+  const live=acDocuments().find(x=>x.key===key),date=String(f.get('date')),amount=Number(f.get('amount'));
+  if(!live||live.canceled||live.unknown||live.review||!acDateValid(date)||date<live.date||date>today()||!Number.isFinite(amount)||amount<=0||acRound(amount)!==amount||amount>live.balance)throw Error('날짜 또는 정산 금액을 확인해 주세요.');
+  return acCommit(()=>{(state.acPayments||(state.acPayments=[])).push({id:acID('PAY'),doc:key,kind:live.kind,date,amount,method:String(f.get('method')),note:String(f.get('note')||'').trim(),partner:live.partner,name:live.name,at:new Date().toISOString(),voided:false});});
+ });
+}
+function acPaymentHistory(key){
+ const d=acDocuments().find(x=>x.key===key),payments=(state.acPayments||[]).filter(p=>p.doc===key);if(!d)return;
+ const dlg=document.createElement('dialog');dlg.className='v37-modal ac-modal';dlg.innerHTML=`<h3>${d.kind==='purchase'?'지급':'수금'} 내역</h3><p>${esc(d.name)} · ${esc(d.id)}</p><div class="ac-scroll"><table class="inventory-table"><thead><tr><th>날짜</th><th>금액</th><th>방법 / 비고</th><th>관리</th></tr></thead><tbody>${payments.map(p=>`<tr><td>${esc(p.date)}</td><td class="numeric">${acMoney(p.amount)}</td><td>${esc(p.method)} ${esc(p.note)}</td><td>${p.voided?'취소':`<button class="mini-btn" data-void="${esc(p.id)}">취소</button>`}</td></tr>`).join('')||'<tr><td colspan="4">등록된 정산 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="v37-buttons"><button data-close>닫기</button></div>`;
+ document.body.appendChild(dlg);dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.onclick=e=>{if(e.target.closest('[data-close]'))dlg.close();const b=e.target.closest('[data-void]');if(b&&confirm('이 정산 기록을 취소하시겠습니까? 원본 기록은 보관됩니다.')){if(acCommit(()=>{const p=state.acPayments.find(x=>x.id===b.dataset.void);if(!p||p.voided)throw Error('이미 취소된 기록입니다.');p.voided=true;p.voidedAt=new Date().toISOString();})){dlg.close();acPage(view);}}};dlg.showModal();
+}
+function acExpenseEdit(id){
+ const old=(state.acExpenses||[]).find(e=>e.id===id&&!e.voided);const cats=['운반비','택배비','소모품비','수도광열비','수선비','통신비','식대','기타'];
+ acDialog(old?'경비 수정':'일반 경비 등록',`<label>날짜<input name="date" type="date" required value="${esc(old?.date||today())}"></label><label>경비 구분<select name="category">${cats.map(c=>`<option ${old?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>업체 / 지급처<input name="vendor" maxlength="100" value="${esc(old?.vendor||'')}"></label><label>내용<input name="description" required maxlength="200" value="${esc(old?.description||'')}"></label><label>금액 (원)<input name="amount" required type="number" min="0.01" max="1000000000000" step="0.01" value="${esc(old?.amount||'')}"></label><label>지급 방법<select name="method">${['계좌이체','현금','카드','기타'].map(m=>`<option ${old?.method===m?'selected':''}>${m}</option>`).join('')}</select></label><label>비고<input name="note" maxlength="300" value="${esc(old?.note||'')}"></label>`,f=>{
+  const date=String(f.get('date')),amount=Number(f.get('amount')),description=String(f.get('description')||'').trim();
+  if(!acDateValid(date)||date>today()||!description||!Number.isFinite(amount)||amount<=0||amount>1e12||acRound(amount)!==amount)throw Error('날짜, 내용 및 금액을 확인해 주세요.');
+  const entry={id:old?.id||acID('EXP'),date,category:String(f.get('category')),vendor:String(f.get('vendor')||'').trim(),description,amount,method:String(f.get('method')),note:String(f.get('note')||'').trim(),at:old?.at||new Date().toISOString(),updatedAt:new Date().toISOString(),voided:false};
+  return acCommit(()=>{state.acExpenses=state.acExpenses||[];if(old){const i=state.acExpenses.findIndex(x=>x.id===old.id&&!x.voided);if(i<0)throw Error('원본을 찾을 수 없습니다.');state.acExpenses[i]=entry;}else state.acExpenses.unshift(entry);});
+ });
+}
+function acExportCell(x){return typeof x==='string'&&/^[\s]*[=+\-@\t\r]/.test(x)?"'"+x:x;}
+function acTable(headers,rows){return `<div class="table-scroll ac-scroll"><table class="inventory-table ac-table"><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${headers.length}" class="empty">등록된 내역이 없습니다.</td></tr>`}</tbody></table></div>`;}
+function acPage(next){
+ const f=acState(),all=acDocuments(),names=acNames(),expense=next==='ac_expense',ledger=next==='ac_ledger',settle=next==='ac_payable'||next==='ac_receivable',kind=next==='ac_purchase'||next==='ac_payable'?'purchase':'sale';
+ const partners=new Map(all.map(d=>[d.partner,d.name]));
+ const selected=acDocsFiltered(all,f);
+ let headers,rows=[],exportRows=[],summary='',intro='';
+ const td=(v,cls='')=>`<td${cls?' class="'+cls+'"':''}>${esc(v??'')}</td>`,num=v=>td(acMoney(v),'numeric'),metric=(label,n)=>`<div><span>${esc(label)}</span><strong>${acMoney(n)}원</strong></div>`;
+ if(expense){
+  const es=(state.acExpenses||[]).filter(e=>acDateOK(e.date,f)&&matchesSearch(f.query,[e.category,e.vendor,e.description,e.note])&&(f.status==='all'||(f.status==='canceled')===!!e.voided)).sort((a,b)=>b.date.localeCompare(a.date));
+  headers=['날짜','경비 구분','업체 / 지급처','내용','금액(원)','지급 방법','비고','관리'];
+  rows=es.map(e=>`<tr>${td(e.date)}${td(e.category)}${td(e.vendor)}${td(e.description)}${num(e.amount)}${td(e.method)}${td(e.note)}<td>${e.voided?'취소됨':`<button class="mini-btn" data-ac-edit="${esc(e.id)}">수정</button> <button class="mini-btn" data-ac-void-exp="${esc(e.id)}">취소</button>`}</td></tr>`);
+  exportRows=es.map(e=>[e.date,e.category,e.vendor,e.description,e.amount,e.method,e.note,e.voided?'취소':'유효']);
+  summary=metric('일반 경비 합계',es.filter(e=>!e.voided).reduce((n,e)=>n+e.amount,0));intro='재고와 별개인 실제 지급 경비를 직접 기록합니다.';
+ }else if(ledger){
+  headers=['날짜','거래처','구분','전표번호','매입(원)','매출(원)','지급(원)','수금(원)','비고'];
+  const entries=[];
+  for(const d of all){
+   if(f.partner&&f.partner!==d.partner||!matchesSearch(f.query,[d.name,d.id,d.note]))continue;
+   if(!d.canceled)entries.push({date:d.date,name:d.name,label:d.kind==='purchase'?'매입':'매출',id:d.id,p:d.kind==='purchase'?d.amount:0,s:d.kind==='sale'?d.amount:0,out:0,in:0,note:d.unknown?'단가 미확정 · 확인된 금액만 표시':d.note});
+   for(const p of d.payments)entries.push({date:p.date,name:d.name,label:d.kind==='purchase'?'지급':'수금',id:d.id,p:0,s:0,out:d.kind==='purchase'?p.amount:0,in:d.kind==='sale'?p.amount:0,note:[d.canceled?'취소 전표 정산 확인 필요':'',p.note].filter(Boolean).join(' · ')});
+  }
+  const filtered=entries.filter(e=>acDateOK(e.date,f)).sort((a,b)=>b.date.localeCompare(a.date)||a.id.localeCompare(b.id));
+  const tot=k=>filtered.reduce((n,e)=>n+e[k],0),prior=k=>entries.filter(e=>f.from&&e.date<f.from).reduce((n,e)=>n+e[k],0);
+  rows=filtered.map(e=>`<tr>${td(e.date)}${td(e.name)}${td(e.label)}${td(e.id)}${num(e.p)}${num(e.s)}${num(e.out)}${num(e.in)}${td(e.note)}</tr>`);
+  exportRows=filtered.map(e=>[e.date,e.name,e.label,e.id,e.p,e.s,e.out,e.in,e.note]);
+  summary=metric('기간 매입',tot('p'))+metric('기간 매출',tot('s'))+metric('기간 지급',tot('out'))+metric('기간 수금',tot('in'))+metric('기간 말 미지급 순잔액',prior('p')-prior('out')+tot('p')-tot('out'))+metric('기간 말 미수 순잔액',prior('s')-prior('in')+tot('s')-tot('in'));
+  intro='거래처별 매입·매출·지급·수금 기록입니다. 잔액은 입력된 단가 기준이며 미확정 금액은 포함되지 않습니다. 일반 경비는 별도 관리합니다.';
+ }else{
+  let docs=selected.filter(d=>d.kind===kind);
+  if(settle)docs=docs.filter(d=>(!d.canceled&&(d.balance>0||d.unknown))||d.review);
+  if(f.status==='open')docs=docs.filter(d=>!d.canceled&&(d.balance>0||d.unknown));else if(f.status==='closed')docs=docs.filter(d=>!d.canceled&&!d.unknown&&!d.review&&d.balance===0);else if(f.status==='canceled')docs=docs.filter(d=>d.canceled);
+  headers=['날짜','거래처','전표번호','품목','금액(원)',kind==='purchase'?'지급(원)':'수금(원)',kind==='purchase'?'미지급(원)':'미수(원)','상태','관리'];
+  rows=docs.map(d=>`<tr>${td(d.date)}${td(d.name)}${td(d.id)}${td(d.lines.map(l=>l.name).slice(0,2).join(' · ')+(d.lines.length>2?' 외 '+(d.lines.length-2)+'건':''))}${td(d.canceled?'—':acMoney(d.amount)+(d.unknown?' + 미확정':''),'numeric')}${num(d.settled)}${td(d.canceled?'—':acMoney(d.balance)+(d.unknown?' + 미확정':''),'numeric')}${td(acStatus(d))}<td><button class="mini-btn" data-ac-doc="${esc(d.key)}">명세서</button> <button class="mini-btn" data-ac-payments="${esc(d.key)}">정산 내역</button>${!d.canceled&&!d.unknown&&!d.review&&d.balance>0?` <button class="mini-btn" data-ac-settle="${esc(d.key)}">${kind==='purchase'?'지급':'수금'}</button>`:''}</td></tr>`);
+  exportRows=docs.map(d=>[d.date,d.name,d.id,d.lines.map(l=>l.name).join(' / '),d.canceled?'':d.amount,d.settled,d.canceled?'':d.balance,acStatus(d),'']);
+  const live=docs.filter(d=>!d.canceled);summary=metric(kind==='purchase'?'확정 매입 금액':'확정 매출 금액',live.reduce((n,d)=>n+d.amount,0))+metric(kind==='purchase'?'지급 합계':'수금 합계',live.reduce((n,d)=>n+d.settled,0))+metric(kind==='purchase'?'미지급 잔액':'미수 잔액',live.reduce((n,d)=>n+d.balance,0));
+  intro=(kind==='purchase'?'외부 매입 입고':'거래처 출고')+' 전표가 자동 반영됩니다. 자체생산 입고와 내부 이동은 매입·매출에서 제외합니다. 단가가 0 또는 미입력인 전표는 미확정으로 표시하며 정산을 막습니다. 세금은 자동 계산하지 않습니다.';
+ }
+ $('mainView').innerHTML=`<section class="inventory-panel card ac-page"><div class="panel-top"><div><h2>${names[next]}</h2><p class="page-desc">${esc(intro)}</p></div>${expense?'<button class="btn btn-primary" id="acNew">+ 경비 등록</button>':''}</div><div class="ac-metrics">${summary}</div><div class="filters ac-filters"><label>시작일 <input type="date" id="acFrom" value="${esc(f.from)}"></label><label>종료일 <input type="date" id="acTo" value="${esc(f.to)}"></label><button class="btn btn-outline" id="acAll">전체 기간</button><input id="acQuery" type="search" placeholder="거래처 · 내용 검색" value="${esc(f.query)}">${expense?'':`<select id="acPartner"><option value="">전체 거래처</option>${[...partners].sort((a,b)=>a[1].localeCompare(b[1],'ko')).map(([k,n])=>`<option value="${esc(k)}" ${k===f.partner?'selected':''}>${esc(n)}</option>`).join('')}</select>`}${ledger||settle?'':`<select id="acStatus"><option value="all">전체 상태</option>${expense?'<option value="open">유효</option>':'<option value="open">미정산</option><option value="closed">정산 완료</option>'}<option value="canceled">취소</option></select>`}<button class="btn btn-outline" id="acCSV">엑셀(CSV) 저장</button></div>${acTable(headers,rows)}<div class="table-footer">조회 ${rows.length.toLocaleString('ko-KR')}건 · 사내 관리용 장부 (세무 신고용 아님)</div></section>`;
+ if($('acStatus'))$('acStatus').value=f.status;
+ for(const [id,k] of [['acFrom','from'],['acTo','to'],['acQuery','query'],['acPartner','partner'],['acStatus','status']])if($(id))$(id).onchange=()=>{const v=$(id).value;if(k==='from'&&f.to&&v>f.to||k==='to'&&f.from&&v<f.from){alert('기간을 확인해 주세요.');$(id).value=f[k];return;}f[k]=v;acPage(next);};
+ $('acAll').onclick=()=>{f.from=f.to='';acPage(next);};$('acCSV').onclick=()=>download(names[next]+'_'+today()+'.csv',csv([headers,...exportRows].map(r=>r.map(acExportCell))),'text/csv;charset=utf-8');
+ if($('acNew'))$('acNew').onclick=()=>acExpenseEdit();
+ $('mainView').onclick=e=>{const b=e.target.closest('button');if(!b||!b.closest('.ac-page'))return;const ds=b.dataset;
+  if(ds.acDoc){const d=all.find(x=>x.key===ds.acDoc);if(d)v17ShowSaved(d.kind==='purchase'?'in':'out',d.id);}
+  else if(ds.acSettle)acSettle(ds.acSettle);else if(ds.acPayments)acPaymentHistory(ds.acPayments);else if(ds.acEdit)acExpenseEdit(ds.acEdit);
+  else if(ds.acVoidExp&&confirm('이 경비 기록을 취소하시겠습니까?')){if(acCommit(()=>{const x=state.acExpenses.find(v=>v.id===ds.acVoidExp&&!v.voided);if(!x)throw Error('기록이 없습니다.');x.voided=true;x.voidedAt=new Date().toISOString();}))acPage(next);}
+ };
+}
+
 function setView(next){
  v40CurrentFilter?.close();v40CurrentFilter=null;
  if(next==='fg_make'&&view!=='ops_plan')v38ActivePlanId=null;
  if(view==='fg_make'&&next!=='fg_make')v38ActivePlanId=null;
  if(next!==view){showZeroStock=false;expanded.clear();lastInventoryQuery=null;columnFilters.clear();tableSort={key:'default',direction:'asc'};v80GroupSort={key:'name',direction:'asc'};dismissFilter();}
  view=next;
- const names={ops_home:'운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 · 전체 재고',frozen:'원료육 · 냉동고',chilled:'원료육 · 냉장고',products:'품목관리',history:'입출고내역',backup:'데이터 관리',...EXTRA_CATEGORIES};
- const headline={ops_home:'통합 운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 전체 재고',frozen:'냉동고 재고',chilled:'냉장고 재고',products:'품목관리',history:'입출고내역',backup:'데이터 관리',...Object.fromEntries(Object.entries(EXTRA_CATEGORIES).map(([k,v])=>[k,v+' 재고']))};
+ const names={...acNames(),ops_home:'운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 · 전체 재고',frozen:'원료육 · 냉동고',chilled:'원료육 · 냉장고',products:'품목관리',history:'입출고내역',backup:'데이터 관리',...EXTRA_CATEGORIES};
+ const headline={...acNames(),ops_home:'통합 운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 전체 재고',frozen:'냉동고 재고',chilled:'냉장고 재고',products:'품목관리',history:'입출고내역',backup:'데이터 관리',...Object.fromEntries(Object.entries(EXTRA_CATEGORIES).map(([k,v])=>[k,v+' 재고']))};
  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('selected',b.dataset.view===next));
  document.querySelectorAll('[data-quick-action]').forEach(b=>b.classList.toggle('selected',next==='intake'&&b.dataset.quickAction==='receive'));
  $('breadcrumbCurrent').textContent=names[next];$('pageTitle').textContent=headline[next];
- $('pageDesc').textContent=v37Views.includes(next)?'품목 구분부터 생산실적·원가·매출까지 연결하는 생산관리 화면입니다.':next==='operations'?'해동과 재냉동을 기록합니다. 냉동고와 냉장고 사이의 이동으로 전체 재고량은 변하지 않습니다.':next==='ship'?'LOT를 선택해 해당 줄에서 출고수량을 입력합니다.':next==='intake'?'입고일·업체는 한 번만 입력하고 여러 품목을 일괄 등록합니다.':EXTRA_CATEGORIES[next]?'품목별 재고를 확인하고 LOT별 소비기한과 보관정보를 조회합니다.':next==='stock_overview'?'전체 재고를 보거나 원료육·완제품·부재료·부자재만 선택해 조회합니다.':next==='history'?'입고·출고·해동·재냉동 기록을 한 화면에서 확인합니다.':next==='products'?'원료육·완제품·소스·향신료·야채·부자재의 상품코드를 등록·관리합니다.':next==='backup'?'재고 데이터를 백업하거나 복원하고 초기 상태를 관리합니다.':next==='chilled'?'냉동고에서 이동한 LOT와 냉장고 재고를 관리합니다.':next==='frozen'?'품목별 냉동고 재고와 입고 LOT를 확인하세요.':'품목별 재고를 확인하고 LOT로 입출고를 처리하세요.';
+ $('pageDesc').textContent=acNames()[next]?'입출고 연동 · 사내 거래 및 정산 관리':v37Views.includes(next)?'품목 구분부터 생산실적·원가·매출까지 연결하는 생산관리 화면입니다.':next==='operations'?'해동과 재냉동을 기록합니다. 냉동고와 냉장고 사이의 이동으로 전체 재고량은 변하지 않습니다.':next==='ship'?'LOT를 선택해 해당 줄에서 출고수량을 입력합니다.':next==='intake'?'입고일·업체는 한 번만 입력하고 여러 품목을 일괄 등록합니다.':EXTRA_CATEGORIES[next]?'품목별 재고를 확인하고 LOT별 소비기한과 보관정보를 조회합니다.':next==='stock_overview'?'전체 재고를 보거나 원료육·완제품·부재료·부자재만 선택해 조회합니다.':next==='history'?'입고·출고·해동·재냉동 기록을 한 화면에서 확인합니다.':next==='products'?'원료육·완제품·소스·향신료·야채·부자재의 상품코드를 등록·관리합니다.':next==='backup'?'재고 데이터를 백업하거나 복원하고 초기 상태를 관리합니다.':next==='chilled'?'냉동고에서 이동한 LOT와 냉장고 재고를 관리합니다.':next==='frozen'?'품목별 냉동고 재고와 입고 LOT를 확인하세요.':'품목별 재고를 확인하고 LOT로 입출고를 처리하세요.';
  
  // 신규 입고는 좌측 입고 메뉴에서 실행: 상단 중복 버튼 제거
- if(next==='ops_home')v38Home();else if(next==='ops_plan')v38PlanPage();else if(next==='ops_trace')v38Trace();else if(next==='ops_audit')v38Audit();else if(next==='fg_catalog')v37Catalog();else if(next==='fg_recipe')v37Recipe();else if(next==='fg_make')v37MakePage();else if(next==='fg_records')v37Records();else if(next==='fg_margin')v37Margin();else if(next==='operations')v36Page();else if(next==='stock_overview')v61StockPage();else if(next==='ship')v18Page();else if(next==='intake')intakePage();else if(['dashboard','frozen','chilled'].includes(next)){selectedZone=next==='dashboard'?'all':next;$('mainView').innerHTML=sectionHtml();attachInventoryListeners();renderInventory();}
+ if(acNames()[next])acPage(next);else if(next==='ops_home')v38Home();else if(next==='ops_plan')v38PlanPage();else if(next==='ops_trace')v38Trace();else if(next==='ops_audit')v38Audit();else if(next==='fg_catalog')v37Catalog();else if(next==='fg_recipe')v37Recipe();else if(next==='fg_make')v37MakePage();else if(next==='fg_records')v37Records();else if(next==='fg_margin')v37Margin();else if(next==='operations')v36Page();else if(next==='stock_overview')v61StockPage();else if(next==='ship')v18Page();else if(next==='intake')intakePage();else if(['dashboard','frozen','chilled'].includes(next)){selectedZone=next==='dashboard'?'all':next;$('mainView').innerHTML=sectionHtml();attachInventoryListeners();renderInventory();}
  else if(EXTRA_CATEGORIES[next])externalCategoryPage(next);else if(next==='products')productPage();else if(next==='history')renderHistory();else renderBackup();
  v68Counts();
  $('sidebar').classList.remove('open');
@@ -3862,7 +3969,7 @@ function attachGlobal(){// 좌측 입고·출고: 실제 원료육 등록 및 LO
 initProductMaster();attachGlobal();v17BindStatementDialog();setView('stock_overview');
 window.erpApplyRemote=(body)=>{
  if(!body||body.version!==2||!Array.isArray(body.items)||!Array.isArray(body.transactions))return false;
- const readOnlyViews=['stock_overview','dashboard','frozen','chilled','history','finished_all','ingredients_all',...Object.keys(EXTRA_CATEGORIES)];
+ const readOnlyViews=[...Object.keys(acNames()),'stock_overview','dashboard','frozen','chilled','history','finished_all','ingredients_all',...Object.keys(EXTRA_CATEGORIES)];
  if(!readOnlyViews.includes(view)||document.querySelector('dialog[open]')||!$('modalLayer').classList.contains('hidden')||document.querySelector('#columnFilterPopup')||['INPUT','SELECT','TEXTAREA'].includes(document.activeElement?.tagName))return false;
  const previous=state;try{state=structuredClone(body);if(['dashboard','frozen','chilled'].includes(view)&&$('searchInput'))renderInventory();else setView(view);v68Counts();return true;}catch(e){state=previous;console.error('ERP sync render failed',e);return false;}
 };
