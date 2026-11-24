@@ -2693,7 +2693,7 @@ function v70Cat(t){return t.category||state.items.find(l=>l.id===t.lotId)?.categ
 function v70Match(c){return v70Category==='all'||c===v70Category||(v70Category==='finished'&&['finished_own','finished_buy'].includes(c))||(v70Category==='ingredients'&&['sauce','spice','vegetable','pending','ingredient_other'].includes(c));}
 function v70Date(t){const batch=[...(state.receiptBatches||[]),...(state.shippingBatches||[])].find(b=>b.id===t.batchId);return batch?.date||t.operationDate||t.date||(t.at?new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t.at)):'');}
 function v70InRange(d){return (!v70From||d>=v70From)&&(!v70To||d<=v70To);}
-function v61HistoryRows(){return state.transactions.filter(t=>v110Live(t)&&(v61HistoryFilter==='all'||v61HistoryKind(t)===v61HistoryFilter)&&v70Match(v70Cat(t))&&v70InRange(v70Date(t))&&matchesSearch(v70Query,[t.name,t.brand,t.vendor,t.recipient,t.note,t.lotId,t.productionTarget,t.traceRunId,t.traceFinishedLot,t.traceSource?.rootLotId,...state.items.filter(l=>l.id===t.lotId).flatMap(l=>[l.brand,l.vendor])]));}
+function v61HistoryRows(){return state.transactions.filter(t=>v110Live(t)&&(v61HistoryFilter==='all'||v61HistoryKind(t)===v61HistoryFilter)&&v70Match(v70Cat(t))&&v70InRange(v70Date(t))&&matchesSearch(v70Query,[t.name,t.brand,t.vendor,t.recipient,t.note,t.purpose,v121Types[t.outboundKind],t.lotId,t.productionTarget,t.traceRunId,t.traceFinishedLot,t.traceSource?.rootLotId,...state.items.filter(l=>l.id===t.lotId).flatMap(l=>[l.brand,l.vendor])]));}
 function v89PeriodLabel(from,to){return from||to?`<span class="v89-period-value" aria-label="선택 기간">${esc(from||'')} ~ ${esc(to||'')}</span>`:'';}
 function v70Calendar(options){
  const opts=options&&typeof options.apply==='function'?options:null;
@@ -2913,57 +2913,64 @@ const ACTIONS=[
  {key:'ship',label:'출고',title:'출고',desc:'LOT를 선택하고 외부 출고처를 기록합니다.',button:'출고 처리'},
  {key:'issue',label:'기타',title:'기타',desc:'폐기 등 기타 사유로 해당 LOT의 재고를 차감합니다.',button:'기타 처리'}
 ];
-// v120: 동일한 작업 메뉴, 출발 창고에 맞는 출고 목적지.
-function v120Destinations(opts={},st=state){
+// v121: 출고·이동·수정. 내부 이동은 재고 차감 출고와 구분한다.
+const v121Types={company:'업체',parcel:'택배',personal:'개인',disposal:'폐기',other:'기타',field:'현장'};
+function v121Zones(opts={},st=state){
  const items=st.items.filter(l=>l.productId===opts.productId&&(!opts.lotId||l.id===opts.lotId));
- const frozen=opts.from!=='chilled'&&items.some(l=>cents(l.frozen)>0);
- const chilled=opts.from!=='frozen'&&items.some(l=>cents(l.chilled)>0);
- return [
-  ...(frozen?[{key:'move',label:'냉장고 (해동)',from:'frozen'},{key:'ship',label:'외부 업체',from:'frozen'}]:[]),
-  ...(chilled?[{key:'field',label:'생산현장',from:'chilled'},{key:'refreeze',label:'냉동고 (재냉동)',from:'chilled'}]:[])
- ];
+ return ['frozen','chilled'].filter(z=>(!opts.from||opts.from===z)&&items.some(l=>cents(l[z])>0));
+}
+function v121Moves(opts={},st=state){
+ const zones=v121Zones(opts,st);return zones.map(z=>z==='frozen'?{key:'move',label:'해동',from:z}:{key:'refreeze',label:'재냉동',from:z});
+}
+function v121Outbound(opts={},st=state){
+ const zones=v121Zones(opts,st),choices=[];
+ if(zones.includes('chilled'))choices.push({key:'field',label:v121Types.field,from:'chilled'});
+ if(zones.length){for(const kind of ['parcel','company','personal','disposal','other'])choices.push({key:kind,label:v121Types[kind],from:zones.length===1?zones[0]:''});}
+ return choices;
 }
 function actionsFor(opts={}){
- return [{key:'outbound',label:'출고'},ACTIONS.find(a=>a.key==='issue'),...(opts.productId?[{key:'edit',label:'수정'}]:[])];
+ return [{key:'outbound',label:'출고'},{key:'transfer',label:'이동'},...(opts.productId?[{key:'edit',label:'수정'}]:[])];
 }
 let actionMenu=null,actionMenuAnchor=null;
 function closeActionMenu(){if(actionMenu){actionMenu.remove();actionMenu=null;}if(actionMenuAnchor?.isConnected)actionMenuAnchor.setAttribute('aria-expanded','false');actionMenuAnchor=null;}
 function showActionMenu(anchor,opts={}){
  if(actionMenu&&actionMenuAnchor===anchor){closeActionMenu();return;}
  closeActionMenu();actionMenuAnchor=anchor;anchor.setAttribute('aria-expanded','true');
- const p=document.createElement('div');p.className='action-menu v120-work-menu';p.id='actionMenu';p.setAttribute('role','menu');
- p.setAttribute('aria-label','재고 작업');
+ const p=document.createElement('div');p.className='action-menu v120-work-menu';p.id='actionMenu';p.setAttribute('role','menu');p.setAttribute('aria-label','재고 작업');
  document.body.appendChild(p);actionMenu=p;
- let sub=false;
+ let sub='';
  const position=()=>{const rect=anchor.getBoundingClientRect(),width=p.offsetWidth,height=p.offsetHeight;
  p.style.left=Math.min(window.innerWidth-width-8,Math.max(8,rect.right-width))+'px';
  p.style.top=(rect.bottom+height+5>window.innerHeight?Math.max(8,rect.top-height-3):rect.bottom+3)+'px';};
- const draw=(next,focus=false)=>{
+ const choices=()=>sub==='transfer'?v121Moves(opts):v121Outbound(opts);
+ const draw=(next='',focus=false)=>{
   sub=next;
-  if(sub){
-   const choices=v120Destinations(opts);
-   p.innerHTML='<button type="button" role="menuitem" data-mode="back" class="v120-back"><span aria-hidden="true">‹</span><span>출고 목적지</span></button>'+choices.map(a=>'<button type="button" role="menuitem" data-mode="'+esc(a.key)+'" data-from="'+esc(a.from)+'">'+esc(a.label)+'</button>').join('')+(choices.length?'':'<div class="v120-empty">출고 가능한 재고가 없습니다.</div>');
-  }else{
-   p.innerHTML=actionsFor(opts).map(a=>'<button type="button" role="menuitem" data-mode="'+esc(a.key)+'"'+(a.key==='outbound'?' aria-haspopup="menu"':'')+'>'+esc(a.label)+(a.key==='outbound'?'<span class="v120-next" aria-hidden="true">›</span>':'')+'</button>').join('');
-  }
+  if(sub){const list=choices();p.innerHTML='<button type="button" role="menuitem" data-mode="back" class="v120-back" aria-label="이전 메뉴" title="이전 메뉴"><span aria-hidden="true">‹</span></button>'+list.map(a=>'<button type="button" role="menuitem" data-mode="'+esc(a.key)+'" data-from="'+esc(a.from)+'">'+esc(a.label)+'</button>').join('')+(list.length?'':'<div class="v120-empty">작업 가능한 재고가 없습니다.</div>');}
+  else p.innerHTML=actionsFor(opts).map(a=>{const nested=a.key==='outbound'||(a.key==='transfer'&&v121Moves(opts).length>1);return '<button type="button" role="menuitem" data-mode="'+esc(a.key)+'"'+(nested?' aria-haspopup="menu"':'')+'>'+esc(a.label)+(nested?'<span class="v120-next" aria-hidden="true">›</span>':'')+'</button>';}).join('');
   position();if(focus)(p.querySelector(sub?'[data-mode]:not([data-mode="back"])':'[data-mode="outbound"]')||p.querySelector('button'))?.focus({preventScroll:true});
  };
- draw(false);
+ const route=(mode,from='')=>{
+  closeActionMenu();
+  if(mode==='edit'){v33OpenMeatEdit(opts);return;}
+  if(['move','refreeze','field'].includes(mode)){v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}
+  if(mode==='company')openAction('ship',{...opts,from,outboundKind:mode});
+  else if(v121Types[mode])openAction('issue',{...opts,from,outboundKind:mode});
+ };
+ draw();
  p.addEventListener('click',e=>{
   const b=e.target.closest('button[data-mode]');if(!b)return;e.preventDefault();e.stopPropagation();const mode=b.dataset.mode;
-  if(mode==='outbound'){draw(true,true);return;}if(mode==='back'){draw(false,true);return;}
-  let from=opts.from;
-  if(sub){const choice=v120Destinations(opts).find(x=>x.key===mode&&x.from===b.dataset.from);if(!choice){draw(true,true);return;}from=choice.from;}
-  closeActionMenu();if(mode==='edit'){v33OpenMeatEdit(opts);return;}
-  if(['move','refreeze','field'].includes(mode)){v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}
-  openAction(mode,{...opts,from});
+  if(mode==='back'){draw('',true);return;}
+  if(!sub&&mode==='outbound'){draw('outbound',true);return;}
+  if(!sub&&mode==='transfer'){const list=v121Moves(opts);if(list.length===1)route(list[0].key,list[0].from);else draw('transfer',true);return;}
+  if(!sub&&mode==='edit'){route(mode);return;}
+  if(sub){const choice=choices().find(x=>x.key===mode&&x.from===b.dataset.from);if(choice)route(choice.key,choice.from);else draw(sub,true);}
  });
  p.addEventListener('keydown',e=>{
   const buttons=[...p.querySelectorAll('button[data-mode]')],i=buttons.indexOf(document.activeElement);
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();return;}
-  if(e.key==='ArrowRight'&&!sub&&document.activeElement?.dataset.mode==='outbound'){e.preventDefault();draw(true,true);}
-  if(e.key==='ArrowLeft'&&sub){e.preventDefault();draw(false,true);}
-  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(sub)draw(false,true);else{closeActionMenu();anchor.focus({preventScroll:true});}}
+  if(e.key==='ArrowRight'&&!sub&&document.activeElement?.getAttribute('aria-haspopup')==='menu'){e.preventDefault();draw(document.activeElement.dataset.mode,true);}
+  if(e.key==='ArrowLeft'&&sub){e.preventDefault();draw('',true);}
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(sub)draw('',true);else{closeActionMenu();anchor.focus({preventScroll:true});}}
  });
 }
 function sourceZone(){if(modalMode==='move')return 'frozen';if(modalMode==='refreeze')return 'chilled';return $('f_from')?.value||activeOptions.from||'frozen';}
@@ -3031,11 +3038,11 @@ function openAction(mode,opts={}){
  if(!document.querySelector('[data-quick-action].selected'))document.querySelectorAll('[data-quick-action]').forEach(x=>x.classList.remove('selected'));
  closeActionMenu();modalMode=mode;activeOptions=opts;
  $('modalLayer').classList.remove('hidden');document.body.style.overflow='hidden';$('formError').textContent='';$('modalLayer').querySelector('.drawer').classList.toggle('wide',!['product','receive'].includes(mode));
- const a=ACTIONS.find(x=>x.key===mode);
+ const a=ACTIONS.find(x=>x.key===mode),kind=opts.outboundKind||'',kindLabel=v121Types[kind]||'';
  const ttl={receive:['신규 입고','등록된 제품을 선택하면 LOT가 자동 생성됩니다.'],product:['제품 등록·수정','제품명은 입고할 때마다 다시 입력하지 않습니다.']}[mode]||[a?.title,a?.desc];
  if(!ttl||!ttl[0])throw Error('지원하지 않는 작업입니다.');
- $('drawerTitle').textContent=ttl[0];$('drawerSub').textContent=ttl[1];$('drawerOverline').textContent=mode.toUpperCase();
- $('saveAction').textContent=a?.button|| (mode==='receive'?'입고 등록':'제품 저장');
+ $('drawerTitle').textContent=kindLabel?'출고 · '+kindLabel:ttl[0];$('drawerSub').textContent=kindLabel?'선택한 LOT의 출고 중량과 필요한 정보를 입력합니다.':ttl[1];$('drawerOverline').textContent=mode.toUpperCase();
+ $('saveAction').textContent=kindLabel?'저장':a?.button|| (mode==='receive'?'입고 등록':'제품 저장');
  const selected=state.items.find(x=>x.id===opts.id),selectedP=productOf(opts.id);let out='';
  if(mode==='product'){
   out=`<div class="form-body"><div class="form-section">${selectedP?'제품 정보 수정':'신규 제품 등록'}</div><div class="form-grid">${field('품목코드','productCode',{full:true,value:v95MeatCode(selectedP),placeholder:'기존 코드 입력 또는 자동 부여'})}${field('육류 구분','productType',{required:true,options:typeChoices,value:selectedP?.type||'돈'})}${field('품목명','productName',{full:true,required:true,value:selectedP?.name||'',placeholder:'예: 돈지방, 한우잡육'})}</div><div class="product-form-hint">같은 육종·품목명은 중복으로 등록할 수 없습니다. 기존 LOT와 재고는 유지됩니다.</div></div>`;
@@ -3044,8 +3051,8 @@ function openAction(mode,opts={}){
  }else{
   const productId=opts.productId||selected?.productId||'';
   const presetFrom=(mode==='ship'||mode==='issue')?(opts.from||(!productId||state.items.some(l=>l.productId===productId&&(!opts.lotId||l.id===opts.lotId)&&cents(l.frozen)>0)?'frozen':'chilled')):'';
-  const route=mode==='move'?'냉동고 → 냉장고':mode==='refreeze'?'냉장고 → 냉동고':(opts.from?ZONE[opts.from]:'선택 창고')+' → '+(mode==='ship'?'외부 업체':'기타');
-  out=`<div class="form-body"><div class="form-section">01 · 품목 및 작업 경로</div><div class="lot-route">${esc(route)}</div><div class="form-grid"><div class="form-field full"><label for="inventoryProductSearch">품목명</label><div class="product-search-line"><input id="inventoryProductSearch" type="search" autocomplete="off" placeholder="품목명을 입력해 검색하세요" aria-label="작업 품목 검색" ${opts.lotId?'readonly':''}><span id="chosenProductType" class="chosen-type"></span></div><input id="f_inventoryProduct" name="inventoryProduct" type="hidden" value="${esc(productId)}"><div id="productMatches" class="product-matches hidden"></div>${opts.lotId?(()=>{const selectedLot=state.items.find(l=>l.id===opts.lotId);return selectedLot?`<div class="v43-selected-lot" aria-label="선택된 작업 대상 LOT"><strong>선택한 LOT · ${esc(selectedLot.id)}</strong><span>업체 ${esc(selectedLot.vendor||'미기재')} · 브랜드 ${esc(v66BrandLabel(selectedLot.brand)||'미기재')} · 원산지 ${esc(selectedLot.origin||'미기재')}</span></div>`:'';})():''}</div>${(mode==='ship'||mode==='issue')&&!opts.from?field('출고 창고','from',{full:true,required:true,value:presetFrom,options:[['frozen','냉동고'],['chilled','냉장고']]}):''}</div><div class="form-section">02 · LOT 선택 및 중량 입력</div><div class="lot-quick-search"><input id="lotSearch" type="search" autocomplete="off" placeholder="LOT 전체 검색: 브랜드·업체·원산지·소비기한 등" aria-label="LOT 전체 검색"></div><div class="lot-select-caption" id="lotListCaption"></div><div class="action-lots"><table><thead><tr><th>선택</th><th>LOT</th><th>업체명</th><th>브랜드</th><th>입고일</th><th>소비기한</th><th>냉동 kg</th><th>냉장 kg</th><th>작업 kg</th></tr></thead><tbody id="lotRows"></tbody></table></div><div class="lot-pick-note" id="lotPickNote"></div><div class="lot-summary" id="stockPreview"></div><div class="form-section">03 · 작업 정보</div><div class="form-grid">${mode==='ship'?field('받는 업체','recipient',{required:true,full:true,placeholder:'거래처 검색 후 선택'}):''}${mode==='ship'?field('출고 단가 (원)','unitPrice',{type:'number',placeholder:'미입력 가능'}):''}${field('비고','note',{full:true,textarea:true,placeholder:'필요한 경우 사유 입력'})}</div></div>`;
+  const route=mode==='move'?'냉동고 → 냉장고':mode==='refreeze'?'냉장고 → 냉동고':(opts.from?ZONE[opts.from]:'선택 창고')+' → '+(kindLabel||(mode==='ship'?'외부 업체':'기타'));
+  out=`<div class="form-body"><div class="form-section">01 · 품목 및 작업 경로</div><div class="lot-route">${esc(route)}</div><div class="form-grid"><div class="form-field full"><label for="inventoryProductSearch">품목명</label><div class="product-search-line"><input id="inventoryProductSearch" type="search" autocomplete="off" placeholder="품목명을 입력해 검색하세요" aria-label="작업 품목 검색" ${opts.lotId?'readonly':''}><span id="chosenProductType" class="chosen-type"></span></div><input id="f_inventoryProduct" name="inventoryProduct" type="hidden" value="${esc(productId)}"><div id="productMatches" class="product-matches hidden"></div>${opts.lotId?(()=>{const selectedLot=state.items.find(l=>l.id===opts.lotId);return selectedLot?`<div class="v43-selected-lot" aria-label="선택된 작업 대상 LOT"><strong>선택한 LOT · ${esc(selectedLot.id)}</strong><span>업체 ${esc(selectedLot.vendor||'미기재')} · 브랜드 ${esc(v66BrandLabel(selectedLot.brand)||'미기재')} · 원산지 ${esc(selectedLot.origin||'미기재')}</span></div>`:'';})():''}</div>${(mode==='ship'||mode==='issue')&&!opts.from?field('출고 창고','from',{full:true,required:true,value:presetFrom,options:[['frozen','냉동고'],['chilled','냉장고']]}):''}</div><div class="form-section">02 · LOT 선택 및 중량 입력</div><div class="lot-quick-search"><input id="lotSearch" type="search" autocomplete="off" placeholder="LOT 전체 검색: 브랜드·업체·원산지·소비기한 등" aria-label="LOT 전체 검색"></div><div class="lot-select-caption" id="lotListCaption"></div><div class="action-lots"><table><thead><tr><th>선택</th><th>LOT</th><th>업체명</th><th>브랜드</th><th>입고일</th><th>소비기한</th><th>냉동 kg</th><th>냉장 kg</th><th>작업 kg</th></tr></thead><tbody id="lotRows"></tbody></table></div><div class="lot-pick-note" id="lotPickNote"></div><div class="lot-summary" id="stockPreview"></div><div class="form-section">03 · 작업 정보</div><div class="form-grid">${mode==='ship'?field('업체','recipient',{required:true,full:true,placeholder:'거래처 검색 후 선택'}):['parcel','personal'].includes(kind)?field(kind==='parcel'?'수령인':'받는 사람','recipient',{required:true,full:true,placeholder:kind==='parcel'?'수령인 입력':'이름 입력'}):''}${mode==='ship'?field('출고 단가 (원)','unitPrice',{type:'number',placeholder:'미입력 가능'}):''}${field(['disposal','other'].includes(kind)?'사유':'비고','note',{full:true,textarea:true,required:['disposal','other'].includes(kind),placeholder:['disposal','other'].includes(kind)?'사유 입력':'필요한 경우 비고 입력'})}</div></div>`;
  }
  $('formContents').innerHTML=out;
  bindIntakeQuickDates($('formContents'));
@@ -3129,7 +3136,9 @@ function moveOrShip(p){
  if(!ids.length)return '작업할 LOT를 하나 이상 선택해 주세요.';
  if(!['frozen','chilled'].includes(from))return '출고 창고를 선택해 주세요.';
  const note=String(p.get('note')||'').trim(),recipient=String(p.get('recipient')||'').trim();
- if(mode==='ship'&&!recipient)return '받는 업체를 입력해 주세요.';
+ const kind=activeOptions.outboundKind||'',kindLabel=v121Types[kind]||'';
+ if((mode==='ship'||['parcel','personal'].includes(kind))&&!recipient)return '받는 곳 또는 수령인을 입력해 주세요.';
+ if(['disposal','other'].includes(kind)&&!note)return '출고 사유를 입력해 주세요.';
  const work=[];
  for(const id of ids){
   const l=state.items.find(x=>x.id===id);
@@ -3142,7 +3151,7 @@ function moveOrShip(p){
  const batchId=`B-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,5)}`;
  if(mode==='ship'){
    const unitPrice=Number(p.get('unitPrice')||0);if(!Number.isFinite(unitPrice)||unitPrice<0)return '출고 단가를 확인해 주세요.';
-   const info={id:batchId,date:today(),partnerName:recipient,partner:v17OutboundPartner||null,lines:work.map(({l,qty})=>({name:l.name,spec:[l.brand,l.origin].filter(Boolean).join(' · '),category:'meat',date:l.received,expiry:l.expiry,lotId:l.id,qty,unit:'kg',price:unitPrice})),note};
+   const info={id:batchId,date:today(),outboundKind:kind||'company',partnerName:recipient,partner:v17OutboundPartner||null,lines:work.map(({l,qty})=>({name:l.name,spec:[l.brand,l.origin].filter(Boolean).join(' · '),category:'meat',date:l.received,expiry:l.expiry,lotId:l.id,qty,unit:'kg',price:unitPrice})),note};
    state.shippingBatches=state.shippingBatches||[];state.shippingBatches.unshift(info);v17LastOutId=batchId;
  }
  for(const {l,qty} of work){
@@ -3154,7 +3163,7 @@ function moveOrShip(p){
    record(mode,l,qty,[{lotId:id,zone:from,delta:-qty},{lotId:id,zone:to,delta:qty}],note,'',{batchId});
   }else{
    l[from]=amount(cents(l[from])-cents(qty));
-   record(mode,l,qty,[{lotId:id,zone:from,delta:-qty}],note,mode==='issue'?'기타':'출고',{recipient:mode==='ship'?recipient:'',recipientPartner:mode==='ship'?(v17OutboundPartner||null):null,batchId});
+   record(mode,l,qty,[{lotId:id,zone:from,delta:-qty}],note,kindLabel?kindLabel+' 출고':mode==='issue'?'기타':'출고',{outboundKind:kind||'',recipient:mode==='ship'||['parcel','personal'].includes(kind)?recipient:'',recipientPartner:mode==='ship'?(v17OutboundPartner||null):null,batchId});
   }
  }
  return '';
@@ -3193,7 +3202,7 @@ function v110DeletedRows(st=state){
  }
  for(const t of tx.filter(t=>t.undone&&!used.has(t.id)&&!['reverse','productionCanceled'].includes(t.type))){
   const marker=tx.find(x=>x.type==='reverse'&&x.ref===t.id);
-  used.add(t.id);if(marker)used.add(marker.id);add('tx:'+t.id,types[t.type]||'기타',[t],marker,null);
+  used.add(t.id);if(marker)used.add(marker.id);add('tx:'+t.id,(t.outboundKind?'출고':types[t.type]||'기타'),[t],marker,null);
  }
  for(const t of tx.filter(t=>['reverse','productionCanceled'].includes(t.type)&&!used.has(t.id)))add('legacy:'+t.id,'기타',[],t,null);
  for(const [type,records] of [['정산',st.acPayments||[]],['경비',st.acExpenses||[]]])for(const p of records.filter(x=>x.voided))add(type+':'+p.id,type,[{...p,name:p.name||p.description||p.vendor||type,qty:p.amount,unit:'원'}],{at:p.voidedAt},null);
@@ -3237,7 +3246,7 @@ function renderHistory(){
   const from=t.source?(t.source==='production'?'생산현장':ZONE[t.source]||'외부'):'—';
   const to=t.type==='receive'?'입고':t.destination==='external'?t.recipient||'외부 업체':t.destination==='other'?'기타':t.destination==='production'?'생산현장':(ZONE[t.destination]||'기타');
   const route=t.type==='receiveExtra'?(INTAKE_LABELS[t.category]||'입고')+' · 입고':t.type==='shipExtra'?(V18_CAT[t.category]||'부재료')+' · 외부 출고':t.type==='reverse'?'취소 내역':(t.type==='production'||t.type==='issue'||t.type==='ship'||t.type==='move'||t.type==='refreeze'||t.type==='fieldIssue'||t.type==='fieldReturn'?`${from} → ${to}`:ZONE[t.source]||'—');
-  const detail=[t.purpose,t.productionTarget?`생산품목: ${t.productionTarget}`:'',t.traceRunId?`생산번호: ${t.traceRunId}`:'',t.type==='production'?(t.unitCost>0?`투입 원가 ${fmt(t.qty*t.unitCost)}원 (기준 ${fmt(t.unitCost)}원/kg)`:'원가 미입력'):'',t.recipient?`받는 업체: ${t.recipient}`:'',t.note].filter(Boolean).join(' · ');
+  const detail=[t.purpose,t.productionTarget?`생산품목: ${t.productionTarget}`:'',t.traceRunId?`생산번호: ${t.traceRunId}`:'',t.type==='production'?(t.unitCost>0?`투입 원가 ${fmt(t.qty*t.unitCost)}원 (기준 ${fmt(t.unitCost)}원/kg)`:'원가 미입력'):'',t.recipient?`${['parcel','personal'].includes(t.outboundKind)?'수령인':'받는 업체'}: ${t.recipient}`:'',t.note].filter(Boolean).join(' · ');
   const unit=(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?' '+esc(t.unit||''):' kg';
   return `<tr><td>${esc(v70Date(t))}</td><td><span class="history-type ${cls}">${title}</span>${t.undone?'<div class="subtle">취소됨</div>':''}</td><td>${(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?`<span class="meat-pill">${esc(INTAKE_LABELS[t.category]||V18_CAT[t.category]||t.category||'완제품')}</span>`:typeBadge(t.meatType)} <strong class="product-name">${esc(t.name)}</strong><div class="subtle">${esc(t.lotId)}</div></td><td>${esc(route)}</td><td class="numeric"><strong>${fmt(t.qty)}${unit}</strong></td><td>${esc(detail||'—')}</td><td class="numeric">${t.type!=='reverse'&&t.type!=='receiveExtra'&&t.type!=='shipExtra'&&t.type!=='productionReceipt'&&t.type!=='productionExtra'&&!t.undone&&!(state.shippingBatches||[]).some(x=>x.version===18&&x.id===t.batchId)?`<button class="undo-btn" data-undo="${esc(t.id)}">삭제</button>`:'—'}</td></tr>`;
  }).join('');
