@@ -3359,7 +3359,7 @@ function intakePage(){
    <div class="v50-intake-scroller"><div class="v50-intake-head"><span>No.</span><span>품목명</span><span>구분</span><span>수량</span><span>단위</span><span>입고단가</span><span>소비기한</span><span>관리</span></div><div class="intake-row-list" id="intakeRowList"></div></div>
    <div class="intake-add"><button type="button" class="intake-btn" id="intakeAdd">+ 품목 추가</button><button type="button" class="intake-text" id="intakePasteToggle">엑셀에서 붙여넣기</button></div>
    <div id="intakePastePanel" class="intake-paste hidden"><div class="intake-note">엑셀의 품목명 · 수량 · 소비기한 열을 복사해 붙여넣으세요. 다른 항목은 이후 수정할 수 있습니다.</div><textarea id="intakePasteText" rows="4" placeholder="돈지방\t100\t2027-12-31\n파인바베큐소스\t20\t2027-08-01"></textarea><div class="intake-actions"><button type="button" class="intake-btn" id="intakeApplyPaste">행으로 추가</button></div></div>
-   <div class="intake-footer"><span id="intakeSummary">1개 품목 입력 중</span><div><button type="button" class="intake-text" id="intakeClear">입력 초기화</button><button type="button" class="intake-btn" id="v17PreviewIntake">명세서 미리보기</button><button type="button" class="intake-save" id="intakeSave">입고등록</button></div></div>
+   <div class="intake-footer"><span id="intakeSummary">1개 품목 입력 중</span><div><button type="button" class="intake-btn" id="intakeClear">초기화</button><button type="button" class="intake-btn" id="v17PreviewIntake">명세서 미리보기</button><button type="button" class="intake-save" id="intakeSave">입고등록</button></div></div>
    <div class="intake-note" style="margin:8px 0 0;">입고등록 시 재고 반영과 거래명세서 생성·저장이 함께 진행됩니다.</div>
    <div class="intake-error hidden" id="intakeError" role="alert"></div>
    <div class="intake-success ${intakeLastSaved?'':'hidden'}" id="intakeSuccess">${intakeLastSaved?esc(intakeLastSaved):''} <span id="v53SavedInDocuments"></span></div>
@@ -3378,7 +3378,13 @@ function intakePage(){
  });
  bindIntakeQuickDates($('mainView'));
  $('intakeAdd').onclick=()=>{syncIntakeRows();intakeRows.push(rowDefault());drawIntakeRows();$('intakeRowList').lastElementChild?.querySelector('.in-search')?.focus();};
- $('intakeClear').onclick=()=>{if(intakeRows.some(r=>r.name||r.qty)&&!confirm('작성 중인 입고 내용만 초기화할까요?'))return;intakeRows=[rowDefault()];drawIntakeRows();$('intakeError').classList.add('hidden')};
+ $('intakeClear').onclick=()=>{
+  syncIntakeRows();
+  const dirty=intakeRows.some(r=>r.name||r.qty||r.price||r.expiry||r.note||r.brand||r.origin||r.spec||r.weight||r.catalogKey)||$('intakeVendor').value.trim()||$('intakeNote').value.trim()||$('intakePasteText').value.trim();
+  if(dirty&&!confirm('작성 중인 품목, 업체, 전표 비고를 초기화할까요? 저장된 내역과 날짜는 유지됩니다.'))return;
+  intakeRows=[rowDefault()];v17InboundPartner=null;$('intakeVendor').value='';$('v17PartnerInfo').textContent='';$('v17PartnerMatches').classList.add('hidden');$('intakeNote').value='';$('intakePasteText').value='';$('intakePastePanel').classList.add('hidden');
+  drawIntakeRows();$('intakeError').textContent='';$('intakeError').classList.add('hidden');
+ };
  $('intakePasteToggle').onclick=()=>$('intakePastePanel').classList.toggle('hidden');
  $('intakeApplyPaste').onclick=pasteIntake;
  $('intakeSave').onclick=saveIntake;
@@ -3753,7 +3759,7 @@ function v18Page(){
  </div>
  <div class="v50-out-scroller"><div class="v50-out-head"><span>No.</span><span>품목명</span><span>LOT</span><span>출고수량</span><span>금액</span><span>비고</span><span>LOT 입력</span><span>삭제</span></div><div class="v18-lines" id="v18Lines"></div></div>
  <div class="v18-add"><button class="intake-btn" type="button" id="v18AddLine">+ 품목 추가</button><span>필요한 LOT 줄에 출고수량·단가를 직접 입력하세요</span></div>
- <div class="v18-bottom"><div id="v18Summary">품목 0개 · LOT 0개</div><div class="v18-commands"><button type="button" class="intake-btn" id="v18Reset">입력 초기화</button><button type="button" class="intake-btn" id="v18Preview">명세서 미리보기</button><button type="button" class="intake-save" id="v18Save">출고등록</button></div></div>
+ <div class="v18-bottom"><div id="v18Summary">품목 0개 · LOT 0개</div><div class="v18-commands"><button type="button" class="intake-btn" id="v18Reset">초기화</button><button type="button" class="intake-btn" id="v18Preview">명세서 미리보기</button><button type="button" class="intake-save" id="v18Save">출고등록</button></div></div>
  <div class="intake-note" style="margin:8px 20px 0;">출고등록 시 재고 차감과 거래명세서 생성·저장이 함께 진행됩니다.</div>
   <div id="v18Error" role="alert" class="intake-error hidden"></div><div id="v18Success" class="intake-success hidden"></div>
  </section>`;
@@ -3793,7 +3799,12 @@ function v18Page(){
     input?.focus();
     input?.closest('.v18-lookup')?.querySelector('.v18-suggestions')?.classList.add('hidden');
   };
- $('v18Reset').onclick=()=>{if(v18Lines.some(x=>x.group||Object.keys(x.selected).length)&&!confirm('입력 중인 출고 내역을 초기화하시겠습니까?'))return;v18Lines=[v18NewLine()];v18Partner=null;partnerInput.value='';$('v18PartnerInfo').textContent='';$('v18Note').value='';v18Draw();};
+ $('v18Reset').onclick=()=>{
+  v18Sync();
+  const dirty=v18Lines.some(x=>x.group||x.search||x.price||x.note||x.quickQty||Object.keys(x.selected||{}).length)||partnerInput.value.trim()||$('v18Note').value.trim();
+  if(dirty&&!confirm('작성 중인 품목, 업체, 전표 비고를 초기화할까요? 저장된 내역과 날짜는 유지됩니다.'))return;
+  v18Lines=[v18NewLine()];v18Partner=null;partnerInput.value='';$('v18PartnerInfo').textContent='';$('v18PartnerMatches').classList.add('hidden');$('v18Note').value='';v18Draw();$('v18Error').textContent='';$('v18Error').classList.add('hidden');
+ };
  $('v18Save').onclick=v18Save;
  $('v18Preview').onclick=v18Preview;
  v18Draw();
