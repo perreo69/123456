@@ -2719,10 +2719,10 @@ function getIntakeCatalog(){
  for(const p of state.products.filter(p=>p.active)){
   const lots=state.items.filter(l=>l.productId===p.id).sort((a,b)=>(b.received||'').localeCompare(a.received||''));
   if(!lots.length)add({category:'meat',name:p.name,type:p.type,productId:p.id,unit:'kg'});
-  for(const l of lots)add({category:'meat',name:p.name,type:p.type,productId:p.id,brand:l.brand,origin:l.origin,vendor:l.vendor,unit:'kg',zone:l.frozen>0?'frozen':'chilled',received:l.received||'',price:l.price||0});
+  for(const l of lots)add({category:'meat',name:p.name,type:p.type,productId:p.id,brand:l.brand,origin:l.origin,vendor:l.vendor,unit:'kg',zone:l.frozen>0?'frozen':l.chilled>0?'chilled':l.initialZone||'chilled',received:l.received||'',price:l.price||0});
  }
  for(const r of [...(window.__ERP_CATEGORY_SEED__||[]),...(state.extraLots||[])]){
-  add({category:r.category,name:r.name,spec:r.spec||'',brand:r.brand||'',vendor:r.vendor||'',origin:r.origin||'',unit:r.unit||'팩',method:r.method||'',location:r.location||'',weight:Number(r.packs)>0&&Number(r.kg)>0?Number(r.kg)/Number(r.packs):'',type:r.type||'',received:r.received||'',price:r.price||0});
+  add({category:r.category,name:r.name,spec:r.spec||'',brand:r.brand||'',vendor:r.vendor||'',origin:r.origin||'',unit:r.unit||'팩',method:r.method||'',location:r.location||'',weight:r.unitWeight??(Number(r.packs)>0&&Number(r.kg)>0?Number(r.kg)/Number(r.packs):''),type:r.type||'',received:r.received||'',price:r.price||0});
  }
  for(const p of state.extraProducts||[])add(p);
  for(const p of [...V17_ITEMS.filter(x=>x.active),...(state.v66CustomCatalog||[]).filter(x=>x.active)]){
