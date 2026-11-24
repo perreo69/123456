@@ -86,7 +86,7 @@ async function openERP(){
   if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
   if(ticket!==epoch)return;session=s;window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;revision=Number(st.data.revision);lastJSON=st.data.body?JSON.stringify(st.data.body):'';blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=133&t='+Date.now();notice('연결됨 · 서버 저장');
+  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=134&t='+Date.now();notice('연결됨 · 서버 저장');
   if(!channel){channel=db.channel('mirrstar-erp-state-v85').on('postgres_changes',{event:'UPDATE',schema:'public',table:'erp_company_state',filter:'id=eq.1'},()=>{void sync();}).subscribe();}
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
@@ -228,5 +228,17 @@ input::placeholder,textarea::placeholder{color:#74747a!important;opacity:1!impor
 #bar{background:linear-gradient(#fafafb,#eeeeF1)!important;border-bottom:1px solid #d1d1d6!important;padding:6px 12px!important;gap:8px!important}
 #bar button{min-height:28px!important;font-size:12px!important;padding:4px 10px!important}
 #status{color:#626269!important}dialog{background:#fff!important;border:1px solid #c9c9d0!important;border-radius:9px!important;box-shadow:0 10px 32px #00000025!important}dialog::backdrop{background:#1d1d1f33!important}
+}
+</style><style id="v134-shell-width">
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+html,body,#shell{box-sizing:border-box!important;width:100%!important;max-width:100%!important;min-width:0!important;overflow-x:hidden!important}
+#shell{display:flex;flex-direction:column;height:100dvh;min-height:0}
+#shell[hidden]{display:none!important}
+#bar{display:grid!important;grid-template-columns:minmax(0,1fr) repeat(3,auto)!important;grid-template-rows:auto auto;gap:0 5px!important;padding:3px 8px!important;flex:0 0 auto;min-width:0!important;width:100%!important;max-width:100%!important;min-height:44px!important}
+#who{grid-column:1;grid-row:1;min-width:0;max-width:100%!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px!important;align-self:end}
+#status{grid-column:1;grid-row:2;font-size:10px!important;min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal!important;align-self:start;line-height:1.2;margin:0}
+#bar button{grid-row:1/3;min-width:0!important;min-height:40px!important;padding:4px 5px!important;font-size:11px!important;white-space:nowrap;border:0!important;background:none!important;color:#006bd6!important}
+#refresh{grid-column:2}#changePw{grid-column:3}#logout{grid-column:4}
+#app{display:block;flex:1 1 0!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:0!important;border:0}
 }
 </style></body></html>
