@@ -2921,7 +2921,7 @@ function actionsFor(opts={}){
  const hasChilled=items.some(l=>cents(l.chilled)>0);
  const zone=opts.from||'';
  const moving=zone==='frozen'?['move']:zone==='chilled'?['refreeze']:['move','refreeze'];
- return [...moving.filter(key=>key==='move'?hasFrozen:hasChilled),'ship','issue'].map(key=>ACTIONS.find(a=>a.key===key)).concat(hasChilled&&zone!=='frozen'?[{key:'field',label:'현장 출고'}]:[]).concat(opts.productId?[{key:'edit',label:'수정'}]:[]);
+ return [...moving.filter(key=>key==='move'?hasFrozen:hasChilled),'ship','issue'].map(key=>ACTIONS.find(a=>a.key===key)).concat(opts.productId?[{key:'edit',label:'수정'}]:[]);
 }
 let actionMenu=null,actionMenuAnchor=null;
 function closeActionMenu(){if(actionMenu){actionMenu.remove();actionMenu=null;}if(actionMenuAnchor?.isConnected)actionMenuAnchor.setAttribute('aria-expanded','false');actionMenuAnchor=null;}
