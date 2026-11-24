@@ -1174,8 +1174,8 @@ input,select,textarea,button{accent-color:#555555}
 .v88-footer{position:relative;display:flex;align-items:center;justify-content:center;border-top:1px solid #ddd;margin-top:14px;padding:13px 0 5px}
 .v88-footer>div{display:flex;gap:6px}
 .v88-calendar .v88-footer button{height:35px;min-width:62px;padding:0 13px;border:1px solid #999;background:#fff;color:#444;font-size:14px;border-radius:2px}
-.v88-calendar .v88-footer .v88-apply{background:#3297d2;color:white;border-color:#2587be;font-weight:600}
-.v88-calendar .v88-footer .v88-apply:hover{background:#2788c1}
+.v88-calendar .v88-footer .v88-apply{background:#333;color:#fff;border-color:#333;font-weight:600}
+.v88-calendar .v88-footer .v88-apply:hover{background:#222;border-color:#222}
 .v88-calendar .v88-footer .v88-clear{position:absolute;left:0;border-color:#ddd;font-size:12px;min-width:0;color:#777}
 @media(max-width:550px){.v88-top{padding:10px;gap:7px;flex-wrap:wrap;min-height:0}.v88-period{font-size:12px;white-space:normal;flex-basis:100%}.v88-calendar .v88-quick button{height:34px;font-size:11px}.v88-quick-months{grid-template-columns:repeat(6,minmax(0,1fr))}.v88-calendars{grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr)}.v88-cal{padding:3px}.v88-cal-nav{grid-template-columns:16px minmax(0,1fr) minmax(0,1fr) 16px;padding:3px 1px}.v88-calendar .v88-cal-nav select{font-size:11px;padding:1px;height:25px}.v88-calendar .v88-days button{padding:0 2px;font-size:11px;height:25px}.v88-days{gap:2px}.v88-days b{font-size:11px;height:24px}}
 </style>
@@ -2555,6 +2555,7 @@ function v61HistoryRows(){return state.transactions.filter(t=>(v61HistoryFilter=
 function v89PeriodLabel(from,to){return from||to?`<span class="v89-period-value" aria-label="선택 기간">${esc(from||'')} ~ ${esc(to||'')}</span>`:'';}
 function v70Calendar(options){
  const opts=options&&typeof options.apply==='function'?options:null;
+ const anchor=options?.anchor||document.activeElement;
  const dlg=document.createElement('dialog');dlg.className='v70-calendar v88-calendar';
  let from=(opts?opts.from:v70From)||today(),to=(opts?opts.to:v70To)||today();
  const parse=d=>new Date(d+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),date=(y,m,d)=>new Date(Date.UTC(y,m,d,12)),now=parse(today()),todayYear=now.getUTCFullYear();
@@ -2591,7 +2592,21 @@ function v70Calendar(options){
   draw();
  };
  dlg.onchange=e=>{const el=e.target,side=el.dataset.year||el.dataset.month;if(!side)return;const d=side==='left'?left:right,yy=el.dataset.year?Number(el.value):d.getUTCFullYear(),mm=el.dataset.month?Number(el.value):d.getUTCMonth(),next=date(yy,mm,1);if(side==='left')left=next;else right=next;draw();};
- dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();
+ // Anchor the initial position to the invoking period button, not the viewport center.
+ function placeNearButton(){
+  if(!dlg.open||!anchor?.isConnected)return;
+  const a=anchor.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight,gap=8,edge=8;
+  const r=dlg.getBoundingClientRect();
+  const below=h-edge-a.bottom-gap,above=a.top-gap-edge;
+  const y=below>=r.height?a.bottom+gap:above>=r.height?a.top-gap-r.height:below>=above?a.bottom+gap:a.top-gap-r.height;
+  const clamp=(n,max)=>Math.max(edge,Math.min(Math.max(edge,max),n));
+  Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:clamp(a.left,w-r.width-edge)+'px',top:clamp(y,h-r.height-edge)+'px'});
+ }
+ dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();placeNearButton();
+ // Keep manual drag positions, only clamp to viewport when month content changes.
+ const fit=()=>{if(!dlg.open)return;const r=dlg.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;dlg.style.left=Math.max(8,Math.min(r.left,w-r.width-8))+'px';dlg.style.top=Math.max(8,Math.min(r.top,h-r.height-8))+'px';};
+ const observer=new ResizeObserver(fit);observer.observe(dlg);window.addEventListener('resize',fit);
+ dlg.addEventListener('close',()=>{observer.disconnect();window.removeEventListener('resize',fit);},{once:true});
 }
 
 function v68Counts(){const lots=v18CatalogLots();const filters={dashboard:l=>l.category==='meat',frozen:l=>l.category==='meat'&&l.zone==='frozen',chilled:l=>l.category==='meat'&&l.zone==='chilled',finished_all:l=>EXTRA_GROUPS.finished_all.includes(l.category),ingredients_all:l=>EXTRA_GROUPS.ingredients_all.includes(l.category)};document.querySelectorAll('[data-count]').forEach(el=>{const k=el.dataset.count;el.textContent=fmt(k==='history'?state.transactions.length:new Set(lots.filter(filters[k]|| (l=>l.category===k)).map(l=>l.product)).size);});}
@@ -2700,7 +2715,7 @@ function acPage(next){
  $('mainView').innerHTML=`<section class="inventory-panel card ac-page"><div class="panel-top ac-panel-heading"><div><h2>${next==='ac_purchase'?'매입 내역':next==='ac_sale'?'매출 내역':names[next]}</h2><p class="page-desc">${esc(intro)}</p></div>${next==='ac_purchase'?'<button type="button" class="btn btn-primary" id="acNewPurchase">+ 매입 입력</button>':next==='ac_sale'?'<button type="button" class="btn btn-primary" id="acNewSale">+ 매출 입력</button>':expense?'<button class="btn btn-primary" id="acNew">+ 경비 등록</button>':''}</div><div class="ac-metrics">${summary}</div><div class="filters ac-filters v90-report-filters"><span class="v87-filter-label">조회 조건</span><div class="v70-filter v90-report-controls"><button class="btn btn-outline" id="acPeriod" type="button">기간설정</button>${v89PeriodLabel(f.from,f.to)}<input id="acQuery" type="search" placeholder="거래처 · 내용 검색" value="${esc(f.query)}">${expense?'':`<select id="acPartner"><option value="">전체 거래처</option>${[...partners].sort((a,b)=>a[1].localeCompare(b[1],'ko')).map(([k,n])=>`<option value="${esc(k)}" ${k===f.partner?'selected':''}>${esc(n)}</option>`).join('')}</select>`}${ledger?'':`<select id="acStatus"><option value="all">${settle?'미정산 / 확인 필요':'전체 상태'}</option>${expense?'<option value="open">유효</option>':'<option value="open">미정산</option><option value="closed">정산 완료</option>'}<option value="canceled">취소</option></select>`}<button class="btn btn-outline" id="acCSV">CSV 저장</button></div></div>${acTable(headers,rows)}<div class="table-footer">조회 ${rows.length.toLocaleString('ko-KR')}건 · 사내 관리용 장부 (세무 신고용 아님)</div></section>`;
  if($('acStatus'))$('acStatus').value=f.status;
  for(const [id,k] of [['acQuery','query'],['acPartner','partner'],['acStatus','status']])if($(id))$(id).onchange=()=>{const v=$(id).value;if(k==='from'&&f.to&&v>f.to||k==='to'&&f.from&&v<f.from){alert('기간을 확인해 주세요.');$(id).value=f[k];return;}f[k]=v;acPage(next);};
- $('acPeriod').onclick=()=>v70Calendar({from:f.from,to:f.to,apply:(from,to)=>{f.from=from;f.to=to;acPage(next);}});$('acCSV').onclick=()=>download(names[next]+'_'+today()+'.csv',csv([headers,...exportRows].map(r=>r.map(acExportCell))),'text/csv;charset=utf-8');
+ $('acPeriod').onclick=e=>v70Calendar({anchor:e.currentTarget,from:f.from,to:f.to,apply:(from,to)=>{f.from=from;f.to=to;acPage(next);}});$('acCSV').onclick=()=>download(names[next]+'_'+today()+'.csv',csv([headers,...exportRows].map(r=>r.map(acExportCell))),'text/csv;charset=utf-8');
  if($('acNewPurchase'))$('acNewPurchase').onclick=()=>setView('intake','ac_purchase');
  if($('acNewSale'))$('acNewSale').onclick=()=>setView('ship','ac_sale');
  if($('acNew'))$('acNew').onclick=()=>acExpenseEdit();
@@ -2995,7 +3010,7 @@ function renderHistory(){
  $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v89PeriodLabel(v70From,v70To)}<input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">취소</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.length)}건</span><span>취소 기록도 보존됩니다.</span></div></section>`;
  // Incoming/outgoing saved paperwork is shown only in matching tabs; no separate movement document.
  v17DrawHistoryDocuments(v61HistoryFilter);v18AddHistoryCancel();
- $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=()=>v70Calendar(); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
+ $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>reverseTransaction(b.dataset.undo));
 }
@@ -4910,4 +4925,7 @@ $('v33EditCancel').onclick=()=>$('v33EditDialog').close();
 .v88-calendar .v88-days button{font-weight:400}
 .v88-calendar .v88-days button.chosen{font-weight:500}
 @media(max-width:650px){.v90-report-filters{grid-template-columns:1fr;gap:5px!important;padding:10px!important}.ac-page .ac-filters #acQuery{flex:1 1 160px;width:auto}}
+</style><style id="v91-calendar-anchor">
+.v70-calendar.v88-calendar{position:fixed;inset:auto;margin:0;max-height:calc(100vh - 16px)}
+.v88-calendar .v88-top{touch-action:none}
 </style></body></html>
