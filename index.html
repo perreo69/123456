@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261124_52">
+<link rel="stylesheet" href="style.css?v=20261124_53">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:10.5px;font-weight:500;color:#64748b;font-variant-numeric:tabular-nums;text-align:right}
@@ -121,13 +121,18 @@
       </button>
       </section>
 
-      <!-- v31 — ② 재고관리 : 네 덩어리 아코디언 (원료육 · 완제품 · 부재료 펼침 / 부자재 바로 이동) -->
+      <!-- v47 — ② 재고관리 : 맨 위 「전체 재고」 + 네 덩어리 아코디언 (원료육 · 완제품 · 부재료 펼침 / 부자재 바로 이동) -->
       <section class="nav-card" role="group" aria-label="재고관리">
       <div class="glabel" data-grp="stock">재고 관리<span class="ln"></span></div>
 
+      <!-- v47 — 일곱 구분을 한 표에서 보는 통합 재고 -->
+      <button class="nitem nflat" type="button" data-nav="stock:all" title="원료육·완제품·부재료·부자재를 한 표에서 봅니다">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v4H4zM4 11h16v4H4zM4 17h16v2H4z"/></svg><span>전체 재고</span><span class="cnt" id="navAllCnt">0</span>
+      </button>
+
       <div class="nacc open" data-accordion="meat">
         <button class="nitem npar" type="button" data-acc-toggle="meat" aria-expanded="true" aria-controls="naccMeat">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span><span class="cnt" id="navCntMeat">0</span>
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nsub" id="naccMeat">
@@ -139,7 +144,7 @@
 
       <div class="nacc" data-accordion="fg">
         <button class="nitem npar" type="button" data-acc-toggle="fg" aria-expanded="false" aria-controls="naccFg">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>완제품</span>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>완제품</span><span class="cnt" id="navCntFg">0</span>
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nsub" id="naccFg">
@@ -151,7 +156,7 @@
 
       <div class="nacc" data-accordion="mat">
         <button class="nitem npar" type="button" data-acc-toggle="mat" aria-expanded="false" aria-controls="naccMat">
-          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 8l1.6-4h12.8L20 8M9 12h6"/></svg><span>부재료</span>
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 8l1.6-4h12.8L20 8M9 12h6"/></svg><span>부재료</span><span class="cnt" id="navCntMat">0</span>
           <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nsub" id="naccMat">
@@ -167,13 +172,20 @@
       </button>
       </section>
 
+      <!-- v47 — ③ 품목관리 : 품목 목록 + 등록 · 정보 수정 · 사용/미사용을 한 화면에서 -->
+      <section class="nav-card" role="group" aria-label="품목관리">
+      <button class="nitem nflat" type="button" data-nav="items" title="등록된 품목을 보고 새 품목 등록 · 정보 수정 · 사용/미사용 전환을 한 곳에서 합니다">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16v14H4z"/><path d="M4 10h16M9 6V3h6v3"/><path d="M9 14h6M9 17h4"/></svg><span>품목관리</span><span class="cnt" id="navCntItems">0</span>
+      </button>
+      </section>
+
       <section class="nav-card" role="group" aria-label="회계">
       <div class="glabel" data-grp="acc">회계<span class="ln"></span></div>
       <button class="nitem" type="button" data-nav="buy-list">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>매입 내역</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>매입</span>
       </button>
       <button class="nitem" type="button" data-nav="sale-list">
-        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>매출 내역</span>
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>매출</span>
       </button>
       <button class="nitem" type="button" data-nav="buy-status">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 9l1.6 6L12 9l2.4 6L16 9"/></svg><span>미지급금</span>
@@ -181,10 +193,12 @@
       <button class="nitem" type="button" data-nav="sale-status">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M8 9l1.6 6L12 9l2.4 6L16 9"/></svg><span>미수금</span>
       </button>
-      <button class="nitem" type="button" data-nav="expense">
+      <!-- v47 — 「일반 경비」는 일단 감춤(코드 그대로 · hidden 만 떼면 다시 살아난다) -->
+      <button class="nitem hidden" type="button" data-nav="expense">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/></svg><span>일반 경비</span>
       </button>
-      <button class="nitem" type="button" data-nav="ledger">
+      <!-- v47 — 「거래처 원장」도 일단 감춤(코드 그대로) -->
+      <button class="nitem hidden" type="button" data-nav="ledger">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><path d="M16 5.5a3 3 0 0 1 0 5.6M17 19a5.6 5.6 0 0 0-2-4.2"/></svg><span>거래처 원장</span>
       </button>
       </section>
@@ -192,7 +206,8 @@
 
     <!-- v42 — 서명은 nav 밖에 두어, 메뉴가 길어 안에서 스크롤돼도 늘 사이드바 아래에 붙어 있다 -->
     <div class="sidefoot">
-      <span class="sflinks" id="sideMore">
+      <!-- v47 — 「생산·원가」·「단가 변동」은 일단 감춤(버튼·바인딩 그대로 · hidden 만 떼면 다시 살아난다) -->
+      <span class="sflinks hidden" id="sideMore">
         <button type="button" data-legacy="prod">생산·원가</button>
         <button type="button" data-legacy="price">단가 변동</button>
       </span>
@@ -207,27 +222,30 @@
   <div class="v8main" id="v8Main">
 
   <div class="v8pagehead">
-    <div>
-      <h2 id="v8Title">재고현황</h2>
+    <!-- v46 — 제목 줄 한 칸에 제목과 «동선이 짧은» 주요 단추를 모은다(＋ 품목 등록 · ＋ 매입/매출 전표 입력) -->
+    <div class="phmain">
+      <div class="phtop">
+        <h2 id="v8Title">재고현황</h2>
+        <div class="pacts hidden" id="tradeActs">
+          <div class="tgrp buy">
+            <button class="btn primary" id="btnBuyNew" type="button">＋ 매입 전표 입력</button>
+            <button class="btn" id="btnBuyReflect" type="button">미반영 입고 가져오기</button>
+            <button class="btn" id="btnBuyPay" type="button">＋ 지급 입력</button>
+          </div>
+          <span class="psep" aria-hidden="true"></span>
+          <div class="tgrp sale">
+            <button class="btn primary" id="btnSaleNew" type="button">＋ 매출 전표 입력</button>
+            <button class="btn" id="btnSaleReflect" type="button">미반영 판매출고 가져오기</button>
+            <button class="btn" id="btnSalePay" type="button">＋ 수금 입력</button>
+            <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
+          </div>
+        </div>
+        <!-- v32 — 공통 보조 단추(＋ 품목 등록 · 엑셀 ▾)가 화면에 따라 제목 오른쪽으로 옮겨 붙는다 -->
+        <div class="headacts" id="headActs"></div>
+      </div>
       <p id="v8Desc">일곱 구분의 재고를 한 표에서 봅니다. 품목별 관리로 들어가면 그 품목 안에서 입고·출고·해동/냉동을 끝냅니다.</p>
     </div>
     <div class="v8pgright">
-      <div class="pacts hidden" id="tradeActs">
-        <div class="tgrp buy">
-          <button class="btn primary" id="btnBuyNew" type="button">＋ 매입 전표 입력</button>
-          <button class="btn" id="btnBuyReflect" type="button">미반영 입고 가져오기</button>
-          <button class="btn" id="btnBuyPay" type="button">＋ 지급 입력</button>
-        </div>
-        <span class="psep" aria-hidden="true"></span>
-        <div class="tgrp sale">
-          <button class="btn primary" id="btnSaleNew" type="button">＋ 매출 전표 입력</button>
-          <button class="btn" id="btnSaleReflect" type="button">미반영 판매출고 가져오기</button>
-          <button class="btn" id="btnSalePay" type="button">＋ 수금 입력</button>
-          <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
-        </div>
-      </div>
-      <!-- v32 — 제목 줄 오른쪽 끝 공통 보조 버튼(＋ 품목 등록 · 엑셀 ▾)이 화면에 따라 여기로 옮겨 붙는다 -->
-      <div class="headacts" id="headActs"></div>
       <span class="v8crumb" id="v8Crumb">통합 관리 · 재고현황</span>
     </div>
   </div>
@@ -432,6 +450,39 @@
         </div>
       </div>
       <div class="table-wrap" id="utxTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== v47 · 3. 품목관리 (등록 · 정보 수정 · 사용/미사용) ===================== -->
+  <main class="v8pane hidden" id="itemsMode">
+    <section class="panel list-panel unicard">
+      <div class="utool v32tool">
+        <div class="utrow" id="itemsFilterRow">
+          <button class="btn primary" id="itemsBtnNew" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다">＋ 품목 등록</button>
+          <label class="usearch">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <input type="search" id="itemsSearch" placeholder="품명 · 품목코드 · 거래처 검색" autocomplete="off">
+          </label>
+          <div class="chips" id="itemsCatChips">
+            <button class="chip on" type="button" data-icat="all">전체<span class="n" id="itemsCntAll">0</span></button>
+            <button class="chip" type="button" data-icat="완제품">완제품<span class="n" id="itemsCntFg">0</span></button>
+            <button class="chip" type="button" data-icat="소스">소스<span class="n" id="itemsCntSauce">0</span></button>
+            <button class="chip" type="button" data-icat="향신료">향신료<span class="n" id="itemsCntSpice">0</span></button>
+            <button class="chip" type="button" data-icat="야채">야채<span class="n" id="itemsCntVeg">0</span></button>
+            <button class="chip" type="button" data-icat="부자재">부자재<span class="n" id="itemsCntSub">0</span></button>
+            <button class="chip" type="button" data-icat="기타">기타<span class="n" id="itemsCntEtc">0</span></button>
+            <button class="chip" type="button" data-icat="원료육">원료육<span class="n" id="itemsCntMeat">0</span></button>
+          </div>
+          <div class="chips" id="itemsUseChips">
+            <button class="chip soft on" type="button" data-iuse="all">사용+미사용</button>
+            <button class="chip soft" type="button" data-iuse="on">사용중</button>
+            <button class="chip soft" type="button" data-iuse="off">미사용</button>
+          </div>
+          <span class="sp"></span>
+          <span class="hint" id="itemsSum"></span>
+        </div>
+      </div>
+      <div class="table-wrap" id="itemsTableWrap"></div>
     </section>
   </main>
 
@@ -1703,7 +1754,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261124_52"></script>
-<script src="app.js?v=20261124_52"></script>
+<script src="partners_data.js?v=20261124_53"></script>
+<script src="app.js?v=20261124_53"></script>
 </body>
 </html>

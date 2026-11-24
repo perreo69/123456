@@ -4155,11 +4155,11 @@ var LIVE = (function () {
   function $(id) { return document.getElementById(id); }
 
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
-  var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {}, uni: {}, unitx: {} };
+  var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {}, items: {}, uni: {}, unitx: {} };
   var COL_MIN = 44, COL_MAX = 720;
   /* v15 — 어느 표든 작업 열은 [작업 ▾] 한 버튼이라 폭이 같다 */
-  var ACT_DEF = { lot: 76, log: 76, fpG: 76, fpL: 76, fpP: 76, accV: 76, accR: 76, accE: 76, accB: 76, accS: 76 };
-  var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC', 'uni', 'unitx'];
+  var ACT_DEF = { lot: 76, log: 76, fpG: 76, fpL: 76, fpP: 76, accV: 76, accR: 76, accE: 76, accB: 76, accS: 76, items: 76 };
+  var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC', 'items', 'uni', 'unitx'];
   var COLW_KEY = 'meatERP.colw.v4';
   function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
   function loadColW() {
@@ -4563,15 +4563,20 @@ var LIVE = (function () {
     if ($('cntV')) $('cntV').textContent = ERP.chgRows(st).length;
   }
 
-  /* ---------- 표 머리글 (화살표 하나로 정렬 · 값 필터) ---------- */
+  /* ---------- 표 머리글 (제목을 누르면 오름 → 내림 → 기본 정렬) ----------
+     v47 — 머리글에 마우스를 올릴 때 뜨던 ▾(엑셀 필터) 화살표는 없앴다.
+       · 왼쪽 클릭 = 그 열로 오름차순(▲) → 내림차순(▼) → 기본순(화살표 없음)
+       · 오른쪽 클릭 = 그 열의 엑셀식 값 필터 팝업(검색 · (모두 선택) · 확인/취소)
+       · 값 필터가 걸린 열은 제목 옆에 작은 점으로만 표시한다. */
   function thHtml(c, sort, filt) {
     var on = !!(sort && sort.k === c.k);
-    var arrow = on ? (sort.dir === -1 ? '▼' : '▲') : '▾';
+    var arrow = on ? (sort.dir === -1 ? '▼' : '▲') : '';
     var onF = !!(filt && filt[c.k] && filt[c.k].length);
-    return '<th class="' + (c.num ? 'num' : '') + '" data-col="' + c.k + '">' +
+    return '<th class="' + (c.num ? 'num' : '') + (on ? ' on' : '') + '" data-col="' + c.k + '">' +
       '<div class="hdbox">' +
-      '<button type="button" class="hdfilt' + (on || onF ? ' on' : '') + '" data-filter="' + c.k + '" title="' + esc(c.t) + ' — 정렬 · 갑 필터">' +
-      '<span class="ht">' + esc(c.t) + '</span><span class="harrow">' + arrow + '</span></button>' +
+      '<button type="button" class="hdfilt' + (on ? ' on' : '') + (onF ? ' filted' : '') + '" data-sort="' + c.k + '"' + (filt ? ' data-filter="' + c.k + '"' : '') +
+      ' title="' + esc(c.t) + ' — 누르면 정렬(오름▲·내림▼·기본)' + (filt ? ' · 우클릭하면 값 필터' : '') + '">' +
+      '<span class="ht">' + esc(c.t) + '</span>' + (on ? '<span class="harrow">' + arrow + '</span>' : '') + '</button>' +
       '</div><span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
   }
   function actTh() {
@@ -5185,6 +5190,7 @@ var LIVE = (function () {
     if (asc) asc.classList.toggle('on', on && s0.dir === 1);
     if (desc) desc.classList.toggle('on', on && s0.dir !== 1);
   }
+  /* 표마다 지금 정렬 상태(키·방향)를 담은 객체 — 한 곳에서 찾는다 */
   function sortStateOf(tbl) {
     if (tbl === 'uni') return cur.sortUni;
     if (tbl === 'unitx') return cur.sortUtx;
@@ -5197,7 +5203,41 @@ var LIVE = (function () {
     if (tbl === 'accV') return cur.accSortV;
     if (tbl === 'accE') return cur.accSortE;
     if (tbl === 'accR') return cur.accSortR;
+    if (tbl === 'accB') return cur.sortB;
+    if (tbl === 'accS') return cur.sortS;
+    if (tbl === 'items') return ITEM_STATE;
     return null;
+  }
+  /* ==========================================================================
+     v47 — 표 머리글 클릭 정렬 (모든 표 공통)
+       · 왼쪽 클릭: 오름차순(▲) → 내림차순(▼) → 기본순(화살표 없음) 세 번에 한 바퀴
+       · 정렬은 각 표가 이미 쓰는 정렬기(ERP.sort… )에 키만 넘긴다 — 숫자·날짜·한글 문자열 구분 그대로
+       · 「작업」 같은 액션 열은 data-sort 가 없어 여기로 오지 않는다
+     ========================================================================== */
+  function syncSortViews(tbl, s0) {
+    if (tbl === 'uni') { cur.uni.sortKey = s0.k; cur.uni.sortDir = s0.dir; }
+    if (tbl === 'unitx') { cur.utx.sortKey = s0.k; cur.utx.sortDir = s0.dir; }
+  }
+  function headSortClick(tbl, key) {
+    var s0 = sortStateOf(tbl);
+    if (!s0 || !key) return;
+    if (s0.k !== key) { s0.k = key; s0.dir = 1; }
+    else if (s0.dir === 1) { s0.dir = -1; }
+    else { s0.k = ''; s0.dir = 1; }
+    if (fpop.open) closeFilter();
+    syncSortViews(tbl, s0);
+    renderCurrent();
+  }
+  /* 표 머리글 "값 필터"(우클릭) — 지금 보고 있는 표 이름을 정한다 */
+  function filterTblOf(wrapId, tblName) {
+    if (tblName) return tblName;
+    if (wrapId === 'fgTableWrap') return fgTableOf();
+    if (wrapId === 'buyTableWrap') return 'accB';
+    if (wrapId === 'saleTableWrap') return 'accS';
+    if (wrapId === 'accTableWrap') return accTableOf();
+    if (wrapId === 'uniTableWrap') return 'uni';
+    if (wrapId === 'utxTableWrap') return 'unitx';
+    return 'accV';
   }
   /* 팝오버에서 바로 정렬 — 같은 방향을 다시 누르면 해제(dir 0) */
   function fpopSort(dir) {
@@ -5327,6 +5367,19 @@ var LIVE = (function () {
   /* v15 — 완제품·전표·미지급금·원장·경비 표의 [작업 ▾] 메뉴 항목 */
   function tableMenuItems(btn) {
     var m = btn.getAttribute('data-menu'), items = [], v, p, id;
+    /* v47 — 품목관리 화면의 [작업] */
+    if (m === 'item') {
+      var iraw = btn.getAttribute('data-itemraw'), icode = btn.getAttribute('data-itemcode') || '';
+      if (iraw) return [{ label: '🥩 원료육 재고에서 보기', act: 'imeatgo', name: iraw }];
+      p = icode ? ERP.fpProductOf(st.fps, icode) : null;
+      if (!p) return null;
+      items.push({ label: '✏️ 정보 수정', act: 'fgedit', code: icode });
+      items.push({ label: '💵 단가 수정', act: 'fgprice', code: icode });
+      items.push({ sep: true });
+      items.push(p.active === false ? { label: '↩️ 다시 사용', act: 'uon', o: { code: icode } }
+        : { label: '🚫 미사용으로 전환', act: 'uoff', o: { code: icode } });
+      return items;
+    }
     if (m === 'uni') return uniMenuItems(btn);
     if (m === 'utx') return utxMenuItems(btn);
     if (m === 'fglog') {
@@ -5877,6 +5930,7 @@ var LIVE = (function () {
     renderSale();
     renderProd();
     if (cur.reflectOpen) renderAccReflect();
+    if (cur.erp === 'items') renderItems();
     updatePriceHint();
     photoTick(false);
     if (xls.kind) renderXls();
@@ -6567,11 +6621,13 @@ var LIVE = (function () {
   var MODE_KEY = 'meatERP.erpMode.v2';
   /* v34 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 지금 보고 있던 화면 그대로 + 팝업만
      (v33의 뒷배경 「입출고 내역」 전환(utxShowAll)과 메뉴 물들이기(ioNavHold)는 없앴다 — v31과 같은 동작) */
-  var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
-  var PANE_CAT = { uni: 'stock', unitx: 'stock', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
+  var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', items: 'itemsMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
+  var PANE_CAT = { uni: 'stock', unitx: 'stock', items: 'items', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
     uni: ['재고현황', '일곱 구분(원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타)을 한 표에서 봅니다. 원산지와 브랜드는 따로, 완제품은 자체 · 매입을 세부분류에 적습니다.', '통합 관리 · 재고현황'],
     unitx: ['입출고내역', '일곱 구분의 입고·출고·해동·현장이 한 줄기로 이어지고, 줄마다 잔여재고가 남습니다.', '통합 관리 · 입출고내역'],
+    /* v47 — 품목관리 : 등록·수정·사용/미사용을 한 화면에서 */
+    items: ['품목관리', '등록된 품목을 한 곳에서 봅니다. 새 품목 등록 · 정보 수정 · 사용/미사용 전환을 여기서 끝냅니다.', '품목관리'],
     meat: ['원료육 재고', '냉동고·냉장고를 나눠 보고, 표에서 바로 해동·출고로 이어집니다.', '품목별 관리 · 원료육'],
     fg: ['완제품·부자재 재고', '완제품·부자재를 대분류로 나눠 보고, 단가와 재고금액을 확인합니다.', '품목별 관리 · 완제품'],
     buy: ['매입 내역', '거래처·기간별 매입 전표와 지급 상태를 한 표에서 봅니다.', '회계 · 매입 내역'],
@@ -6844,6 +6900,7 @@ var LIVE = (function () {
       renderRangeBar();
       if (p === 'uni') renderUni();
       else if (p === 'unitx') renderUniTx();
+      else if (p === 'items') renderItems();
       else if (p === 'meat') { syncMeatTabUI(); renderTable(); }
       else if (p === 'fg') { renderFgKPI(); renderFgCatBar(); renderFgTable(); }
       else if (p === 'buy') renderBuy();
@@ -6879,6 +6936,7 @@ var LIVE = (function () {
   function renderCurrent() {
     if (cur.erp === 'uni') renderUni();
     else if (cur.erp === 'unitx') renderUniTx();
+    else if (cur.erp === 'items') renderItems();
     else if (cur.erp === 'fg') renderFgTable();
     else if (cur.erp === 'buy') renderBuy();
     else if (cur.erp === 'sale') renderSale();
@@ -6929,6 +6987,12 @@ var LIVE = (function () {
     setTxt('navCntSpice', n.spice);
     setTxt('navCntVeg', n.veg);
     setTxt('navCntSub', n.sub);
+    /* v47 — 사이드바 대분류 머리 · 「전체 재고」 · 「품목관리」의 숫자 */
+    setTxt('navAllCnt', c.all);
+    setTxt('navCntMeat', n.meatAll);
+    setTxt('navCntFg', n.fgAll);
+    setTxt('navCntMat', n.matAll);
+    setTxt('navCntItems', (st.fps || []).length);
     setTxt('uniCntAll', c.all); setTxt('uniCntMeat', c.meat); setTxt('uniCntFg', c.fg);
     setTxt('uniCntSauce', c.sauce); setTxt('uniCntSpice', c.spice); setTxt('uniCntVeg', c.veg);
     setTxt('uniCntSub', c.sub); setTxt('uniCntEtc', c.etc);
@@ -6942,16 +7006,14 @@ var LIVE = (function () {
       '</span><span class="colrz" data-rz="_act" title="드래그: 열 너비 조절"></span></th>';
     var s0 = cur.sortUni, on = !!(s0 && s0.k === c.k);
     var cls = (c.num ? 'r' : '') + (on ? ' on' : '');
-    if (c.f) {
-      var onF = !!(cur.fUni[c.k] && cur.fUni[c.k].length);
-      return '<th class="' + cls + '" data-col="' + c.k + '">' +
-        '<button type="button" class="uhd' + (onF ? ' filted' : '') + '" data-filter="' + c.k + '" title="' + esc(c.t) + ' — 누르면 정렬과 값 선택">' +
-        '<span class="ht">' + esc(c.t) + '</span><span class="car"></span></button>' +
-        '<span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
-    }
+    var arrow = on ? '<span class="uarrow">' + (s0.dir === -1 ? '▼' : '▲') + '</span>' : '';
+    /* v47 — 머리글 ▾(호버 시 뜨던 필터 화살표)를 없앴다. 왼쪽 클릭 = 정렬, 우클릭 = 값 필터 */
+    var onF = !!(cur.fUni[c.k] && cur.fUni[c.k].length);
     return '<th class="' + cls + '" data-col="' + c.k + '">' +
-      '<button type="button" class="uhd plain" data-usort="' + c.k + '" title="' + esc(c.t) + ' — 누를 때마다 오름/내림">' +
-      '<span class="ht">' + esc(c.t) + '</span>' + (on ? '<span class="uarrow">' + (s0.dir === -1 ? '▼' : '▲') + '</span>' : '') + '</button>' +
+      '<button type="button" class="uhd' + (c.f ? '' : ' plain') + (onF ? ' filted' : '') + (on ? ' srt' : '') + '"' +
+      ' data-sort="' + c.k + '"' + (c.f ? ' data-filter="' + c.k + '"' : '') +
+      ' title="' + esc(c.t) + ' — 누르면 정렬(오름▲·내림▼·기본)' + (c.f ? ' · 우클릭하면 값 필터' : '') + '">' +
+      '<span class="ht">' + esc(c.t) + '</span>' + arrow + '</button>' +
       '<span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
   }
   function uniAmtCell(r) {
@@ -7304,16 +7366,13 @@ var LIVE = (function () {
   function utxThHtml(c) {
     var s0 = cur.sortUtx, on = !!(s0 && s0.k === c.k);
     var cls = (c.num ? 'r' : '') + (on ? ' on' : '');
-    if (c.f) {
-      var onF = !!(cur.fUtx[c.k] && cur.fUtx[c.k].length);
-      return '<th class="' + cls + '" data-col="' + c.k + '">' +
-        '<button type="button" class="uhd' + (onF ? ' filted' : '') + '" data-filter="' + c.k + '" title="' + esc(c.t) + ' — 누르면 정렬과 값 선택">' +
-        '<span class="ht">' + esc(c.t) + '</span><span class="car"></span></button>' +
-        '<span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
-    }
+    var onF = !!(cur.fUtx[c.k] && cur.fUtx[c.k].length);
+    var arrow = on ? '<span class="uarrow">' + (s0.dir === -1 ? '▼' : '▲') + '</span>' : '';
     return '<th class="' + cls + '" data-col="' + c.k + '">' +
-      '<button type="button" class="uhd plain" data-usort="' + c.k + '" title="' + esc(c.t) + ' — 누를 때마다 오름/내림">' +
-      '<span class="ht">' + esc(c.t) + '</span>' + (on ? '<span class="uarrow">' + (s0.dir === -1 ? '▼' : '▲') + '</span>' : '') + '</button>' +
+      '<button type="button" class="uhd' + (c.f ? '' : ' plain') + (onF ? ' filted' : '') + (on ? ' srt' : '') + '"' +
+      ' data-sort="' + c.k + '"' + (c.f ? ' data-filter="' + c.k + '"' : '') +
+      ' title="' + esc(c.t) + ' — 누르면 정렬(오름▲·내림▼·기본)' + (c.f ? ' · 우클릭하면 값 필터' : '') + '">' +
+      '<span class="ht">' + esc(c.t) + '</span>' + arrow + '</button>' +
       '<span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
   }
   function utxRowHtml(e) {
@@ -7748,6 +7807,7 @@ var LIVE = (function () {
   }
   function navKeyFor() {
     /* v34 — 팝업을 띄워도 왼쪽 메뉴 표시는 지금 보고 있는 화면 그대로 둔다 */
+    if (cur.erp === 'items') return 'items';
     /* v18 — 왼쪽 품목 메뉴는 전용 화면이다. 통합 재고의 칩은 메뉴 표시를 바꾸지 않는다. */
     if (cur.erp === 'uni') return cur.uni.view ? uniNavKey(cur.uni.view) : 'stock:all';
     if (cur.erp === 'unitx') return cur.utx.view ? uniNavKey(cur.utx.view) : 'tx';
@@ -7819,6 +7879,9 @@ var LIVE = (function () {
       setPane('acc');
     } else if (nav === 'ledger') {
       cur.accTab = 'R'; setPane('acc');
+    } else if (nav === 'items') {
+      /* v47 — 품목관리 : 품목 목록 + 등록 · 정보 수정 · 사용/미사용 */
+      setPane('items');
     }
     closeMobileGroups();
   }
@@ -7942,6 +8005,172 @@ var LIVE = (function () {
     cur.utx.to = rg.to || '';
     cur.utx.limit = 400;
     renderUniTx();
+  }
+
+  /* ==========================================================================
+     v47 — 품목관리 화면
+       · fp_products(완제품·소스·향신료·야채·부자재·기타)를 한 표에서 보고
+         ＋ 품목 등록 · 정보 수정 · 단가 수정 · 사용/미사용 전환을 여기서 끝낸다.
+       · 「원료육」 칩을 고르면 로트에서 모은 원료육 품목(육류·원산지·브랜드·최근 단가)을
+         조회용으로 보여 준다(원료육은 재고 화면의 로트 작업에서 고친다).
+     ========================================================================== */
+  var ITEM_STATE = { q: '', cat: 'all', use: 'all', k: '', dir: 1, limit: 500 };
+  var ITEM_ACT = 76;
+  var ITEM_COLS = [
+    { k: 'cat', t: '구분', w: 88 },
+    { k: 'code', t: '품목코드', w: 106 },
+    { k: 'n', t: '품명', w: 300 },
+    { k: 'spec', t: '규격', w: 150 },
+    { k: 'unit', t: '단위', w: 62, num: 1 },
+    { k: 'inp', t: '입고단가', w: 104, num: 1 },
+    { k: 'outp', t: '판매단가', w: 104, num: 1 },
+    { k: 'sup', t: '거래처', w: 160 },
+    { k: 'stock', t: '재고', w: 108, num: 1 },
+    { k: 'active', t: '사용', w: 82 }
+  ];
+  function itemMeatList() {
+    var src = accVMeatProductCands() || [], qty = {}, out = [], i, r, L, k;
+    for (i = 0; i < (st.lots || []).length; i++) {
+      L = st.lots[i]; k = trimV(L.n);
+      if (!k) continue;
+      qty[k] = (qty[k] || 0) + (Number(L.fq) || 0) + (Number(L.cq) || 0);
+    }
+    for (i = 0; i < src.length; i++) {
+      r = src[i];
+      out.push({ raw: true, cat: '원료육', code: '', n: r.v, spec: r.mt || '', unit: 'kg',
+        inp: Number(r.price) || 0, outp: 0,
+        sup: [r.o, r.b].filter(function (x) { return !!x; }).join(' · '),
+        stock: Math.round((qty[trimV(r.v)] || 0) * 1000) / 1000, active: null });
+    }
+    return out;
+  }
+  function itemList() {
+    var out = [], lots = {}, i, p;
+    for (i = 0; i < (st.fpLots || []).length; i++) lots[st.fpLots[i].code] = (lots[st.fpLots[i].code] || 0) + (Number(st.fpLots[i].qty) || 0);
+    for (i = 0; i < (st.fps || []).length; i++) {
+      p = st.fps[i];
+      out.push({ raw: false, cat: p.cat || '완제품', code: p.code, n: p.n, spec: p.spec || '', unit: p.unit || '개',
+        inp: Number(p.inp) || 0, outp: Number(p.outp) || 0, sup: p.sup || '',
+        stock: lots[p.code] !== undefined ? Math.round(lots[p.code] * 1000) / 1000 : (Number(p.stock) || 0),
+        active: p.active !== false });
+    }
+    return out;
+  }
+  function itemHit(r, q) {
+    if (!q) return true;
+    return ERP.textHit([r.n, r.code, r.spec, r.sup, r.cat, r.unit].join(' '), q);
+  }
+  function itemSortRows(list) {
+    var k = ITEM_STATE.k, d = ITEM_STATE.dir === -1 ? -1 : 1;
+    if (!k) return list;
+    var numCol = (k === 'inp' || k === 'outp' || k === 'stock');
+    list.sort(function (a, b) {
+      if (k === 'active') {
+        var av0 = a.active === null ? '' : (a.active === false ? '미사용' : '사용');
+        var bv0 = b.active === null ? '' : (b.active === false ? '미사용' : '사용');
+        return av0.localeCompare(bv0, 'ko') * d;
+      }
+      if (numCol) return (((Number(a[k]) || 0) - (Number(b[k]) || 0))) * d;
+      return String(a[k] || '').localeCompare(String(b[k] || ''), 'ko') * d;
+    });
+    return list;
+  }
+  function itemFiltered() {
+    var rows = ITEM_STATE.cat === '원료육' ? itemMeatList() : itemList();
+    var out = [], i, r;
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i];
+      if (ITEM_STATE.cat !== 'all' && ITEM_STATE.cat !== '원료육' && r.cat !== ITEM_STATE.cat) continue;
+      if (!r.raw) {
+        if (ITEM_STATE.use === 'on' && r.active === false) continue;
+        if (ITEM_STATE.use === 'off' && r.active !== false) continue;
+      }
+      if (!itemHit(r, ITEM_STATE.q)) continue;
+      out.push(r);
+    }
+    return itemSortRows(out);
+  }
+  function itemCellHtml(r, k) {
+    if (k === 'cat') return '<td><span class="cat ' + uniCatClass(r.cat) + '">' + esc(r.cat) + '</span></td>';
+    if (k === 'code') return '<td>' + (r.code ? '<span class="code">' + esc(r.code) + '</span>' : '<span class="dim">-</span>') + '</td>';
+    if (k === 'n') {
+      return '<td class="ellip" title="' + esc(r.n) + '"><b>' + esc(r.n) + '</b>' +
+        (r.raw ? ' <span class="ttag">원료육</span>' : '') +
+        (r.active === false ? ' <span class="gtag-off">미사용</span>' : '') + '</td>';
+    }
+    if (k === 'spec') return '<td class="ellip">' + (r.spec ? esc(r.spec) : '<span class="dim">-</span>') + '</td>';
+    if (k === 'unit') return '<td class="num">' + esc(r.unit || '-') + '</td>';
+    if (k === 'inp') return '<td class="num">' + (r.inp > 0 ? fmtInt(r.inp) : '<span class="dim">-</span>') + '</td>';
+    if (k === 'outp') return '<td class="num">' + (r.outp > 0 ? fmtInt(r.outp) : '<span class="dim">-</span>') + '</td>';
+    if (k === 'sup') return '<td class="ellip">' + (r.sup ? esc(r.sup) : '<span class="dim">-</span>') + '</td>';
+    if (k === 'stock') return '<td class="num' + (r.stock > 0 ? ' b' : '') + '">' +
+      (r.stock > 0 ? fmtQty(r.stock) + ' <span class="dim">' + esc(r.unit || '') + '</span>' : '<span class="dim">0</span>') + '</td>';
+    if (k === 'active') return '<td>' + (r.raw ? '<span class="dim">-</span>'
+      : (r.active === false ? '<span class="gtag-off">미사용</span>' : '<span class="itag-on">사용</span>')) + '</td>';
+    return '<td>' + esc(r[k] || '') + '</td>';
+  }
+  function renderItems() {
+    var wrap = $('itemsTableWrap');
+    if (!wrap) return;
+    var keep = wrap.scrollTop;
+    if ($('itemsSearch') && $('itemsSearch').value !== ITEM_STATE.q) $('itemsSearch').value = ITEM_STATE.q;
+    var fp = itemList(), meat = itemMeatList(), cnt = { all: fp.length, '완제품': 0, '소스': 0, '향신료': 0, '야채': 0, '부자재': 0, '기타': 0 }, i;
+    for (i = 0; i < fp.length; i++) { if (cnt[fp[i].cat] === undefined) cnt[fp[i].cat] = 0; cnt[fp[i].cat]++; }
+    cnt['원료육'] = meat.length;
+    setTxt('itemsCntAll', cnt.all); setTxt('itemsCntFg', cnt['완제품']); setTxt('itemsCntSauce', cnt['소스']);
+    setTxt('itemsCntSpice', cnt['향신료']); setTxt('itemsCntVeg', cnt['야채']); setTxt('itemsCntSub', cnt['부자재']);
+    setTxt('itemsCntEtc', cnt['기타']); setTxt('itemsCntMeat', cnt['원료육']);
+    var cbs = document.querySelectorAll('#itemsCatChips [data-icat]'), ubs, list, used = 0, off = 0, page, cols, html, c;
+    for (i = 0; i < cbs.length; i++) cbs[i].classList.toggle('on', cbs[i].getAttribute('data-icat') === ITEM_STATE.cat);
+    ubs = document.querySelectorAll('#itemsUseChips [data-iuse]');
+    for (i = 0; i < ubs.length; i++) ubs[i].classList.toggle('on', ubs[i].getAttribute('data-iuse') === ITEM_STATE.use);
+    list = itemFiltered();
+    for (i = 0; i < list.length; i++) { if (list[i].raw) continue; if (list[i].active === false) off++; else used++; }
+    if ($('itemsSum')) {
+      $('itemsSum').innerHTML = '<b>' + list.length + '</b> 품목' +
+        (ITEM_STATE.cat === '원료육' ? ' · 원료육 로트 기준' : ' · 사용 <b>' + used + '</b> · 미사용 <b>' + off + '</b>');
+    }
+    if (!list.length) {
+      wrap.innerHTML = '<div class="uempty">조건에 맞는 품목이 없습니다. 검색어를 지우거나 구분 칩을 바꿔 보세요.' +
+        (ITEM_STATE.cat === '원료육' ? '' : ' 새 품목은 왼쪽 <b>＋ 품목 등록</b>으로 만듭니다.') + '</div>';
+      return;
+    }
+    cols = ITEM_COLS;
+    page = list.slice(0, ITEM_STATE.limit);
+    html = [tableOpen('t-fg t-items', 'items', cols, ITEM_ACT, 'itemsTableWrap'), '<thead><tr>'];
+    for (c = 0; c < cols.length; c++) html.push(thHtml(cols[c], ITEM_STATE, null));
+    html.push(actTh() + '</tr></thead><tbody>');
+    for (i = 0; i < page.length; i++) {
+      var r = page[i];
+      html.push('<tr class="fgrow' + (r.active === false ? ' offrow' : '') + '" data-itemcode="' + esc(r.code || '') + '">');
+      for (c = 0; c < cols.length; c++) html.push(itemCellHtml(r, cols[c].k));
+      html.push('<td class="actcell actcol">' + (r.raw
+        ? actMenuBtn('item', { itemraw: r.n }, '원료육 재고에서 보기')
+        : actMenuBtn('item', { itemcode: r.code }, '정보 수정 · 사용/미사용')) + '</td></tr>');
+    }
+    html.push('</tbody></table>');
+    if (list.length > page.length) html.push('<button class="more" id="btnItemsMore">더 보기 (' + (list.length - page.length) + ' 품목 남음)</button>');
+    wrap.innerHTML = html.join('');
+    wrap.scrollTop = keep;
+    var more = $('btnItemsMore');
+    if (more) more.addEventListener('click', function () { ITEM_STATE.limit += 500; renderItems(); });
+  }
+  function bindItems() {
+    if ($('itemsSearch')) $('itemsSearch').addEventListener('input', function () { ITEM_STATE.q = this.value; ITEM_STATE.limit = 500; renderItems(); });
+    var cats = document.querySelectorAll('#itemsCatChips [data-icat]'), i, uses;
+    for (i = 0; i < cats.length; i++) cats[i].addEventListener('click', function () {
+      ITEM_STATE.cat = this.getAttribute('data-icat') || 'all'; ITEM_STATE.limit = 500; renderItems();
+    });
+    uses = document.querySelectorAll('#itemsUseChips [data-iuse]');
+    for (i = 0; i < uses.length; i++) uses[i].addEventListener('click', function () {
+      ITEM_STATE.use = this.getAttribute('data-iuse') || 'all'; ITEM_STATE.limit = 500; renderItems();
+    });
+    if ($('itemsBtnNew')) $('itemsBtnNew').addEventListener('click', function () {
+      openFgNew(null);
+      if ($('fgNewCat') && ITEM_STATE.cat !== 'all' && ITEM_STATE.cat !== '원료육') $('fgNewCat').value = ITEM_STATE.cat;
+    });
+    bindTableClicks('itemsTableWrap', function () { }, 'items');
+    bindColResizeWrap('itemsTableWrap', 'items', renderItems);
   }
 
   /* ---------- v8: 입출고 입력 허브 ---------- */
@@ -12132,10 +12361,18 @@ var LIVE = (function () {
     if (!el) return;
     el.addEventListener('click', function (ev) {
       var t = ev.target;
+      /* v47 — 머리글 왼쪽 클릭 = 그 열로 정렬(오름 → 내림 → 기본) */
+      var sortBtn = t.closest ? t.closest('[data-sort]') : null;
+      if (sortBtn) {
+        ev.preventDefault();
+        headSortClick(tblName || (wrapId === 'fgTableWrap' ? fgTableOf() : (wrapId === 'buyTableWrap' ? 'accB' : (wrapId === 'saleTableWrap' ? 'accS' : accTableOf()))), sortBtn.getAttribute('data-sort'));
+        return;
+      }
+      /* v47 — 머리글 오른쪽 클릭 = 그 열의 엑셀식 값 필터 팝업 */
       var filtBtn = t.closest ? t.closest('[data-filter]') : null;
       if (filtBtn) {
         ev.preventDefault();
-        openFilter(tblName || (wrapId === 'fgTableWrap' ? fgTableOf() : accTableOf()), filtBtn.getAttribute('data-filter'), filtBtn);
+        openFilter(filterTblOf(wrapId, tblName), filtBtn.getAttribute('data-filter'), filtBtn);
         return;
       }
       /* v15 — 표 공통 [작업 ▾] (완제품 이력·단가 · 전표 · 거래처 원장 · 경비) */
@@ -12147,6 +12384,12 @@ var LIVE = (function () {
         return;
       }
       handler(ev, t);
+    });
+    el.addEventListener('contextmenu', function (ev) {
+      var fb = ev.target && ev.target.closest ? ev.target.closest('[data-filter]') : null;
+      if (!fb) return;
+      ev.preventDefault();
+      openFilter(filterTblOf(wrapId, tblName), fb.getAttribute('data-filter'), fb);
     });
   }
   /* v16 — 통합 재고·통합 입출고 표의 열 너비 드래그 (기존 표와 같은 방식) */
@@ -13031,6 +13274,14 @@ var LIVE = (function () {
         }
         return;
       }
+      /* v47 — 머리글 왼쪽 클릭 = 정렬(오름 ▲ → 내림 ▼ → 기본) */
+      var sortBtn = t.closest ? t.closest('[data-sort]') : null;
+      if (sortBtn) {
+        ev.preventDefault();
+        headSortClick(tblOf(cur.tab), sortBtn.getAttribute('data-sort'));
+        return;
+      }
+      /* v47 — 머리글 오른쪽 클릭 = 값 필터 팝업 */
       var filtBtn = t.closest ? t.closest('[data-filter]') : null;
       if (filtBtn) {
         ev.preventDefault();
@@ -13063,6 +13314,12 @@ var LIVE = (function () {
       }
       var tr = t.closest ? t.closest('tr.lot') : null;
       if (tr) bindLot(tr.getAttribute('data-lot'), null);
+    });
+    $('tableWrap').addEventListener('contextmenu', function (ev) {
+      var fb = ev.target && ev.target.closest ? ev.target.closest('[data-filter]') : null;
+      if (!fb) return;
+      ev.preventDefault();
+      openFilter(tblOf(cur.tab), fb.getAttribute('data-filter'), fb);
     });
 
     $('search').addEventListener('input', function () { cur.search = this.value; cur.hLimit = 250; renderTable(); });
@@ -13211,6 +13468,12 @@ var LIVE = (function () {
         } else if (it.act === 'uoff' || it.act === 'uon') {
           /* v43 — 품목 사용/미사용 전환 */
           setFpUse(it.o.code, it.act === 'uon');
+        } else if (it.act === 'imeatgo') {
+          /* v47 — 품목관리의 원료육 줄 → 원료육 재고에서 그 품명만 */
+          uniItemGo('meat');
+          cur.uni.q = it.name || '';
+          if ($('uniSearch')) $('uniSearch').value = cur.uni.q;
+          renderUni();
         } else if (it.act === 'thaw' || it.act === 're' || it.act === 'out') {
           bindLot(it.lot, it.act);
           openMeatForm(it.act);
@@ -13610,6 +13873,7 @@ var LIVE = (function () {
     bindV4Events();
     bindIoSheet();
     bindV16();
+    bindItems();
     popInit();
     acSetupAll();
     sdScan(document);   /* v35 — 날짜 칸 전부 스마트 날짜 입력으로 */
