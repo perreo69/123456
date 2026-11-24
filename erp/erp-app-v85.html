@@ -5243,6 +5243,7 @@ $('v33EditCancel').onclick=()=>$('v33EditDialog').close();
   place(box,rect.left,rect.top);
  }
  document.addEventListener('pointerdown',e=>{
+  if(matchMedia('(max-width:767px), (max-width:1023px) and (pointer:coarse)').matches)return;
   if(e.button!==0||e.isPrimary===false||!(e.target instanceof Element)||e.target.closest(interactive))return;
   const box=e.target.closest(popupSelector);if(!box||!box.getClientRects().length||box.closest('[hidden],.hidden,[aria-hidden="true"]'))return;
   const h=getHeader(box);if(!h||!h.contains(e.target))return;
@@ -5657,4 +5658,212 @@ body :is(.drawer-bottom,.v95-product-footer,.v33-edit-foot){background:var(--wor
 #mainView #v18Preview[hidden]{display:none!important}
 #mainView .v18-root .v35-lot-price:disabled{opacity:.5}
 @media screen and (min-width:901px) and (hover:hover) and (pointer:fine){#mainView>.v97-transaction[data-transaction="ship"]>.v97-common{grid-template-columns:180px 112px minmax(0,1.45fr) minmax(0,1fr)!important}}
-</style><style id="v128-hide-production-nav">#sidebar .v60-paused-production-nav{display:none!important}</style></body></html>
+</style><style id="v128-hide-production-nav">#sidebar .v60-paused-production-nav{display:none!important}</style><style id="v129-mobile-workspace">
+/* v129 mobile workspace only. Print and desktop styles remain unchanged. */
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+:root{--mobile-bg:#f2f2f7;--mobile-rule:#dedee3;--mobile-ink:#1d1d1f;--mobile-blue:#0066cc}
+html,body{width:100%;max-width:100%;overflow-x:clip;background:var(--mobile-bg);color:var(--mobile-ink);font-size:14px}
+.app-shell{display:block;min-height:100dvh}
+.work-area{width:100%;min-width:0;max-width:100%}
+#sidebar.sidebar{position:fixed!important;inset:0 auto 0 0!important;width:min(310px,85vw)!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;z-index:500!important;transform:translateX(-105%);transition:transform .2s ease;overflow-y:auto;overscroll-behavior:contain;padding:16px 12px max(18px,env(safe-area-inset-bottom))!important;background:#f2f2f7!important;box-shadow:0 0 24px #0002}
+#sidebar.sidebar.open{transform:translateX(0)}
+#sidebar .side-link,#sidebar .nav-heading{min-height:44px!important;font-size:14px!important}
+#sidebar .v68-label{font-size:12px!important}
+#v129NavShade{position:fixed;inset:0;background:#0005;z-index:499;border:0;border-radius:0;width:100%;height:100%;padding:0}
+#v129NavShade[hidden]{display:none!important}
+body.v129-nav-open{overflow:hidden}
+.topbar{position:sticky;top:0;z-index:30;min-height:54px;height:auto;padding:4px 12px!important;background:#fbfbfd;border-bottom:1px solid var(--mobile-rule)}
+.breadcrumb{min-width:0;gap:7px!important;flex:1}
+#menuToggle{display:inline-flex!important;align-items:center;justify-content:center;width:44px;height:44px;flex:0 0 44px;font-size:23px!important;color:#27272b;background:transparent!important;border:0!important;box-shadow:none!important}
+#breadcrumbSection,.crumb-slash{display:none}
+#breadcrumbCurrent{font-size:15px!important;white-space:normal;overflow-wrap:anywhere;line-height:1.3}
+.topbar-right{gap:0}.topbar-right .btn{display:none}.sync-indicator{font-size:10px!important;white-space:nowrap}
+.main-content{padding:14px 12px 24px!important;min-height:calc(100dvh - 54px)!important;width:100%;max-width:100%!important}
+.heading-section{margin:0 0 14px!important;gap:8px!important;align-items:stretch!important;flex-direction:column}
+.heading-section h1{font-size:24px!important;line-height:1.28;margin:0!important;letter-spacing:-.7px}
+.heading-section .page-desc{font-size:12px!important;margin:5px 0 0;line-height:1.5}
+.top-actions:empty{display:none}.top-actions{width:100%;flex-wrap:wrap}
+#mainView{min-width:0!important;width:100%;max-width:100%}
+#mainView :is(.card,.inventory-panel,.history-panel,.v36-pane){min-width:0;max-width:100%;border-radius:10px}
+#mainView :is(input:not([type=checkbox]):not([type=radio]):not([type=hidden]),select,textarea),#modalLayer :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px!important;min-width:0;min-height:44px!important;max-width:100%;border-radius:7px!important}
+#mainView input[type=checkbox],#modalLayer input[type=checkbox]{width:21px;height:21px;flex-shrink:0;accent-color:#007aff}
+#mainView :is(.btn,.intake-btn,.intake-save,.mini-btn,.action-btn,.reset-filters,.v61-tab),#modalLayer button{min-height:44px!important;font-size:13px!important;white-space:normal}
+#mainView .intake-save,#modalLayer .btn-primary{background:var(--mobile-blue)!important;border-color:var(--mobile-blue)!important;color:#fff!important;font-weight:650}
+#mainView button:disabled{opacity:.5!important}
+#mainView .filters{display:flex;flex-wrap:wrap;align-items:center;gap:8px!important;padding:12px!important}
+#mainView .filters .search-field{flex:1 1 100%;max-width:none;min-width:0}
+#mainView .filter-count{flex:1 1 100%;margin:0!important;white-space:normal;font-size:12px}
+#mainView .v61-stock-header{padding:12px!important;margin-bottom:10px}
+#mainView .v61-stock-header-title{display:flex;flex-wrap:wrap;gap:6px!important}
+#mainView .v61-tab-group{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(86px,1fr));gap:5px!important;overflow:visible}
+#mainView .v61-tab{padding:7px 5px!important}
+#mainView .table-scroll,#mainView .v75tablewrap,#mainView .v36-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain;max-height:none!important}
+#mainView .v129-scroll-hint{font-size:11px;color:#73737a;margin:0;padding:6px 12px;background:#f8f8fa;border-bottom:1px solid var(--mobile-rule)}
+/* Selected item list and LOT details stack, rather than a desktop split view. */
+#mainView .v74frozen>.table-scroll>.stock-table{min-width:0!important;max-width:100%;width:100%!important}
+#mainView .v74frozen .v72splitcell{padding:8px!important}
+#mainView .v74frozen .v72split{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+#mainView .v74frozen .v72split aside{max-height:220px!important;overflow:auto;overscroll-behavior:contain}
+#mainView .v74frozen .v72pick{min-height:44px!important;font-size:14px!important}
+#mainView .v74frozen .v72detail{padding:0!important;width:100%;min-width:0!important}
+#mainView .v74frozen .v75detailhead{grid-template-columns:minmax(0,1fr)!important;gap:8px!important;margin:0 0 8px!important}
+#mainView .v74frozen .v75detailhead h3{font-size:18px!important}
+#mainView .v74frozen .v75metrics{background:#f5f5f7;border-radius:8px;padding:8px 4px;grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#mainView .v74frozen .v75metrics>div:only-child{grid-column:1/-1}
+#mainView .v74frozen .v75metrics strong{font-size:17px!important;white-space:normal;overflow-wrap:anywhere}
+#mainView .v74frozen .v75metrics span{white-space:normal}
+#mainView#mainView .v129-card-table{display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;border:0!important;white-space:normal!important;table-layout:auto!important}
+#mainView .v129-card-table>colgroup{display:none}
+#mainView .v129-card-table>thead,#mainView .v129-card-table>tbody{display:block;width:100%;min-width:0}
+#mainView .v129-card-table>thead{position:static!important;background:transparent!important}
+#mainView .v129-card-table>thead>tr{display:flex;flex-wrap:wrap;gap:4px;padding:4px 8px 9px}
+#mainView#mainView .v129-card-table>thead>tr>th{display:inline-flex;position:static!important;align-items:center;min-height:36px!important;height:auto!important;padding:4px 7px!important;white-space:normal!important;width:auto!important;border:1px solid var(--mobile-rule)!important;border-radius:6px;background:#f5f5f7!important;font-size:11px!important}
+#mainView .v129-card-table>thead>tr>th .th-wrap{gap:4px}
+#mainView .v129-card-table>thead>tr>th:not(:has(button)){display:none}
+#mainView .v129-card-table>tbody{padding:0 6px 6px}
+#mainView#mainView .v129-card-table>tbody>tr{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;margin:0 0 8px;border:1px solid var(--mobile-rule)!important;border-radius:9px!important;background:#fff!important;padding:10px 11px!important}
+#mainView#mainView .v129-card-table>tbody>tr>td{display:block!important;position:static!important;width:auto!important;min-width:0!important;max-width:none!important;height:auto!important;min-height:0!important;padding:6px 0!important;border:0!important;white-space:normal!important;overflow-wrap:anywhere!important;text-align:left!important;font-size:14px!important;line-height:1.45!important;background:transparent!important;box-shadow:none!important}
+#mainView .v129-card-table>tbody>tr>td[data-v129-label]::before{content:attr(data-v129-label);display:block;font-size:11px;color:#73737a;font-weight:500;margin-bottom:3px;line-height:1.3}
+#mainView .v129-card-table>tbody>tr>td.v129-primary{grid-column:1/-1;font-weight:650;font-size:17px!important}
+#mainView .v129-card-table>tbody>tr>td.v129-quantity{font-weight:650;font-variant-numeric:tabular-nums}
+#mainView .v129-card-table>tbody>tr>td.v129-wide{grid-column:1/-1}
+#mainView .v129-card-table>tbody>tr>td.v129-action{grid-column:1/-1;border-top:1px solid #ededf0!important;margin-top:4px;padding-top:8px!important}
+#mainView .v129-card-table>tbody>tr>td.v129-action button{width:100%;min-height:44px!important;visibility:visible!important;opacity:1!important}
+#mainView .v129-card-table>tbody>tr>td.empty{grid-column:1/-1;padding:18px 0!important;text-align:center!important}
+#mainView .v129-card-table>tbody>tr>td.empty::before{display:none}
+#mainView .v129-card-table .expiry{font-size:14px!important}
+#mainView .v129-card-table .lot-source{font-size:12px!important}
+/* Receiving and shipping use the same controls and handlers, reflowed into labelled cards. */
+#mainView>.v97-transaction{padding:0!important;margin:0!important;overflow:visible!important;width:100%;min-width:0}
+#mainView>.v97-transaction>.v97-common{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:11px!important;padding:14px!important;margin:0!important;align-items:start!important}
+#mainView .v97-common>label{grid-column:1!important;display:flex!important;flex-direction:column!important;gap:5px!important;margin:0!important;min-width:0;font-size:13px!important;font-weight:600}
+#mainView .v97-common .v97-partner{position:relative;display:block;width:100%;min-width:0}
+#mainView .v97-common .v17-partner-detail:empty{display:none}
+#mainView .quick-date{min-width:0;width:100%}
+#mainView .quick-date input.quick-date-calendar{min-height:44px!important;width:35px!important;min-width:35px!important}
+#mainView .v97-list{overflow:visible!important;margin:10px 8px 0!important;border:0!important;background:transparent!important;min-width:0!important}
+#mainView .v97-list-head,#mainView .v50-in-num,#mainView .v50-out-index{display:none!important}
+#mainView .v50-in-row,#mainView .v50-out-row,#mainView .v18-line.v47-done{border:1px solid var(--mobile-rule)!important;border-radius:9px!important;margin:0 0 10px!important;background:#fff!important;min-width:0}
+#mainView .v50-in-row .intake-row-title{display:flex!important;gap:8px;align-items:center;padding:9px 12px!important;min-height:36px;font-size:13px}
+#mainView .v50-in-grid,#mainView .v50-out-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;min-width:0!important;width:100%!important;gap:10px!important;padding:12px!important;align-items:start!important}
+#mainView .v50-in-grid>.in-item,#mainView .v50-in-grid>.in-category,#mainView .v50-in-grid>.v50-in-actions,#mainView .v50-out-grid>.v50-out-product,#mainView .v50-out-grid>.v50-out-note{grid-column:1/-1!important}
+#mainView .v50-mobile-label{display:block!important;font-size:12px;font-weight:600;color:#616168;margin-bottom:5px}
+#mainView .v50-in-grid>label,#mainView .v50-out-grid>label{min-width:0!important}
+#mainView .v50-in-grid input,#mainView .v50-in-grid select,#mainView .v50-out-grid input{height:44px!important;min-height:44px!important}
+#mainView .v50-in-actions{justify-content:stretch}
+#mainView .v50-in-actions button{min-height:44px!important;font-size:13px!important}
+#mainView .v50-in-actions .v50-in-detail-toggle{flex:1}
+#mainView .v50-in-actions .in-remove{min-width:44px!important;max-width:none!important}
+#mainView .v50-in-detail{padding:12px!important}
+#mainView .v50-in-detail .intake-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+#mainView .v50-in-detail label{min-width:0}
+#mainView .v56-detail-validation{margin:8px!important}
+#mainView .v50-in-row .in-price-hint{white-space:normal;max-height:none;min-height:11px}
+#mainView .v50-out-grid .v50-out-lot-count,#mainView .v50-out-grid .v50-out-quantity,#mainView .v50-out-grid .v50-out-total{white-space:normal;text-align:left;padding:7px 8px;background:#f5f5f7;border-radius:6px;font-size:14px}
+#mainView .v50-out-lot-count::before,#mainView .v50-out-quantity::before,#mainView .v50-out-total::before{display:block;color:#73737a;font-size:11px;font-weight:400}
+#mainView .v50-out-lot-count::before{content:"LOT"}#mainView .v50-out-quantity::before{content:"출고수량"}#mainView .v50-out-total::before{content:"금액"}
+#mainView .v50-out-toggle,#mainView .v50-out-remove{min-height:44px!important;font-size:13px!important}
+#mainView .v50-out-remove{width:100%!important}
+#mainView .v50-out-lot-section{margin:0 8px 10px!important;padding:8px!important;min-width:0;max-width:100%}
+#mainView .v35-lot-scroll{overflow:visible!important}
+#mainView .v35-lot-list{min-width:0!important;width:100%}
+#mainView#mainView .v35-lot-heading{display:none!important}
+#mainView .v35-lot-row{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;padding:10px 6px!important;min-height:0!important;border-top:1px solid var(--mobile-rule)}
+#mainView .v35-lot-row>.v25-lot-choice{grid-column:1/-1;min-width:0;align-items:flex-start}
+#mainView .v25-lot-dates{min-width:0}
+#mainView .v25-lot-dates small{white-space:normal!important;overflow-wrap:anywhere;font-size:12px}
+#mainView .v25-lot-available,#mainView .v35-line-amount{font-size:14px;white-space:normal;text-align:left}
+#mainView .v25-lot-available::before,#mainView .v25-lot-amount::before,#mainView .v35-lot-price-wrap::before,#mainView .v35-line-amount::before{display:block;font-size:11px;color:#6e6e73;font-weight:400}
+#mainView .v25-lot-available::before{content:"현재 재고"}#mainView .v25-lot-amount::before{content:"출고수량"}#mainView .v35-lot-price-wrap::before{content:"단가 (원)"}#mainView .v35-line-amount::before{content:"금액 (원)"}
+#mainView .v25-lot-amount{display:flex;flex-wrap:wrap;gap:3px;min-width:0}
+#mainView .v25-lot-amount::before{width:100%}
+#mainView .v25-lot-amount input{flex:1;min-width:0!important;width:0!important}
+#mainView .v35-lot-price-wrap{display:block;min-width:0}
+#mainView .v35-lot-price-wrap input{width:100%;min-width:0!important}
+#mainView .v25-lot-footer,#mainView .v25-lot-meta{display:flex;flex-wrap:wrap;gap:6px;font-size:12px}
+#mainView .v35-more-lots{width:100%;min-height:44px}
+#mainView .v47-done-info,#mainView .v47-done-actions{margin-left:0!important}
+#mainView .v97-add{padding:8px 12px 12px!important;display:flex;flex-wrap:wrap;gap:8px}
+#mainView .v97-add button{flex:1 1 auto}
+#mainView .v97-hint{flex:1 1 100%;font-size:12px;color:#6e6e73}
+#mainView .v97-footer{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:10px!important;padding:12px!important;margin:0!important}
+#mainView .v97-summary{font-size:13px}
+#mainView .v97-commands{display:flex!important;flex-wrap:wrap!important;width:100%;gap:6px!important;margin:0!important}
+#mainView .v97-commands button{flex:1 1 100px;min-width:0!important;min-height:46px!important;font-size:13px!important}
+#mainView .v97-note{font-size:12px!important;margin:0!important;padding:8px 12px 12px}
+#mainView .v97-transaction .intake-error,#mainView .v97-transaction .intake-success{margin:8px 12px!important}
+#mainView .v17-partner-list,#mainView .v18-suggestions,#mainView .in-suggest{max-width:calc(100vw - 24px)!important;min-width:0!important;max-height:min(260px,40dvh)!important;overflow:auto;overscroll-behavior:contain}
+#mainView .v17-partner-list button,#mainView .v18-suggestions button,#mainView .in-suggest button{min-height:44px;text-align:left;white-space:normal}
+#mainView .v17-partner-list{width:100%!important}
+#mainView .v36-inputs,#mainView .v116-move-fields{grid-template-columns:minmax(0,1fr)!important}
+#mainView .v36-searchline{flex-direction:column;align-items:stretch}
+#mainView .v36-summary{flex-wrap:wrap}
+#mainView .v36-summary-actions{flex-wrap:wrap}
+#mainView .v90-report-controls{flex-wrap:wrap;min-width:0}
+#mainView .v90-report-controls>*{min-width:0!important;max-width:100%}
+#mainView .v102-accounting>.ac-metrics{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+#mainView .v102-accounting .ac-metrics>div{min-width:0!important}
+#mainView .v87-history-row,#mainView .v90-report-filters{grid-template-columns:minmax(0,1fr)!important}
+#mainView .v87-history-filters input,#mainView .ac-filters input{width:100%;min-width:0}
+#modalLayer:not(.hidden){align-items:stretch;justify-content:center}
+#modalLayer .drawer,#modalLayer .drawer.wide{width:100%!important;max-width:100%!important;height:100dvh!important;max-height:100dvh!important;border-radius:0!important;overflow:auto;overscroll-behavior:contain}
+#modalLayer .drawer-header{position:sticky;top:0;z-index:5;background:#fff;padding:12px!important;gap:8px}
+#modalLayer .drawer-header h2{font-size:19px}
+#modalLayer .drawer-header .icon-button{flex-shrink:0;width:44px}
+#modalLayer .form-body{padding:12px!important}
+#modalLayer .form-grid{grid-template-columns:minmax(0,1fr)!important;gap:10px}
+#modalLayer .drawer-bottom{padding:12px!important;background:#fff}
+#modalLayer .drawer-buttons{display:flex;gap:8px}
+#modalLayer .drawer-buttons button{flex:1;min-width:0}
+#modalLayer .action-lots{max-width:100%;max-height:44dvh;overflow:auto}
+dialog:not(#v17StatementDialog){width:calc(100vw - 20px)!important;max-width:calc(100vw - 20px)!important;max-height:calc(100dvh - 20px)!important;overflow:auto;overscroll-behavior:contain}
+dialog:not(#v17StatementDialog) :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px!important;min-height:44px;min-width:0}
+dialog:not(#v17StatementDialog) button{min-height:40px}
+dialog.v70-calendar.v88-calendar{inset:10px auto auto 10px!important;margin:0!important;max-height:calc(100dvh - 20px)!important}
+.v88-calendars{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
+.v88-calendars>.v88-sep{display:none}
+.v88-calendar .v88-days button{height:36px!important;min-height:36px;font-size:13px!important}
+.v88-calendar .v88-cal-nav select{font-size:13px!important;min-height:32px}
+#v17StatementDialog{width:calc(100vw - 12px)!important;max-width:calc(100vw - 12px)!important;max-height:calc(100dvh - 12px)!important;overflow:auto}
+#v17StatementDialog .v17-document-actions{display:flex;flex-wrap:wrap;gap:5px;padding:8px!important;position:sticky;top:0;z-index:6;background:#fff}
+#v17StatementDialog .v17-document-actions>div{display:flex;flex-wrap:wrap;gap:4px}
+#v17StatementDialog .v17-document-actions button{min-height:40px;font-size:12px}
+.action-menu{max-width:calc(100vw - 16px);min-width:160px}
+.action-menu button{min-height:44px!important;font-size:14px!important}
+.excel-popup{max-width:calc(100vw - 16px);max-height:calc(100dvh - 20px);overflow:auto}
+.toast{left:12px;right:12px;bottom:12px;text-align:center;z-index:700}
+}
+@media screen and (max-width:360px){#mainView .v50-in-detail .intake-detail-grid{grid-template-columns:minmax(0,1fr)!important}.main-content{padding-left:8px!important;padding-right:8px!important}.sync-indicator{display:none}}
+@media (prefers-reduced-motion:reduce){#sidebar.sidebar{transition:none}}
+</style><script id="v129-mobile-workspace-js">
+(()=>{'use strict';
+const mq=matchMedia('(max-width:767px), (max-width:1023px) and (pointer:coarse)');
+const root=document.getElementById('mainView'),sidebar=document.getElementById('sidebar'),toggle=document.getElementById('menuToggle');
+if(!root||!sidebar||!toggle)return;
+const shade=document.createElement('button');shade.id='v129NavShade';shade.type='button';shade.hidden=true;shade.setAttribute('aria-label','메뉴 닫기');document.body.append(shade);
+function nav(open){const on=!!open&&mq.matches;sidebar.classList.toggle('open',on);shade.hidden=!on;document.body.classList.toggle('v129-nav-open',on);toggle.setAttribute('aria-expanded',String(on));toggle.setAttribute('aria-label',on?'메뉴 닫기':'메뉴 열기');if(mq.matches)sidebar.inert=!on;else sidebar.inert=false;}
+toggle.setAttribute('aria-controls','sidebar');toggle.onclick=()=>nav(!sidebar.classList.contains('open'));shade.onclick=()=>{nav(false);toggle.focus()};sidebar.addEventListener('click',e=>{if(e.target.closest('[data-view]'))nav(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!shade.hidden){nav(false);toggle.focus()}});
+const cardSelector='.v61-all-table,.v99-lot-table,.v75chilled .stock-table,.fg20-lots-table';
+let queued=false;
+function update(){
+ queued=false;
+ if(!mq.matches){root.querySelectorAll('.v129-card-table').forEach(t=>t.classList.remove('v129-card-table'));root.querySelectorAll('.v129-scroll-hint').forEach(n=>n.remove());return;}
+ root.querySelectorAll(cardSelector).forEach(t=>{
+  const headers=Array.from(t.tHead?.rows[0]?.cells||[]);if(!headers.length)return;
+  const labels=headers.map(h=>(h.querySelector('.v80-sort-label')?.textContent||h.textContent||'').trim().replace(/[▲▼↑↓▾]/g,'').trim());
+  t.classList.add('v129-card-table');
+  for(const body of t.tBodies)for(const row of body.rows){
+   if(row.cells.length!==labels.length)continue;
+   Array.from(row.cells).forEach((cell,i)=>{const l=labels[i];cell.dataset.v129Label=l;cell.classList.toggle('v129-primary',l==='품목명'||/소비기한/.test(l)&&t.classList.contains('v99-lot-table'));cell.classList.toggle('v129-quantity',/중량|수량|재고 \(|LOT 수/.test(l));cell.classList.toggle('v129-wide',/보관 위치|업체명|LOT 번호|기록번호|비고/.test(l));cell.classList.toggle('v129-action',l==='작업');});
+  }
+ });
+ root.querySelectorAll('.table-scroll,.v36-table-wrap').forEach(w=>{
+  const t=w.querySelector(':scope > table');const show=t&&!t.classList.contains('v129-card-table')&&!t.closest('.v74frozen')&&t.scrollWidth>w.clientWidth+8;
+  const old=w.previousElementSibling;if(show&&(!old||!old.classList.contains('v129-scroll-hint'))){const n=document.createElement('div');n.className='v129-scroll-hint';n.textContent='표를 좌우로 밀어 전체 항목을 확인할 수 있습니다.';w.before(n);}else if(!show&&old?.classList.contains('v129-scroll-hint'))old.remove();
+ });
+}
+function schedule(){if(!queued){queued=true;requestAnimationFrame(update)}}
+new MutationObserver(records=>{if(records.some(r=>Array.from(r.addedNodes).concat(Array.from(r.removedNodes)).some(n=>n.nodeType===1&&!n.classList?.contains('v129-scroll-hint'))))schedule()}).observe(root,{subtree:true,childList:true});
+mq.addEventListener('change',()=>{nav(false);schedule()});window.addEventListener('resize',schedule);nav(false);schedule();
+})();
+</script></body></html>
