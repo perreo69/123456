@@ -2103,7 +2103,7 @@ function v36Page(){
     <label>비고 (선택)<input id="v36Note" placeholder="필요한 경우 이동 사유 입력"></label>
   </div>
   <div class="v116-move-fields" id="v116MoveFields"><label>생산품목<input id="v116CommonName" list="v116Names" autocomplete="off" placeholder="생산품목명 입력 / 선택" maxlength="150"></label><label>기존 생산번호 연결<select id="v116ExistingRun">${v116RunOptions()}</select></label><datalist id="v116Names">${v116NameSuggestions()}</datalist></div><div class="v36-searchline"><label>LOT 검색<input id="v36Search" type="search" autocomplete="off" placeholder="품목·브랜드·업체·LOT번호·소비기한"></label><span class="v36-count" id="v36Count"></span></div>
-  <div class="v36-summary"><div class="v36-summary-main" id="v36Summary"></div><div class="v36-summary-actions"><button type="button" id="v36Clear">수량 초기화</button><button type="button" class="primary" id="v36Save">저장</button></div></div>
+  <div class="v36-summary"><div class="v36-summary-main" id="v36Summary"></div><div class="v36-summary-actions"><button type="button" class="v132-mobile-control" id="v132MovePicked">선택 LOT</button><button type="button" id="v36Clear">수량 초기화</button><button type="button" class="primary" id="v36Save">저장</button></div></div>
   <div class="v36-msg" id="v36Error" role="alert"></div>
   <div class="v36-table-wrap"><table class="v36-table"><colgroup><col style="width:30%"><col style="width:24%"><col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:10%"></colgroup>
     <thead><tr><th>품목 / LOT</th><th>생산품목</th><th>현재 창고</th><th>소비기한</th><th>재고 kg</th><th id="v116QtyHeading">이동 kg</th></tr></thead><tbody id="v36Body"></tbody>
@@ -2116,9 +2116,10 @@ function v36Page(){
  $('mainView').querySelectorAll('[data-v36-mode]').forEach(b=>b.onclick=()=>{
   if(v132Mobile()&&b.dataset.v36Mode===v36Mode)return;
   if(v132Mobile()&&v132MovementDirty()&&!confirm('입력한 이동 수량을 초기화하고 작업 종류를 변경할까요?'))return;
-  v36Mode=b.dataset.v36Mode;v36Lines.clear();$('v36Search').value='';$('v116CommonName').value='';$('v116ExistingRun').value='';v36Draw();
+  v36Mode=b.dataset.v36Mode;v132OnlyPicked=false;v36Lines.clear();$('v36Search').value='';$('v116CommonName').value='';$('v116ExistingRun').value='';v36Draw();
  });
- $('v36Clear').onclick=()=>{v36Lines.clear();v36Draw()};
+ $('v36Clear').onclick=()=>{v132OnlyPicked=false;v36Lines.clear();v36Draw()};
+ $('v132MovePicked').onclick=()=>{v132OnlyPicked=!v132OnlyPicked;v36Draw();};
  $('v36Save').onclick=v36Save;
  $('v36Body').addEventListener('input',e=>{
   const row=e.target.closest('tr[data-v36-key]');if(!row)return;
@@ -2133,7 +2134,8 @@ function v36Page(){
  if(v36Prefill){$('v36Search').value=v36Prefill;v36Prefill='';v36Draw();}
 }
 function v36Draw(){
- const q=$('v36Search').value,eligible=v36Eligible(),visible=eligible.filter(({l,zone})=>matchesSearch(q,[l.name,l.id,l.brand,l.vendor,l.origin,l.expiry,ZONE[zone],v116RunName(l.traceRunId),l.traceRootId]));
+ const q=$('v36Search').value,eligible=v36Eligible(),visible=eligible.filter(({l,zone,key})=>v132Mobile()&&v132OnlyPicked?Number(v36Lines.get(key)?.qty)>0:matchesSearch(q,[l.name,l.id,l.brand,l.vendor,l.origin,l.expiry,ZONE[zone],v116RunName(l.traceRunId),l.traceRootId]));
+ $('v132MovePicked').textContent=v132Mobile()&&v132OnlyPicked?'전체 LOT':'선택 LOT';$('v132MovePicked').setAttribute('aria-pressed',String(v132Mobile()&&v132OnlyPicked));
  $('mainView').querySelectorAll('[data-v36-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.v36Mode===v36Mode);b.setAttribute('aria-pressed',String(b.dataset.v36Mode===v36Mode))});
  $('v36Help').innerHTML='<strong>재고 이동:</strong> 이동 수량만큼 출발 창고에서 차감하고 도착 창고에 더합니다. 원료육 총재고는 바뀌지 않습니다.';
  $('v36Save').textContent='저장';$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116QtyHeading').textContent=v36Mode==='field'?'출고 kg':'이동 kg';if(v36Mode==='field')$('v36Help').textContent='현장 출고는 냉장 재고를 차감합니다. 실제 사용 확인과 미사용 반납은 생산 이력에서 처리합니다. 완제품은 별도로 입고합니다.';
@@ -2142,7 +2144,7 @@ function v36Draw(){
   const data=v36Lines.get(key)||{},qty=data.qty??'',num=Number(qty);
   return `<tr class="v36-row ${num>0?'v36-chosen':''}" data-v36-key="${esc(key)}"><td><span class="v36-row-name">${esc(l.name)}</span><span class="v36-row-meta">${esc([l.id,v66BrandLabel(l.brand),l.origin].filter(Boolean).join(' · '))}</span></td>
    <td>${v36Mode==='refreeze'?esc(v116RunName(l.traceRunId)||'—'):v36Mode==='field'&&l.traceRunId?esc(v116RunName(l.traceRunId))+'<small class="v116-run-small">'+esc(l.traceRunId)+'</small>':`<input data-v36-field="production" list="v116Names" maxlength="150" value="${esc(data.production||'')}" placeholder="상단 생산품목 적용" aria-label="행별 생산품목">`}</td><td>${esc(ZONE[zone])}</td><td>${esc(l.expiry||'미기재')}</td><td class="v36-stock">${fmt(available)}</td>
-   <td><input type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${esc(ZONE[zone])} 이동 중량"></td></tr>`;
+   <td><input type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${esc(ZONE[zone])} 이동 중량"><button class="v132-fill v132-mobile-control" type="button" data-v132-fill aria-label="이 LOT 전량 입력">전량</button></td></tr>`;
  }).join(''):'<tr><td colspan="6" class="v36-empty">해당 LOT가 없습니다.</td></tr>';
  v36Summary();
 }
@@ -2188,7 +2190,7 @@ function v36Save(){
   }
   if(!persist())throw Error('브라우저에 저장하지 못했습니다.');
  }catch(e){state=previous;error.textContent='처리에 실패했습니다: '+e.message;return;}
- v36Lines.clear();$('v36Search').value='';$('v36Note').value='';$('v116CommonName').value='';$('v116ExistingRun').innerHTML=v116RunOptions();
+ v132OnlyPicked=false;v36Lines.clear();$('v36Search').value='';$('v36Note').value='';$('v116CommonName').value='';$('v116ExistingRun').innerHTML=v116RunOptions();
  v36Draw();v68Counts();toast((mode==='field'?'현장 출고 ':'창고 이동 ')+fmt(result)+'kg 기록이 저장되었습니다.');
 }
 
@@ -2871,9 +2873,27 @@ function acPage(next){
 
 /* v132 mobile workflow: draft fields are in-memory only, never written as stock. */
 const v132Mobile=()=>matchMedia('(max-width:767px), (max-width:1023px) and (pointer:coarse)').matches;
-const v132Drafts=new Map(),v132StockSearch=new Map();
+const v132Drafts=new Map(),v132StockSearch=new Map();let v132OnlyPicked=false;
 const v132StockViews=new Set(['stock_overview','dashboard','frozen','chilled','finished_all','finished_own','finished_buy','ingredients_all','sauce','spice','vegetable','supplies','pending','ingredient_other']);
 const v132Fields={intake:['intakeDate','intakeVendor','intakeNote','intakePasteText'],ship:['v18Date','v18PartnerInput','v18Note'],operations:['v36Date','v36Note','v36Search','v116CommonName','v116ExistingRun']};
+
+function v132IntakeReady(r){
+ const qty=Number(r.qty),price=Number(r.price||0);
+ return !!r.name.trim()&&Number.isFinite(qty)&&qty>0&&qty<=1e9&&Number.isFinite(price)&&price>=0&&(r.category==='supplies'||!!normalizeIntakeDate(r.expiry))&&r.category!=='finished_unspecified'&&(r.category!=='meat'||(['frozen','chilled'].includes(r.zone)&&!!r.origin.trim()&&(/^(국내산?|대한민국|한국|한국산|korea|south korea)$/i.test(r.origin.trim())||!!r.brand.trim())))&&(r.category!=='finished_own'||!!normalizeIntakeDate(r.received));
+}
+const v132FieldHomes=new WeakMap();
+function v132IntakeFields(wrap){
+ if(!wrap)return;
+ for(const row of wrap.querySelectorAll('.intake-row')){
+  const grid=row.querySelector('.v50-in-grid'),actions=row.querySelector('.v50-in-actions'),meat=row.querySelector('.in-cat')?.value==='meat';if(!grid||!actions)continue;
+  for(const key of ['.in-origin','.in-brand','.in-zone']){
+   const label=row.querySelector(key)?.closest('label');if(!label)continue;
+   if(v132Mobile()&&meat){if(!v132FieldHomes.has(label)){const marker=document.createComment('v132 field home');label.before(marker);v132FieldHomes.set(label,marker);grid.insertBefore(label,actions);label.classList.add('v132-required');}}
+   else if(v132FieldHomes.has(label)){const home=v132FieldHomes.get(label);home.replaceWith(label);v132FieldHomes.delete(label);label.classList.remove('v132-required');}
+  }
+ }
+}
+
 function v132Capture(from){
  if(!v132Mobile())return;
  if(from==='intake'&&$('intakeRowList'))syncIntakeRows();
@@ -2898,7 +2918,7 @@ function v132MovementDirty(){return [...v36Lines.values()].some(x=>String(x.qty|
 function v132StartMove(l){
  if(v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화하고 선택한 LOT로 이동할까요?'))return false;
  if(view==='operations')v132Capture(view);
- v36Mode=l.zone==='frozen'?'move':'refreeze';v36Lines.clear();v132Drafts.delete('operations');v36Prefill=l.lotId;setView('operations');return true;
+ v36Mode=l.zone==='frozen'?'move':'refreeze';v132OnlyPicked=false;v36Lines.clear();v132Drafts.delete('operations');v36Prefill=l.lotId;setView('operations');return true;
 }
 function v132StartShip(l){
  if(v123Kind==='field'&&!(l.src==='meat'&&l.zone==='chilled')){toast('작성 중인 현장 출고가 있습니다. 출고구분을 변경한 후 다시 선택해 주세요.');return false;}
@@ -3005,7 +3025,7 @@ function showActionMenu(anchor,opts={}){
  const route=(mode,from='')=>{
   closeActionMenu();
   if(mode==='edit'){v33OpenMeatEdit(opts);return;}
-  if(['move','refreeze','field'].includes(mode)){if(v132Mobile()&&v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화할까요?'))return;v132Drafts.delete('operations');v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}
+  if(['move','refreeze','field'].includes(mode)){if(v132Mobile()&&v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화할까요?'))return;v132Drafts.delete('operations');v132OnlyPicked=false;v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}
   
  };
  draw();
@@ -3693,7 +3713,7 @@ function intakePage(){
   });
  });
  bindIntakeQuickDates($('mainView'));
- $('intakeAdd').onclick=()=>{syncIntakeRows();intakeRows.push(rowDefault());drawIntakeRows();$('intakeRowList').lastElementChild?.querySelector('.in-search')?.focus();};
+ $('intakeAdd').onclick=()=>{syncIntakeRows();if(v132Mobile()){const blank=intakeRows.findIndex(r=>!r.name&&!r.qty&&!r.expiry&&!r.note);if(blank>=0){$('intakeRowList').querySelector('[data-i="'+blank+'"] .in-search')?.focus();return;}for(const row of intakeRows)if(v132IntakeReady(row))row.v132Folded=true;}intakeRows.push(rowDefault());drawIntakeRows();$('intakeRowList').lastElementChild?.querySelector('.in-search')?.focus();};
  $('intakeClear').onclick=()=>{
   syncIntakeRows();
   const dirty=intakeRows.some(r=>r.name||r.qty||r.price||r.expiry||r.note||r.brand||r.origin||r.spec||r.weight||r.catalogKey)||$('intakeVendor').value.trim()||$('intakeNote').value.trim()||$('intakePasteText').value.trim();
@@ -3713,7 +3733,8 @@ function intakeRowHtml(r,i){
   +INTAKE_CATS.map(([k,l])=>`<option value="${k}" ${r.category===k?'selected':''}>${esc(l)}</option>`).join('');
  const unitOptions=INTAKE_UNITS.map(([k,l])=>`<option value="${k}" ${r.unit===k?'selected':''}>${l}</option>`).join('');
  const isMeat=r.category==='meat';
- return `<article class="intake-row v50-in-row" data-i="${i}" data-row-id="${r.rowId}">
+ return `<article class="intake-row v50-in-row ${r.v132Folded?'v132-folded':''}" data-i="${i}" data-row-id="${r.rowId}">
+  <button type="button" class="v132-intake-summary v132-mobile-control" aria-label="입고 품목 수정"><span><strong>${esc(r.name||'신규 품목')}</strong><small>${esc([r.brand,r.expiry,r.zone==='frozen'?'냉동고':r.zone==='chilled'?'냉장고':''].filter(Boolean).join(' · '))}</small></span><b>${esc(r.qty||'0')} ${esc(r.unit)}</b><span aria-hidden="true">›</span></button>
   <div class="intake-row-title v50-visually-hidden"><b>${String(i+1).padStart(2,'0')}</b><span>${r.name?esc(r.name):'신규 품목'}</span></div>
   <div class="intake-grid v50-in-grid">
    <span class="v50-in-num">${String(i+1).padStart(2,'0')}</span>
@@ -3747,6 +3768,7 @@ function drawIntakeRows(){
  wrap.innerHTML=intakeRows.map(intakeRowHtml).join('');
  wrap.querySelectorAll('.intake-row').forEach(el=>{
   const i=Number(el.dataset.i),r=intakeRows[i],search=el.querySelector('.in-search');
+  el.querySelector('.v132-intake-summary').onclick=()=>{syncIntakeRows();r.v132Folded=false;drawIntakeRows();wrap.querySelector('[data-i="'+i+'"] .in-qty')?.focus();};
   search.addEventListener('input',e=>{r.name=e.target.value;r.catalogKey='';el.querySelector('.intake-row-title span').textContent=r.name||'신규 품목';drawIntakeSuggestions(el,r)});
   search.addEventListener('focus',()=>drawIntakeSuggestions(el,r));
   search.addEventListener('keydown',e=>{
@@ -3765,6 +3787,7 @@ function drawIntakeRows(){
   el.querySelectorAll('.intake-detail input,.intake-detail select').forEach(inp=>inp.addEventListener('input',()=>{readIntakeRow(el,r);if(inp.classList.contains('v56-required-field')&&String(inp.value).trim())v56ClearIntakeDetailNotice(el);}));
  });
  bindIntakeQuickDates(wrap);
+ v132IntakeFields(wrap);
  updateIntakeSummary();
 }
 function getIntakeMatches(query){
@@ -3819,10 +3842,11 @@ function v56ClearIntakeDetailNotice(el){
 }
 function saveIntake(){
  syncIntakeRows();const vendor=$('intakeVendor').value.trim(),receiptDate=normalizeIntakeDate($('intakeDate').value),note=$('intakeNote').value.trim(),error=$('intakeError');
- const fail=msg=>{error.textContent=msg;error.classList.remove('hidden');return;};
+ const fail=msg=>{error.textContent=msg;error.classList.remove('hidden');if(v132Mobile()){const m=msg.match(/^(\d+)번/);if(m){const active=intakeRows.filter(r=>r.name.trim()||r.qty)[Number(m[1])-1];if(active){active.v132Folded=false;$('intakeRowList')?.querySelector('[data-i="'+intakeRows.indexOf(active)+'"]')?.classList.remove('v132-folded');}}}return;};
  const failDetail=(row,field,msg)=>{
   const index=intakeRows.indexOf(row),el=$('intakeRowList')?.querySelector(`.intake-row[data-i="${index}"]`);
   if(el){
+   row.v132Folded=false;el.classList.remove('v132-folded');
    row.expanded=true;
    $('intakeRowList')?.querySelectorAll('.intake-row').forEach(v56ClearIntakeDetailNotice);
    const detail=el.querySelector('.intake-detail');if(detail)detail.open=true;
@@ -4251,7 +4275,7 @@ function v18LineHtml(r,i){
     return `<div class="v25-lot-row v35-lot-row ${on?'v25-lot-picked':''}" data-stock="${esc(l.key)}" data-available="${l.available}">
      <label class="v25-lot-choice" title="${esc([l.lotId,v66BrandLabel(l.brand),l.vendor,l.origin].filter(Boolean).join(' · '))}"><input type="checkbox" class="v25-lot-check" ${on?'checked':''} aria-label="${esc(expiry)} ${esc(l.lotId)} 선택"><span class="v25-lot-dates"><strong class="${l.expiry&&l.expiry<today()?'v18-expired':''}">${esc(expiry)}</strong><small>${esc(detail)}</small></span></label>
      <span class="v25-lot-available">${fmt(l.available)} <small>${esc(l.unit)}</small></span>
-     <label class="v25-lot-amount"><input class="v18-qty" type="number" inputmode="decimal" min="0" step="0.01" max="${l.available}" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.lotId)} 출고 수량"><small>${esc(l.unit)}</small></label>
+     <label class="v25-lot-amount"><input class="v18-qty" type="number" inputmode="decimal" min="0" step="0.01" max="${l.available}" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.lotId)} 출고 수량"><small>${esc(l.unit)}</small><button class="v132-fill v132-mobile-control" type="button" data-v132-fill aria-label="이 LOT 전량 입력">전량</button></label>
      <label class="v35-lot-price-wrap"><input class="v35-lot-price" ${v123Kind==='company'?'':'disabled'} type="number" inputmode="decimal" min="0" step="0.01" value="${esc(unitPrice)}" placeholder="원" aria-label="${esc(l.lotId)} 출고 단가"></label>
      <span class="v35-line-amount" aria-label="${esc(l.lotId)} 금액">${lineMoney}</span>
     </div>`;
@@ -4566,7 +4590,8 @@ function attachGlobal(){// 좌측 입고·출고: 실제 원료육 등록 및 LO
  document.querySelectorAll('[data-group-toggle]').forEach(b=>b.onclick=()=>{const panel=document.querySelector('[data-group-content="'+b.dataset.groupToggle+'"]');const open=b.getAttribute('aria-expanded')==='true';b.setAttribute('aria-expanded',String(!open));panel.classList.toggle('collapsed',open);});
  $('menuToggle').onclick=()=>$('sidebar').classList.toggle('open');}
 initProductMaster();attachGlobal();v17BindStatementDialog();setView('stock_overview');
-$('mainView').addEventListener('click',e=>{if(!v132Mobile())return;const row=e.target.closest('tr[data-v132-product]');if(!row)return;e.preventDefault();e.stopImmediatePropagation();v132StockDetail(row.dataset.v132Product,row.dataset.v132Unit);},true);
+matchMedia('(max-width:767px), (max-width:1023px) and (pointer:coarse)').addEventListener('change',()=>{v132IntakeFields($('intakeRowList'));if(view==='operations')v36Draw();});
+$('mainView').addEventListener('click',e=>{if(!v132Mobile())return;const fill=e.target.closest('[data-v132-fill]');if(fill){e.preventDefault();e.stopImmediatePropagation();const input=fill.parentElement.querySelector('input[type=number]');if(input&&!input.disabled&&Number(input.max)>0){input.value=input.max;input.dispatchEvent(new Event('input',{bubbles:true}));}return;}const row=e.target.closest('tr[data-v132-product]');if(!row)return;e.preventDefault();e.stopImmediatePropagation();v132StockDetail(row.dataset.v132Product,row.dataset.v132Unit);},true);
 window.erpApplyRemote=(body)=>{
  if(!body||body.version!==2||!Array.isArray(body.items)||!Array.isArray(body.transactions))return false;
  const readOnlyViews=[...Object.keys(acNames()),'stock_overview','dashboard','frozen','chilled','history','deleted','partners','production_trace','finished_all','ingredients_all',...Object.keys(EXTRA_CATEGORIES)];
