@@ -1255,6 +1255,9 @@ td.actcell{text-align:center;padding:0 10px}
 .vsheet-table tbody td{height:38px;padding:0 6px;border-bottom:1px solid var(--line-2);background:#fff}
 .vsheet-table tbody tr:last-child td{border-bottom:0}
 .vsheet-table input,.vsheet-table select{height:30px;border-radius:var(--r-xs);font-size:12px;width:100%;padding:0 8px}
+.vsheet-table td select{min-width:86px}
+.vsheet-table td:first-child{min-width:92px}
+.vsheet-scroll{overscroll-behavior-x:contain}
 .vsheet-table td.num,.vsheet-table th.num{text-align:right}
 .vsheet-table .r{text-align:right}
 .vsheet-table .c{text-align:center}
@@ -1433,7 +1436,12 @@ td.actcell{text-align:center;padding:0 10px}
   .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .table-wrap::after{content:"";display:block;height:0}
   .modal{padding:10px}
-  .modal-card{padding:16px 16px 14px;border-radius:var(--r-lg);max-height:calc(100vh - 20px)}
+  .modal-card{padding:15px 13px 13px;border-radius:var(--r-lg);max-height:calc(100vh - 20px)}
+  .minfo{padding:9px 11px 9px 24px}
+  .minfo .way{display:block;float:none;margin:6px 0 0;text-align:right}
+  .vsheet-table{min-width:720px}
+  .vsheetbar{flex-wrap:wrap}
+  .vsheetbar .tiny-hint{display:none}
   .modal-actions .btn,.modal-actions .submit{flex:1 1 auto;min-width:0}
   .rmcals,.rm-cals{flex-direction:column}
   .rm-cals{flex-direction:column}
