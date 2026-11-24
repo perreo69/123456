@@ -3182,6 +3182,9 @@ var ERP = (function () {
     for (i = 0; i < list.length; i++) {
       p = list[i];
       if (!p) continue;
+      /* v43 — 미사용(active=false) 품목은 기본 재고조회에서 감춘다.
+         되돌릴 길은 「재고 0 포함」 하나로 남긴다(따로 체크박스를 늘리지 않는다). */
+      if (p.active === false && !showZero) continue;
       if (!(p.stock > 0.0004) && !showZero) continue;
       cat = uniFpCat(p, st.fpLogs);
       out.push({ kind: 'fp', g: uniGroupOf(cat), cat: cat, sub: p.cat || '-', code: p.code, n: p.n,
@@ -3192,7 +3195,7 @@ var ERP = (function () {
         lot: p.lot || (p.lotId ? uniLotNo(p.inD, p.lotId) : '-'),
         wh: uniWhOfMemo(p.memo), thaw: false, inD: p.inD || '', e: p.e || '', qty: r3(p.stock), price: r2(p.inp),
         amt: Math.round(p.stock * p.inp), lotId: p.lotId, code: p.code, sup: p.sup || '', memo: p.memo || '',
-        _lot: p._lot !== false });
+        active: p.active !== false, _lot: p._lot !== false });
     }
     return out;
   }
@@ -3302,7 +3305,7 @@ var ERP = (function () {
       if (!byKey[k]) {
         byKey[k] = { n: r.n || '', cat: r.cat || '', sub: uniSubText(r) || '-',
           spec: uniSpecText(r.spec, r.unit) || '-', unit: r.unit || '', flag: r.flag || '',
-          rows: [], lots: 0, qty: 0, amt: 0, price: 0 };
+          active: true, rows: [], lots: 0, qty: 0, amt: 0, price: 0 };
         order.push(k);
       }
       g = byKey[k];
@@ -3313,6 +3316,8 @@ var ERP = (function () {
     for (i = 0; i < order.length; i++) {
       g = byKey[order[i]];
       g.lots = g.rows.length;
+      /* v43 — 미사용 품목 표시(띠 줄 꼬리표 · 자동완성 제외의 기준) */
+      g.active = !(g.rows.length && g.rows[0].active === false);
       /* 묶음 속 줄 — 평평한 표와 같은 정렬(기본은 소비기한 → 입고일 → 로트번호) */
       uniSortStock(g.rows, lotKey, o.sortDir);
       g.qty = r2(g.qty);
@@ -7024,7 +7029,9 @@ var LIVE = (function () {
     return { kind: r.kind, lot: r.kind === 'meat' ? r.lotId : '', code: r.kind === 'fp' ? r.code : '',
       name: r.n, wh: r.wh, price: r.price > 0 ? r.price : '', exp: r.e || '',
       vendor: r.vendor || r.sup || '', lotno: r.lot, ucat: r.cat, qty: r.qty,
-      lotid: r.kind === 'fp' ? (r.lotId || '') : '', flag: r.flag || '' };
+      lotid: r.kind === 'fp' ? (r.lotId || '') : '', flag: r.flag || '',
+      /* v43 — 이 품목이 미사용인가(완제품·부재료·부자재만). 1 = 사용, 0 = 미사용 */
+      pa: r.kind === 'fp' ? (r.active === false ? '0' : '1') : '' };
   }
   function uniAttrStr(o) {
     var a = '', k, v;
@@ -7140,7 +7147,9 @@ var LIVE = (function () {
     return '<tr class="ugroup' + (open ? ' open' : '') + '" data-gname="' + esc(g.n) + '" data-gcat="' + esc(g.cat) + '"' +
       ' data-gkey="' + esc(ERP.uniGroupKey(uniView(), g)) + '" title="' + esc(title) + '">' +
       '<td class="gn" colspan="' + cols.length + '"><span class="gtog">' + (open ? '▾' : '▸') + '</span>' +
-      '<span class="g-name">' + esc(g.n) + '</span><span class="g-meta">' + meta + '</span></td></tr>';
+      '<span class="g-name">' + esc(g.n) + '</span>' +
+      (g.active === false ? '<span class="gtag-off" title="미사용 품목 — 재고조회 기본에서는 보이지 않습니다. [⋯]에서 다시 사용으로 되돌릴 수 있습니다">미사용</span>' : '') +
+      '<span class="g-meta">' + meta + '</span></td></tr>';
   }
   /* v36 — 로트 줄 : 품목 띠 바로 아래, 띠와 «같은 열»로 이어지는 한 줄.
      세부분류 · 품명 · 창고 · 원산지 · 브랜드 · 로트번호 ·
@@ -7427,16 +7436,23 @@ var LIVE = (function () {
       lotid: btn.getAttribute('data-lotid') || '', flag: btn.getAttribute('data-flag') || '' };
     /* v19 — 재고 0 포함으로 보이는 0 로트는 해동 · 출고를 막는다(옛 원료육 표와 같음) */
     var empty = !(Number(btn.getAttribute('data-qty') || '0') > ERP.EPS);
-    return [
+    /* v43 — 품목 사용/미사용 전환(완제품·부재료·부자재 = fp_products.active) */
+    var off = btn.getAttribute('data-pa') === '0';
+    var items = [
       kind === 'fp'
         ? { label: '보관 위치 변경', act: 'uwh', o: o }
         : { label: '해동/냉동', act: 'umove', o: o, dis: empty },
       { label: '입고', act: 'uin', o: o },
       { label: '출고', act: 'uout', o: o, dis: empty },
       { sep: true },
-      { label: '정보 수정', act: 'uedit', o: o },
-      { label: '수불 이력 보기', act: 'uhist', o: o }
+      { label: '정보 수정', act: 'uedit', o: o }
     ];
+    if (kind === 'fp') {
+      items.push(off ? { label: '다시 사용', act: 'uon', o: o }
+        : { label: '미사용으로 전환', act: 'uoff', o: o });
+    }
+    items.push({ label: '수불 이력 보기', act: 'uhist', o: o });
+    return items;
   }
   function utxMenuItems(btn) {
     var kind = btn.getAttribute('data-kind'), id = Number(btn.getAttribute('data-id'));
@@ -7464,6 +7480,44 @@ var LIVE = (function () {
     cur.utx.from = ''; cur.utx.to = ''; cur.utx.preset = 'all';
     if ($('utxSearch')) $('utxSearch').value = cur.utx.q;
     setPane('unitx');
+  }
+  /* v43 — 품목 사용/미사용 전환: Supabase fp_products.active 에 바로 저장(PATCH 성격의 RPC)한다.
+     미사용 품목은 재고조회 기본 화면과 입출고 품명 자동완성에서 빠지고,
+     「재고 0 포함」을 켜면 [미사용] 꼬리표로 보였다가 [⋯ → 다시 사용]으로 되돌린다. */
+  function fpStockLeft(code) {
+    var i, sum = 0, found = false;
+    for (i = 0; i < (st.fpLots || []).length; i++) {
+      if (st.fpLots[i].code !== code) continue;
+      found = true;
+      sum += Number(st.fpLots[i].qty) || 0;
+    }
+    return found ? Math.round(sum * 1000) / 1000 : 0;
+  }
+  function setFpUse(code, on) {
+    var p = ERP.fpProductOf(st.fps, code);
+    if (!p) { toast('품목을 찾을 수 없습니다.', 'warn'); return; }
+    if ((p.active !== false) === !!on) return;
+    var left = fpStockLeft(code) || p.stock;
+    if (!on && left > ERP.EPS) {
+      if (!window.confirm('‘' + p.n + '’ 재고가 ' + fmtQty(left) + ' ' + (p.unit || '개') + ' 남아 있습니다.\n\n' +
+        '미사용으로 바꾸면 재고조회 기본 화면과 입출고 품명 자동완성에서 보이지 않습니다.\n' +
+        '「재고 0 포함」을 켜면 [미사용]으로 보이고, 그 줄의 [⋯ → 다시 사용]으로 되돌릴 수 있습니다.\n\n계속할까요?')) return;
+    }
+    var back = p.active;
+    p.active = !!on;
+    if (cur.erp === 'uni') renderUni();
+    SB.db.fpProductSave({
+      code: p.code, cat: p.cat, name: p.n, spec: p.spec, unit: p.unit,
+      inp: p.inp, outp: p.outp, expiry: p.e || null, sup: p.sup, bc: p.bc, active: !!on
+    }).then(function () {
+      fillFgDatalists();
+      acCache = {};   /* 자동완성 후보도 다시 만든다 */
+      toast((on ? '다시 사용으로 되돌렸습니다: ' : '미사용으로 전환했습니다: ') + p.n, 'ok');
+    }, function (e) {
+      p.active = back;
+      if (cur.erp === 'uni') renderUni();
+      toast(e.message, 'err');
+    });
   }
   function uniOpenForm(o, type) {
     var preset = { kind: o.kind, g: o.kind === 'meat' ? 'meat' : ERP.uniGroupOf(o.ucat),
@@ -7983,7 +8037,7 @@ var LIVE = (function () {
   function fgCellHtml(p, k) {
     if (k === 'cat') return '<td><span class="cat-tag">' + esc(p.cat || '-') + '</span></td>';
     if (k === 'code') return '<td class="code-cell">' + esc(p.code) + '</td>';
-    if (k === 'n') return '<td class="ellip" title="' + esc(p.n) + '"><b>' + esc(p.n) + '</b>' + (p.active ? '' : ' <span class="ttag">비활성</span>') + '</td>';
+    if (k === 'n') return '<td class="ellip" title="' + esc(p.n) + '"><b>' + esc(p.n) + '</b>' + (p.active ? '' : ' <span class="ttag">미사용</span>') + '</td>';
     if (k === 'spec') return '<td class="ellip">' + esc(p.spec || '-') + '</td>';
     if (k === 'unit') return '<td>' + esc(p.unit || '-') + '</td>';
     if (k === 'stock') return '<td class="num' + (p.stock <= 0.0004 ? ' zero' : '') + '">' + fmtQty(p.stock) + '</td>';
@@ -9160,6 +9214,9 @@ var LIVE = (function () {
       if ($('fgNewFlag')) $('fgNewFlag').value = p.sup === '자체생산' ? '자체' : '매입';
       $('fgNewStockWrap').classList.add('hidden');
       $('fgNewHint').textContent = '단가를 비워 두면 기존 단가가 그대로 남습니다.';
+      /* v43 — 미사용 품목도 [⋯]에서 바로 되돌릴 수 있지만, 수정 팝업에서도 보이게 둔다 */
+      if ($('fgNewActive')) $('fgNewActive').checked = p.active !== false;
+      if ($('fgNewActiveWrap')) $('fgNewActiveWrap').classList.remove('hidden');
       $('fgNewSave').textContent = '수정 저장';
     } else {
       $('fgNewTitle').textContent = '＋ 품목 등록';
@@ -9173,6 +9230,8 @@ var LIVE = (function () {
       $('fgNewStock').value = '';
       $('fgNewStockWrap').classList.remove('hidden');
       $('fgNewHint').innerHTML = '초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.';
+      if ($('fgNewActive')) $('fgNewActive').checked = true;
+      if ($('fgNewActiveWrap')) $('fgNewActiveWrap').classList.add('hidden');
       $('fgNewSave').textContent = '등록';
     }
     $('fgNewModal').classList.remove('hidden');
@@ -9190,7 +9249,9 @@ var LIVE = (function () {
       name: name, spec: $('fgNewSpec').value || '', unit: $('fgNewUnit').value || '개',
       inp: Number($('fgNewIn').value || 0), outp: Number($('fgNewOut').value || 0),
       expiry: $('fgNewExpiry').value || null, sup: flagSelf ? '자체생산' : ($('fgNewSupplier').value || ''),
-      bc: $('fgNewBarcode').value || '', active: true
+      bc: $('fgNewBarcode').value || '',
+      /* v43 — 수정할 때는 「사용」 체크를 그대로 저장한다(예전엔 늘 true 로 되돌려 버렸다) */
+      active: fgNewEditing ? ($('fgNewActive') ? !!$('fgNewActive').checked : fgNewEditing.active !== false) : true
     };
     var stock = Number($('fgNewStock').value || 0);
     var b = $('fgNewSave');
@@ -11690,6 +11751,8 @@ var LIVE = (function () {
     var names = [], partners = [], cats = ERP.FP_CATS.slice(), units = ERP.FP_UNITS.slice(), specs = [], i, p, seen = {};
     for (i = 0; i < st.fps.length; i++) {
       p = st.fps[i];
+      /* v43 — 미사용 품목은 입고·출고 품명 자동완성 후보에서도 뺀다 */
+      if (p.active === false) continue;
       if (p.n && !seen['n' + p.n]) { seen['n' + p.n] = 1; names.push(p.n); }
       if (p.code) names.push(p.code);
       if (p.sup && !seen['p' + p.sup]) { seen['p' + p.sup] = 1; partners.push(p.sup); }
@@ -11886,8 +11949,9 @@ var LIVE = (function () {
   function acProductCands() {
     return acCached('products', function () {
       var d = ERP.dict(st);
+      var fps = st.fps.filter(function (p) { return p.active !== false; });   /* v43 — 미사용 품목 제외 */
       return acFromList(d.names, '원료육 품목').concat(acFromList(d.products, '생산품목'))
-        .concat(acFromList(st.fps.map(function (p) { return p.n; }), '완제품·부자재'));
+        .concat(acFromList(fps.map(function (p) { return p.n; }), '완제품·부자재'));
     });
   }
   function acFgCands() {
@@ -11895,6 +11959,7 @@ var LIVE = (function () {
       var out = [], i, p;
       for (i = 0; i < st.fps.length; i++) {
         p = st.fps[i];
+        if (p.active === false) continue;   /* v43 — 미사용 품목은 후보에서 뺴다 */
         out.push({
           v: p.code + ' · ' + p.n, t: p.n, h: p.n + ' ' + p.code + ' ' + (p.spec || '') + ' ' + (p.cat || ''),
           s: p.code + (p.spec ? ' · ' + p.spec : '') + (p.cat ? ' · ' + p.cat : '') + ' · 재고 ' + fmtQty(p.stock) + (p.unit || '')
@@ -13089,6 +13154,9 @@ var LIVE = (function () {
           else toast('품목코드가 없어 상품 정보를 열 수 없습니다. 완제품 재고 화면에서 수정해 주세요.', 'warn');
         } else if (it.act === 'uhist') {
           uniViewHistory(it.o);
+        } else if (it.act === 'uoff' || it.act === 'uon') {
+          /* v43 — 품목 사용/미사용 전환 */
+          setFpUse(it.o.code, it.act === 'uon');
         } else if (it.act === 'thaw' || it.act === 're' || it.act === 'out') {
           bindLot(it.lot, it.act);
           openMeatForm(it.act);

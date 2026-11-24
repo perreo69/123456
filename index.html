@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261124_49">
+<link rel="stylesheet" href="style.css?v=20261124_50">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:10.5px;font-weight:500;color:#64748b;font-variant-numeric:tabular-nums;text-align:right}
@@ -352,7 +352,7 @@
           </div>
           <div class="chipset" id="uniViewChips"></div>
           <span class="sp"></span>
-          <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
+          <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트와 미사용 품목까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
           <span class="divv"></span>
           <span class="hint" id="uniSum"></span>
           <!-- v32 — 왼쪽 메뉴(입고 · 출고 · 재고 이동)로 옮긴 중복 버튼: 화면에서만 감추고 JS 바인딩은 그대로 둔다. 품목 등록·엑셀은 제목 줄 오른쪽(#headActs)으로 옮겨 붙는다 -->
@@ -1307,6 +1307,7 @@
         <label class="field"><span>바코드</span><input id="fgNewBarcode" placeholder="선택 입력"></label>
       </div>
       <p class="hint" id="fgNewHint">초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.</p>
+      <label class="check hidden" id="fgNewActiveWrap" title="체크를 풀면 미사용으로 바뀌어 재고조회 기본 화면과 입출고 품명 자동완성에서 빠집니다"><input type="checkbox" id="fgNewActive" checked>사용 중 (체크를 풀면 미사용)</label>
       <p class="msg" id="fgNewMsg"></p>
       <div class="modal-actions">
         <button class="btn" id="fgNewCancel" type="button">취소</button>
@@ -1702,7 +1703,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261124_49"></script>
-<script src="app.js?v=20261124_49"></script>
+<script src="partners_data.js?v=20261124_50"></script>
+<script src="app.js?v=20261124_50"></script>
 </body>
 </html>
