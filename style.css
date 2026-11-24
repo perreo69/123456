@@ -3210,3 +3210,10 @@ table.tblu thead th.actcol{text-align:center}
   #v8Side{display:none}
   body.sideopen #v8Side{display:flex;padding:10px 10px 14px;border-radius:0 0 12px 12px}
 }
+
+/* v40 — 폰에서 거래 화면 오른쪽 위 단추(매입·지급 / 매출·수금·명세표)가 화면 밖으로 잘리지 않게 줄바꿈 */
+@media (max-width:768px){
+  .pacts{width:100%}
+  .pacts .tgrp{flex-wrap:wrap;width:100%}
+  .pacts .btn{flex:1 1 auto;min-width:0}
+}
