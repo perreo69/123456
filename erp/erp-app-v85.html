@@ -1142,6 +1142,43 @@ input,select,textarea,button{accent-color:#555555}
 .v87-history-results .table-footer{padding:9px 12px}
 @media(max-width:650px){.v87-history-filters{padding:10px!important;gap:10px}.v87-history-row{grid-template-columns:1fr;gap:5px}.v87-history-filters .v70-filter input{flex:1 1 160px;width:auto}.v87-history-results .hist-toolbar{padding:10px}.v87-history-results .v87-history-order{display:none}}
 </style>
+<style id="v88-calendar-reference">
+.v70-calendar.v88-calendar{box-sizing:border-box;width:min(710px,calc(100vw - 26px));max-width:none;max-height:calc(100vh - 26px);padding:8px;border:1px solid #cfcfcf;border-radius:0;background:#fff;color:#333;font-family:inherit;font-size:13px;overflow:auto;box-shadow:0 5px 22px #0002}
+.v88-calendar::backdrop{background:#0004}
+.v88-calendar button,.v88-calendar select{box-sizing:border-box;font-family:inherit;font-size:13px;font-weight:400;line-height:1.2;cursor:pointer;margin:0!important;min-height:0!important;border-radius:0}
+.v88-top{display:flex;align-items:center;gap:18px;padding:18px 24px;background:#f7f7f7;border:1px solid #ddd;min-height:72px;box-sizing:border-box}
+.v88-base-label{white-space:nowrap;font-weight:600;color:#555}
+.v88-base-year{display:flex;align-items:center;flex:0 0 auto;border:1px solid #c6c6c6;border-radius:4px;overflow:hidden;background:#fff}
+.v88-base-year span{font-weight:600;padding:7px 12px;min-width:42px;text-align:center;font-variant-numeric:tabular-nums}
+.v88-base-year button{border:0;background:#fff;font-size:20px;line-height:1;width:25px;height:29px;padding:0;color:#777}
+.v88-base-year button:first-child{border-right:1px solid #ddd}.v88-base-year button:last-child{border-left:1px solid #ddd}
+.v88-period{font-weight:700;white-space:nowrap;font-size:14px;letter-spacing:.1px;font-variant-numeric:tabular-nums}
+.v88-quick{margin:14px 0;display:grid;gap:4px}
+.v88-quick-seven,.v88-quick-months{display:grid;gap:4px;grid-template-columns:repeat(7,minmax(0,1fr))}
+.v88-quick-months{grid-template-columns:repeat(12,minmax(0,1fr))}
+.v88-calendar .v88-quick button{height:43px;padding:0 2px;background:#fff;color:#444;border:1px solid #ccc;white-space:nowrap}
+.v88-calendar .v88-quick button:hover{background:#f1f1f1}.v88-calendar .v88-quick button.active{background:#e8e8e8;border-color:#8c8c8c;font-weight:600}
+.v88-calendars{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr);align-items:start}
+.v88-cal{border:1px solid #aaa;border-radius:5px;padding:5px;min-width:0}
+.v88-separator{align-self:center;text-align:center;color:#555;font-weight:600}
+.v88-cal-nav{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1fr) 30px;align-items:center;gap:2px;padding:5px 4px;background:linear-gradient(#dedede,#c8c8c8);border:1px solid #b5b5b5;border-radius:4px}
+.v88-calendar .v88-cal-nav select{width:100%;min-width:0;padding:4px 5px;height:29px;border:1px solid #bbb;background:#fff;color:#555;font-size:14px;appearance:auto}
+.v88-calendar .v88-arrow{border:0;background:transparent;padding:0;height:28px;display:flex;align-items:center;justify-content:center}
+.v88-arrow span{display:flex;align-items:center;justify-content:center;border-radius:50%;background:#303030;color:#fff;font-size:16px;width:16px;height:16px;font-weight:bold;line-height:1}
+.v88-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;padding:5px 0 2px}
+.v88-days b{height:30px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#333;font-weight:600}
+.v88-calendar .v88-days button{height:28px;padding:0 5px;text-align:right;font-size:14px;color:#555;border:1px solid #d0d0d0;background:#e9e9e9;border-radius:0}
+.v88-calendar .v88-days button:hover{background:#f7f7f7;border-color:#aaa}
+.v88-calendar .v88-days button.current-day{background:#fffbe7;border-color:#e9d577}
+.v88-calendar .v88-days button.chosen{background:#fff;border-color:#8f8f8f;color:#222;font-weight:500}
+.v88-footer{position:relative;display:flex;align-items:center;justify-content:center;border-top:1px solid #ddd;margin-top:14px;padding:13px 0 5px}
+.v88-footer>div{display:flex;gap:6px}
+.v88-calendar .v88-footer button{height:35px;min-width:62px;padding:0 13px;border:1px solid #999;background:#fff;color:#444;font-size:14px;border-radius:2px}
+.v88-calendar .v88-footer .v88-apply{background:#3297d2;color:white;border-color:#2587be;font-weight:600}
+.v88-calendar .v88-footer .v88-apply:hover{background:#2788c1}
+.v88-calendar .v88-footer .v88-clear{position:absolute;left:0;border-color:#ddd;font-size:12px;min-width:0;color:#777}
+@media(max-width:550px){.v88-top{padding:10px;gap:7px;flex-wrap:wrap;min-height:0}.v88-period{font-size:12px;white-space:normal;flex-basis:100%}.v88-calendar .v88-quick button{height:34px;font-size:11px}.v88-quick-months{grid-template-columns:repeat(6,minmax(0,1fr))}.v88-calendars{grid-template-columns:minmax(0,1fr) 12px minmax(0,1fr)}.v88-cal{padding:3px}.v88-cal-nav{grid-template-columns:16px minmax(0,1fr) minmax(0,1fr) 16px;padding:3px 1px}.v88-calendar .v88-cal-nav select{font-size:11px;padding:1px;height:25px}.v88-calendar .v88-days button{padding:0 2px;font-size:11px;height:25px}.v88-days{gap:2px}.v88-days b{font-size:11px;height:24px}}
+</style>
 </head>
 <body>
 <div class="app-shell">
@@ -2516,11 +2553,41 @@ function v70Date(t){const batch=[...(state.receiptBatches||[]),...(state.shippin
 function v70InRange(d){return (!v70From||d>=v70From)&&(!v70To||d<=v70To);}
 function v61HistoryRows(){return state.transactions.filter(t=>(v61HistoryFilter==='all'||v61HistoryKind(t)===v61HistoryFilter)&&v70Match(v70Cat(t))&&v70InRange(v70Date(t))&&matchesSearch(v70Query,[t.name,t.brand,t.vendor,t.recipient,t.note,t.lotId,...state.items.filter(l=>l.id===t.lotId).flatMap(l=>[l.brand,l.vendor])]));}
 function v70Calendar(options){
- const dlg=document.createElement('dialog');dlg.className='v70-calendar';let from=(options?options.from:v70From)||today(),to=(options?options.to:v70To)||today();const parse=d=>new Date(d+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),date=(y,m,d)=>new Date(Date.UTC(y,m,d,12)),now=parse(today()),y=now.getUTCFullYear(),m=now.getUTCMonth();let left=parse(from),right=parse(to);
- const presets=[['오늘',now,now],['전일',date(y,m,now.getUTCDate()-1),date(y,m,now.getUTCDate()-1)],['주간',date(y,m,now.getUTCDate()-(now.getUTCDay()+6)%7),date(y,m,now.getUTCDate()-(now.getUTCDay()+6)%7+6)],['전주',date(y,m,now.getUTCDate()-(now.getUTCDay()+6)%7-7),date(y,m,now.getUTCDate()-(now.getUTCDay()+6)%7-1)],['당월',date(y,m,1),date(y,m+1,0)],['전월',date(y,m-1,1),date(y,m,0)],['올해',date(y,0,1),date(y,12,0)],['상반기',date(y,0,1),date(y,6,0)],['하반기',date(y,6,1),date(y,12,0)],...Array.from({length:4},(_,i)=>[`${i+1}분기`,date(y,i*3,1),date(y,i*3+3,0)]),...Array.from({length:12},(_,i)=>[`${i+1}월`,date(y,i,1),date(y,i+1,0)])];
- function cal(d,side){const yy=d.getUTCFullYear(),mm=d.getUTCMonth(),first=date(yy,mm,1).getUTCDay(),n=date(yy,mm+1,0).getUTCDate();return `<section><b>${side==='left'?'시작일':'종료일'}</b><div class="v70-month"><button data-nav="${side}:-1">‹</button><strong>${yy}년 ${mm+1}월</strong><button data-nav="${side}:1">›</button></div><div class="v70-days">${['일','월','화','수','목','금','토'].map(x=>`<small>${x}</small>`).join('')}${'<span></span>'.repeat(first)}${Array.from({length:n},(_,i)=>{const k=iso(date(yy,mm,i+1));return `<button data-day="${side}:${k}" class="${k===from||k===to?'chosen':k>from&&k<to?'between':''}">${i+1}</button>`}).join('')}</div></section>`;}
- function draw(){dlg.innerHTML=`<h3>기간 설정</h3><div class="v70-layout"><div class="v70-presets">${presets.map((p,i)=>`<button data-preset="${i}">${p[0]}</button>`).join('')}</div><div class="v70-calendars">${cal(left,'left')}${cal(right,'right')}</div></div><div class="v70-dates"><input aria-label="시작일" type="date" id="v70Start" value="${from}"> ~ <input aria-label="종료일" type="date" id="v70End" value="${to}"></div><div class="v70-actions"><button data-clear>전체 기간</button><button data-close>취소</button><button data-apply>적용</button></div>`;}
- dlg.onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.hasAttribute('data-close'))return dlg.close();if(b.hasAttribute('data-clear')){dlg.close();if(options){options.apply('','');}else{v70From=v70To='';renderHistory();}return;}if(b.hasAttribute('data-apply')){from=dlg.querySelector('#v70Start').value;to=dlg.querySelector('#v70End').value;if(!from||!to||from>to){alert('시작일과 종료일을 확인하세요.');return;}dlg.close();if(options){options.apply(from,to);}else{v70From=from;v70To=to;renderHistory();}return;}if(b.dataset.preset!==undefined){const p=presets[+b.dataset.preset];from=iso(p[1]);to=iso(p[2]);left=parse(from);right=parse(to);}if(b.dataset.nav){const [side,n]=b.dataset.nav.split(':');const d=side==='left'?left:right;const next=date(d.getUTCFullYear(),d.getUTCMonth()+Number(n),1);if(side==='left')left=next;else right=next;}if(b.dataset.day){const [side,k]=b.dataset.day.split(':');if(side==='left'){from=k;if(to<from){to=from;right=parse(to);}}else{to=k;if(from>to){from=to;left=parse(from);}}}draw();};
+ const opts=options&&typeof options.apply==='function'?options:null;
+ const dlg=document.createElement('dialog');dlg.className='v70-calendar v88-calendar';
+ let from=(opts?opts.from:v70From)||today(),to=(opts?opts.to:v70To)||today();
+ const parse=d=>new Date(d+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),date=(y,m,d)=>new Date(Date.UTC(y,m,d,12)),now=parse(today()),todayYear=now.getUTCFullYear();
+ let baseYear=parse(from).getUTCFullYear(),left=parse(from),right=parse(to),active='';
+ const minYear=1900,maxYear=2100,limit=y=>Math.min(maxYear,Math.max(minYear,y));
+ function presets(){
+  const y=baseYear,m=now.getUTCMonth(),d=Math.min(now.getUTCDate(),date(y,m+1,0).getUTCDate()),ref=date(y,m,d),mon=d-(ref.getUTCDay()+6)%7;
+  return [['오늘',ref,ref],['전일',date(y,m,d-1),date(y,m,d-1)],['주간',date(y,m,mon),date(y,m,mon+6)],['전주',date(y,m,mon-7),date(y,m,mon-1)],['당월',date(y,m,1),date(y,m+1,0)],['전월',date(y,m-1,1),date(y,m,0)],['올해',date(y,0,1),date(y,12,0)],['상반기',date(y,0,1),date(y,6,0)],['하반기',date(y,6,1),date(y,12,0)],...Array.from({length:4},(_,i)=>[`${i+1}/4분기`,date(y,i*3,1),date(y,i*3+3,0)]),['오늘까지',date(y,0,1),ref],...Array.from({length:12},(_,i)=>[`${i+1}월`,date(y,i,1),date(y,i+1,0)])];
+ }
+ const pretty=k=>{const d=parse(k);return `${d.getUTCFullYear()}년 ${d.getUTCMonth()+1}월 ${d.getUTCDate()}일`;};
+ function cal(d,side){
+  const y=d.getUTCFullYear(),m=d.getUTCMonth(),first=date(y,m,1).getUTCDay(),n=date(y,m+1,0).getUTCDate(),selected=side==='left'?from:to;
+  const years=Array.from({length:maxYear-minYear+1},(_,i)=>minYear+i).map(v=>`<option value="${v}" ${v===y?'selected':''}>${v}</option>`).join('');
+  const months=Array.from({length:12},(_,i)=>`<option value="${i}" ${i===m?'selected':''}>${i+1}월</option>`).join('');
+  return `<section class="v88-cal" aria-label="${side==='left'?'시작일':'종료일'}"><div class="v88-cal-nav"><button type="button" class="v88-arrow" data-nav="${side}:-1" aria-label="이전 달"><span>‹</span></button><select data-year="${side}" aria-label="${side==='left'?'시작':'종료'} 연도">${years}</select><select data-month="${side}" aria-label="${side==='left'?'시작':'종료'} 월">${months}</select><button type="button" class="v88-arrow" data-nav="${side}:1" aria-label="다음 달"><span>›</span></button></div><div class="v88-days">${['일','월','화','수','목','금','토'].map(x=>`<b>${x}</b>`).join('')}${'<span></span>'.repeat(first)}${Array.from({length:n},(_,i)=>{const k=iso(date(y,m,i+1));return `<button type="button" data-day="${side}:${k}" aria-label="${k}" aria-pressed="${k===selected}" class="${k===selected?'chosen':''} ${k===today()?'current-day':''}">${i+1}</button>`}).join('')}${'<span></span>'.repeat(42-first-n)}</div></section>`;
+ }
+ function draw(){
+  const ps=presets(),buttons=(a,b)=>ps.slice(a,b).map((p,i)=>`<button type="button" data-preset="${a+i}" class="${active===String(a+i)?'active':''}">${p[0]}</button>`).join('');
+  dlg.innerHTML=`<div class="v88-top"><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>${baseYear}</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">${pretty(from)} ~ ${pretty(to)}</strong></div><div class="v88-quick"><div class="v88-quick-seven">${buttons(0,7)}</div><div class="v88-quick-seven">${buttons(7,14)}</div><div class="v88-quick-months">${buttons(14,26)}</div></div><div class="v88-calendars">${cal(left,'left')}<span class="v88-separator">~</span>${cal(right,'right')}</div><div class="v88-footer"><button type="button" data-clear class="v88-clear">전체 기간</button><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>`;
+ }
+ function apply(f,t){dlg.close();if(opts)opts.apply(f,t);else{v70From=f;v70To=t;renderHistory();}}
+ dlg.onclick=e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.hasAttribute('data-close'))return dlg.close();
+  if(b.hasAttribute('data-clear'))return apply('','');
+  if(b.hasAttribute('data-apply'))return apply(from,to);
+  if(b.dataset.base!==undefined){
+   const next=limit(baseYear+Number(b.dataset.base));if(next!==baseYear){baseYear=next;active='';const shift=k=>{const d=parse(k),m=d.getUTCMonth();return iso(date(next,m,Math.min(d.getUTCDate(),date(next,m+1,0).getUTCDate())));};from=shift(from);to=shift(to);if(from>to)to=from;left=parse(from);right=parse(to);}
+  }else if(b.dataset.preset!==undefined){const p=presets()[+b.dataset.preset];if(!p)return;active=b.dataset.preset;from=iso(p[1]);to=iso(p[2]);left=parse(from);right=parse(to);}
+  else if(b.dataset.nav){const [side,n]=b.dataset.nav.split(':'),d=side==='left'?left:right,next=date(d.getUTCFullYear(),d.getUTCMonth()+Number(n),1);if(next.getUTCFullYear()<minYear||next.getUTCFullYear()>maxYear)return;if(side==='left')left=next;else right=next;}
+  else if(b.dataset.day){const [side,k]=b.dataset.day.split(':');active='';if(side==='left'){from=k;if(to<from){to=from;right=parse(to);}}else{to=k;if(from>to){from=to;left=parse(from);}}}
+  draw();
+ };
+ dlg.onchange=e=>{const el=e.target,side=el.dataset.year||el.dataset.month;if(!side)return;const d=side==='left'?left:right,yy=el.dataset.year?Number(el.value):d.getUTCFullYear(),mm=el.dataset.month?Number(el.value):d.getUTCMonth(),next=date(yy,mm,1);if(side==='left')left=next;else right=next;draw();};
  dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();
 }
 
@@ -2925,7 +2992,7 @@ function renderHistory(){
  $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정 · ${v70From?esc(v70From+' ~ '+v70To):'전체 기간'}</button><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">취소</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.length)}건</span><span>취소 기록도 보존됩니다.</span></div></section>`;
  // Incoming/outgoing saved paperwork is shown only in matching tabs; no separate movement document.
  v17DrawHistoryDocuments(v61HistoryFilter);v18AddHistoryCancel();
- $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=v70Calendar; document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
+ $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=()=>v70Calendar(); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>reverseTransaction(b.dataset.undo));
 }
