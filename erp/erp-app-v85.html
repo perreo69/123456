@@ -1996,11 +1996,11 @@ function v36Page(){
     <label>비고 (선택)<input id="v36Note" placeholder="필요한 경우 이동 사유 입력"></label>
   </div>
   <div class="v36-searchline"><label>LOT 검색<input id="v36Search" type="search" autocomplete="off" placeholder="품목·브랜드·업체·LOT번호·소비기한"></label><span class="v36-count" id="v36Count"></span></div>
+  <div class="v36-summary"><div class="v36-summary-main" id="v36Summary"></div><div class="v36-summary-actions"><button type="button" id="v36Clear">수량 초기화</button><button type="button" class="primary" id="v36Save">저장</button></div></div>
+  <div class="v36-msg" id="v36Error" role="alert"></div>
   <div class="v36-table-wrap"><table class="v36-table"><colgroup><col style="width:34%"><col style="width:18%"><col style="width:19%"><col style="width:14%"><col style="width:15%"></colgroup>
     <thead><tr><th>품목 / LOT</th><th>현재 창고</th><th>소비기한</th><th>재고 kg</th><th>이동 kg</th></tr></thead><tbody id="v36Body"></tbody>
-  </table></div>
-  <div class="v36-msg" id="v36Error" role="alert"></div>
-  <div class="v36-summary"><div class="v36-summary-main" id="v36Summary"></div><div class="v36-summary-actions"><button type="button" id="v36Clear">수량 초기화</button><button type="button" class="primary" id="v36Save">해동 이동 저장</button></div></div></div>
+  </table></div></div>
   <p class="v36-foot" id="v36Help"></p>
   <div class="v36-recent"><h3>최근 이동 기록</h3><table><thead><tr><th>일자</th><th>구분</th><th>품목 / LOT</th><th>수량</th><th>이동 경로</th></tr></thead><tbody id="v36History"></tbody></table></div>
  </section>`;
@@ -2026,7 +2026,7 @@ function v36Draw(){
  const q=$('v36Search').value,eligible=v36Eligible(),visible=eligible.filter(({l,zone})=>matchesSearch(q,[l.name,l.id,l.brand,l.vendor,l.origin,l.expiry,ZONE[zone]]));
  $('mainView').querySelectorAll('[data-v36-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.v36Mode===v36Mode);b.setAttribute('aria-pressed',String(b.dataset.v36Mode===v36Mode))});
  $('v36Help').innerHTML='<strong>재고 이동:</strong> 이동 수량만큼 출발 창고에서 차감하고 도착 창고에 더합니다. 원료육 총재고는 바뀌지 않습니다.';
- $('v36Save').textContent=v36Mode==='move'?'해동 이동 저장':'재냉동 이동 저장';
+ $('v36Save').textContent='저장';
  $('v36Count').textContent=`표시 LOT ${visible.length}건 · 입력 가능한 전체 LOT ${eligible.length}건`;
  $('v36Body').innerHTML=visible.length?visible.map(({l,zone,key,available})=>{
   const data=v36Lines.get(key)||{},qty=data.qty??'',num=Number(qty);
@@ -5377,4 +5377,14 @@ body :is(.drawer-bottom,.v95-product-footer,.v33-edit-foot){background:var(--wor
 .v109-partner-details>div{display:grid;grid-template-columns:120px minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid #e5e5e5;color:#333}
 .v109-partner-details strong{font-weight:500;color:#666}
 .v109-partner-details span{overflow-wrap:anywhere}
-</style><style id="v110-deleted-history">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){#mainView .v110-table{min-width:800px}#mainView .v110-table td:nth-child(3),#mainView .v110-table td:nth-child(5){white-space:normal;min-width:140px}}</style></body></html>
+</style><style id="v110-deleted-history">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){#mainView .v110-table{min-width:800px}#mainView .v110-table td:nth-child(3),#mainView .v110-table td:nth-child(5){white-space:normal;min-width:140px}}</style><style id="v114-move-save-position">
+/* One action bar above the LOT list; only the list scrolls. */
+#mainView .v36-pane>.v36-summary{padding:10px 18px;min-height:54px;gap:10px;border-top:1px solid #e5e5e5;border-bottom:1px solid #d1d1d1}
+#mainView .v36-summary-actions button{min-height:32px;padding:6px 14px;white-space:nowrap}
+#mainView #v36Save{min-width:76px}
+#mainView .v36-pane>.v36-msg{min-height:0;padding:8px 18px;color:#a12626}
+#mainView .v36-pane>.v36-msg:empty{display:none}
+#mainView .v36-table-wrap{max-height:clamp(180px,46vh,520px);overflow:auto;padding:0 18px 8px}
+#mainView .v36-table thead th{position:sticky;top:0;z-index:2;background:#eee}
+@media(max-width:700px){#mainView .v36-pane>.v36-summary{padding:10px 12px;gap:6px}#mainView .v36-table-wrap{max-height:50vh;padding:0 12px 8px}}
+</style></body></html>
