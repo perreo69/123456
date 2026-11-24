@@ -1481,6 +1481,7 @@ function v72Render(groups){
  const qty=(v,primary=false)=>`<td class="numeric ${primary?'v72qty':'v75qty'}">${v?fmt(amount(v)):'—'}</td>`;
  const lotRow=(l,g,band=0,start=false)=>`<tr ${chilled?`class="v76-band-${band} ${start?'v76-group-start':''}" data-v73-lot="${esc(l.id)}" tabindex="0" title="클릭하여 LOT 정보 확인"`:''}>${chilled?cell(g.name):''}${cell(l.origin)}${chilled?cell(v66BrandLabel(l.brand))+cell(movement(l)?sourceDate(movement(l)):'—'):cell(l.vendor)+cell(v66BrandLabel(l.brand))+cell(meatLotRef(l))+cell(sourceDate(l.received))}<td>${expiryMarkup(l.expiry)}</td>${all?qty(stock(l),true)+qty(stock(l,'frozen'))+qty(stock(l,'chilled')):qty(stock(l,selectedZone),true)}<td>${work(l)}</td></tr>`;
  const lotHead=head(chilled?['name','origin','brand','최근 이동일','expiry','chilledQty','작업']:['origin','vendor','brand','lotRef','received','expiry',...(all?['quantity','frozenQty','chilledQty']:['frozenQty']),'작업']);
+ const splitColumns=chilled?'':`<colgroup><col class="v99-origin"><col class="v99-vendor"><col class="v99-brand"><col class="v99-lot"><col class="v99-received"><col class="v99-expiry">${all?'<col class="v99-qty"><col class="v99-qty"><col class="v99-qty">':'<col class="v99-qty-wide">'}<col class="v99-action"></colgroup>`;
  const root=$('inventoryBody'),previousScroll=root.querySelector('aside')?.scrollTop||0;$('inventoryHead').innerHTML=chilled?lotHead:'';
  if(chilled){const rows=groups.flatMap(g=>g.items.map(l=>({l,g})));const {key:k,direction:dir}=tableSort;
   const byName=(a,b,d='asc')=>v80Compare(a.g.name,b.g.name,'name',d)||String(a.g.key).localeCompare(String(b.g.key),'ko');
@@ -1489,7 +1490,7 @@ function v72Render(groups){
   const bands=new Map();rows.forEach(({g})=>{if(!bands.has(g.key))bands.set(g.key,bands.size%2);});
   root.innerHTML=rows.map(({l,g},i)=>lotRow(l,g,bands.get(g.key),i>0&&rows[i-1].g.key!==g.key)).join('');}
 
- else {const g=groups.find(g=>g.key===v72Selected)||groups[0];v72Selected=g?.key||'';root.innerHTML=g?`<tr><td class="v72splitcell"><div class="v72split"><aside><div class="v75listhead">${v80SortLabel('name','품목명',true)}${v80SortLabel('total','중량(kg)',true)}</div>${groups.map(x=>`<button type="button" class="v72pick ${x.key===g.key?'active':''}" aria-pressed="${x.key===g.key}" data-v72-select="${esc(x.key)}"><strong>${esc(x.name)}</strong><span>${fmt(amount(all?x.all:x.frozen))}</span></button>`).join('')}</aside><div class="v72detail"><div class="v75detailhead"><h3>${esc(g.name)} <small>${esc(meatTypeLabel(g.type))} · LOT ${g.items.length}건</small></h3><div class="v75metrics">${(all?[['중량(kg)',g.all],['냉동고(kg)',g.frozen],['냉장고(kg)',g.chilled]]:[['중량(kg)',g.frozen]]).map(([label,value])=>`<div><span>${label}</span><strong>${fmt(amount(value))}</strong></div>`).join('')}</div></div><div class="v75tablewrap"><table class="v72inner"><thead>${lotHead}</thead><tbody>${meatLotSort(g.items).map(l=>lotRow(l,g)).join('')}</tbody></table></div></div></div></td></tr>`:'';if(root.querySelector('aside'))root.querySelector('aside').scrollTop=previousScroll;}
+ else {const g=groups.find(g=>g.key===v72Selected)||groups[0];v72Selected=g?.key||'';root.innerHTML=g?`<tr><td class="v72splitcell"><div class="v72split"><aside><div class="v75listhead">${v80SortLabel('name','품목명',true)}${v80SortLabel('total','중량(kg)',true)}</div>${groups.map(x=>`<button type="button" class="v72pick ${x.key===g.key?'active':''}" aria-pressed="${x.key===g.key}" data-v72-select="${esc(x.key)}"><strong>${esc(x.name)}</strong><span>${fmt(amount(all?x.all:x.frozen))}</span></button>`).join('')}</aside><div class="v72detail"><div class="v75detailhead"><h3>${esc(g.name)} <small>${esc(meatTypeLabel(g.type))} · LOT ${g.items.length}건</small></h3><div class="v75metrics">${(all?[['중량(kg)',g.all],['냉동고(kg)',g.frozen],['냉장고(kg)',g.chilled]]:[['중량(kg)',g.frozen]]).map(([label,value])=>`<div><span>${label}</span><strong>${fmt(amount(value))}</strong></div>`).join('')}</div></div><div class="v75tablewrap"><table class="v72inner v99-lot-table">${splitColumns}<thead>${lotHead}</thead><tbody>${meatLotSort(g.items).map(l=>lotRow(l,g)).join('')}</tbody></table></div></div></div></td></tr>`:'';if(root.querySelector('aside'))root.querySelector('aside').scrollTop=previousScroll;}
  if(!groups.length)root.innerHTML=`<tr><td colspan="${chilled?7:1}" class="empty">일치하는 재고가 없습니다.</td></tr>`;
  const n=groups.reduce((a,g)=>a+g.items.length,0),q=groups.reduce((a,g)=>a+g.all,0);$('filteredCount').textContent=`품목 ${groups.length}종 · LOT ${n}건 · ${fmt(amount(q))} kg`;$('tableFooterLeft').textContent='표시 재고 '+fmt(amount(q))+' kg';
 }
@@ -5129,5 +5130,44 @@ html{scrollbar-gutter:stable}
  letter-spacing:0!important;flex:0 0 auto;font-variant-numeric:tabular-nums!important;
 }
 #sidebar .v68-card .nav-chevron{flex:0 0 auto}
+}
+</style><style id="v99-meat-stock-layout">
+/* One desktop master-detail layout for all meat stock and frozen stock. Chilled list is intentionally unchanged. */
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+#mainView .v74frozen>.table-scroll>.stock-table{table-layout:fixed!important;width:100%!important;min-width:0!important}
+#mainView .v74frozen .v72splitcell{padding:10px!important;vertical-align:top}
+#mainView .v74frozen .v72split{grid-template-columns:clamp(185px,19%,260px) minmax(0,1fr)!important;gap:0!important;align-items:start}
+#mainView .v74frozen .v72split aside{width:100%;min-width:0;box-sizing:border-box}
+#mainView .v74frozen .v72pick{font-size:13px!important;line-height:19px!important;min-height:38px!important}
+#mainView .v74frozen .v72pick strong{font-weight:500;min-width:0;overflow-wrap:anywhere}
+#mainView .v74frozen .v72pick.active strong{font-weight:650}
+#mainView .v74frozen .v72pick span{flex-shrink:0}
+#mainView .v74frozen .v72detail{min-width:0!important;padding:0 0 10px 13px!important}
+#mainView .v74frozen .v75detailhead{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(270px,36%)!important;align-items:center!important;gap:12px!important;min-height:69px!important;margin:0 0 12px!important}
+#mainView .v74frozen .v75detailhead h3{font-size:19px!important;line-height:26px!important;margin:0!important;overflow-wrap:anywhere}
+#mainView .v74frozen .v75detailhead h3 small{font-size:12px!important;line-height:18px!important;margin-top:3px!important}
+#mainView .v74frozen .v75metrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:0!important;align-items:center!important}
+#mainView .v74frozen .v75metrics>div{min-width:0;padding:3px 7px!important}
+#mainView .v74frozen .v75metrics>div:only-child{grid-column:3}
+#mainView .v74frozen .v75metrics span{font-size:11px!important;line-height:16px!important;margin-bottom:3px!important;white-space:nowrap}
+#mainView .v74frozen .v75metrics strong{font-size:18px!important;line-height:25px!important;white-space:nowrap;font-variant-numeric:tabular-nums}
+#mainView .v74frozen .v75tablewrap{overflow:auto!important;width:100%!important;min-width:0!important;box-sizing:border-box}
+#mainView .v74frozen .v99-lot-table{table-layout:fixed!important;width:100%!important;min-width:960px!important;border-collapse:collapse}
+#mainView .v74frozen .v99-origin{width:9%}
+#mainView .v74frozen .v99-vendor{width:12%}
+#mainView .v74frozen .v99-brand{width:13%}
+#mainView .v74frozen .v99-lot{width:12%}
+#mainView .v74frozen .v99-received,#mainView .v74frozen .v99-expiry{width:10%}
+#mainView .v74frozen .v99-qty{width:8.5%}
+#mainView .v74frozen .v99-qty-wide{width:25.5%}
+#mainView .v74frozen .v99-action{width:8.5%}
+#mainView .v74frozen .v99-lot-table th{height:38px!important;padding:7px 8px!important;font-size:12px!important;font-weight:600!important;line-height:18px!important;white-space:nowrap}
+#mainView .v74frozen .v99-lot-table td{height:38px!important;padding:8px!important;font-size:13px!important;line-height:19px!important;vertical-align:middle;white-space:normal;overflow-wrap:anywhere}
+#mainView .v74frozen .v99-lot-table td.numeric{white-space:nowrap;overflow-wrap:normal;font-variant-numeric:tabular-nums}
+#mainView .v74frozen .v99-lot-table td:nth-child(5),#mainView .v74frozen .v99-lot-table td:nth-child(6){white-space:normal;overflow-wrap:normal}
+#mainView .v74frozen .v99-lot-table td:last-child,#mainView .v74frozen .v99-lot-table th:last-child{width:auto!important;text-align:center;white-space:nowrap}
+#mainView .v74frozen .v99-lot-table .th-wrap{gap:3px!important;min-width:0}
+#mainView .v74frozen .v99-lot-table .v80-sort-label{min-width:0;white-space:nowrap}
+@media(max-width:1150px){#mainView .v74frozen .v75detailhead{grid-template-columns:minmax(0,1fr) minmax(245px,45%)!important}#mainView .v74frozen .v75metrics strong{font-size:16px!important}}
 }
 </style></body></html>
