@@ -5240,4 +5240,25 @@ html{scrollbar-gutter:stable}
 #sidebar.sidebar .v68-card .side-menu .v68-link.selected:hover{background:linear-gradient(#4b9ef7,#146ce5)!important}
 body .in-supplier-tools button[data-in-supplier].selected:not(:disabled){background:var(--mac-primary)!important;color:white!important;border-color:var(--mac-blue-border)!important;border-radius:5px!important;box-shadow:var(--mac-primary-shadow)!important}
 }
+</style><style id="v107-neutral-report-headers">
+/* One achromatic header color for desktop workspace tables and section bars. */
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+#mainView{--report-header:#eeeeee;--report-header-ink:#333333;--report-header-line:#d1d1d1}
+#mainView table thead,
+#mainView table th,
+#mainView .v75chilled .stock-table>thead>tr>th{
+ background:var(--report-header)!important;
+ color:var(--report-header-ink)!important;
+ border-color:var(--report-header-line)!important;
+}
+#mainView :is(.panel-top,.hist-toolbar,.v75listhead,.v97-list-head,.v50-intake-head,.v50-out-head,.intake-row-title,.v18-line-header,.v35-lot-heading,.v37-head,.v38-head,.v61-stock-header-title){
+ background:var(--report-header)!important;
+ color:var(--report-header-ink)!important;
+ border-color:var(--report-header-line)!important;
+}
+#mainView :is(.panel-top,.hist-toolbar,.v37-head,.v38-head) :is(h2,h3),
+#mainView .v61-stock-header-title>strong,
+#mainView .v18-line-header>b{color:var(--report-header-ink)!important}
+#mainView table th .v80-sort-label,#mainView .v75listhead .v80-sort-label{color:var(--report-header-ink)!important}
+}
 </style></body></html>
