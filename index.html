@@ -14,7 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.css?v=20261124_54">
+<link rel="stylesheet" href="style.legacy.css?v=20261124_55">
+<link rel="stylesheet" href="style.css?v=20261124_55">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:10.5px;font-weight:500;color:#64748b;font-variant-numeric:tabular-nums;text-align:right}
@@ -36,9 +37,9 @@
 <section class="login-view" id="loginView">
   <div class="login-card">
     <div class="login-brand">
-      <span class="logo">🏭</span>
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 18.5V6.2L12 13l6.5-6.8v12.3"/></svg></span>
       <div>
-        <h1>미르스타푸드 ERP</h1>
+        <h1>미르스타푸드<span class="prod">ERP</span></h1>
         <p>입출고 · 재고 · 구매 · 판매 · 생산원가 · 회계를 한 화면에서</p>
       </div>
     </div>
@@ -82,17 +83,17 @@
 
   <header class="top">
     <div class="brand">
-      <span class="logo">🏭</span>
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 18.5V6.2L12 13l6.5-6.8v12.3"/></svg></span>
       <div>
-        <h1>미르스타푸드 ERP</h1>
+        <h1>미르스타푸드<span class="prod">ERP</span></h1>
         <p id="baseLabel">불러오는 중…</p>
       </div>
     </div>
     <div class="top-actions">
       <span class="sync" id="syncState"><i class="dot"></i><span id="syncText">불러오는 중</span></span>
-      <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함">입고 대기 <span class="pbadge" id="photoBadge">0</span></button>
+      <button class="btn photo only-meat" id="btnPhotoInbox" type="button" title="입고 전표 사진 대기함"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7L17 8.5h3v10H4z"/><circle cx="12" cy="13.4" r="3"/></svg><span class="ptxt">입고 대기</span> <span class="pbadge" id="photoBadge">0</span></button>
       <span class="who" id="whoami"></span>
-      <button class="btn ghost btn-hrefresh" id="btnHardRefresh" type="button" title="캐시 없이 서버의 최신 화면을 다시 불러옵니다"><span class="rf" aria-hidden="true">↻</span> 새로고침</button>
+      <button class="btn ghost btn-hrefresh" id="btnHardRefresh" type="button" title="캐시 없이 서버의 최신 화면을 다시 불러옵니다"><span class="rf" aria-hidden="true"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4.5V10h-5.5"/></svg></span> 새로고침</button>
       <button class="btn ghost" id="btnLogout" type="button">로그아웃</button>
     </div>
   </header>
@@ -103,6 +104,10 @@
 
   <!-- ========= v31: 왼쪽 메뉴 = ① 입출고 관리 + 재고관리(원료육 · 완제품 · 부재료 아코디언 + 부자재) + 회계 ========= -->
   <aside class="v8side" id="v8Side" aria-label="통합 메뉴">
+    <div class="side-top">
+      <span>메뉴</span>
+      <button type="button" class="side-x" id="sideClose" aria-label="메뉴 닫기"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
     <nav class="v8nav" id="v8Nav">
       <!-- v31 — ① 입출고 관리 : 어느 화면에서든 바로 입고·출고·재고이동·입출고내역 -->
       <section class="nav-card" role="group" aria-label="입출고 관리">
@@ -222,25 +227,25 @@
   <div class="v8main" id="v8Main">
 
   <div class="v8pagehead">
-    <!-- v46 — 제목 줄 한 칸에 제목과 «동선이 짧은» 주요 단추를 모은다(＋ 품목 등록 · ＋ 매입/매출 전표 입력) -->
+    <!-- v46 — 제목 줄 한 칸에 제목과 «동선이 짧은» 주요 단추를 모은다(<svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록 · <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 매입/매출 전표 입력) -->
     <div class="phmain">
       <div class="phtop">
         <h2 id="v8Title">재고현황</h2>
         <div class="pacts hidden" id="tradeActs">
           <div class="tgrp buy">
-            <button class="btn primary" id="btnBuyNew" type="button">＋ 매입 전표 입력</button>
+            <button class="btn primary" id="btnBuyNew" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 매입 전표 입력</button>
             <button class="btn" id="btnBuyReflect" type="button">미반영 입고 가져오기</button>
-            <button class="btn" id="btnBuyPay" type="button">＋ 지급 입력</button>
+            <button class="btn" id="btnBuyPay" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 지급 입력</button>
           </div>
           <span class="psep" aria-hidden="true"></span>
           <div class="tgrp sale">
-            <button class="btn primary" id="btnSaleNew" type="button">＋ 매출 전표 입력</button>
+            <button class="btn primary" id="btnSaleNew" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 매출 전표 입력</button>
             <button class="btn" id="btnSaleReflect" type="button">미반영 판매출고 가져오기</button>
-            <button class="btn" id="btnSalePay" type="button">＋ 수금 입력</button>
+            <button class="btn" id="btnSalePay" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 수금 입력</button>
             <button class="btn" id="btnSaleStmt" type="button">A4 거래명세표</button>
           </div>
         </div>
-        <!-- v32 — 공통 보조 단추(＋ 품목 등록 · 엑셀 ▾)가 화면에 따라 제목 오른쪽으로 옮겨 붙는다 -->
+        <!-- v32 — 공통 보조 단추(<svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록 · 엑셀 ▾)가 화면에 따라 제목 오른쪽으로 옮겨 붙는다 -->
         <div class="headacts" id="headActs"></div>
       </div>
       <p id="v8Desc">일곱 구분의 재고를 한 표에서 봅니다. 품목별 관리로 들어가면 그 품목 안에서 입고·출고·해동/냉동을 끝냅니다.</p>
@@ -254,27 +259,27 @@
   <!-- ===================== 원료육 요약 ===================== -->
   <section class="kpis" id="meatKpi">
     <div class="kpi freeze">
-      <span class="kpi-label">🧊 냉동고 총재고</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg></span> 냉동고 총재고</span>
       <div class="kpi-line"><span class="kpi-value" id="kFree">0.00</span><span class="kpi-unit">kg</span></div>
       <span class="kpi-sub" id="kFreeSub">보관 로트 0개</span>
     </div>
     <div class="kpi chill">
-      <span class="kpi-label">❄️ 냉장고 총재고</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg></span> 냉장고 총재고</span>
       <div class="kpi-line"><span class="kpi-value" id="kChill">0.00</span><span class="kpi-unit">kg</span></div>
       <span class="kpi-sub" id="kChillSub">보관 로트 0개</span>
     </div>
     <div class="kpi value">
-      <span class="kpi-label">💰 총 재고금액</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="12" rx="2.5"/><path d="M3.5 10.5h17"/><circle cx="16.5" cy="14.2" r="1"/></svg></span> 총 재고금액</span>
       <div class="kpi-line"><span class="kpi-value" id="kValue">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub" id="kValueSub">단가 입력된 로트 기준</span>
     </div>
     <div class="kpi live">
-      <span class="kpi-label">📦 보관중 로트</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg></span> 보관중 로트</span>
       <div class="kpi-line"><span class="kpi-value" id="kLive">0</span><span class="kpi-unit">개</span></div>
       <span class="kpi-sub" id="kLiveSub">전체 0개 로트 중</span>
     </div>
     <div class="kpi today">
-      <span class="kpi-label">✍️ 오늘 입력 건수</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M14.5 5.5 18.5 9.5"/></svg></span> 오늘 입력 건수</span>
       <div class="kpi-line"><span class="kpi-value" id="kToday">0</span><span class="kpi-unit">건</span></div>
       <span class="kpi-sub" id="kTodaySub">오늘 날짜 기준</span>
     </div>
@@ -283,27 +288,27 @@
   <!-- ===================== 완제품 요약 ===================== -->
   <section class="kpis hidden" id="fgKpi">
     <div class="kpi fgstock">
-      <span class="kpi-label">📦 완제품 총재고</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg></span> 완제품 총재고</span>
       <div class="kpi-line"><span class="kpi-value" id="kFgStock">0</span><span class="kpi-unit">개</span></div>
       <span class="kpi-sub" id="kFgStockSub">보유 품목 0개</span>
     </div>
     <div class="kpi fgitem">
-      <span class="kpi-label">🏷️ 보유 품목</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H5v6l9 9 6-6-9-9Z"/><circle cx="8" cy="7" r="1.1"/></svg></span> 보유 품목</span>
       <div class="kpi-line"><span class="kpi-value" id="kFgHold">0</span><span class="kpi-unit">품목</span></div>
       <span class="kpi-sub" id="kFgHoldSub">전체 0품목 중</span>
     </div>
     <div class="kpi fgvalue">
-      <span class="kpi-label">💰 총 재고금액</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="12" rx="2.5"/><path d="M3.5 10.5h17"/><circle cx="16.5" cy="14.2" r="1"/></svg></span> 총 재고금액</span>
       <div class="kpi-line"><span class="kpi-value" id="kFgValue">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub" id="kFgValueSub">입고단가 기준</span>
     </div>
     <div class="kpi fgtoday">
-      <span class="kpi-label">✍️ 오늘 입출고</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M14.5 5.5 18.5 9.5"/></svg></span> 오늘 입출고</span>
       <div class="kpi-line"><span class="kpi-value" id="kFgToday">0</span><span class="kpi-unit">건</span></div>
       <span class="kpi-sub" id="kFgTodaySub">오늘 금액 0원</span>
     </div>
     <div class="kpi fgmiss">
-      <span class="kpi-label">⚠️ 단가 미입력</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5 21 19H3L12 4.5Z"/><path d="M12 10v4M12 16.6v.01"/></svg></span> 단가 미입력</span>
       <div class="kpi-line"><span class="kpi-value" id="kFgNoPrice">0</span><span class="kpi-unit">품목</span></div>
       <span class="kpi-sub">단가를 넣으면 재고금액이 계산됩니다</span>
     </div>
@@ -312,37 +317,37 @@
   <!-- ===================== 회계 요약 ===================== -->
   <section class="kpis acc hidden" id="accKpi">
     <div class="kpi accrecv">
-      <span class="kpi-label">📥 총 미수금</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg></span> 총 미수금</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccRecv">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub">미수금 = 매출 − 수금</span>
     </div>
     <div class="kpi accpay">
-      <span class="kpi-label">📤 총 미지급금</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg></span> 총 미지급금</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccPay">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub">미지급금 = 매입 − 지급</span>
     </div>
     <div class="kpi accprod">
-      <span class="kpi-label">🏭 이번 달 생산투입액</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg></span> 이번 달 생산투입액</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccProd">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub" id="kAccProdSub">원료육 + 완제품·부자재 현장 출고</span>
     </div>
     <div class="kpi acctax hidden">
-      <span class="kpi-label">🧾 세금계산서</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2v-17Z"/><path d="M9 8.5h6M9 12h6"/></svg></span> 세금계산서</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccTax">0</span><span class="kpi-unit">건</span></div>
       <span class="kpi-sub" id="kAccTaxSub">미발행 0 · 미수령 0</span>
     </div>
     <div class="kpi accsale">
-      <span class="kpi-label">💵 이번 달 매출</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.2"/><path d="M6.5 10v4M17.5 10v4"/></svg></span> 이번 달 매출</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccSale">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub" id="kAccSaleSub">공급가액 기준</span>
     </div>
     <div class="kpi accbuy">
-      <span class="kpi-label">🧾 이번 달 매입·경비</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2v-17Z"/><path d="M9 8.5h6M9 12h6"/></svg></span> 이번 달 매입·경비</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccBuy">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub" id="kAccBuySub">매입 0 · 경비 0</span>
     </div>
     <div class="kpi accprofit">
-      <span class="kpi-label">📈 예상 순이익</span>
+      <span class="kpi-label"><span class="kic"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7.5 15.2l3.6-4.2 3 2.4 4.1-6"/></svg></span> 예상 순이익</span>
       <div class="kpi-line"><span class="kpi-value" id="kAccProfit">0</span><span class="kpi-unit">원</span></div>
       <span class="kpi-sub">매출 − 매입 − 경비</span>
     </div>
@@ -369,15 +374,15 @@
             <button class="chip" type="button" data-ucat="etc">기타<span class="n" id="uniCntEtc">0</span></button>
           </div>
           <div class="chipset" id="uniViewChips"></div>
-          <span class="sp"></span>
           <label class="check utog" id="uniZeroWrap" title="재고가 다 나가 0 이 된 과거 로트와 미사용 품목까지 함께 봅니다"><input type="checkbox" id="uniShowZero">재고 0 포함</label>
+          <span class="sp"></span>
           <span class="divv"></span>
           <span class="hint" id="uniSum"></span>
           <!-- v32 — 왼쪽 메뉴(입고 · 출고 · 재고 이동)로 옮긴 중복 버튼: 화면에서만 감추고 JS 바인딩은 그대로 둔다. 품목 등록·엑셀은 제목 줄 오른쪽(#headActs)으로 옮겨 붙는다 -->
-          <button class="btn primary" id="uniBtnIn" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 입고 팝업이 열립니다">＋ 입고</button>
-          <button class="btn" id="uniBtnOut" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 출고 팝업이 열립니다">＋ 출고</button>
-          <button class="btn hidden" id="uniBtnMove" type="button" title="원료육을 냉동고 ↔ 냉장고로 옮깁니다">＋ 해동/냉동</button>
-          <button class="btn ghost" id="uniBtnItem" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다">＋ 품목 등록</button>
+          <button class="btn primary" id="uniBtnIn" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 입고 팝업이 열립니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 입고</button>
+          <button class="btn" id="uniBtnOut" type="button" title="지금 보고 있는 품목 구분이 선택된 채로 출고 팝업이 열립니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 출고</button>
+          <button class="btn hidden" id="uniBtnMove" type="button" title="원료육을 냉동고·냉장고로 옮깁니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 해동/냉동</button>
+          <button class="btn ghost" id="uniBtnItem" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록</button>
           <div class="xlmenu" id="xlUni">
             <button class="btn xlbtn" id="xlUniBtn" type="button" aria-haspopup="true" aria-expanded="false">엑셀<span class="car"></span></button>
             <div class="xlpop hidden" id="xlUniPop" role="menu">
@@ -458,7 +463,7 @@
     <section class="panel list-panel unicard">
       <div class="utool v32tool">
         <div class="utrow" id="itemsFilterRow">
-          <button class="btn primary" id="itemsBtnNew" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다">＋ 품목 등록</button>
+          <button class="btn primary" id="itemsBtnNew" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록</button>
           <label class="usearch">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
             <input type="search" id="itemsSearch" placeholder="품명 · 품목코드 · 거래처 검색" autocomplete="off">
@@ -488,19 +493,19 @@
 
   <!-- ===================== 2-1. 재고관리 · 원료육 (냉동·냉장·내역·단가) ===================== -->
   <div class="v8subtabs hidden" id="histSwitch">
-    <span class="v8stlabel">📋 입출고 내역</span>
-    <button class="v8st active" type="button" data-hist="meat" id="histMeat">🥩 원료육 내역</button>
-    <button class="v8st" type="button" data-hist="fg" id="histFg">📦 완제품·부자재 내역</button>
+    <span class="v8stlabel"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3.2H9z"/><path d="M9 5.5H6.5v14h11v-14H15"/><path d="M9.5 11h5M9.5 14.5h5"/></svg> 입출고 내역</span>
+    <button class="v8st active" type="button" data-hist="meat" id="histMeat"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.6c3.5-1.7 8-1.1 10.4 2 2.3 3 1.7 7-1 9.2-2.6 2.3-7.2 2.6-9.7.4-2-1.8-2-4-1-6.2.7-1.6.2-3.6 1.3-5.4Z"/><circle cx="14.6" cy="10.4" r="1.5"/></svg> 원료육 내역</button>
+    <button class="v8st" type="button" data-hist="fg" id="histFg"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg> 완제품·부자재 내역</button>
   </div>
   <main class="layout v8layout" id="meatMode">
     <section class="panel list-panel" id="meatListPanel">
       <div class="v8subtabs" id="meatWhTabs">
-        <span class="v8stlabel">🥩 원료육</span>
-        <button class="v8mini active" type="button" data-wh="F">🧊 냉동고</button>
-        <button class="v8mini" type="button" data-wh="C">❄️ 냉장고</button>
+        <span class="v8stlabel"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.6c3.5-1.7 8-1.1 10.4 2 2.3 3 1.7 7-1 9.2-2.6 2.3-7.2 2.6-9.7.4-2-1.8-2-4-1-6.2.7-1.6.2-3.6 1.3-5.4Z"/><circle cx="14.6" cy="10.4" r="1.5"/></svg> 원료육</span>
+        <button class="v8mini active" type="button" data-wh="F"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</button>
+        <button class="v8mini" type="button" data-wh="C"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</button>
       </div>
       <div class="toolbar">
-        <input type="search" id="search" placeholder="🔍 제품명 · 업체명 · 브랜드(한/영) · 날짜 검색">
+        <input type="search" id="search" placeholder=" 제품명 · 업체명 · 브랜드(한/영) · 날짜 검색">
         <label class="check" id="zeroWrap"><input type="checkbox" id="showZero">0kg 소진 로트</label>
         <select id="typeFilter" class="hidden">
           <option value="all">전체 구분</option>
@@ -513,21 +518,21 @@
         </select>
         <button class="btn ghost tiny hidden" id="btnResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
-        <button class="btn tiny primary" id="btnMeatIn" type="button" title="한 품목만 자세히 적어 입고(원산지·브랜드·사진까지)">＋ 입고</button>
+        <button class="btn tiny primary" id="btnMeatIn" type="button" title="한 품목만 자세히 적어 입고(원산지·브랜드·사진까지)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 입고</button>
         <div class="xlmenu" id="xlMeat">
-          <button class="btn xlbtn" id="xlMeatBtn" type="button" aria-haspopup="true" aria-expanded="false" title="원료육 엑셀·CSV 모음">📊 엑셀 <span class="car">▾</span></button>
+          <button class="btn xlbtn" id="xlMeatBtn" type="button" aria-haspopup="true" aria-expanded="false" title="원료육 엑셀·CSV 모음"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7.5 16v-4M11.5 16V8M15.5 16v-6M19 16v-3"/></svg> 엑셀 <span class="car">▾</span></button>
           <div class="xlpop hidden" id="xlMeatPop" role="menu">
-            <button type="button" role="menuitem" id="btnCsvF" data-xl="csvF">⬇ 냉동고 재고 CSV</button>
-            <button type="button" role="menuitem" id="btnCsvC" data-xl="csvC">⬇ 냉장고 재고 CSV</button>
-            <button type="button" role="menuitem" id="btnCsvH" data-xl="csvH">⬇ 입출고 내역 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvF" data-xl="csvF"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 냉동고 재고 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvC" data-xl="csvC"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 냉장고 재고 CSV</button>
+            <button type="button" role="menuitem" id="btnCsvH" data-xl="csvH"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입출고 내역 CSV</button>
             <div class="xlsep"></div>
-            <button type="button" role="menuitem" id="btnXlsSabang" data-xl="sabang" title="사방넷 풀필먼트 입고 업로드용 엑셀">📥 사방넷 입고 양식 (.xlsx)</button>
-            <button type="button" role="menuitem" id="btnXlsSales" data-xl="sales" title="경리나라 매출거래명세표 일괄등록용 엑셀">📥 경리나라 매출 양식 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnXlsSabang" data-xl="sabang" title="사방넷 풀필먼트 입고 업로드용 엑셀"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 사방넷 입고 양식 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnXlsSales" data-xl="sales" title="경리나라 매출거래명세표 일괄등록용 엑셀"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 경리나라 매출 양식 (.xlsx)</button>
           </div>
         </div>
       </div>
       <div class="rangebar" id="rangeBar">
-        <button class="btn tiny period" id="btnPeriod" type="button">📅 기간선택</button>
+        <button class="btn tiny period" id="btnPeriod" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg> 기간선택</button>
         <div class="presets" id="rangePresets">
           <button type="button" class="pr active" data-preset="all">전체</button>
           <button type="button" class="pr" data-preset="today">오늘</button>
@@ -535,7 +540,7 @@
           <button type="button" class="pr" data-preset="month">이번달</button>
         </div>
         <label class="rng"><input type="text" data-sd="1" id="rangeFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="rangeTo" aria-label="종료일"></label>
-        <button class="btn tiny primary" id="btnSearch" type="button">🔍 검색</button>
+        <button class="btn tiny primary" id="btnSearch" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg> 검색</button>
         <button class="btn ghost tiny" id="rangeClear" type="button">초기화</button>
         <span class="range-sum" id="rangeSum"></span>
       </div>
@@ -550,22 +555,22 @@
   <div class="modal hidden" id="meatFormModal">
     <div class="modal-card wide formcard" id="meatFormPanel" role="dialog" aria-modal="true" aria-labelledby="meatFormTitle">
       <div class="modal-head">
-        <h2 id="meatFormTitle">📥 입고 등록</h2>
-        <button class="modal-x" id="meatFormClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="meatFormTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입고 등록</h2>
+        <button class="modal-x" id="meatFormClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="meatFormSub">입력하면 재고와 입출고 내역에 바로 반영됩니다.</p>
 <div class="modes formmodes" role="tablist" aria-label="원료육 작업">
-        <button class="mode active" data-mode="in" type="button">📥 입고</button>
-        <button class="mode" data-mode="thaw" type="button">🧊→❄️ 해동</button>
-        <button class="mode" data-mode="re" type="button">❄️→🧊 재냉동</button>
-        <button class="mode" data-mode="out" type="button">📤 출고</button>
+        <button class="mode active" data-mode="in" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입고</button>
+        <button class="mode" data-mode="thaw" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg>→<svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 해동</button>
+        <button class="mode" data-mode="re" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg>→<svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 재냉동</button>
+        <button class="mode" data-mode="out" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 출고</button>
       </div>
 
       <form id="entryForm" autocomplete="off">
         <!-- ===== 입고 ===== -->
         <div class="pane" data-pane="in">
           <div class="photorow">
-            <button type="button" class="btn photo" id="btnPhotoUp">📷 입고 사진 업로드</button>
+            <button type="button" class="btn photo" id="btnPhotoUp"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7L17 8.5h3v10H4z"/><circle cx="12" cy="13.4" r="3"/></svg> 입고 사진 업로드</button>
             <button type="button" class="btn ghost tiny" id="btnPhotoInbox2">대기함 <b id="photoPending">0</b></button>
             <input type="file" id="photoFile" accept="image/*" capture="environment" hidden>
           </div>
@@ -578,8 +583,8 @@
           </div>
           <label class="field"><span>받는 창고</span>
             <div class="seg" id="whSegIn">
-              <button type="button" data-wh="F" class="active">🧊 냉동고</button>
-              <button type="button" data-wh="C">❄️ 냉장고</button>
+              <button type="button" data-wh="F" class="active"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</button>
+              <button type="button" data-wh="C"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</button>
             </div>
           </label>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="inDate"></label>
@@ -606,14 +611,14 @@
             <label class="field"><span>금액(원)</span><input type="number" id="inAmount" step="1" min="0" placeholder="0"></label>
           </div>
           <div class="pricebox" id="priceHint"></div>
-          <label class="check autolink" id="inAutoBuyWrap"><input type="checkbox" id="inAutoBuy" checked>✓ 구매관리(매입 전표) 자동 반영 <span class="tiny-hint">금액이 있을 때만</span></label>
+          <label class="check autolink" id="inAutoBuyWrap"><input type="checkbox" id="inAutoBuy" checked>구매관리(매입 전표) 자동 반영 <span class="tiny-hint">금액이 있을 때만</span></label>
           <label class="field"><span>비고</span><input id="inNote" placeholder="선택 입력"></label>
           <p class="hint">제품명·업체명·입고일·소비기한이 같으면 기존 로트에 합산됩니다. 다르면 새 로트로 생성됩니다.</p>
         </div>
 
         <!-- ===== 해동 ===== -->
         <div class="pane hidden" data-pane="thaw">
-          <div class="flow"><span class="chip b">🧊 냉동고</span><span class="arrow">→</span><span class="chip g">❄️ 냉장고</span></div>
+          <div class="flow"><span class="chip b"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</span><span class="arrow">→</span><span class="chip g"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</span></div>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="thDate"></label>
           <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="thLot"></select></label>
           <div class="lotinfo empty" id="thInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
@@ -631,7 +636,7 @@
 
         <!-- ===== 재냉동 ===== -->
         <div class="pane hidden" data-pane="re">
-          <div class="flow"><span class="chip g">❄️ 냉장고</span><span class="arrow">→</span><span class="chip b">🧊 냉동고</span></div>
+          <div class="flow"><span class="chip g"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</span><span class="arrow">→</span><span class="chip b"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</span></div>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="reDate"></label>
           <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="reLot"></select></label>
           <div class="lotinfo empty" id="reInfo">냉장고 재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
@@ -650,8 +655,8 @@
         <div class="pane hidden" data-pane="out">
           <div class="field whonly">
             <div class="seg" id="whSegOut">
-              <button type="button" data-wh="F">🧊 냉동고</button>
-              <button type="button" data-wh="C" class="active">❄️ 냉장고</button>
+              <button type="button" data-wh="F"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</button>
+              <button type="button" data-wh="C" class="active"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</button>
             </div>
           </div>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="outDate"></label>
@@ -659,10 +664,10 @@
           <div class="lotinfo empty" id="outInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>출고처 <span class="req">*</span></span>
             <div class="seg" id="destSeg">
-              <button type="button" data-dest="site" class="active" title="현장(생산품목)으로 나감">🏭 현장</button>
-              <button type="button" data-dest="vendor" title="업체로 판매·이동">🏢 업체</button>
-              <button type="button" data-dest="courier" title="택배로 발송">📦 택배</button>
-              <button type="button" data-dest="other" title="그 밖의 출고">✏️ 기타</button>
+              <button type="button" data-dest="site" class="active" title="현장(생산품목)으로 나감"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> 현장</button>
+              <button type="button" data-dest="vendor" title="업체로 판매·이동"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V5h9v15"/><path d="M14 10h5v10"/><path d="M8 8.5h3M8 12h3M8 15.5h3"/></svg> 업체</button>
+              <button type="button" data-dest="courier" title="택배로 발송"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg> 택배</button>
+              <button type="button" data-dest="other" title="그 밖의 출고"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4l10-10-4-4L4 16v4Z"/><path d="M14.5 5.5 18.5 9.5"/></svg> 기타</button>
             </div>
           </label>
           <label class="field"><span><span id="destLabel">생산품목</span> <span class="req">*</span></span><input id="outDest" list="dlProducts" placeholder="예: 선진바베큐폭립"></label>
@@ -673,7 +678,7 @@
             <label class="field"><span>출고단가(원/kg)</span><input type="number" id="outPrice" step="1" min="0" placeholder="0"></label>
             <label class="field"><span>금액(원)</span><input type="number" id="outAmount" step="1" min="0" placeholder="0"></label>
           </div>
-          <label class="check autolink" id="outAutoSaleWrap"><input type="checkbox" id="outAutoSale" checked>✓ 판매관리(매출·명세표) 자동 반영 <span class="tiny-hint">업체·택배·기타만</span></label>
+          <label class="check autolink" id="outAutoSaleWrap"><input type="checkbox" id="outAutoSale" checked>판매관리(매출·명세표) 자동 반영 <span class="tiny-hint">업체·택배·기타만</span></label>
           <label class="field"><span>비고</span><input id="outNote" placeholder="선택 입력"></label>
           <p class="hint" id="destHint">현장은 생산품목으로 적습니다. 고른 창고의 재고가 차감되고, 나간 물량은 재고에서 빠집니다.</p>
         </div>
@@ -689,10 +694,10 @@
     <section class="panel list-panel" id="fgListPanel">
 
       <div class="v8subtabs" id="fgTabs">
-        <span class="v8stlabel">📦 완제품·부자재</span>
+        <span class="v8stlabel"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg> 완제품·부자재</span>
         <button class="v8mini active" type="button" data-stock="fg" data-ftab="G">재고</button>
         <button class="v8mini" type="button" data-stock="hist" data-ftab="L">입출고 내역</button>
-        <button class="v8mini add" type="button" id="btnFgNewTop" title="완제품·부자재 품목을 새로 등록합니다">＋ 품목 등록</button>
+        <button class="v8mini add" type="button" id="btnFgNewTop" title="완제품·부자재 품목을 새로 등록합니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록</button>
       </div>
 
       <div class="catbar" id="fgCatBar">
@@ -702,11 +707,11 @@
         <button class="catchip" data-fgcat="부자재·포장지" type="button"><b>부자재·포장지</b><span id="fgCat2">0</span></button>
         <button class="catchip" data-fgcat="야채·소스" type="button"><b>야채·소스</b><span id="fgCat3">0</span></button>
         <span id="fgCatExtra"></span>
-        <button class="catchip add" id="btnFgCatAdd" type="button" title="대분류를 직접 적어 추가">＋ 직접입력</button>
+        <button class="catchip add" id="btnFgCatAdd" type="button" title="대분류를 직접 적어 추가"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 직접입력</button>
       </div>
 
       <div class="toolbar">
-        <input type="search" id="fgSearch" placeholder="🔍 상품명 · 코드 · 규격 · 거래처 검색">
+        <input type="search" id="fgSearch" placeholder=" 상품명 · 코드 · 규격 · 거래처 검색">
         <label class="check" id="fgZeroWrap"><input type="checkbox" id="fgShowZero">재고 0 품목</label>
         <select id="fgLogFilter" class="hidden">
           <option value="all">전체 구분</option>
@@ -716,22 +721,22 @@
         <button class="btn ghost tiny hidden" id="btnFgResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnFgColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
         <div class="xlmenu" id="xlFg">
-          <button class="btn xlbtn" id="xlFgBtn" type="button" aria-haspopup="true" aria-expanded="false" title="완제품 엑셀 모음">📊 엑셀 <span class="car">▾</span></button>
+          <button class="btn xlbtn" id="xlFgBtn" type="button" aria-haspopup="true" aria-expanded="false" title="완제품 엑셀 모음"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7.5 16v-4M11.5 16V8M15.5 16v-6M19 16v-3"/></svg> 엑셀 <span class="car">▾</span></button>
           <div class="xlpop hidden" id="xlFgPop" role="menu">
-            <button type="button" role="menuitem" id="btnFgStockXls" data-xl="fgStock">⬇ 완제품 재고 (.xlsx)</button>
-            <button type="button" role="menuitem" id="btnFgLogXls" data-xl="fgLog">⬇ 입출고 이력 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnFgStockXls" data-xl="fgStock"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 완제품 재고 (.xlsx)</button>
+            <button type="button" role="menuitem" id="btnFgLogXls" data-xl="fgLog"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입출고 이력 (.xlsx)</button>
             <div class="xlsep"></div>
-            <button type="button" role="menuitem" id="btnFgTpl" data-xl="fgTpl">⬇ 입출고 양식 받기</button>
-            <button type="button" role="menuitem" id="btnFgUpload" data-xl="fgUpload">⬆ 입출고 엑셀 올리기</button>
+            <button type="button" role="menuitem" id="btnFgTpl" data-xl="fgTpl"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입출고 양식 받기</button>
+            <button type="button" role="menuitem" id="btnFgUpload" data-xl="fgUpload"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 입출고 엑셀 올리기</button>
             <div class="xlsep"></div>
-            <button type="button" role="menuitem" id="btnFgPriceTpl" data-xl="fgPriceTpl">⬇ 단가표 양식 받기</button>
-            <button type="button" role="menuitem" id="btnFgPriceUpload" data-xl="fgPriceUpload">⬆ 단가표 엑셀 올리기</button>
+            <button type="button" role="menuitem" id="btnFgPriceTpl" data-xl="fgPriceTpl"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 단가표 양식 받기</button>
+            <button type="button" role="menuitem" id="btnFgPriceUpload" data-xl="fgPriceUpload"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 단가표 엑셀 올리기</button>
           </div>
         </div>
       </div>
 
       <div class="rangebar" id="fgRangeBar">
-        <button class="btn tiny period" id="fgBtnPeriod" type="button">📅 기간선택</button>
+        <button class="btn tiny period" id="fgBtnPeriod" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg> 기간선택</button>
         <div class="presets" id="fgPresets">
           <button type="button" class="pr active" data-preset="all">전체</button>
           <button type="button" class="pr" data-preset="today">오늘</button>
@@ -739,7 +744,7 @@
           <button type="button" class="pr" data-preset="month">이번달</button>
         </div>
         <label class="rng"><input type="text" data-sd="1" id="fgFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="fgTo" aria-label="종료일"></label>
-        <button class="btn tiny primary" id="fgBtnSearch" type="button">🔍 검색</button>
+        <button class="btn tiny primary" id="fgBtnSearch" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg> 검색</button>
         <button class="btn ghost tiny" id="fgRangeClear" type="button">초기화</button>
         <span class="range-sum" id="fgRangeSum"></span>
       </div>
@@ -751,36 +756,36 @@
   <!-- ===================== 3. 구매관리 (매입 · 미지급금 · 지급) ===================== -->
   <main class="v8pane hidden" id="buyPane">
     <section class="panel v8cards" id="buyPayCard">
-      <div class="v8cardhead"><h3>📤 거래처별 미지급금</h3><span class="v8cardtotal pay" id="buyPaySum">0원</span></div>
+      <div class="v8cardhead"><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 거래처별 미지급금</h3><span class="v8cardtotal pay" id="buyPaySum">0원</span></div>
       <div class="v8cardrow" id="buyPayList"></div>
     </section>
     <section class="panel list-panel hidden" id="buyPayStatus">
       <div class="v8panehead">
-        <div><h3>📤 미지급금 현황</h3><span class="v8hint">거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다. 여기서 바로 지급을 입력합니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 미지급금 현황</h3><span class="v8hint">거래처별로 산 금액(매입)·갚은 금액(지급)·남은 미지급금을 한 표에서 봅니다. 여기서 바로 지급을 입력합니다.</span></div>
         <div class="v8acts">
-          <button class="accbtn payout" id="btnBuyStatusPay" type="button">＋ 지급 입력</button>
-          <button class="accbtn refl" id="btnBuyStatusLedger" type="button">🏢 거래처별 원장</button>
+          <button class="accbtn payout" id="btnBuyStatusPay" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 지급 입력</button>
+          <button class="accbtn refl" id="btnBuyStatusLedger" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V5h9v15"/><path d="M14 10h5v10"/><path d="M8 8.5h3M8 12h3M8 15.5h3"/></svg> 거래처별 원장</button>
         </div>
       </div>
       <div class="table-wrap" id="buyPayStatusWrap"></div>
       <div class="v8panehead">
-        <div><h3>💸 최근 지급 내역</h3><span class="v8hint">지급을 지우면 그 거래처의 미지급금이 다시 늘어납니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 최근 지급 내역</h3><span class="v8hint">지급을 지우면 그 거래처의 미지급금이 다시 늘어납니다.</span></div>
       </div>
       <div class="table-wrap" id="buyPayLogWrap"></div>
     </section>
     <section class="panel list-panel">
       <div class="v8panehead">
-        <div><h3>🧾 매입 전표</h3><span class="v8hint">입고와 동시에 자동으로 생기고, 직접 넣거나 지급으로 상환합니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2v-17Z"/><path d="M9 8.5h6M9 12h6"/></svg> 매입 전표</h3><span class="v8hint">입고와 동시에 자동으로 생기고, 직접 넣거나 지급으로 상환합니다.</span></div>
       </div>
       <div class="toolbar">
-        <input type="search" id="buySearch" placeholder="🔍 거래처 · 적요 검색">
+        <input type="search" id="buySearch" placeholder=" 거래처 · 적요 검색">
         <button class="btn ghost tiny" id="btnBuyColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
       </div>
       <div class="rangebar" id="buyRangeBar">
-        <button class="btn tiny period" id="buyBtnPeriod" type="button">📅 기간선택</button>
+        <button class="btn tiny period" id="buyBtnPeriod" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg> 기간선택</button>
         <button class="rangebox" id="buyRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
         <label class="rng"><input type="text" data-sd="1" id="buyFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="buyTo" aria-label="종료일"></label>
-        <button class="btn tiny primary" id="buyBtnSearch" type="button">🔍 검색</button>
+        <button class="btn tiny primary" id="buyBtnSearch" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg> 검색</button>
         <button class="btn ghost tiny" id="buyRangeClear" type="button">초기화</button>
         <span class="range-sum" id="buyRangeSum"></span>
       </div>
@@ -791,36 +796,36 @@
   <!-- ===================== 4. 판매관리 (매출 · 미수금 · 수금 · 명세표) ===================== -->
   <main class="v8pane hidden" id="salePane">
     <section class="panel v8cards" id="saleRecvCard">
-      <div class="v8cardhead"><h3>📥 거래처별 미수금</h3><span class="v8cardtotal recv" id="saleRecvSum">0원</span></div>
+      <div class="v8cardhead"><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 거래처별 미수금</h3><span class="v8cardtotal recv" id="saleRecvSum">0원</span></div>
       <div class="v8cardrow" id="saleRecvList"></div>
     </section>
     <section class="panel list-panel hidden" id="saleRecvStatus">
       <div class="v8panehead">
-        <div><h3>📥 미수금 현황</h3><span class="v8hint">거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다. 여기서 바로 수금을 입력합니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 미수금 현황</h3><span class="v8hint">거래처별로 판 금액(매출)·받은 금액(수금)·남은 미수금을 한 표에서 봅니다. 여기서 바로 수금을 입력합니다.</span></div>
         <div class="v8acts">
-          <button class="accbtn payin" id="btnSaleStatusPay" type="button">＋ 수금 입력</button>
-          <button class="accbtn refl" id="btnSaleStatusLedger" type="button">🏢 거래처별 원장</button>
+          <button class="accbtn payin" id="btnSaleStatusPay" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 수금 입력</button>
+          <button class="accbtn refl" id="btnSaleStatusLedger" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V5h9v15"/><path d="M14 10h5v10"/><path d="M8 8.5h3M8 12h3M8 15.5h3"/></svg> 거래처별 원장</button>
         </div>
       </div>
       <div class="table-wrap" id="saleRecvStatusWrap"></div>
       <div class="v8panehead">
-        <div><h3>💵 최근 수금 내역</h3><span class="v8hint">수금을 지우면 그 거래처의 미수금이 다시 늘어납니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6.5" width="18" height="11" rx="2"/><circle cx="12" cy="12" r="2.2"/><path d="M6.5 10v4M17.5 10v4"/></svg> 최근 수금 내역</h3><span class="v8hint">수금을 지우면 그 거래처의 미수금이 다시 늘어납니다.</span></div>
       </div>
       <div class="table-wrap" id="saleRecvLogWrap"></div>
     </section>
     <section class="panel list-panel">
       <div class="v8panehead">
-        <div><h3>🧾 매출 전표</h3><span class="v8hint">업체·택배 출고는 자동으로 매출 전표가 되고, 현장 출고는 생산투입으로만 집계됩니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2v-17Z"/><path d="M9 8.5h6M9 12h6"/></svg> 매출 전표</h3><span class="v8hint">업체·택배 출고는 자동으로 매출 전표가 되고, 현장 출고는 생산투입으로만 집계됩니다.</span></div>
       </div>
       <div class="toolbar">
-        <input type="search" id="saleSearch" placeholder="🔍 거래처 · 적요 검색">
+        <input type="search" id="saleSearch" placeholder=" 거래처 · 적요 검색">
         <button class="btn ghost tiny" id="btnSaleColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
       </div>
       <div class="rangebar" id="saleRangeBar">
-        <button class="btn tiny period" id="saleBtnPeriod" type="button">📅 기간선택</button>
+        <button class="btn tiny period" id="saleBtnPeriod" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg> 기간선택</button>
         <button class="rangebox" id="saleRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
         <label class="rng"><input type="text" data-sd="1" id="saleFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="saleTo" aria-label="종료일"></label>
-        <button class="btn tiny primary" id="saleBtnSearch" type="button">🔍 검색</button>
+        <button class="btn tiny primary" id="saleBtnSearch" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg> 검색</button>
         <button class="btn ghost tiny" id="saleRangeClear" type="button">초기화</button>
         <span class="range-sum" id="saleRangeSum"></span>
       </div>
@@ -832,25 +837,25 @@
   <main class="v8pane hidden" id="prodPane">
     <section class="panel v8prodhero">
       <div class="v8prodsum">
-        <div class="psum total"><span>🏭 전체 생산투입금액</span><b id="prodTotal">0원</b><small id="prodTotalSub">원료육 0 · 완제품·부자재 0</small></div>
-        <div class="psum meat"><span>🥩 원료육 현장 출고</span><b id="prodMeat">0원</b><small id="prodMeatSub">0건</small></div>
-        <div class="psum fp"><span>📦 완제품·부자재 현장 투입</span><b id="prodFp">0원</b><small id="prodFpSub">0건</small></div>
-        <div class="psum zero"><span>🚫 매출 · 미수금</span><b id="prodSales">0원</b><small>현장 투입은 매출로 잡히지 않습니다</small></div>
+        <div class="psum total"><span><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> 전체 생산투입금액</span><b id="prodTotal">0원</b><small id="prodTotalSub">원료육 0 · 완제품·부자재 0</small></div>
+        <div class="psum meat"><span><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.6c3.5-1.7 8-1.1 10.4 2 2.3 3 1.7 7-1 9.2-2.6 2.3-7.2 2.6-9.7.4-2-1.8-2-4-1-6.2.7-1.6.2-3.6 1.3-5.4Z"/><circle cx="14.6" cy="10.4" r="1.5"/></svg> 원료육 현장 출고</span><b id="prodMeat">0원</b><small id="prodMeatSub">0건</small></div>
+        <div class="psum fp"><span><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg> 완제품·부자재 현장 투입</span><b id="prodFp">0원</b><small id="prodFpSub">0건</small></div>
+        <div class="psum zero"><span><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5 21 19H3L12 3.5Z"/><path d="M12 10v4M12 16.6v.01"/></svg> 매출 · 미수금</span><b id="prodSales">0원</b><small>현장 투입은 매출로 잡히지 않습니다</small></div>
       </div>
     </section>
     <section class="panel list-panel">
       <div class="v8panehead">
-        <div><h3>📊 생산투입 (일별 · 월별)</h3><span class="v8hint">원료육 현장 출고 + 완제품·부자재 현장 투입을 합칩니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7.5 16v-4M11.5 16V8M15.5 16v-6M19 16v-3"/></svg> 생산투입 (일별 · 월별)</h3><span class="v8hint">원료육 현장 출고 + 완제품·부자재 현장 투입을 합칩니다.</span></div>
         <div class="seg" id="prodPeriodSeg">
           <button type="button" data-prodperiod="day" class="active">일별</button>
           <button type="button" data-prodperiod="month">월별</button>
         </div>
       </div>
       <div class="rangebar" id="prodRangeBar">
-        <button class="btn tiny period" id="prodBtnPeriod" type="button">📅 기간선택</button>
+        <button class="btn tiny period" id="prodBtnPeriod" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg> 기간선택</button>
         <button class="rangebox" id="prodRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
         <label class="rng"><input type="text" data-sd="1" id="prodFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="prodTo" aria-label="종료일"></label>
-        <button class="btn tiny primary" id="prodBtnSearch" type="button">🔍 검색</button>
+        <button class="btn tiny primary" id="prodBtnSearch" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg> 검색</button>
         <button class="btn ghost tiny" id="prodRangeClear" type="button">초기화</button>
         <span class="range-sum" id="prodRangeSum"></span>
       </div>
@@ -858,7 +863,7 @@
     </section>
     <section class="panel list-panel">
       <div class="v8panehead">
-        <div><h3>💡 제품별 원가 분석</h3><span class="v8hint">투입원가 ÷ 자체생산 입고수량 = 1단위당 실제 제조원가 · 판매단가와 비교해 예상 마진을 봅니다.</span></div>
+        <div><h3><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 17.5h5"/><path d="M10 20.5h4"/><path d="M12 3.5a5.5 5.5 0 0 0-3.2 9.9c.5.4.7.9.7 1.5v.6h5v-.6c0-.6.2-1.1.7-1.5A5.5 5.5 0 0 0 12 3.5Z"/></svg> 제품별 원가 분석</h3><span class="v8hint">투입원가 ÷ 자체생산 입고수량 = 1단위당 실제 제조원가 · 판매단가와 비교해 예상 마진을 봅니다.</span></div>
       </div>
       <div class="table-wrap" id="prodCostWrap"></div>
     </section>
@@ -870,28 +875,28 @@
   <div class="modal hidden" id="fgFormModal">
     <div class="modal-card wide formcard" id="fgFormPanel" role="dialog" aria-modal="true" aria-labelledby="fgFormTitle">
       <div class="modal-head">
-        <h2 id="fgFormTitle">📥 입고 등록</h2>
-        <button class="modal-x" id="fgFormClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="fgFormTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입고 등록</h2>
+        <button class="modal-x" id="fgFormClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="fgFormSub">상품을 고르면 규격·단가가 자동으로 채워집니다.</p>
       <form id="fgForm" autocomplete="off">
         <div class="srcline" id="fgSrcWrap">
           <span class="srclabel">입고구분</span>
           <div class="seg" id="fgSrcSeg">
-            <button type="button" data-src="buy" class="active" title="거래처에서 사온 입고">🏢 외부매입</button>
-            <button type="button" data-src="self" title="원료육을 현장에 투입해 만든 자체 생산품">🏭 자체생산</button>
+            <button type="button" data-src="buy" class="active" title="거래처에서 사온 입고"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V5h9v15"/><path d="M14 10h5v10"/><path d="M8 8.5h3M8 12h3M8 15.5h3"/></svg> 외부매입</button>
+            <button type="button" data-src="self" title="원료육을 현장에 투입해 만든 자체 생산품"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> 자체생산</button>
           </div>
         </div>
         <div class="prodref hidden" id="fgProdRef"></div>
         <div class="srcline hidden" id="fgUseWrap">
           <span class="srclabel">출고 구분</span>
           <div class="seg" id="fgUseSeg">
-            <button type="button" data-use="sale" class="active" title="거래처로 판매·납품하는 출고">🏢 판매 출고</button>
-            <button type="button" data-use="site" title="박스·포장지·소스 등을 생산 현장에 투입">🏭 현장소모·생산투입</button>
+            <button type="button" data-use="sale" class="active" title="거래처로 판매·납품하는 출고"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V5h9v15"/><path d="M14 10h5v10"/><path d="M8 8.5h3M8 12h3M8 15.5h3"/></svg> 판매 출고</button>
+            <button type="button" data-use="site" title="박스·포장지·소스 등을 생산 현장에 투입"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> 현장소모·생산투입</button>
           </div>
         </div>
-        <label class="check autolink" id="fgAutoBuyWrap"><input type="checkbox" id="fgAutoBuy" checked>✓ 구매관리(매입 전표) 자동 반영 <span class="tiny-hint">외부매입만</span></label>
-        <label class="check autolink hidden" id="fgAutoSaleWrap"><input type="checkbox" id="fgAutoSale" checked>✓ 판매관리(매출·명세표) 자동 반영 <span class="tiny-hint">판매 출고만</span></label>
+        <label class="check autolink" id="fgAutoBuyWrap"><input type="checkbox" id="fgAutoBuy" checked>구매관리(매입 전표) 자동 반영 <span class="tiny-hint">외부매입만</span></label>
+        <label class="check autolink hidden" id="fgAutoSaleWrap"><input type="checkbox" id="fgAutoSale" checked>판매관리(매출·명세표) 자동 반영 <span class="tiny-hint">판매 출고만</span></label>
         <label class="field"><span>상품 <span class="req">*</span> <span class="tiny-hint">코드 또는 상품명</span></span>
           <div class="with-btn">
             <input id="fgQuery" list="dlFgNames" placeholder="예: 떡갈비 / W00100016">
@@ -899,7 +904,7 @@
           </div>
         </label>
         <div class="fgnewrow">
-          <button class="btn fgnew" id="btnFgNew" type="button">＋ 품목 등록</button>
+          <button class="btn fgnew" id="btnFgNew" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록</button>
         </div>
         <div class="lotinfo empty" id="fgInfo">상품을 고르면 현재고·단가가 보입니다.</div>
         <div class="grid2">
@@ -936,7 +941,7 @@
     <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="ioSheetTitle">
       <div class="modal-head">
         <h2 id="ioSheetTitle">입고 등록</h2>
-        <button class="modal-x" id="ioSheetClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="ioSheetClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="ioSheetSub">원료육 · 완제품 · 부자재를 한 팝업에서 처리합니다. 구분에 따라 창고 칸만 열립니다.</p>
 
@@ -963,7 +968,7 @@
         <div class="vsheetbar">
           <b>품목 줄</b>
           <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · 기본 3줄</span>
-          <button type="button" class="btn vadd" id="ioSheetAdd">＋ 줄 추가</button>
+          <button type="button" class="btn vadd" id="ioSheetAdd"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 줄 추가</button>
         </div>
         <div class="vsheet-scroll">
           <table class="vsheet-table iosheet" id="ioSheetTable">
@@ -1003,7 +1008,7 @@
     <div class="modal-card mvcard" role="dialog" aria-modal="true" aria-labelledby="uniMoveTitle">
       <div class="modal-head">
         <h2 id="uniMoveTitle">해동/냉동</h2>
-        <button class="modal-x" id="uniMoveClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="uniMoveClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="uniMoveSub">해동은 냉동고 재고를 냉장고로, 재냉동은 냉장고 재고를 냉동고로 옮깁니다. 로트를 고르면 단가가 채워집니다.</p>
       <div class="modes" id="uniMoveSeg" role="tablist" aria-label="이동 방향">
@@ -1032,7 +1037,7 @@
     <div class="modal-card mvcard" role="dialog" aria-modal="true" aria-labelledby="fpWhTitle">
       <div class="modal-head">
         <h2 id="fpWhTitle">보관 위치 변경</h2>
-        <button class="modal-x" id="fpWhClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="fpWhClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="fpWhSub">이 로트를 어느 창고에 두는지 고릅니다. 수량은 그대로입니다.</p>
       <div class="modes" id="fpWhSeg" role="tablist" aria-label="보관 위치">
@@ -1049,22 +1054,22 @@
     </div>
   </div>
 
-  <!-- ===================== 💰 회계 ERP ===================== -->
+  <!-- ===================== <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="12" rx="2.5"/><path d="M3.5 10.5h17"/><circle cx="16.5" cy="14.2" r="1"/></svg> 회계 ERP ===================== -->
   <main class="hidden accwrap" id="accMode">
     <section class="panel acc-quick" id="accQuick">
       <div class="acc-quick-head">
-        <h2>💰 회계 입력</h2>
+        <h2><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="6.5" width="17" height="12" rx="2.5"/><path d="M3.5 10.5h17"/><circle cx="16.5" cy="14.2" r="1"/></svg> 회계 입력</h2>
         <span class="hint">전표·수금·경비를 바로 기록하고, 입출고는 한 번에 전표로 넘깁니다.</span>
       </div>
       <div class="accbtn-grid">
-        <button class="accbtn sale" id="btnAccSale" type="button" title="물건을 팔고 아직 돈을 못 받은 건(미수금)">＋ 매출 전표</button>
-        <button class="accbtn buy" id="btnAccBuy" type="button" title="물건을 사고 아직 돈을 안 준 건(미지급금)">＋ 매입 전표</button>
-        <button class="accbtn payin" id="btnAccPayIn" type="button" title="외상으로 판 미수금을 통장으로 받음">＋ 수금 입력</button>
-        <button class="accbtn payout" id="btnAccPayOut" type="button" title="외상으로 산 미지급금을 통장에서 갚음">＋ 지급 입력</button>
-        <button class="accbtn inc" id="btnAccExtraIn" type="button" title="장부에 올린 외상과 상관없이 들어온 현금(잡수입·환급·이자)">＋ 기타 입금</button>
-        <button class="accbtn exp" id="btnAccExpense" type="button" title="장부에 올린 외상과 상관없이 나간 현금(월세·택배비·식대·유류비)">＋ 일반 출금(경비)</button>
-        <button class="accbtn refl" id="btnAccReflect" type="button">⚡ 입출고 일괄 반영</button>
-        <button class="accbtn help" id="btnAccHelp" type="button" title="수금·지급·기타 입금·일반 출금 차이와 순서">❓ 회계 사용법</button>
+        <button class="accbtn sale" id="btnAccSale" type="button" title="물건을 팔고 아직 돈을 못 받은 건(미수금)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 매출 전표</button>
+        <button class="accbtn buy" id="btnAccBuy" type="button" title="물건을 사고 아직 돈을 안 준 건(미지급금)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 매입 전표</button>
+        <button class="accbtn payin" id="btnAccPayIn" type="button" title="외상으로 판 미수금을 통장으로 받음"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 수금 입력</button>
+        <button class="accbtn payout" id="btnAccPayOut" type="button" title="외상으로 산 미지급금을 통장에서 갚음"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 지급 입력</button>
+        <button class="accbtn inc" id="btnAccExtraIn" type="button" title="장부에 올린 외상과 상관없이 들어온 현금(잡수입·환급·이자)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 기타 입금</button>
+        <button class="accbtn exp" id="btnAccExpense" type="button" title="장부에 올린 외상과 상관없이 나간 현금(월세·택배비·식대·유류비)"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 일반 출금(경비)</button>
+        <button class="accbtn refl" id="btnAccReflect" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></svg> 입출고 일괄 반영</button>
+        <button class="accbtn help" id="btnAccHelp" type="button" title="수금·지급·기타 입금·일반 출금 차이와 순서"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.4c-.7.3-1.1.9-1.1 1.7v.3"/><path d="M12 17.1v.01"/></svg> 회계 사용법</button>
       </div>
     </section>
 
@@ -1078,7 +1083,7 @@
       </div>
 
       <div class="toolbar">
-        <input type="search" id="accSearch" placeholder="🔍 거래처 · 적요 · 항목 검색">
+        <input type="search" id="accSearch" placeholder=" 거래처 · 적요 · 항목 검색">
         <select id="accTypeFilter" class="hidden">
           <option value="all">전체 구분</option>
           <option value="sale">매출</option>
@@ -1089,16 +1094,16 @@
         <button class="btn ghost tiny hidden" id="btnAccResetFilters" type="button">필터 초기화</button>
         <button class="btn ghost tiny" id="btnAccColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로 되돌립니다">↔ 열 너비 초기화</button>
         <div class="xlmenu" id="xlAcc">
-          <button class="btn xlbtn" id="xlAccBtn" type="button" aria-haspopup="true" aria-expanded="false" title="회계 엑셀 모음">📊 엑셀 <span class="car">▾</span></button>
+          <button class="btn xlbtn" id="xlAccBtn" type="button" aria-haspopup="true" aria-expanded="false" title="회계 엑셀 모음"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19V5"/><path d="M4 19h16"/><path d="M7.5 16v-4M11.5 16V8M15.5 16v-6M19 16v-3"/></svg> 엑셀 <span class="car">▾</span></button>
           <div class="xlpop hidden" id="xlAccPop" role="menu">
-            <button type="button" role="menuitem" id="btnAccXls" data-xl="accXls">⬇ 현재 표 엑셀</button>
-            <button type="button" role="menuitem" id="btnAccUpload" data-xl="accUpload">⬆ 통장·카드 엑셀 올리기</button>
+            <button type="button" role="menuitem" id="btnAccXls" data-xl="accXls"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 현재 표 엑셀</button>
+            <button type="button" role="menuitem" id="btnAccUpload" data-xl="accUpload"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 14V4.5"/><path d="M8 8 12 4l4 4"/><path d="M5 19h14"/></svg> 통장·카드 엑셀 올리기</button>
           </div>
         </div>
       </div>
 
       <div class="rangebar" id="accRangeBar">
-        <button class="btn tiny period" id="accBtnPeriod" type="button">📅 기간선택</button>
+        <button class="btn tiny period" id="accBtnPeriod" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3.5v3M16 3.5v3"/></svg> 기간선택</button>
         <button class="rangebox" id="accRangeDisplay" type="button" title="클릭하면 2개월 달력이 열립니다">전체 기간</button>
         <div class="presets" id="accPresets">
           <button type="button" class="pr active" data-preset="all">전체</button>
@@ -1107,7 +1112,7 @@
           <button type="button" class="pr" data-preset="month">이번달</button>
         </div>
         <label class="rng"><input type="text" data-sd="1" id="accFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="accTo" aria-label="종료일"></label>
-        <button class="btn tiny primary" id="accBtnSearch" type="button">🔍 검색</button>
+        <button class="btn tiny primary" id="accBtnSearch" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg> 검색</button>
         <button class="btn ghost tiny" id="accRangeClear" type="button">초기화</button>
         <span class="range-sum" id="accRangeSum"></span>
       </div>
@@ -1121,8 +1126,8 @@
 
   <!-- ===================== 모바일 퀵 바 ===================== -->
   <nav class="quickbar" id="quickBar" aria-label="빠른 이동">
-    <button class="qb active" id="qbForm" type="button">📝 입력하기</button>
-    <button class="qb" id="qbList" type="button">📋 목록보기</button>
+    <button class="qb active" id="qbForm" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4.5h9l5 5v10H5z"/><path d="M14 4.5v5h5"/><path d="M8.5 13.5h7M8.5 16.5h5"/></svg> 입력하기</button>
+    <button class="qb" id="qbList" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3.2H9z"/><path d="M9 5.5H6.5v14h11v-14H15"/><path d="M9.5 11h5M9.5 14.5h5"/></svg> 목록보기</button>
   </nav>
 
   <div class="toast" id="toast"></div>
@@ -1134,14 +1139,14 @@
   <div class="modal hidden" id="photoInboxModal">
     <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="piTitle">
       <div class="modal-head">
-        <h2 id="piTitle">📷 입고 사진 대기함</h2>
-        <button class="modal-x" id="photoInboxClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="piTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7L17 8.5h3v10H4z"/><circle cx="12" cy="13.4" r="3"/></svg> 입고 사진 대기함</h2>
+        <button class="modal-x" id="photoInboxClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="photoInboxSub">전표 사진을 눌러 크게 보고, 확인한 내용으로 입고를 등록하세요. 등록한 사진은 대기함에서 빠집니다.</p>
       <div class="photo-grid" id="photoGrid"></div>
       <label class="check"><input type="checkbox" id="photoNotify" checked> 새 사진이 올라오면 알림음·브라우저 알림으로 알려주기</label>
       <div class="modal-actions">
-        <button class="btn" id="photoInboxUpload" type="button">📷 사진 올리기</button>
+        <button class="btn" id="photoInboxUpload" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7L17 8.5h3v10H4z"/><circle cx="12" cy="13.4" r="3"/></svg> 사진 올리기</button>
         <button class="btn" id="photoInboxDone" type="button">닫기</button>
       </div>
     </div>
@@ -1152,14 +1157,14 @@
     <div class="modal-card photocard" role="dialog" aria-modal="true" aria-labelledby="pvTitle">
       <div class="modal-head">
         <h2 id="pvTitle">입고 전표 사진</h2>
-        <button class="modal-x" id="photoViewClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="photoViewClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="photoViewSub"></p>
       <div class="photo-big"><img id="photoBigImg" alt="입고 전표 사진"></div>
       <label class="field"><span>사진 메모</span><input id="photoMemo" readonly></label>
       <div class="modal-actions">
         <button class="btn ghost" id="photoDelete" type="button">삭제</button>
-        <button class="btn ghost" id="photoPin" type="button">🪟 작게 띄우기</button>
+        <button class="btn ghost" id="photoPin" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 10h16"/></svg> 작게 띄우기</button>
         <button class="btn" id="photoViewClose2" type="button">닫기</button>
         <button class="submit" id="photoLoad" type="button">입고 폼으로 불러오기</button>
       </div>
@@ -1169,8 +1174,8 @@
   <!-- ===================== 컬럼 필터 (엑셀 스타일 v21 슬림) ===================== -->
   <div class="fpop hidden" id="fpop" role="dialog" aria-label="열 필터">
     <div class="fpop-sort" id="fpopSort">
-      <button type="button" class="fmrow" id="fpopAsc" data-dir="1"><span class="fmi" aria-hidden="true">ㄱ↓</span><span class="fmt">오름차순 정렬</span><span class="fmok">✓</span></button>
-      <button type="button" class="fmrow" id="fpopDesc" data-dir="-1"><span class="fmi" aria-hidden="true">ㅎ↓</span><span class="fmt">내림차순 정렬</span><span class="fmok">✓</span></button>
+      <button type="button" class="fmrow" id="fpopAsc" data-dir="1"><span class="fmi" aria-hidden="true">ㄱ↓</span><span class="fmt">오름차순 정렬</span><span class="fmok"></span></button>
+      <button type="button" class="fmrow" id="fpopDesc" data-dir="-1"><span class="fmi" aria-hidden="true">ㅎ↓</span><span class="fmt">내림차순 정렬</span><span class="fmok"></span></button>
       <button type="button" class="fmrow hidden" id="fpopUnsort" tabindex="-1" aria-hidden="true">정렬 해제</button>
     </div>
     <div class="fpop-body">
@@ -1193,12 +1198,12 @@
         <span class="rm-title" id="rmTitle">기간 선택</span>
         <span class="rm-lbl">기준연도</span>
         <div class="rm-year">
-          <button type="button" class="rm-ybtn" id="rmPrevY" aria-label="이전 연도">◀</button>
+          <button type="button" class="rm-ybtn" id="rmPrevY" aria-label="이전 연도"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5l-7 7 7 7"/></svg></button>
           <b id="rmYear">2026</b>
-          <button type="button" class="rm-ybtn" id="rmNextY" aria-label="다음 연도">▶</button>
+          <button type="button" class="rm-ybtn" id="rmNextY" aria-label="다음 연도"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5l7 7-7 7"/></svg></button>
         </div>
         <strong class="rm-cur" id="rmCurrent"></strong>
-        <button class="modal-x" id="rmClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="rmClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <div class="rm-quick" id="rmQ1"></div>
       <div class="rm-quick" id="rmQ2"></div>
@@ -1221,7 +1226,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editTitle">
       <div class="modal-head">
         <h2 id="editTitle">입출고 내역 수정</h2>
-        <button class="modal-x" id="editClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="editClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="editSub"></p>
       <div class="grid2">
@@ -1253,7 +1258,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="lotTitle">
       <div class="modal-head">
         <h2 id="lotTitle">로트 정보 수정</h2>
-        <button class="modal-x" id="lotClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="lotClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="lotSub"></p>
       <label class="field"><span>육류</span><input id="ltMeat" list="dlMeats"></label>
@@ -1283,7 +1288,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="xlsTitle">
       <div class="modal-head">
         <h2 id="xlsTitle">양식 내려받기</h2>
-        <button class="modal-x" id="xlsClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="xlsClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="xlsSub"></p>
 
@@ -1317,7 +1322,7 @@
       <p class="xls-count" id="xlsCount"></p>
       <div class="modal-actions">
         <button class="btn" id="xlsCancel" type="button">취소</button>
-        <button class="submit" id="xlsGo" type="button">⬇ 엑셀 다운로드</button>
+        <button class="submit" id="xlsGo" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 엑셀 다운로드</button>
       </div>
     </div>
   </div>
@@ -1326,8 +1331,8 @@
   <div class="modal hidden" id="fgNewModal">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fgNewTitle">
       <div class="modal-head">
-        <h2 id="fgNewTitle">＋ 품목 등록</h2>
-        <button class="modal-x" id="fgNewClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="fgNewTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록</h2>
+        <button class="modal-x" id="fgNewClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="fgNewSub">상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.</p>
       <div class="grid2">
@@ -1372,7 +1377,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fgPriceTitle">
       <div class="modal-head">
         <h2 id="fgPriceTitle">단가 수정</h2>
-        <button class="modal-x" id="fgPriceClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="fgPriceClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="fgPriceSub"></p>
       <div class="grid2">
@@ -1393,7 +1398,7 @@
     <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="uploadTitle">
       <div class="modal-head">
         <h2 id="uploadTitle">엑셀 올리기</h2>
-        <button class="modal-x" id="uploadClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="uploadClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="uploadSub"></p>
       <label class="field"><span>엑셀 파일 (.xlsx / .csv)</span>
@@ -1413,7 +1418,7 @@
     <div class="modal-card sheetcard" role="dialog" aria-modal="true" aria-labelledby="accVoucherTitle">
       <div class="modal-head">
         <h2 id="accVoucherTitle">매출 전표 입력</h2>
-        <button class="modal-x" id="accVoucherClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="accVoucherClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="accVoucherSub">한 장에 여러 품목을 적으면 재고·전표·거래명세표가 한 번에 처리됩니다.</p>
 
@@ -1438,7 +1443,7 @@
         <div class="vsheetbar">
           <b>명세서 품목</b>
           <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · Enter = 1순위 · 기본 3줄</span>
-          <button type="button" class="btn vadd" id="accVAddRow">＋ 줄 추가</button>
+          <button type="button" class="btn vadd" id="accVAddRow"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 줄 추가</button>
         </div>
         <div class="vsheet-scroll">
           <table class="vsheet-table" id="accVSheet">
@@ -1498,7 +1503,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accPayTitle">
       <div class="modal-head">
         <h2 id="accPayTitle">수금(입금)</h2>
-        <button class="modal-x" id="accPayClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="accPayClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub">등록하면 거래처 원장의 <b>남은 미수금·미지급금</b>에서 바로 빠집니다.</p>
       <label class="field"><span>구분</span>
@@ -1531,7 +1536,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="accExpTitle">
       <div class="modal-head">
         <h2 id="accExpTitle">경비 · 수입</h2>
-        <button class="modal-x" id="accExpClose" type="button" aria-label="닫기">✕</button>
+        <button class="modal-x" id="accExpClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="accExpSub">택배비·부자재·전기세·임대료·급여·식대·차량유지비처럼 재고와 상관없는 돈을 적습니다.</p>
       <label class="field"><span>구분</span>
@@ -1569,8 +1574,8 @@
   <div class="modal hidden" id="accHelpModal">
     <div class="modal-card wide helpcard" role="dialog" aria-modal="true" aria-labelledby="accHelpTitle">
       <div class="modal-head">
-        <h2 id="accHelpTitle">❓ 회계 사용법</h2>
-        <button class="modal-x" id="accHelpClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="accHelpTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.6a2.5 2.5 0 1 1 3.5 2.4c-.7.3-1.1.9-1.1 1.7v.3"/><path d="M12 17.1v.01"/></svg> 회계 사용법</h2>
+        <button class="modal-x" id="accHelpClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub">이제 <b>입출고만 적으면 구매·판매 전표가 자동으로</b> 생깁니다. <b>① 입출고 → ② 전표 확인 → ③ 수금·지급 → ④ 생산원가·손익</b> 순서로 보면 됩니다.</p>
 
@@ -1580,28 +1585,28 @@
           <b>현장 출고</b>와 <b>현장소모</b>는 매출이 아니라 <b>생산·원가관리</b>에만 집계됩니다.</li>
         <li><b>② 전표 확인·보정</b> — <b>3. 구매관리 · 4. 판매관리</b>에서 금액과 거래처를 확인하고,
           세금계산서 <b>수령·발행</b>을 체크합니다. 자동 반영을 꺼 두었거나 빠진 건은
-          <b>⚡ 미반영 입고/판매출고 가져오기</b>로 한 번에 넘깁니다.</li>
-        <li><b>③ 돈 받고·주고</b> — 미수금이 들어오면 <b>＋ 수금</b>, 미지급금을 보내면 <b>＋ 지급</b>.
-          외상과 상관없는 돈은 <b>＋ 기타 입금</b> / <b>＋ 일반 출금(경비)</b>로 적습니다.</li>
+          <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></svg> 미반영 입고/판매출고 가져오기</b>로 한 번에 넘깁니다.</li>
+        <li><b>③ 돈 받고·주고</b> — 미수금이 들어오면 <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 수금</b>, 미지급금을 보내면 <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 지급</b>.
+          외상과 상관없는 돈은 <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 기타 입금</b> / <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 일반 출금(경비)</b>로 적습니다.</li>
         <li><b>④ 생산원가·손익 확인</b> — <b>5. 생산·원가관리</b>에서 이번 달 투입액과
           <b>품목별 1단위당 제조원가</b>를 보고, <b>6. 회계·손익</b>에서 미수금·미지급금·예상 순이익을 확인합니다.</li>
       </ol>
 
       <div class="helptable">
         <div class="ht-row ht-head"><span>버튼</span><span>언제 쓰나</span><span>들어가는 곳</span><span>미수·미지급</span></div>
-        <div class="ht-row"><span class="ht-b payin">＋ 수금 입력</span><span>팔고 못 받은 돈을 받았을 때</span><span>수금 기록</span><span class="ht-ok">줄어듦</span></div>
-        <div class="ht-row"><span class="ht-b payout">＋ 지급 입력</span><span>사고 안 준 돈을 보냈을 때</span><span>지급 기록</span><span class="ht-ok">줄어듦</span></div>
-        <div class="ht-row"><span class="ht-b inc">＋ 기타 입금</span><span>외상과 무관한 현금이 들어왔을 때</span><span>일반 경비·자금 (수입)</span><span class="ht-no">그대로</span></div>
-        <div class="ht-row"><span class="ht-b exp">＋ 일반 출금(경비)</span><span>외상과 무관한 현금이 나갔을 때</span><span>일반 경비·자금 (경비)</span><span class="ht-no">그대로</span></div>
+        <div class="ht-row"><span class="ht-b payin"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 수금 입력</span><span>팔고 못 받은 돈을 받았을 때</span><span>수금 기록</span><span class="ht-ok">줄어듦</span></div>
+        <div class="ht-row"><span class="ht-b payout"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 지급 입력</span><span>사고 안 준 돈을 보냈을 때</span><span>지급 기록</span><span class="ht-ok">줄어듦</span></div>
+        <div class="ht-row"><span class="ht-b inc"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 기타 입금</span><span>외상과 무관한 현금이 들어왔을 때</span><span>일반 경비·자금 (수입)</span><span class="ht-no">그대로</span></div>
+        <div class="ht-row"><span class="ht-b exp"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 일반 출금(경비)</span><span>외상과 무관한 현금이 나갔을 때</span><span>일반 경비·자금 (경비)</span><span class="ht-no">그대로</span></div>
       </div>
 
-      <p class="helpnote">💡 <b>현장 출고 = 생산투입</b>입니다. 원료육을 현장에 내보내고 완제품을 <b>🏭 자체생산</b>으로 입고하면,
+      <p class="helpnote"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 17.5h5"/><path d="M10 20.5h4"/><path d="M12 3.5a5.5 5.5 0 0 0-3.2 9.9c.5.4.7.9.7 1.5v.6h5v-.6c0-.6.2-1.1.7-1.5A5.5 5.5 0 0 0 12 3.5Z"/></svg> <b>현장 출고 = 생산투입</b>입니다. 원료육을 현장에 내보내고 완제품을 <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> 자체생산</b>으로 입고하면,
         생산·원가관리가 <b>투입원가 ÷ 생산수량</b>으로 1단위당 실제 제조원가와 예상 마진을 계산합니다.
-        매출 전표의 <b>📄</b>를 누르면 그 거래의 거래명세표를 A4로 바로 인쇄할 수 있습니다.</p>
+        매출 전표의 <b><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h7l4 4v13h-11z"/><path d="M13.5 3.5v4h4"/><path d="M9.5 12.5h5M9.5 16h5"/></svg></b>를 누르면 그 거래의 거래명세표를 A4로 바로 인쇄할 수 있습니다.</p>
 
       <div class="modal-actions">
         <button class="btn" id="accHelpClose2" type="button">닫기</button>
-        <button class="submit" id="accHelpGoSale" type="button">＋ 매출 전표 넣어 보기</button>
+        <button class="submit" id="accHelpGoSale" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 매출 전표 넣어 보기</button>
       </div>
     </div>
   </div>
@@ -1610,8 +1615,8 @@
   <div class="modal hidden" id="supplierModal">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="supplierTitle">
       <div class="modal-head">
-        <h2 id="supplierTitle">⚙️ 공급자 정보 설정</h2>
-        <button class="modal-x" id="supplierClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="supplierTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg> 공급자 정보 설정</h2>
+        <button class="modal-x" id="supplierClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub">한 번 넣어 두면 거래명세표에 계속 찍힙니다. 이 컴퓨터(브라우저)에만 저장됩니다.</p>
       <label class="field"><span>상호 <span class="req">*</span></span><input id="supName" placeholder="미르스타푸드"></label>
@@ -1655,12 +1660,12 @@
   <div class="modal hidden" id="stmtModal">
     <div class="modal-card stmtcard" role="dialog" aria-modal="true" aria-labelledby="stmtTitle">
       <div class="modal-head stmt-noprint">
-        <h2 id="stmtTitle">📄 거래명세표</h2>
-        <button class="modal-x" id="stmtClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="stmtTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h7l4 4v13h-11z"/><path d="M13.5 3.5v4h4"/><path d="M9.5 12.5h5M9.5 16h5"/></svg> 거래명세표</h2>
+        <button class="modal-x" id="stmtClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub stmt-noprint" id="stmtSub">A4 용지에 맞춰 인쇄하거나 PDF로 저장할 수 있습니다.</p>
       <details class="stmt-buyer stmt-noprint" id="stmtBuyerBox">
-        <summary>🏢 공급받는자 정보 수정 <span class="tiny-hint">거래처 DB에서 자동으로 채웁니다</span></summary>
+        <summary><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V5h9v15"/><path d="M14 10h5v10"/><path d="M8 8.5h3M8 12h3M8 15.5h3"/></svg> 공급받는자 정보 수정 <span class="tiny-hint">거래처 DB에서 자동으로 채웁니다</span></summary>
         <div class="grid2">
           <label class="field"><span>상호</span><input id="stmtBuyerName" placeholder="(주)한이퀴드"></label>
           <label class="field"><span>등록번호</span><input id="stmtBuyerBizNo" placeholder="000-00-00000"></label>
@@ -1678,8 +1683,8 @@
         <div class="stmt-sheet" id="stmtSheet"></div>
       </div>
       <div class="modal-actions stmt-noprint">
-        <button class="btn" id="stmtSupBtn" type="button">⚙️ 공급자 정보 설정</button>
-        <button class="submit" id="stmtPrint" type="button">🖨️ 인쇄 / PDF 저장</button>
+        <button class="btn" id="stmtSupBtn" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1Z"/></svg> 공급자 정보 설정</button>
+        <button class="submit" id="stmtPrint" type="button"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="7" rx="1.5"/><path d="M7 16h10v4H7z"/></svg> 인쇄 / PDF 저장</button>
       </div>
     </div>
   </div>
@@ -1688,23 +1693,23 @@
   <div class="modal hidden" id="ioHubModal">
     <div class="modal-card wide hubcard" role="dialog" aria-modal="true" aria-labelledby="ioHubTitle">
       <div class="modal-head">
-        <h2 id="ioHubTitle">📥 입출고 입력</h2>
-        <button class="modal-x" id="ioHubClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="ioHubTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입출고 입력</h2>
+        <button class="modal-x" id="ioHubClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub">무엇을 기록할지 고르면 해당 입력 팝업이 바로 열립니다.</p>
-      <p class="hubsec">🥩 원료육</p>
+      <p class="hubsec"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 5.6c3.5-1.7 8-1.1 10.4 2 2.3 3 1.7 7-1 9.2-2.6 2.3-7.2 2.6-9.7.4-2-1.8-2-4-1-6.2.7-1.6.2-3.6 1.3-5.4Z"/><circle cx="14.6" cy="10.4" r="1.5"/></svg> 원료육</p>
       <div class="hubgrid">
-        <button class="hubbtn in" type="button" data-io="in">📥 원료육 입고<small>구매관리 매입 전표 자동</small></button>
-        <button class="hubbtn thaw" type="button" data-io="thaw">❄️ 해동 이동<small>냉동고 → 냉장고</small></button>
-        <button class="hubbtn re" type="button" data-io="re">🧊 재냉동 이동<small>냉장고 → 냉동고</small></button>
-        <button class="hubbtn out" type="button" data-io="out">🚚 원료육 출고<small>현장은 생산투입으로만</small></button>
-        <button class="hubbtn photo" type="button" data-io="photo">📷 입고 사진 대기함<small>전표 사진 보고 입고</small></button>
+        <button class="hubbtn in" type="button" data-io="in"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 원료육 입고<small>구매관리 매입 전표 자동</small></button>
+        <button class="hubbtn thaw" type="button" data-io="thaw"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 해동 이동<small>냉동고 → 냉장고</small></button>
+        <button class="hubbtn re" type="button" data-io="re"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 재냉동 이동<small>냉장고 → 냉동고</small></button>
+        <button class="hubbtn out" type="button" data-io="out"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5h10v8.5H3z"/><path d="M13 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg> 원료육 출고<small>현장은 생산투입으로만</small></button>
+        <button class="hubbtn photo" type="button" data-io="photo"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.5-2h7L17 8.5h3v10H4z"/><circle cx="12" cy="13.4" r="3"/></svg> 입고 사진 대기함<small>전표 사진 보고 입고</small></button>
       </div>
-      <p class="hubsec">📦 완제품·부자재</p>
+      <p class="hubsec"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg> 완제품·부자재</p>
       <div class="hubgrid three">
-        <button class="hubbtn fp" type="button" data-io="fp-in">📥 입고<small>외부매입 / 자체생산</small></button>
-        <button class="hubbtn fpout" type="button" data-io="fp-out">🚚 출고<small>판매 / 현장소모</small></button>
-        <button class="hubbtn new" type="button" data-io="fp-new">📦 품목 등록<small>완제품·부자재</small></button>
+        <button class="hubbtn fp" type="button" data-io="fp-in"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 입고<small>외부매입 / 자체생산</small></button>
+        <button class="hubbtn fpout" type="button" data-io="fp-out"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7.5h10v8.5H3z"/><path d="M13 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.5"/><circle cx="17" cy="18" r="1.5"/></svg> 출고<small>판매 / 현장소모</small></button>
+        <button class="hubbtn new" type="button" data-io="fp-new"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg> 품목 등록<small>완제품·부자재</small></button>
       </div>
     </div>
   </div>
@@ -1713,8 +1718,8 @@
   <div class="modal hidden" id="reflectModal">
     <div class="modal-card wide" role="dialog" aria-modal="true" aria-labelledby="reflectTitle">
       <div class="modal-head">
-        <h2 id="reflectTitle">⚡ 미반영 입출고 가져오기</h2>
-        <button class="modal-x" id="accReflectClose" type="button" aria-label="닫기">✕</button>
+        <h2 id="reflectTitle"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 3 5 14h6l-1 7 8-11h-6l1-7Z"/></svg> 미반영 입출고 가져오기</h2>
+        <button class="modal-x" id="accReflectClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="reflectSub">금액이 있는 입출고를 골라 매입·매출 전표로 한 번에 넘깁니다. 이미 전표가 있는 건은 다시 들어가지 않습니다.</p>
       <div class="reflect-top">
@@ -1731,7 +1736,7 @@
           <button class="btn tiny primary" id="accReflectGo" type="button">선택 반영</button>
         </div>
       </div>
-      <p class="reflect-hint">🏭 <b>자체생산</b> 완제품 입고는 사내 생산 이동이라 매입 전표에서 <b>자동 제외</b>됩니다. 🏭 <b>현장</b> 출고도 매출 전표를 만들지 않습니다(생산·원가관리에만 집계).</p>
+      <p class="reflect-hint"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> <b>자체생산</b> 완제품 입고는 사내 생산 이동이라 매입 전표에서 <b>자동 제외</b>됩니다. <svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20V9l5 3V9l5 3V9l5 3v8H3Z"/><path d="M6.5 20v-3h3v3"/></svg> <b>현장</b> 출고도 매출 전표를 만들지 않습니다(생산·원가관리에만 집계).</p>
       <div class="reflect-list" id="accReflectList"></div>
     </div>
   </div>
@@ -1754,7 +1759,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261124_54"></script>
-<script src="app.js?v=20261124_54"></script>
+<script src="partners_data.js?v=20261124_55"></script>
+<script src="app.js?v=20261124_55"></script>
 </body>
 </html>
