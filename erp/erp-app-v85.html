@@ -3723,11 +3723,17 @@ function getIntakeMatches(query){
  }
  return unique.slice(0,14);
 }
+function v129PlaceTouchSuggest(anchor,box,count){
+ if(!matchMedia('(max-width:767px), (max-width:1023px) and (pointer:coarse)').matches)return false;
+ const v=window.visualViewport,a=anchor.getBoundingClientRect(),top=v?.offsetTop||0,bottom=top+(v?.height||innerHeight),left=v?.offsetLeft||0,width=v?.width||innerWidth;
+ const w=Math.min(width-16,420),below=Math.max(0,bottom-a.bottom-12),above=Math.max(0,a.top-top-12),desired=Math.min(260,Math.max(48,count*50)),up=below<Math.min(desired,150)&&above>below,space=up?above:below,h=Math.max(44,Math.min(desired,space));
+ box.style.position='fixed';box.style.left=Math.max(left+8,Math.min(a.left,left+width-w-8))+'px';box.style.width=w+'px';box.style.top=Math.max(top+8,Math.min(up?a.top-h-4:a.bottom+4,bottom-h-8))+'px';box.style.setProperty('max-height',h+'px','important');return true;
+}
 function drawIntakeSuggestions(el,r){
  const results=getIntakeMatches(el.querySelector('.in-search').value),box=el.querySelector('.in-suggest');
  box.innerHTML=results.map((x,i)=>`<button type="button" data-index="${i}" role="option"><b>${esc(x.name)}</b><small>${esc([INTAKE_LABELS[x.category],v66BrandLabel(x.brand),x.origin,x.spec].filter(Boolean).join(' · '))}</small></button>`).join('');
  box.classList.toggle('hidden',!results.length);
- if(results.length){const a=el.querySelector('.in-search').getBoundingClientRect(),h=Math.min(320,results.length*51);
+ if(results.length){if(v129PlaceTouchSuggest(el.querySelector('.in-search'),box,results.length))return;box.style.removeProperty('max-height');const a=el.querySelector('.in-search').getBoundingClientRect(),h=Math.min(320,results.length*51);
   box.style.position='fixed';box.style.left=Math.max(8,Math.min(a.left,innerWidth-390))+'px';
   box.style.top=(a.bottom+h+7>innerHeight?Math.max(8,a.top-h-4):a.bottom+3)+'px';
   box.style.width=Math.max(300,Math.min(390,innerWidth-16))+'px';}
@@ -4280,7 +4286,7 @@ function v18ShowSuggestions(el,row){
  const box=el.querySelector('.v18-suggestions');const list=v18ProductsForLine(row);
  box.innerHTML=list.length?list.map(g=>`<button type="button" data-choose="${esc(g.key)}" aria-label="${esc(g.name)} 재고 ${fmt(g.qty)} ${esc(g.unit)}"><span class="v24-suggest-name">${esc(g.name)}</span><span class="v24-suggest-qty">${fmt(g.qty)}${esc(g.unit)}</span></button>`).join(''):'<div class="v18-no-match">일치하는 재고가 없습니다.</div>';
  box.classList.remove('hidden');
- const a=el.querySelector('.v18-search').getBoundingClientRect(),h=Math.min(340,list.length*42);
+ if(v129PlaceTouchSuggest(el.querySelector('.v18-search'),box,list.length))return;box.style.removeProperty('max-height');const a=el.querySelector('.v18-search').getBoundingClientRect(),h=Math.min(340,list.length*42);
  box.style.position='fixed';box.style.left=Math.max(8,Math.min(a.left,innerWidth-390))+'px';
  box.style.top=(a.bottom+h+8>innerHeight?Math.max(8,a.top-h-4):a.bottom+3)+'px';
  box.style.width=Math.max(300,Math.min(390,innerWidth-16))+'px';
@@ -5733,6 +5739,12 @@ body.v129-nav-open{overflow:hidden}
 #mainView .v129-card-table>tbody>tr>td.empty::before{display:none}
 #mainView .v129-card-table .expiry{font-size:14px!important}
 #mainView .v129-card-table .lot-source{font-size:12px!important}
+#mainView .v129-card-table .v36-row-meta{white-space:normal;overflow-wrap:anywhere}
+#mainView .v129-card-table .v36-row input{width:100%;max-width:none!important}
+#mainView#mainView .v129-card-table>tbody>tr.v36-chosen{border-color:#007aff!important;background:#f0f6ff!important}
+#mainView .v129-card-table>tbody>tr>td.fg20-lots-cell{grid-column:1/-1;padding:0!important}
+#mainView .v129-card-table>tbody>tr.lot-line{margin-left:12px!important;background:#f8f8fa!important}
+#mainView .v129-card-table .tree-mark{font-size:16px!important}
 /* Receiving and shipping use the same controls and handlers, reflowed into labelled cards. */
 #mainView>.v97-transaction{padding:0!important;margin:0!important;overflow:visible!important;width:100%;min-width:0}
 #mainView>.v97-transaction>.v97-common{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:11px!important;padding:14px!important;margin:0!important;align-items:start!important}
@@ -5821,7 +5833,7 @@ dialog:not(#v17StatementDialog) :is(input:not([type=checkbox]):not([type=radio])
 dialog:not(#v17StatementDialog) button{min-height:40px}
 dialog.v70-calendar.v88-calendar{inset:10px auto auto 10px!important;margin:0!important;max-height:calc(100dvh - 20px)!important}
 .v88-calendars{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
-.v88-calendars>.v88-sep{display:none}
+.v88-calendars>.v88-separator{display:none}
 .v88-calendar .v88-days button{height:36px!important;min-height:36px;font-size:13px!important}
 .v88-calendar .v88-cal-nav select{font-size:13px!important;min-height:32px}
 #v17StatementDialog{width:calc(100vw - 12px)!important;max-width:calc(100vw - 12px)!important;max-height:calc(100dvh - 12px)!important;overflow:auto}
@@ -5843,18 +5855,19 @@ if(!root||!sidebar||!toggle)return;
 const shade=document.createElement('button');shade.id='v129NavShade';shade.type='button';shade.hidden=true;shade.setAttribute('aria-label','메뉴 닫기');document.body.append(shade);
 function nav(open){const on=!!open&&mq.matches;sidebar.classList.toggle('open',on);shade.hidden=!on;document.body.classList.toggle('v129-nav-open',on);toggle.setAttribute('aria-expanded',String(on));toggle.setAttribute('aria-label',on?'메뉴 닫기':'메뉴 열기');if(mq.matches)sidebar.inert=!on;else sidebar.inert=false;}
 toggle.setAttribute('aria-controls','sidebar');toggle.onclick=()=>nav(!sidebar.classList.contains('open'));shade.onclick=()=>{nav(false);toggle.focus()};sidebar.addEventListener('click',e=>{if(e.target.closest('[data-view]'))nav(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!shade.hidden){nav(false);toggle.focus()}});
-const cardSelector='.v61-all-table,.v99-lot-table,.v75chilled .stock-table,.fg20-lots-table';
+const cardSelector='.v61-all-table,.v99-lot-table,.v75chilled .stock-table,.fg20-lots-table,.other-category>.table-scroll>.inventory-table,.fg20>.table-scroll>.inventory-table,.v36-table';
 let queued=false;
 function update(){
  queued=false;
  if(!mq.matches){root.querySelectorAll('.v129-card-table').forEach(t=>t.classList.remove('v129-card-table'));root.querySelectorAll('.v129-scroll-hint').forEach(n=>n.remove());return;}
  root.querySelectorAll(cardSelector).forEach(t=>{
   const headers=Array.from(t.tHead?.rows[0]?.cells||[]);if(!headers.length)return;
-  const labels=headers.map(h=>(h.querySelector('.v80-sort-label')?.textContent||h.textContent||'').trim().replace(/[▲▼↑↓▾]/g,'').trim());
+  const labels=headers.map(h=>(h.querySelector('.v80-sort-label')?.textContent||h.querySelector('.th-wrap>span')?.textContent||h.textContent||'').trim().replace(/[▲▼↑↓▾⌄]/g,'').trim());
   t.classList.add('v129-card-table');
   for(const body of t.tBodies)for(const row of body.rows){
-   if(row.cells.length!==labels.length)continue;
-   Array.from(row.cells).forEach((cell,i)=>{const l=labels[i];cell.dataset.v129Label=l;cell.classList.toggle('v129-primary',l==='품목명'||/소비기한/.test(l)&&t.classList.contains('v99-lot-table'));cell.classList.toggle('v129-quantity',/중량|수량|재고 \(|LOT 수/.test(l));cell.classList.toggle('v129-wide',/보관 위치|업체명|LOT 번호|기록번호|비고/.test(l));cell.classList.toggle('v129-action',l==='작업');});
+   if(row.cells.length!==labels.length){if(row.cells.length===1)row.cells[0].classList.add('v129-wide');continue;}
+   const lot=row.classList.contains('lot-line')&&t.closest('.other-category');
+   Array.from(row.cells).forEach((cell,i)=>{const l=lot?({'품목명':'LOT','보관방법':'입고 / 제조일','위치':'소비기한 / 위치'}[labels[i]]||labels[i]):labels[i];cell.dataset.v129Label=l;cell.classList.toggle('v129-primary',l==='품목명'||l==='품목 / LOT'||l==='LOT'||/소비기한/.test(l)&&t.classList.contains('v99-lot-table'));cell.classList.toggle('v129-quantity',/중량|수량|재고|LOT 수/.test(l));cell.classList.toggle('v129-wide',/보관 위치|업체명|LOT 번호|기록번호|비고|생산품목/.test(l));cell.classList.toggle('v129-action',l==='작업');});
   }
  });
  root.querySelectorAll('.table-scroll,.v36-table-wrap').forEach(w=>{
