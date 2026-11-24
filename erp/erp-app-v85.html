@@ -2742,6 +2742,7 @@ function acPage(next){
 }
 
 function setView(next,accountingOrigin=''){
+ const v97Changed=next!==view;
  v40CurrentFilter?.close();v40CurrentFilter=null;
  if(next==='fg_make'&&view!=='ops_plan')v38ActivePlanId=null;
  if(view==='fg_make'&&next!=='fg_make')v38ActivePlanId=null;
@@ -2762,6 +2763,7 @@ function setView(next,accountingOrigin=''){
  else if(EXTRA_CATEGORIES[next])externalCategoryPage(next);else if(next==='products')productPage();else if(next==='history')renderHistory();else renderBackup();
  v68Counts();
  $('sidebar').classList.remove('open');
+ if(v97Changed){document.scrollingElement?.scrollTo({top:0,left:0,behavior:'instant'});$('mainView').scrollTop=0;}
 }
 function attachInventoryListeners(){
  $('searchInput').oninput=renderInventory;
@@ -3350,20 +3352,29 @@ document.addEventListener('keydown',e=>{
 window.addEventListener('scroll',()=>{if(v51VendorMenu)v51CloseVendorMenu();},true);
 window.addEventListener('resize',()=>{if(v51VendorMenu)v51CloseVendorMenu();});
 
+function v97TransactionLayout(mode){
+ const incoming=mode==='intake';
+ const cfg=incoming?{root:'intake-panel',common:'intake-common',date:'intakeDate',partner:'intakeVendor',matches:'v17PartnerMatches',info:'v17PartnerInfo',note:'intakeNote',partnerLabel:'v17-partner-label',partnerWrap:'v17-partner-picker',scroller:'v50-intake-scroller',head:'v50-intake-head',columns:['No.','품목명','구분','수량','단위','입고단가','소비기한','관리'],rows:'intakeRowList',rowsClass:'intake-row-list',addClass:'intake-add',add:'intakeAdd',footer:'intake-footer',summary:'intakeSummary',reset:'intakeClear',preview:'v17PreviewIntake',save:'intakeSave',saveLabel:'입고등록',error:'intakeError',success:'intakeSuccess'}:{root:'v18-root',common:'v18-common',date:'v18Date',partner:'v18PartnerInput',matches:'v18PartnerMatches',info:'v18PartnerInfo',note:'v18Note',partnerLabel:'v18-partner-field',partnerWrap:'v18-partner-wrap',scroller:'v50-out-scroller',head:'v50-out-head',columns:['No.','품목명','LOT','출고수량','금액','비고','LOT 입력','삭제'],rows:'v18Lines',rowsClass:'v18-lines',addClass:'v18-add',add:'v18AddLine',footer:'v18-bottom',summary:'v18Summary',reset:'v18Reset',preview:'v18Preview',save:'v18Save',saveLabel:'출고등록',error:'v18Error',success:'v18Success'};
+ const date=esc(today());
+ const paste=incoming?`<div id="intakePastePanel" class="intake-paste hidden"><div class="intake-note">엑셀의 품목명 · 수량 · 소비기한 열을 복사해 붙여넣으세요. 다른 항목은 이후 수정할 수 있습니다.</div><textarea id="intakePasteText" rows="4" placeholder="돈지방\t100\t2027-12-31\n파인바베큐소스\t20\t2027-08-01"></textarea><div class="intake-actions"><button type="button" class="intake-btn" id="intakeApplyPaste">행으로 추가</button></div></div>`:'';
+ const success=incoming&&intakeLastSaved?esc(intakeLastSaved):'';
+ return `<section class="${cfg.root} card v97-transaction" data-transaction="${mode}">
+ <div class="${cfg.common} v97-common">
+ <label>날짜 <span class="quick-date"><input type="text" inputmode="numeric" data-quick-date id="${cfg.date}" value="${date}" placeholder="YYYYMMDD" maxlength="10" autocomplete="off" aria-label="날짜"><input type="date" class="quick-date-calendar" value="${date}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label>
+ <label class="${cfg.partnerLabel}">업체 <span class="${cfg.partnerWrap} v97-partner"><input type="search" id="${cfg.partner}" placeholder="업체명·별칭·사업자번호 검색" autocomplete="off"><span id="${cfg.matches}" class="v17-partner-list hidden"></span></span><small id="${cfg.info}" class="v17-partner-detail"></small></label>
+ <label>전표 비고 <input id="${cfg.note}" placeholder="필요한 경우만 입력" autocomplete="off"></label></div>
+ <div class="${cfg.scroller} v97-list"><div class="${cfg.head} v97-list-head">${cfg.columns.map(t=>'<span>'+esc(t)+'</span>').join('')}</div><div class="${cfg.rowsClass}" id="${cfg.rows}"></div></div>
+ <div class="${cfg.addClass} v97-add"><button type="button" class="intake-btn" id="${cfg.add}">+ 품목 추가</button>${incoming?'<button type="button" class="intake-btn" id="intakePasteToggle">엑셀에서 붙여넣기</button>':'<span class="v97-hint">필요한 LOT 줄에 출고수량·단가를 직접 입력하세요</span>'}</div>
+ ${paste}
+ <div class="${cfg.footer} v97-footer"><span id="${cfg.summary}" class="v97-summary">입력 품목 0개 · LOT 0개</span><div class="v97-commands ${incoming?'':'v18-commands'}"><button type="button" class="intake-btn" id="${cfg.reset}">초기화</button><button type="button" class="intake-btn" id="${cfg.preview}">명세서 미리보기</button><button type="button" class="intake-save" id="${cfg.save}">${cfg.saveLabel}</button></div></div>
+ <div class="intake-note v97-note">${cfg.saveLabel} 시 재고 ${incoming?'반영':'차감'}과 거래명세서 생성·저장이 함께 진행됩니다.</div>
+ <div class="intake-error hidden" id="${cfg.error}" role="alert"></div><div class="intake-success ${success?'':'hidden'}" id="${cfg.success}">${success}${incoming?' <span id="v53SavedInDocuments"></span>':''}</div>
+ </section>`;
+}
 function intakePage(){
  installIntakeSuggestDismiss();
  if(!intakeRows.length)intakeRows=[rowDefault()];
- $('mainView').innerHTML=`<section class="intake-panel card">
-   <div class="intake-head"><div><p>품목만 고르면 유형이 자동 입력됩니다. 다른 종류의 품목도 한 번에 등록할 수 있습니다.</p></div><span class="intake-status">브라우저 저장형 시제품</span></div>
-   <div class="intake-common"><label>날짜 <span class="quick-date"><input type="text" inputmode="numeric" data-quick-date id="intakeDate" value="${esc(today())}" placeholder="YYYYMMDD" maxlength="10" autocomplete="off" aria-label="날짜"><input type="date" class="quick-date-calendar" value="${esc(today())}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label><label class="v17-partner-label">업체 <span class="v17-partner-picker"><input type="search" id="intakeVendor" placeholder="거래처명·별칭·사업자번호 검색" autocomplete="off"><span id="v17PartnerMatches" class="v17-partner-list hidden"></span></span><small id="v17PartnerInfo" class="v17-partner-detail"></small></label><label>전표 비고 <input id="intakeNote" placeholder="필요한 경우만 입력" autocomplete="off"></label></div>
-   <div class="v50-intake-scroller"><div class="v50-intake-head"><span>No.</span><span>품목명</span><span>구분</span><span>수량</span><span>단위</span><span>입고단가</span><span>소비기한</span><span>관리</span></div><div class="intake-row-list" id="intakeRowList"></div></div>
-   <div class="intake-add"><button type="button" class="intake-btn" id="intakeAdd">+ 품목 추가</button><button type="button" class="intake-text" id="intakePasteToggle">엑셀에서 붙여넣기</button></div>
-   <div id="intakePastePanel" class="intake-paste hidden"><div class="intake-note">엑셀의 품목명 · 수량 · 소비기한 열을 복사해 붙여넣으세요. 다른 항목은 이후 수정할 수 있습니다.</div><textarea id="intakePasteText" rows="4" placeholder="돈지방\t100\t2027-12-31\n파인바베큐소스\t20\t2027-08-01"></textarea><div class="intake-actions"><button type="button" class="intake-btn" id="intakeApplyPaste">행으로 추가</button></div></div>
-   <div class="intake-footer"><span id="intakeSummary">1개 품목 입력 중</span><div><button type="button" class="intake-btn" id="intakeClear">초기화</button><button type="button" class="intake-btn" id="v17PreviewIntake">명세서 미리보기</button><button type="button" class="intake-save" id="intakeSave">입고등록</button></div></div>
-   <div class="intake-note" style="margin:8px 0 0;">입고등록 시 재고 반영과 거래명세서 생성·저장이 함께 진행됩니다.</div>
-   <div class="intake-error hidden" id="intakeError" role="alert"></div>
-   <div class="intake-success ${intakeLastSaved?'':'hidden'}" id="intakeSuccess">${intakeLastSaved?esc(intakeLastSaved):''} <span id="v53SavedInDocuments"></span></div>
-   </section>`;
+ $('mainView').innerHTML=v97TransactionLayout('intake');
  $('intakeDate').addEventListener('change',e=>{
   const date=normalizeIntakeDate(e.target.value);
   if(!date)return;
@@ -3751,18 +3762,7 @@ function v18Products(q){
 const v18NewLine=()=>({id:++v18RowSeq,group:'',search:'',selected:{},lotPrices:{},price:'',note:'',quickQty:'',detailsOpen:true,confirmed:false,checked:{},lotFilter:'',showAllLots:false,expandLots:false});
 function v18Page(){
  if(!v18Lines.length)v18Lines=[v18NewLine()];
- $('mainView').innerHTML=`<section class="v18-root card">
- <div class="v18-common">
- <label>날짜 <span class="quick-date"><input type="text" id="v18Date" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" value="${today()}"><input type="date" class="quick-date-calendar" value="${today()}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label>
- <label class="v18-partner-field">업체 <span class="v18-partner-wrap"><input type="search" id="v18PartnerInput" placeholder="업체명·별칭·사업자번호 검색" autocomplete="off"><span class="v17-partner-list hidden" id="v18PartnerMatches"></span></span><small id="v18PartnerInfo" class="v17-partner-detail"></small></label>
- <label>전표 비고 <input id="v18Note" placeholder="필요한 경우만 입력"></label>
- </div>
- <div class="v50-out-scroller"><div class="v50-out-head"><span>No.</span><span>품목명</span><span>LOT</span><span>출고수량</span><span>금액</span><span>비고</span><span>LOT 입력</span><span>삭제</span></div><div class="v18-lines" id="v18Lines"></div></div>
- <div class="v18-add"><button class="intake-btn" type="button" id="v18AddLine">+ 품목 추가</button><span>필요한 LOT 줄에 출고수량·단가를 직접 입력하세요</span></div>
- <div class="v18-bottom"><div id="v18Summary">품목 0개 · LOT 0개</div><div class="v18-commands"><button type="button" class="intake-btn" id="v18Reset">초기화</button><button type="button" class="intake-btn" id="v18Preview">명세서 미리보기</button><button type="button" class="intake-save" id="v18Save">출고등록</button></div></div>
- <div class="intake-note" style="margin:8px 20px 0;">출고등록 시 재고 차감과 거래명세서 생성·저장이 함께 진행됩니다.</div>
-  <div id="v18Error" role="alert" class="intake-error hidden"></div><div id="v18Success" class="intake-success hidden"></div>
- </section>`;
+ $('mainView').innerHTML=v97TransactionLayout('ship');
  bindIntakeQuickDates($('mainView'));
  const partnerInput=$('v18PartnerInput');v18AttachPartner(partnerInput,$('v18PartnerMatches'),$('v18PartnerInfo'));
  // 품목 목록 밖을 클릭하거나 다른 입력창으로 옮기면 자동으로 닫습니다.
@@ -5060,5 +5060,30 @@ body .expiry.danger{color:#b42332!important}body .expiry.warning{color:#8a5c00!i
 #modalLayer .drawer-header{cursor:move;touch-action:none;flex-shrink:0;padding:13px 18px!important}
 #modalLayer .drawer-header h2{font-size:17px;margin:0 0 4px}
 #modalLayer .drawer-bottom{padding:12px 18px!important}
+}
+</style><style id="v97-shared-transaction-layout">
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+html{scrollbar-gutter:stable}
+#mainView{min-width:0}
+#mainView>.v97-transaction{display:block!important;width:100%!important;min-width:0!important;padding:0!important;margin:0!important;overflow:visible!important;box-sizing:border-box!important}
+#mainView>.v97-transaction>.v97-common{display:grid!important;grid-template-columns:180px minmax(0,1.45fr) minmax(0,1fr)!important;gap:14px!important;padding:18px 23px!important;margin:0!important;align-items:start!important;border:0!important;border-bottom:1px solid #e5e5ea!important;background:#f7f7f9!important}
+#mainView>.v97-transaction>.v97-common>label{display:flex!important;flex-direction:column!important;min-width:0!important;gap:7px!important;font-size:12px!important;font-weight:600!important;line-height:18px!important;margin:0!important;grid-column:auto!important}
+#mainView .v97-common .v97-partner{display:block;position:relative;width:100%;min-width:0}
+#mainView .v97-common .v17-partner-detail{margin:0!important;min-height:0;line-height:15px!important;font-size:11px!important;font-weight:400!important}
+#mainView .v97-common .v17-partner-detail:empty{display:none!important}
+#mainView .v97-common input:not([type=date]),#mainView .v97-common input.quick-date-calendar{height:38px!important;min-height:38px!important;box-sizing:border-box!important}
+#mainView>.v97-transaction>.v97-list{margin:8px 22px 0!important;overflow-x:auto;min-width:0!important;border-radius:5px!important;border:1px solid #d5d5da!important;scrollbar-width:auto}
+#mainView .v97-list-head{height:34px!important;min-height:34px!important;box-sizing:border-box!important;padding:7px 10px!important;line-height:18px!important;background:linear-gradient(#f6f6f8,#ebebee)!important;color:#414146!important;font-size:12px!important;font-weight:600!important}
+#mainView .v97-list-head,#mainView .v97-list .v50-in-grid,#mainView .v97-list .v50-out-grid{min-width:1136px!important;box-sizing:border-box!important}
+#mainView .v97-list .v50-in-grid,#mainView .v97-list .v50-out-grid{min-height:63px!important;padding:8px 10px 20px!important}
+#mainView>.v97-transaction>.v97-add{box-sizing:border-box!important;min-height:66px!important;display:flex!important;align-items:center!important;gap:10px!important;margin:0!important;padding:14px 23px 18px!important}
+#mainView .v97-hint{font-size:12px;color:#777}
+#mainView>.v97-transaction>.v97-footer{box-sizing:border-box!important;min-height:73px!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:16px 23px!important;margin:0!important;background:#f7f7f9!important;border-top:1px solid #e5e5ea!important}
+#mainView .v97-commands{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;margin:0!important}
+#mainView .v97-commands button{height:40px!important;min-height:40px!important;white-space:nowrap!important}
+#mainView .v97-commands button:first-child{min-width:74px!important}
+#mainView .v97-commands button:nth-child(2){min-width:118px!important}
+#mainView .v97-commands .intake-save{min-width:130px!important}
+#mainView>.v97-transaction>.v97-note{margin:0!important;padding:9px 23px 12px!important;line-height:18px!important;font-size:12px!important;color:#626269!important}
 }
 </style></body></html>
