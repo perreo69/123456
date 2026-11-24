@@ -2913,28 +2913,58 @@ const ACTIONS=[
  {key:'ship',label:'출고',title:'출고',desc:'LOT를 선택하고 외부 출고처를 기록합니다.',button:'출고 처리'},
  {key:'issue',label:'기타',title:'기타',desc:'폐기 등 기타 사유로 해당 LOT의 재고를 차감합니다.',button:'기타 처리'}
 ];
-// 창고별 메뉴: 냉동고 = 해동/출고/기타, 냉장고 = 냉동/출고/기타.
-// 통합 재고에서는 해동·냉동을 모두 표시하고, 실제 LOT 잔량은 작업창에서 검사합니다.
+// v120: 동일한 작업 메뉴, 출발 창고에 맞는 출고 목적지.
+function v120Destinations(opts={},st=state){
+ const items=st.items.filter(l=>l.productId===opts.productId&&(!opts.lotId||l.id===opts.lotId));
+ const frozen=opts.from!=='chilled'&&items.some(l=>cents(l.frozen)>0);
+ const chilled=opts.from!=='frozen'&&items.some(l=>cents(l.chilled)>0);
+ return [
+  ...(frozen?[{key:'move',label:'냉장고 (해동)',from:'frozen'},{key:'ship',label:'외부 업체',from:'frozen'}]:[]),
+  ...(chilled?[{key:'field',label:'생산현장',from:'chilled'},{key:'refreeze',label:'냉동고 (재냉동)',from:'chilled'}]:[])
+ ];
+}
 function actionsFor(opts={}){
- const items=state.items.filter(l=>l.productId===opts.productId&&(!opts.lotId||l.id===opts.lotId));
- const hasFrozen=items.some(l=>cents(l.frozen)>0);
- const hasChilled=items.some(l=>cents(l.chilled)>0);
- const zone=opts.from||'';
- const moving=zone==='frozen'?['move']:zone==='chilled'?['refreeze']:['move','refreeze'];
- return [...moving.filter(key=>key==='move'?hasFrozen:hasChilled),'ship','issue'].map(key=>ACTIONS.find(a=>a.key===key)).concat(opts.productId?[{key:'edit',label:'수정'}]:[]);
+ return [{key:'outbound',label:'출고'},ACTIONS.find(a=>a.key==='issue'),...(opts.productId?[{key:'edit',label:'수정'}]:[])];
 }
 let actionMenu=null,actionMenuAnchor=null;
 function closeActionMenu(){if(actionMenu){actionMenu.remove();actionMenu=null;}if(actionMenuAnchor?.isConnected)actionMenuAnchor.setAttribute('aria-expanded','false');actionMenuAnchor=null;}
 function showActionMenu(anchor,opts={}){
  if(actionMenu&&actionMenuAnchor===anchor){closeActionMenu();return;}
  closeActionMenu();actionMenuAnchor=anchor;anchor.setAttribute('aria-expanded','true');
- const p=document.createElement('div');p.className='action-menu';p.id='actionMenu';p.setAttribute('role','menu');
- p.innerHTML=actionsFor(opts).map(a=>`<button type="button" role="menuitem" data-mode="${a.key}">${esc(a.label)}</button>`).join('');
+ const p=document.createElement('div');p.className='action-menu v120-work-menu';p.id='actionMenu';p.setAttribute('role','menu');
+ p.setAttribute('aria-label','재고 작업');
  document.body.appendChild(p);actionMenu=p;
- const rect=anchor.getBoundingClientRect(),width=p.offsetWidth,height=p.offsetHeight;
+ let sub=false;
+ const position=()=>{const rect=anchor.getBoundingClientRect(),width=p.offsetWidth,height=p.offsetHeight;
  p.style.left=Math.min(window.innerWidth-width-8,Math.max(8,rect.right-width))+'px';
- p.style.top=(rect.bottom+height+5>window.innerHeight?Math.max(8,rect.top-height-3):rect.bottom+3)+'px';
- p.addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(!b)return;e.preventDefault();e.stopPropagation();const mode=b.dataset.mode;closeActionMenu();if(mode==='edit'){v33OpenMeatEdit(opts);return;}if(['move','refreeze','field'].includes(mode)){v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}openAction(mode,opts);});
+ p.style.top=(rect.bottom+height+5>window.innerHeight?Math.max(8,rect.top-height-3):rect.bottom+3)+'px';};
+ const draw=(next,focus=false)=>{
+  sub=next;
+  if(sub){
+   const choices=v120Destinations(opts);
+   p.innerHTML='<button type="button" role="menuitem" data-mode="back" class="v120-back"><span aria-hidden="true">‹</span><span>출고 목적지</span></button>'+choices.map(a=>'<button type="button" role="menuitem" data-mode="'+esc(a.key)+'" data-from="'+esc(a.from)+'">'+esc(a.label)+'</button>').join('')+(choices.length?'':'<div class="v120-empty">출고 가능한 재고가 없습니다.</div>');
+  }else{
+   p.innerHTML=actionsFor(opts).map(a=>'<button type="button" role="menuitem" data-mode="'+esc(a.key)+'"'+(a.key==='outbound'?' aria-haspopup="menu"':'')+'>'+esc(a.label)+(a.key==='outbound'?'<span class="v120-next" aria-hidden="true">›</span>':'')+'</button>').join('');
+  }
+  position();if(focus)(p.querySelector(sub?'[data-mode]:not([data-mode="back"])':'[data-mode="outbound"]')||p.querySelector('button'))?.focus({preventScroll:true});
+ };
+ draw(false);
+ p.addEventListener('click',e=>{
+  const b=e.target.closest('button[data-mode]');if(!b)return;e.preventDefault();e.stopPropagation();const mode=b.dataset.mode;
+  if(mode==='outbound'){draw(true,true);return;}if(mode==='back'){draw(false,true);return;}
+  let from=opts.from;
+  if(sub){const choice=v120Destinations(opts).find(x=>x.key===mode&&x.from===b.dataset.from);if(!choice){draw(true,true);return;}from=choice.from;}
+  closeActionMenu();if(mode==='edit'){v33OpenMeatEdit(opts);return;}
+  if(['move','refreeze','field'].includes(mode)){v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}
+  openAction(mode,{...opts,from});
+ });
+ p.addEventListener('keydown',e=>{
+  const buttons=[...p.querySelectorAll('button[data-mode]')],i=buttons.indexOf(document.activeElement);
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();buttons[(i+(e.key==='ArrowDown'?1:buttons.length-1)+buttons.length)%buttons.length]?.focus();return;}
+  if(e.key==='ArrowRight'&&!sub&&document.activeElement?.dataset.mode==='outbound'){e.preventDefault();draw(true,true);}
+  if(e.key==='ArrowLeft'&&sub){e.preventDefault();draw(false,true);}
+  if(e.key==='Escape'){e.preventDefault();e.stopPropagation();if(sub)draw(false,true);else{closeActionMenu();anchor.focus({preventScroll:true});}}
+ });
 }
 function sourceZone(){if(modalMode==='move')return 'frozen';if(modalMode==='refreeze')return 'chilled';return $('f_from')?.value||activeOptions.from||'frozen';}
 function eligibleProducts(){
@@ -5515,4 +5545,11 @@ body :is(.drawer-bottom,.v95-product-footer,.v33-edit-foot){background:var(--wor
 #mainView .v116-detail .inventory-table{min-width:800px}
 #mainView .v116-detail .table-scroll{overflow:auto}
 @media(max-width:700px){#mainView .v116-move-fields{grid-template-columns:1fr;padding:10px 12px 0}}
+</style><style id="v120-work-destinations">
+.action-menu.v120-work-menu{min-width:165px;border-radius:6px;padding:4px}
+.action-menu.v120-work-menu button{position:relative;padding:8px 12px;min-height:32px}
+.action-menu.v120-work-menu .v120-next{float:right;margin-left:20px;font-size:17px;line-height:14px;color:inherit}
+.action-menu.v120-work-menu .v120-back{display:flex;gap:9px;align-items:center;border-bottom:1px solid #ddd!important;margin-bottom:3px;color:#666!important}
+.action-menu.v120-work-menu .v120-back span:first-child{font-size:19px;line-height:14px}
+.action-menu.v120-work-menu .v120-empty{padding:8px 12px;font-size:12px;color:#666}
 </style></body></html>
