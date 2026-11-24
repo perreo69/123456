@@ -1,0 +1,31 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>미르스타푸드 ERP · 디자인 B</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI","Malgun Gothic",sans-serif;font-size:13px;background:#c8cbc7;color:#292d29}button,input{font:inherit}button{cursor:pointer;border:1px solid #9da49c;border-radius:3px;background:#e8eae6;color:#333;padding:6px 12px}button.primary{background:#3c403d;color:white;border-color:#303530}button:disabled{opacity:.5}input{display:block;width:100%;padding:9px;border:1px solid #9da49c;border-radius:3px;background:#f5f6f4;color:#222}label{display:block;margin:14px 0 5px;font-weight:600}h1{font-size:22px;margin:0 0 4px}p{line-height:1.55}#gate{min-height:100dvh;display:grid;place-items:center}.panel{width:min(390px,calc(100% - 26px));background:#e4e7e1;padding:25px;border:1px solid #969f94;border-radius:4px}.primary{width:100%;margin-top:16px}#message{min-height:20px;color:#464b45}.sub{font-size:12px;color:#555b54}#shell{height:100dvh;display:flex;flex-direction:column}#bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 10px;background:#b7bcb5;border-bottom:1px solid #969f94;font-size:12px}#bar strong{font-size:12px}#bar .tag{background:#e6c25f;padding:3px 6px;border:1px solid #a88a3a;border-radius:2px;font-weight:700}#status{margin-right:auto}iframe{border:none;width:100%;flex:1;min-height:0;background:#d5d8d3}[hidden]{display:none!important}a{color:#333;text-decoration:underline}
+</style><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script></head><body><section id="gate"><div class="panel"><h1>미르스타푸드 ERP</h1><div class="sub">DESIGN B · Ableton-inspired</div><p>기존 직원 계정으로 로그인하면 실제 회사 재고를 불러옵니다. 이 시안에서는 서버 저장이 되지 않습니다.</p><form id="login"><label for="uid">아이디 또는 이메일</label><input id="uid" autocomplete="username" required><label for="pw">비밀번호</label><input type="password" id="pw" autocomplete="current-password" required><button class="primary" id="submit">로그인</button></form><p id="message" role="status"></p><a href="./">정식 ERP로 돌아가기</a></div></section><section id="shell" hidden><header id="bar"><strong id="who"></strong><span class="tag">디자인 B</span><span id="status">실제 데이터 · 조회 및 임시 조작 전용 · 서버 저장 없음</span><button id="refresh">원본 데이터 다시 불러오기</button><button id="original">정식 ERP</button><button id="logout">나가기</button></header><iframe id="app" title="미르스타푸드 ERP 디자인 B"></iframe></section><script>
+'use strict';
+const URL_BASE='https://waxjmsadrjqwjogfonyv.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndheGptc2Fkcmpxd2pvZ2Zvbnl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxODg3MjcsImV4cCI6MjExMDc2NDcyN30.OQkNANKHl5TrGYfuIuoHoHA71AtDoBggBvMbAloRL5I',APP='design-ableton-app.html',DOMAIN='@mirrstarfood-erp.example.com';
+const $=id=>document.getElementById(id);
+const db=window.supabase?.createClient(URL_BASE,KEY,{auth:{storage:sessionStorage,storageKey:'mirrstar-erp-auth-v85',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+function loginEmail(input){
+ const u=input.trim().toLowerCase();
+ if(/^[a-z0-9][a-z0-9._-]{2,31}$/.test(u))return u+DOMAIN;
+ if(u.length<=254&&/^[a-z0-9.!#$%&'*+/=?^_\x60{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(u)&&!u.endsWith(DOMAIN)&&!u.split("@")[0].startsWith(".")&&!u.split("@")[0].endsWith(".")&&!u.split("@")[0].includes(".."))return u;
+ return null;
+}
+
+window.erpSeed=null;window.erpInitialState=null;
+// Preview saves are in-memory only. No RPC, PATCH, UPDATE, or INSERT is sent to the database.
+window.erpSave=()=>{ $('status').textContent='임시 변경 · 서버에 저장되지 않음 · 새로고침하면 원본으로 복원';return true; };
+let loading=false;
+async function openERP(){if(loading)return;loading=true;$('message').textContent='직원 권한 및 실제 재고 확인 중';try{
+ const {data:{session:s}}=await db.auth.getSession();if(!s)throw Error('로그인해 주세요.');
+ const {data:staff,error:staffErr}=await db.from('erp_staff').select('is_admin,display_name').eq('user_id',s.user.id).maybeSingle();if(staffErr||!staff)throw Error('승인된 직원 계정이 아닙니다.');
+ const [seed,st]=await Promise.all([db.from('erp_company_seed').select('payload').eq('id',1).single(),db.from('erp_company_state').select('revision,body').eq('id',1).single()]);
+ if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
+ window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;
+ $('who').textContent=staff.display_name||s.user.email;$('gate').hidden=true;$('shell').hidden=false;$('status').textContent='실제 데이터 · 임시 조작 전용 · 서버 저장 없음';$('app').src=APP+'?v=93&t='+Date.now();
+ }catch(e){$('message').textContent=e.message;$('gate').hidden=false;$('shell').hidden=true;}finally{loading=false;}}
+$('login').onsubmit=async e=>{e.preventDefault();$('submit').disabled=true;try{if(!db)throw Error('인증 모듈 연결 실패');const email=loginEmail($('uid').value);if(!email)throw Error('아이디 또는 이메일을 확인해 주세요.');const result=await db.auth.signInWithPassword({email,password:$('pw').value});if(result.error)throw Error('아이디 또는 비밀번호를 확인해 주세요.');await openERP();}catch(e){$('message').textContent=e.message;}finally{$('pw').value='';$('submit').disabled=false;}};
+$('refresh').onclick=()=>{if(confirm('시안에서 임시로 변경한 내용을 지우고 실제 재고를 다시 불러올까요?'))void openERP();};
+$('original').onclick=()=>location.href='./';$('logout').onclick=()=>location.href='./';
+(async()=>{if(!db){$('message').textContent='인증 모듈 연결 실패';return;}const {data}=await db.auth.getSession();if(data.session)await openERP();})();
+</script></body></html>
