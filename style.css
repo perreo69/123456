@@ -1442,6 +1442,7 @@ td.actcell{text-align:center;padding:0 10px}
   .vsheet-table{min-width:720px}
   .vsheetbar{flex-wrap:wrap}
   .vsheetbar .tiny-hint{display:none}
+  .vsheetbar::after{content:"표를 옆으로 밀면 수량 · 단가 칸이 나옵니다";flex:1 1 100%;margin-top:3px;font-size:10.5px;color:var(--muted-2)}
   .modal-actions .btn,.modal-actions .submit{flex:1 1 auto;min-width:0}
   .rmcals,.rm-cals{flex-direction:column}
   .rm-cals{flex-direction:column}
