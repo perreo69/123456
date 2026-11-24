@@ -4578,7 +4578,8 @@ var LIVE = (function () {
     return '<th class="num actcol"><span class="th-plain">작업</span>' +
       '<span class="colrz" data-rz="_act" title="드래그: 열 너비 조절"></span></th>';
   }
-  /* v15 — 모든 표의 작업 열: 버튼을 가로로 늘어놓지 않고 [작업 ▾] 하나로 통일 */
+  /* v15 — 모든 표의 작업 열: 버튼을 가로로 늘어놓지 않고 [작업] 하나로 통일
+     v45 — 화살표(▾)를 넣지 않는다. 어느 표든 «작업» 두 글자만 쓴다. */
   function actMenuBtn(menu, attrs, title) {
     var a = '', k, v;
     for (k in attrs) {
@@ -4588,7 +4589,7 @@ var LIVE = (function () {
       a += ' data-' + k + '="' + esc(String(v)) + '"';
     }
     return '<button type="button" class="actmenu" data-menu="' + menu + '"' + a +
-      ' title="' + esc(title || '작업') + '">작업 ▾</button>';
+      ' title="' + esc(title || '작업') + '">작업</button>';
   }
   function colGroup(tbl, cols, actDef, widths, actW) {
     var out = ['<colgroup>'], i;
@@ -4665,7 +4666,7 @@ var LIVE = (function () {
         }
         html.push('<td class="actcell actcol"><button type="button" class="actmenu' + (qv <= ERP.EPS ? ' dis' : '') +
           '" data-menu="lot" data-lot="' + lot.id + '" data-wh="' + wh + '"' + (qv <= ERP.EPS ? ' disabled' : '') +
-          ' title="해동·출고·수정">작업 ▾</button></td>');
+          ' title="출고·이동·수정">작업</button></td>');
         html.push('</tr>');
       }
     }
@@ -4699,7 +4700,7 @@ var LIVE = (function () {
       if (st.logs[i].act) mine++; else orig++;
     }
     $('histNote').textContent = '처음 엑셀에서 옮긴 이력 ' + orig + '건 + 화면에서 입력한 이력 ' + mine + '건. ' +
-      '화면에서 입력한 건은 행의 [작업 ▾]에서 [수정]으로 고치거나 [취소]로 되돌릴 수 있고, 취소하면 재고도 함께 원복됩니다. ' +
+      '화면에서 입력한 건은 행의 [작업]에서 [수정]으로 고치거나 [취소]로 되돌릴 수 있고, 취소하면 재고도 함께 원복됩니다. ' +
       '원본 엑셀 이력은 보존을 위해 수정·취소할 수 없습니다.';
   }
   function logCellHtml(e, k) {
@@ -4753,7 +4754,7 @@ var LIVE = (function () {
       for (var c = 0; c < cols.length; c++) html.push(logCellHtml(e, cols[c].k));
       html.push('<td class="actcell actcol">' +
         (e.act
-          ? '<button type="button" class="actmenu" data-menu="log" data-log="' + e.dbid + '" title="수정·취소">작업 ▾</button>'
+          ? '<button type="button" class="actmenu" data-menu="log" data-log="' + e.dbid + '" title="수정·취소">작업</button>'
           : '<span class="ttag">원본</span>') +
         '</td>');
       html.push('</tr>');
@@ -7024,7 +7025,9 @@ var LIVE = (function () {
     if (k === 'amt') return uniAmtCell(r);
     return '<td></td>';
   }
-  /* v38 — 로트 줄의 작업 칸: 바로 누르는 [해동](냉장고면 [냉동]) · [출고] + 작은 [⋯](입고·정보 수정·수불 이력) */
+  /* v45 — 로트 줄의 작업 칸은 어느 품목이든 [작업] 단추 «하나»(화살표 없음).
+     원료육은 이 메뉴 안에서 출고 · 이동(해동/재냉동) · 수정 세 가지만 고른다.
+     v38의 [해동] · [출고] · [⋯] 세 단추는 없앴다(버튼을 가로로 늘어놓지 않는다). */
   function uniLotO(r) {
     return { kind: r.kind, lot: r.kind === 'meat' ? r.lotId : '', code: r.kind === 'fp' ? r.code : '',
       name: r.n, wh: r.wh, price: r.price > 0 ? r.price : '', exp: r.e || '',
@@ -7045,37 +7048,9 @@ var LIVE = (function () {
   }
   function uniLotActHtml(r) {
     var o = uniLotO(r), a = uniAttrStr(o);
-    var empty = !(Number(r.qty) > ERP.EPS);
-    var dis = empty ? ' disabled' : '';
-    var h = ['<td class="c actcell actcol"><span class="uacts">'];
-    if (r.kind !== 'fp') {
-      h.push('<button type="button" class="uact thaw' + (empty ? ' dis' : '') + '" data-uact="thaw"' + a + dis +
-        ' title="' + (r.wh === 'C' ? '냉동 — 냉장고 재고를 냉동고로' : '해동 — 냉동고 재고를 냉장고로') + '">' +
-        (r.wh === 'C' ? '냉동' : '해동') + '</button>');
-    }
-    h.push('<button type="button" class="uact out' + (empty ? ' dis' : '') + '" data-uact="out"' + a + dis +
-      ' title="출고">출고</button>');
-    h.push('<button type="button" class="uact more" data-menu="uni"' + a +
-      ' title="' + (r.kind === 'fp' ? '보관 위치 변경 · 입고 · 출고 · 정보 수정 · 수불 이력' :
-        '해동·창고이동 · 입고 · 출고 · 정보 수정 · 수불 이력') + '">⋯</button>');
-    h.push('</span></td>');
-    return h.join('');
-  }
-  /* [⋯] 메뉴에서 바로 잇는 동작 — [해동]/[냉동] · [출고] 단추가 같은 길로 들어간다 */
-  function uniQuickAct(btn) {
-    var act = btn.getAttribute('data-uact'), o = {};
-    var keys = ['kind', 'lot', 'code', 'name', 'wh', 'price', 'exp', 'vendor', 'lotno', 'ucat', 'lotid', 'flag'];
-    for (var i = 0; i < keys.length; i++) {
-      var v = btn.getAttribute('data-' + keys[i]);
-      if (v !== null) o[keys[i]] = v;
-    }
-    if (act === 'thaw') {
-      if (o.kind === 'fp') openFpWh(o); else uniMove(o);
-    } else if (act === 'out') {
-      uniOpenForm(o, 'OUT');
-    } else if (act === 'in') {
-      uniOpenForm(o, 'IN');
-    }
+    var tip = r.kind === 'fp' ? '보관 위치 변경 · 입고 · 출고 · 정보 수정' : '출고 · 이동 · 수정';
+    return '<td class="c actcell actcol"><button type="button" class="actmenu" data-menu="uni"' + a +
+      ' title="' + tip + '">작업</button></td>';
   }
   /* ---------- 전용 화면(품목) 상단 칩 ---------- */
   /* v27 — 원료육 재고현황의 「창고 [전체][냉동고][냉장고][해동]」 칩 줄은 없앴다.
@@ -7121,8 +7096,8 @@ var LIVE = (function () {
   /* v36 — 표는 하나. 열은 그 화면의 로트 칸들 + 맨 끝 「작업 ▾」이고,
      품목 띠 줄도 같은 열 위에 앉는다(이중 표 없음).
      원료육 냉동고 · 냉장고 화면에서는 「창고」 칸을 뺀다(화면 이름이 이미 알려 준다). */
-  /* v38 — 작업 칸은 [해동]·[출고]·[⋯] 세 단추가 들어가도록 조금 넓다(오른쪽 고정) */
-  var UNI_ACT_COL = { k: '_act', t: '작업', w: 136 };
+  /* v44 — 작업 칸은 다른 표와 같이 [작업 ▾] 한 단추 → 폭을 좁게(76px) 잡는다 */
+  var UNI_ACT_COL = { k: '_act', t: '작업', w: 76 };
   function uniColsNow() {
     var v = uniView();
     var cols = v ? ERP.uniViewCols(v) : ERP.UNI_COLS;
@@ -7136,6 +7111,10 @@ var LIVE = (function () {
   /* v38 — 품목 띠 줄 : 모든 열을 colspan 으로 합친 «한 줄».
      굵은 품명 바로 옆에 `1개 로트 · 157.82 kg`(원료육) / `2건 · 360 팩`(그 외)를 붙여,
      오른쪽 재고 칸에 같은 숫자를 또 찍지 않는다. 띠를 누르면 그 품목의 로트 줄이 접히거나 펼쳐진다. */
+  /* v45 — 접힘·펴짐 표시는 왼쪽 카테고리(원료육 등)와 «같은» 아래쪽 역삼각형(V) 하나로 통일한다.
+     옆으로 눕힌 모양(› · ▸)은 UI 어디에도 두지 않는다. */
+  var TRI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+    ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   function uniGroupRowHtml(g, cols, open) {
     var unit = g.unit || (g.cat === '원료육' ? 'kg' : '');
     var qtyTxt = fmtQty(g.qty) + (unit ? ' <span class="unit">' + esc(unit) + '</span>' : '');
@@ -7146,9 +7125,9 @@ var LIVE = (function () {
       (g.spec && g.spec !== '-' ? ' · 규격 ' + g.spec : '');
     return '<tr class="ugroup' + (open ? ' open' : '') + '" data-gname="' + esc(g.n) + '" data-gcat="' + esc(g.cat) + '"' +
       ' data-gkey="' + esc(ERP.uniGroupKey(uniView(), g)) + '" title="' + esc(title) + '">' +
-      '<td class="gn" colspan="' + cols.length + '"><span class="gtog">' + (open ? '▾' : '▸') + '</span>' +
+      '<td class="gn" colspan="' + cols.length + '"><span class="gtog">' + TRI_SVG + '</span>' +
       '<span class="g-name">' + esc(g.n) + '</span>' +
-      (g.active === false ? '<span class="gtag-off" title="미사용 품목 — 재고조회 기본에서는 보이지 않습니다. [⋯]에서 다시 사용으로 되돌릴 수 있습니다">미사용</span>' : '') +
+      (g.active === false ? '<span class="gtag-off" title="미사용 품목 — 재고조회 기본에서는 보이지 않습니다. [작업]에서 다시 사용으로 되돌릴 수 있습니다">미사용</span>' : '') +
       '<span class="g-meta">' + meta + '</span></td></tr>';
   }
   /* v36 — 로트 줄 : 품목 띠 바로 아래, 띠와 «같은 열»로 이어지는 한 줄.
@@ -7434,23 +7413,29 @@ var LIVE = (function () {
       wh: btn.getAttribute('data-wh') || '', price: btn.getAttribute('data-price') || '', exp: btn.getAttribute('data-exp') || '',
       vendor: btn.getAttribute('data-vendor') || '', lotno: btn.getAttribute('data-lotno') || '', ucat: btn.getAttribute('data-ucat') || '',
       lotid: btn.getAttribute('data-lotid') || '', flag: btn.getAttribute('data-flag') || '' };
-    /* v19 — 재고 0 포함으로 보이는 0 로트는 해동 · 출고를 막는다(옛 원료육 표와 같음) */
+    /* v19 — 재고 0 포함으로 보이는 0 로트는 해동 · 재냉동 · 출고를 막는다 */
     var empty = !(Number(btn.getAttribute('data-qty') || '0') > ERP.EPS);
     /* v43 — 품목 사용/미사용 전환(완제품·부재료·부자재 = fp_products.active) */
     var off = btn.getAttribute('data-pa') === '0';
+    /* v45 — 원료육 로트는 이미 있는 재고다. 새로 [입고]할 수 없고 수불 이력도 두지 않는다.
+       메뉴는 [출고] · [이동] · [수정] 세 가지만. 재고가 0인 로트는 출고·이동을 막는다. */
+    if (kind !== 'fp') {
+      return [
+        { label: '출고', act: 'uout', o: o, dis: empty },
+        { label: '이동', act: 'umove', o: o, dis: empty },
+        { label: '수정', act: 'uedit', o: o }
+      ];
+    }
+    /* v43 그대로 — 완제품·부재료·부자재는 입고·출고·보관 위치 변경·사용/미사용 전환을 둔다 */
     var items = [
-      kind === 'fp'
-        ? { label: '보관 위치 변경', act: 'uwh', o: o }
-        : { label: '해동/냉동', act: 'umove', o: o, dis: empty },
+      { label: '보관 위치 변경', act: 'uwh', o: o },
       { label: '입고', act: 'uin', o: o },
       { label: '출고', act: 'uout', o: o, dis: empty },
       { sep: true },
       { label: '정보 수정', act: 'uedit', o: o }
     ];
-    if (kind === 'fp') {
-      items.push(off ? { label: '다시 사용', act: 'uon', o: o }
-        : { label: '미사용으로 전환', act: 'uoff', o: o });
-    }
+    items.push(off ? { label: '다시 사용', act: 'uon', o: o }
+      : { label: '미사용으로 전환', act: 'uoff', o: o });
     items.push({ label: '수불 이력 보기', act: 'uhist', o: o });
     return items;
   }
@@ -7483,7 +7468,7 @@ var LIVE = (function () {
   }
   /* v43 — 품목 사용/미사용 전환: Supabase fp_products.active 에 바로 저장(PATCH 성격의 RPC)한다.
      미사용 품목은 재고조회 기본 화면과 입출고 품명 자동완성에서 빠지고,
-     「재고 0 포함」을 켜면 [미사용] 꼬리표로 보였다가 [⋯ → 다시 사용]으로 되돌린다. */
+     「재고 0 포함」을 켜면 [미사용] 꼬리표로 보였다가 [작업 ▾ → 다시 사용]으로 되돌린다. */
   function fpStockLeft(code) {
     var i, sum = 0, found = false;
     for (i = 0; i < (st.fpLots || []).length; i++) {
@@ -7501,7 +7486,7 @@ var LIVE = (function () {
     if (!on && left > ERP.EPS) {
       if (!window.confirm('‘' + p.n + '’ 재고가 ' + fmtQty(left) + ' ' + (p.unit || '개') + ' 남아 있습니다.\n\n' +
         '미사용으로 바꾸면 재고조회 기본 화면과 입출고 품명 자동완성에서 보이지 않습니다.\n' +
-        '「재고 0 포함」을 켜면 [미사용]으로 보이고, 그 줄의 [⋯ → 다시 사용]으로 되돌릴 수 있습니다.\n\n계속할까요?')) return;
+        '「재고 0 포함」을 켜면 [미사용]으로 보이고, 그 줄의 [작업 → 다시 사용]으로 되돌릴 수 있습니다.\n\n계속할까요?')) return;
     }
     var back = p.active;
     p.active = !!on;
@@ -7867,10 +7852,8 @@ var LIVE = (function () {
     });
     if ($('btnUtxCsv')) $('btnUtxCsv').addEventListener('click', utxCsvExport);
     if ($('btnUtxStockCsv')) $('btnUtxStockCsv').addEventListener('click', uniCsvExport);
-    /* 표 클릭 — 정렬 · 필터 · 바로 누르는 [해동]/[출고] · [⋯] */
+    /* 표 클릭 — 정렬 · 필터 · [작업 ▾] */
     bindTableClicks('uniTableWrap', function (ev, t) {
-      var qbtn = t.closest ? t.closest('[data-uact]') : null;
-      if (qbtn) { ev.preventDefault(); uniQuickAct(qbtn); return; }
       var sbtn = t.closest ? t.closest('[data-usort]') : null;
       if (sbtn) { ev.preventDefault(); uniSortClick(sbtn.getAttribute('data-usort'), 'uni'); return; }
     }, 'uni');
@@ -8112,7 +8095,7 @@ var LIVE = (function () {
       for (c = 0; c < cols.length; c++) html.push(fgCellHtml(p, cols[c].k));
       /* v8.2 — 원료육과 같은 [작업 ▾] 한 버튼 (입고 / 출고 / 수정) */
       html.push('<td class="actcell actcol"><button type="button" class="actmenu" data-menu="fg" data-fgcode="' +
-        esc(p.code) + '" title="입고·출고·수정">작업 ▾</button></td></tr>');
+        esc(p.code) + '" title="입고·출고·수정">작업</button></td></tr>');
     }
     html.push('</tbody></table>');
     if (list.length > cur.fgLimit) {
@@ -9214,7 +9197,7 @@ var LIVE = (function () {
       if ($('fgNewFlag')) $('fgNewFlag').value = p.sup === '자체생산' ? '자체' : '매입';
       $('fgNewStockWrap').classList.add('hidden');
       $('fgNewHint').textContent = '단가를 비워 두면 기존 단가가 그대로 남습니다.';
-      /* v43 — 미사용 품목도 [⋯]에서 바로 되돌릴 수 있지만, 수정 팝업에서도 보이게 둔다 */
+      /* v43 — 미사용 품목도 [작업 ▾]에서 바로 되돌릴 수 있지만, 수정 팝업에서도 보이게 둔다 */
       if ($('fgNewActive')) $('fgNewActive').checked = p.active !== false;
       if ($('fgNewActiveWrap')) $('fgNewActiveWrap').classList.remove('hidden');
       $('fgNewSave').textContent = '수정 저장';
