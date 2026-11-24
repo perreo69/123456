@@ -3217,3 +3217,16 @@ table.tblu thead th.actcol{text-align:center}
   .pacts .tgrp{flex-wrap:wrap;width:100%}
   .pacts .btn{flex:1 1 auto;min-width:0}
 }
+
+/* ==========================================================================
+   v41 — 사이드바 맨 아래 「서명」 (Built by LCP / AI-assisted development)
+   기존 「재고 기준일 …」 안내 문구는 없애고, 그 자리에 두 줄 서명만 둔다.
+   작은 「생산·원가 · 단가 변동」은 다른 메뉴에 없는 화면이라 서명 위에 그대로 남긴다.
+   ========================================================================== */
+.v8nav>.sidefoot{border-top:0;margin-top:auto;padding:10px 9px 8px}
+.v8nav>.sidefoot>.sflinks{margin:0 0 11px;gap:12px}
+.v8nav>.sidefoot .sfbrand{border-top:1px solid #E5E7EB;padding-top:10px}
+.v8nav>.sidefoot .sfbrand b{display:block;margin:0;color:#374151;font-size:12.5px;font-weight:700;
+  line-height:1.25;letter-spacing:-.1px}
+.v8nav>.sidefoot .sfbrand span{display:block;margin-top:4px;color:#9CA3AF;font-size:11px;font-weight:400;
+  line-height:1.25;letter-spacing:0}

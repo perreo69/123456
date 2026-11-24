@@ -6927,7 +6927,7 @@ var LIVE = (function () {
     setTxt('uniCntSauce', c.sauce); setTxt('uniCntSpice', c.spice); setTxt('uniCntVeg', c.veg);
     setTxt('uniCntSub', c.sub); setTxt('uniCntEtc', c.etc);
     setTxt('navCntTx', ERP.uniTxRows(st).length);
-    if ($('sideAsOf')) $('sideAsOf').textContent = '재고 기준일 ' + today();
+    /* v41 — 사이드바 맨 아래 「재고 기준일」 안내는 서명(Built by LCP)으로 교체되어 그 요소가 없다 */
   }
   /* ---------- 통합 재고 표 ---------- */
   function uniThHtml(c) {
