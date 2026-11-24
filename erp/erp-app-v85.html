@@ -1203,7 +1203,7 @@ input,select,textarea,button{accent-color:#555555}
 <!-- v61: 입출고내역은 재고관리 아래로 이동. 기존 화면 및 기록 기능 유지. --><button class="side-link" data-view="ops_trace" type="button">LOT 추적</button><button class="side-link" data-view="ops_audit" type="button">기록 점검</button>
 <button class="side-link" data-view="backup" type="button">데이터 관리</button>
 </nav>
-<div aria-label="제작자 정보" class="side-bottom creator-credit"><div><strong>Built by LCP</strong><p>AI-assisted development</p></div></div>
+<div aria-label="제작자 정보" class="side-bottom creator-credit"><div><strong>Built by <span class="v103-credit-name">LCP</span></strong><p>AI-assisted development</p></div></div>
 </aside>
 <main class="work-area">
 <header class="topbar">
@@ -5225,5 +5225,12 @@ html{scrollbar-gutter:stable}
 #mainView .v102-accounting .v102-period-group{grid-column:1/-1}
 #mainView .v102-accounting .v90-report-controls #acCSV{grid-column:auto}
 }
+}
+</style><style id="v103-creator-signature">
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+#sidebar.sidebar .creator-credit{border:0!important;background:transparent!important;box-shadow:none!important;margin-top:auto!important;padding:20px 10px 8px!important}
+#sidebar.sidebar .creator-credit strong{display:block;color:#1d1d1f!important;font-size:16px!important;font-weight:500!important;line-height:22px!important;letter-spacing:-.3px}
+#sidebar.sidebar .creator-credit .v103-credit-name{font-weight:700!important}
+#sidebar.sidebar .creator-credit p{color:#626269!important;font-size:11px!important;font-weight:400!important;line-height:16px!important;letter-spacing:0;margin:3px 0 0!important;white-space:nowrap}
 }
 </style></body></html>
