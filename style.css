@@ -15,7 +15,10 @@ body{
   background:var(--bg); color:var(--ink); font-size:14px; line-height:1.45;
   -webkit-font-smoothing:antialiased;
 }
-.num,td.num,th.num,.kpi-value,.g-sum,.kg-strong{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+.num,
+td.num,
+th.num,
+.kpi-value{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 button{font-family:inherit;cursor:pointer}
 input,select,button{font-size:13.5px}
 .hidden{display:none !important}
@@ -113,7 +116,6 @@ input,select,button{font-size:13.5px}
   max-width:1640px; margin:14px auto 34px; padding:0 20px; align-items:start;
 }
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
-.form-panel{position:sticky;top:68px;overflow:auto;max-height:calc(100vh - 86px)}
 .list-panel{min-width:0;overflow:hidden}
 
 /* ---------- mode tabs ---------- */
@@ -149,9 +151,6 @@ form{padding:12px}
 .seg button.active{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.14)}
 .seg button.active[data-wh="F"]{color:var(--blue-ink)}
 .seg button.active[data-wh="C"]{color:var(--green-ink)}
-/* v22 — 품목별 화면 상단 탭 (재고현황 · 입출고 내역) */
-.itemtabs{display:flex;align-items:center;gap:10px;margin:0 0 10px}
-.itemtabs .itlbl{font-size:12.5px;font-weight:800;color:var(--blue-ink);background:var(--blue-bg);border-radius:20px;padding:5px 12px;white-space:nowrap}
 .itemtabs .seg{grid-auto-columns:auto}
 .itemtabs .seg button{padding:7px 16px;font-size:12.5px}
 .itemtabs .seg button.active{color:var(--blue-ink)}
@@ -235,7 +234,6 @@ td.zero{color:#b3bccb;font-weight:600}
 .dday.ok{background:#eef1f6;color:#6d7a90}
 .dday.warn{background:#fff3e0;color:#b45309}
 .dday.danger{background:#fdecec;color:#b42318}
-.acts{display:flex;gap:5px;justify-content:flex-end}
 .act{border:1px solid var(--line);background:#fff;border-radius:7px;padding:3px 8px;font-size:11.5px;font-weight:750;color:#41506a;transition:.13s;white-space:nowrap}
 .act:hover{border-color:#b9c8de;background:#f4f8ff}
 .act:disabled{opacity:.38;cursor:not-allowed;background:#fbfcfe}
@@ -252,7 +250,6 @@ td.zero{color:#b3bccb;font-weight:600}
 .badge.re{background:var(--green-bg);color:var(--green-ink)}
 .badge.out{background:var(--orange-bg);color:var(--orange-ink)}
 .badge.base{background:#eef1f6;color:#5a6779}
-.dtype{display:inline-block;font-size:10.5px;font-weight:800;border-radius:5px;padding:1px 6px;vertical-align:1px;letter-spacing:-.1px}
 .dtype.site{background:#fdeeee;color:#a13b3b}
 .dtype.vendor{background:#eef2fb;color:#3d5f9c}
 .dtype.courier{background:#fdf6e6;color:#946f0f}
@@ -279,7 +276,8 @@ td.zero{color:#b3bccb;font-weight:600}
   border-left:4px solid #6b7789;
 }
 .tmsg.show{opacity:1;transform:translateY(0)}
-@media (max-width:1080px){.toast{bottom:14px;width:calc(100% - 24px)}.tmsg{max-width:100%}}
+@media (max-width:1080px){.toast{bottom:14px;width:calc(100% - 24px)}
+.tmsg{max-width:100%}}
 .tmsg.ok{border-left-color:#34d399}
 .tmsg.warn{border-left-color:#fbbf24}
 .tmsg.err{border-left-color:#f87171}
@@ -322,7 +320,8 @@ td.zero{color:#b3bccb;font-weight:600}
 .modal-actions{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-top:13px}
 .modal-actions .btn{padding:10px 16px;border-radius:10px}
 .modal-actions .submit{margin-top:0}
-@media (max-width:560px){.modal{padding:10px}.modal-card{padding:14px 14px 13px;border-radius:14px}}
+@media (max-width:560px){.modal{padding:10px}
+.modal-card{padding:14px 14px 13px;border-radius:14px}}
 
 /* ---------- responsive ---------- */
 @media (max-width:1240px){
@@ -330,7 +329,6 @@ td.zero{color:#b3bccb;font-weight:600}
 }
 @media (max-width:1080px){
   .layout{grid-template-columns:1fr;padding:0 12px}
-  .form-panel{position:static;max-height:none}
   .kpis{grid-template-columns:repeat(2,1fr);padding:0 12px}
   .table-wrap{max-height:none}
   table.fixed{min-width:800px}
@@ -379,9 +377,6 @@ th.num .hdfilt{justify-content:flex-end}
 .hdfilt .ht{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hdfilt .harrow{font-size:9px;color:#9aa6ba;flex:0 0 auto;width:10px;text-align:center}
 .hdfilt.on .harrow{color:var(--blue-ink)}
-
-/* ---------- 대분류 배지 ---------- */
-.mj{display:inline-block;font-size:11px;font-weight:750;padding:2px 7px;border-radius:6px;background:#eef1f6;color:#41506a;white-space:nowrap}
 tbody tr.lot td:first-child .mj{background:#e9eefb;color:#33477a}
 
 /* ---------- 대분류 선택/툴바 ---------- */
@@ -513,7 +508,6 @@ tbody tr.sel,tbody tr.on{display:table-row !important}
 th.num .hdfilt .ht{text-align:right}
 /* 묶음 줄은 스크롤과 겹치지 않게 일반 흐름으로 */
 tr.group td{position:static}
-.acts{flex-wrap:nowrap}
 .act,.cancel{white-space:nowrap}
 
 /* 표는 칸 너비를 지키고, 좁으면 표 안에서 좌우로 민다 (머리글이 잘리지 않게) */
@@ -525,7 +519,6 @@ tr.group td{position:static}
 }
 @media (max-width:700px){
   .act,.cancel{padding:3px 6px;font-size:11px}
-  .acts{gap:4px}
   #tableWrap table.t-lot{min-width:1000px}
   #tableWrap table.t-log{min-width:1120px}
 }
@@ -623,19 +616,6 @@ th.actcol .colrz{right:1px}
 @media (max-width:560px){
   .cal-day{padding:5px 0;font-size:12px}
 }
-
-/* ============================ v4: 3모드 통합 ERP ============================ */
-/* ---------- 상단 모드 전환 ---------- */
-.modesw{
-  display:flex;gap:6px;padding:8px 18px 0;max-width:1560px;margin:0 auto;width:100%;
-}
-.mswitch{
-  flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;
-  border:1px solid var(--line);background:#fff;color:#4a576d;font-weight:800;font-size:13.5px;
-  padding:10px 10px;border-radius:12px 12px 0 0;letter-spacing:-.2px;transition:.14s;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
-.mswitch:hover{background:#f7faff;color:var(--ink)}
 .mswitch.active{background:#1b2431;border-color:#1b2431;color:#fff;box-shadow:0 4px 14px rgba(16,24,40,.18)}
 .mswitch .cnt{font-size:11px;font-weight:800;background:#eef1f6;color:#46536b;border-radius:20px;padding:1px 7px}
 .mswitch.active .cnt{background:rgba(255,255,255,.18);color:#fff}
@@ -660,10 +640,6 @@ th.actcol .colrz{right:1px}
 .catchip-input{
   border:1px solid #a9c2f2;border-radius:20px;padding:5px 10px;font-size:12px;width:120px;
 }
-
-/* ---------- 완제품 입력 폼 ---------- */
-.panel-title{margin:16px 10px 0;font-size:12.5px;font-weight:800;color:#37435b;letter-spacing:-.2px}
-.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:7px 10px 0}
 .btn-row .btn{padding:8px 6px;font-size:12px;border-radius:9px;justify-content:center}
 .fgnewrow{padding:0 0 2px}
 .btn.fgnew{
@@ -706,7 +682,6 @@ td.neg,.neg{color:#b42318}
 .accbtn.exp{color:#41506a}
 .accbtn.refl{background:#1b2431;border-color:#1b2431;color:#fff}
 .accbtn.refl:hover{background:#2a3648}
-.reflectbox{margin-top:12px;border:1px solid var(--line);border-radius:12px;background:#fbfcff;overflow:hidden}
 .reflect-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line2);background:#f4f8ff}
 .reflect-opts{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .reflect-list{max-height:320px;overflow:auto}
@@ -758,10 +733,6 @@ td.neg,.neg{color:#b42318}
   .hdfilt{font-size:12px;padding:10px 6px 10px 8px}
   .pr{padding:7px 11px;font-size:13px}
   .rng input,.rng select{padding:8px 8px;font-size:15px}
-
-  /* 상단 모드 전환: 폰 폭을 꽉 채우고 터치하기 쉽게 */
-  .modesw{padding:8px 10px 0;gap:4px}
-  .mswitch{flex:1 1 0;min-height:46px;font-size:12.5px;padding:8px 4px;border-radius:11px;gap:3px}
   .mswitch .cnt{font-size:10px;padding:1px 5px}
   .app{max-width:none;padding:0}
   .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;padding:8px 10px 10px}
@@ -771,7 +742,6 @@ td.neg,.neg{color:#b42318}
   .kpi-sub{font-size:10px}
 
   .layout{padding:0 10px 78px}
-  .form-panel{position:static;max-height:none;border-radius:13px}
   .panel{border-radius:13px}
   .tabs{padding:8px 8px 0;gap:0}
   .tab{padding:10px 9px;font-size:13px}
@@ -788,7 +758,6 @@ td.neg,.neg{color:#b42318}
   .range-sum{flex:1 1 100%;text-align:right;font-size:11px}
   .note{font-size:11px;padding:7px 10px}
   .table-wrap{max-height:none;border-radius:0}
-  .acts{gap:4px}
   tr.group td{font-size:11.5px}
   .accwrap{padding:10px 10px 84px}
   .acc-quick{padding:11px}
@@ -846,7 +815,6 @@ td.neg,.neg{color:#b42318}
 }
 
 @media (max-width:390px){
-  .mswitch{font-size:11.5px;letter-spacing:-.4px}
   .mswitch .cnt{display:none}
   .kpi-value{font-size:17px}
   .accbtn-grid{grid-template-columns:1fr 1fr}
@@ -1059,18 +1027,6 @@ tr.chgrow:hover{background:#f8faff}
   background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
   box-shadow:var(--shadow);padding:10px 9px 11px;overflow:hidden;
 }
-.side-head{
-  font-size:13px;font-weight:800;letter-spacing:-.3px;color:var(--ink);
-  padding:1px 6px 8px;border-bottom:1px solid var(--line2);margin-bottom:4px;
-}
-.side-label{margin:9px 0 3px;padding-left:7px;font-size:10px;font-weight:800;color:#98a2b3;letter-spacing:.3px}
-.side-group{display:flex;flex-direction:column;gap:2px}
-.sideitem{
-  display:flex;align-items:center;gap:6px;width:100%;border:0;background:transparent;
-  color:#41506a;font-size:12.5px;font-weight:700;text-align:left;letter-spacing:-.3px;
-  padding:8px 8px;border-radius:9px;line-height:1.25;white-space:nowrap;
-}
-.sideitem:hover{background:#f2f7ff;color:#1d4ed8}
 .sideitem .cnt{
   margin-left:auto;font-size:10.5px;font-weight:800;color:#6b7789;background:#eef1f6;
   border-radius:20px;padding:1px 6px;
@@ -1082,18 +1038,8 @@ tr.chgrow:hover{background:#f8faff}
 .side .tab .cnt{background:#eef1f6;color:#6b7789}
 .side .tab.active .cnt{background:#d8e5ff;color:#1d4ed8}
 .sideitem:hover .cnt,.side .tab:hover .cnt{background:#dde9ff;color:#1d4ed8}
-.w-in{color:#1d4ed8}
-.w-thaw{color:#4f46e5}
-.w-re{color:#0f766e}
-.w-out{color:#b45309}
-.w-photo{color:#8a4b0a}
-.w-new{color:#1d4ed8}
-.sideitem.work{padding-left:9px}
-.sideitem.work:hover{background:#f5f9ff}
 .sideitem.has{background:#fff7ec;box-shadow:inset 0 0 0 1px #f3d9b5}
 .sideitem.has .cnt{background:#ffe9c9;color:#b45309}
-.side-tip{margin:11px 3px 0;font-size:10.5px;line-height:1.5;color:#98a2b3;letter-spacing:-.2px}
-.side-tip b{color:#6b7789}
 
 /* ---------- 입력 팝업(모달) 공통 ---------- */
 .modal-card.formcard{max-width:560px}
@@ -1148,20 +1094,11 @@ body.photo-beside #meatFormModal .modal-card{max-width:min(520px,56vw)}
   padding:12mm 12mm;box-sizing:border-box;border:1px solid #d7dee9;
   font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","Noto Sans KR",sans-serif;
 }
-.stmt-title{text-align:center;font-size:24px;font-weight:800;letter-spacing:8px;margin:0 0 10px;color:#111}
-.stmt-meta{display:flex;justify-content:space-between;gap:10px;font-size:10.5px;color:#333;margin-bottom:8px}
-.stmt-meta b{font-weight:800}
-.stmt-sign{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0 8px;font-size:11px}
 .stmt-sign .box{border:1px solid #333;padding:6px 8px;line-height:1.55;min-height:52px}
 .stmt-sign .box .who{font-weight:800;font-size:10.5px;color:#555;margin-bottom:2px}
-.stmt-sign .sig{margin-top:8px;font-size:10px;color:#555}
-table.stmt-tbl{width:100%;border-collapse:collapse;table-layout:fixed;font-size:10.5px}
-table.stmt-tbl th,table.stmt-tbl td{border:1px solid #333;padding:4px 5px;vertical-align:middle;word-break:break-all}
-table.stmt-tbl th{background:#f4f6f9;font-weight:800;text-align:center;font-size:10px}
 table.stmt-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
 table.stmt-tbl td.c{text-align:center}
 table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
-.stmt-foot{margin-top:8px;font-size:10px;color:#444;line-height:1.6}
 .stmt-foot .note{border:1px solid #333;padding:5px 7px;min-height:34px}
 @media (max-width:900px){
   .stmt-sheet{min-height:0}
@@ -1178,9 +1115,7 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
     overflow-x:auto;overflow-y:hidden;white-space:nowrap;-webkit-overflow-scrolling:touch;
   }
   .side::-webkit-scrollbar{display:none}
-  .side-head,.side-label,.side-tip{display:none}
-  .side-group{display:flex;flex-direction:row;gap:5px}
-  .sideitem,.side .tab{
+.side .tab{
     width:auto;flex:0 0 auto;padding:8px 10px;font-size:12px;border-radius:20px;
     background:#f5f7fb;border:1px solid var(--line);color:#41506a;
   }
@@ -1205,7 +1140,6 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
   .stmt-noprint{display:none !important}
   .stmt-scroll{overflow:visible;background:#fff;padding:0;margin:0;border-radius:0}
   .stmt-sheet{width:190mm;min-height:0;border:0;padding:0;margin:0}
-  table.stmt-tbl{page-break-inside:auto}
   tr{page-break-inside:avoid}
 }
 
@@ -1216,21 +1150,13 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
    ============================================================================ */
 .v8shell{display:grid;grid-template-columns:232px minmax(0,1fr);gap:14px;align-items:start;max-width:1720px;margin:0 auto;padding:0 14px 46px}
 .v8side{position:sticky;top:10px;max-height:calc(100vh - 20px);overflow:auto;background:#fff;border:1px solid #e2e8f1;border-radius:16px;padding:12px 12px 10px;box-shadow:0 10px 28px rgba(20,32,50,.07)}
-.v8brand{display:flex;align-items:center;gap:9px;padding:4px 4px 12px;border-bottom:1px solid #eef2f7;margin-bottom:9px}
-.v8brand>span{font-size:23px;line-height:1}
-.v8brand b{display:block;font-size:15.5px;letter-spacing:-.3px;color:#15202e}
-.v8brand small{display:block;color:#7d8fa6;font-size:11.5px;margin-top:1px;font-weight:600}
 .v8nav{display:flex;flex-direction:column;gap:5px}
 .v8grp{border-radius:12px}
 .v8cat{display:flex;align-items:center;gap:9px;width:100%;padding:11px 10px;border:1px solid #e7edf5;border-left:4px solid #33475b;border-radius:11px;background:#f8fafd;color:#1b2838;font:inherit;font-size:14px;font-weight:800;letter-spacing:-.2px;cursor:pointer;text-align:left;transition:background .12s,border-color .12s}
 .v8cat:hover{background:#eff4fb}
-.v8num{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:22px;height:22px;border-radius:7px;background:#33475b;color:#fff;font-size:12px;font-weight:800}
 .v8cat .v8lab{flex:1 1 auto}
-.v8car{font-size:11px;color:#8b9cb2;transition:transform .16s}
 .v8grp.open .v8car{transform:rotate(180deg)}
-.v8sub{display:none;padding:6px 2px 4px;margin-top:2px}
 .v8grp.open>.v8sub{display:block}
-.v8sec{margin:7px 9px 3px;font-size:11.5px;font-weight:800;color:#8496ac;letter-spacing:.02em}
 .v8item{display:flex;align-items:center;gap:6px;width:100%;padding:8px 9px;border:1px solid transparent;border-radius:9px;background:none;color:#33475d;font:inherit;font-size:13.2px;line-height:1.3;text-align:left;cursor:pointer}
 .v8item:hover{background:#eef4fb}
 .v8item.on,.v8item.active{background:#e7f0fb;border-color:#c8ddf5;color:#0e4c86;font-weight:800}
@@ -1238,22 +1164,15 @@ table.stmt-tbl tr.sum td{background:#fbfcfe;font-weight:800}
 .v8item.popon{background:#e7f0fb;border-color:#9dc2ea;color:#0e4c86;font-weight:800;box-shadow:inset 3px 0 0 #2f7fd0}
 .v8cat.popon{border-color:#9dc2ea;box-shadow:0 0 0 2px #dbe9f8}
 .v8item .cnt{margin-left:auto;background:#eef2f8;color:#4b6485;border-radius:999px;padding:1px 7px;font-size:11px;font-weight:800}
-.v8sub2{display:flex;gap:5px;padding:3px 8px 2px}
 .v8mini{padding:4px 9px;border:1px solid #dce5f1;border-radius:999px;background:#f7f9fc;color:#4c6280;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer}
 .v8mini:hover{background:#eaf2fb}
-.v8foot{display:flex;flex-wrap:wrap;gap:5px;padding:10px 4px 2px;margin-top:9px;border-top:1px solid #eef2f7}
-.v8badge{border-radius:999px;padding:3px 8px;font-size:10.5px;font-weight:800;background:#fff3d9;color:#7d5a12}
 .v8badge.out{background:#e8f6ee;color:#0d6b3d}
 /* 대분류 색 띠 — 입출고(남색) · 재고(파랑) · 구매(주황) · 판매(초록) · 생산(보라) · 회계(짙은 남색) */
 .g-io .v8cat{border-left-color:#33475b}
-.g-io .v8num{background:#33475b}
 .g-stock .v8cat{border-left-color:#1779c4;background:#f4f9fe;border-color:#dcebf9}
-.g-stock .v8num{background:#1779c4}
 .g-prod .v8cat{border-left-color:#7b3fd4;background:#f8f4ff;border-color:#e5d8fb}
-.g-prod .v8num{background:#7b3fd4}
 .g-prod .v8item.on,.g-prod .v8item.active{background:#f0e7ff;border-color:#d8c2fa;color:#57209f}
 .g-acc .v8cat{border-left-color:#1f3a68;background:#f3f6fc;border-color:#dbe4f3}
-.g-acc .v8num{background:#1f3a68}
 .g-acc .v8item.on,.g-acc .v8item.active{background:#e8eefb;border-color:#c6d5f1;color:#1a3159}
 
 .v8main{min-width:0}
@@ -1354,18 +1273,11 @@ label.check.autolink.hidden{display:none}
 @media (max-width:768px){
   .v8shell{display:block;padding:0 10px 82px}
   .v8side{position:sticky;top:0;z-index:40;max-height:none;overflow:visible;padding:7px 8px;border-radius:0 0 14px 14px;box-shadow:0 6px 18px rgba(20,32,50,.08)}
-  .v8brand{padding:0 2px 7px;margin-bottom:6px}
-  .v8brand b{font-size:13.5px}
-  .v8brand small{font-size:10.5px}
   .v8nav{flex-direction:row;flex-wrap:wrap;gap:6px;overflow:visible;padding-bottom:2px}
   .v8grp{position:relative;flex:1 1 calc(33.333% - 6px);min-width:0}
   .v8cat{width:100%;padding:7px 8px;font-size:12.5px;gap:6px;white-space:nowrap;border-radius:10px;justify-content:flex-start}
   .v8grp:nth-child(3n) .v8sub{left:auto;right:0}
-  .v8num{width:18px;height:18px;font-size:10.5px;border-radius:5px}
-  .v8car{display:none}
-  .v8sub{position:absolute;left:0;top:calc(100% + 5px);min-width:238px;max-width:calc(100vw - 16px);max-height:58vh;overflow:auto;padding:7px;background:#fff;border:1px solid #e2e8f1;border-radius:13px;box-shadow:0 16px 34px rgba(18,30,48,.16);z-index:60}
   .v8item{font-size:13px;padding:9px 9px}
-  .v8foot{display:none}
   .v8pagehead{margin:10px 2px 10px}
   .v8pagehead h2{font-size:18px}
   .v8pagehead p{font-size:12px}
@@ -1396,10 +1308,8 @@ label.check.autolink.hidden{display:none}
   .kpis.acc{grid-template-columns:repeat(2,minmax(0,1fr))}
   .kpis.acc .kpi-value{font-size:23px}
   .v8cat{font-size:12px;padding:6px 9px}
-  .v8brand{padding-bottom:6px}
 }
 @media (max-width:400px){
-  .v8brand small{display:none}
   .v8cat{font-size:11.5px;padding:6px 8px}
 }
 .v8note{padding:10px 12px;margin:8px 10px;border:1px solid #e3d4fb;border-radius:10px;background:#f8f4ff;color:#5b3d8f;font-size:12.5px;line-height:1.5}
@@ -1507,17 +1417,8 @@ table.sp-bottom td.num.b{font-weight:800;font-size:10.5px}
    ========================================================================== */
 #accVoucherModal .modal-card{max-width:520px}
 .seg.three button{white-space:normal;line-height:1.22;font-size:11.5px;padding:7px 6px}
-.vlinkhint{margin:-3px 0 10px}
-.vlinkbox{
-  border:1px solid #dfe7f3;background:#f8faff;border-radius:11px;
-  padding:10px 11px 11px;margin:2px 0 11px;display:flex;flex-direction:column;gap:9px;
-}
 .vlinkbox .grid2{gap:9px}
-.vlinkhead{display:flex;flex-direction:column;gap:2px;border-left:3px solid var(--indigo);padding-left:9px}
-.vlinkhead b{font-size:12.5px;color:var(--ink)}
-.vlinkhead span{font-size:11px;color:var(--muted);line-height:1.45}
 .vlinkbox .lotinfo{margin:0}
-input.autofill{background:#f4f7fc;color:var(--ink);font-weight:750}
 /* 미지급금·미수금 현황 표 */
 .t-bal{width:100%;border-collapse:collapse;font-size:12.5px;background:#fff}
 .t-bal th{
@@ -1683,7 +1584,6 @@ table.vsheet-table.iosheet td:first-child select{font-weight:750}
 #ioSheetModal .vhead{grid-template-columns:1fr 1fr 1.1fr 1fr}
 @media(max-width:768px){#ioSheetModal .vhead{grid-template-columns:1fr 1fr}}
 
-
 /* ==========================================================================
    v14 — 시안(work/mockup-v13) UI · 물류/회계 대분류 · 거래 통합 · 팝업 신호등 제거
    흰색 + 연한 회색 단계(#f5f7fa·#e4e9f1·#eff2f7) + 파랑 강조 #2563EB
@@ -1795,12 +1695,6 @@ input::placeholder,textarea::placeholder{color:#a8b3c2}
 .v8shell{grid-template-columns:236px minmax(0,1fr);gap:16px;padding:14px 16px 46px}
 .v8side{background:#fff;border:1px solid var(--hair);border-radius:12px;padding:8px 9px 11px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.04)}
 .v8nav{display:flex;flex-direction:column;gap:0}
-/* 대분류 머리글 — 물류 · 회계 */
-.v8big{display:flex;align-items:center;gap:7px;height:24px;padding:0 8px;margin:8px 0 3px}
-.v8big:first-child{margin-top:2px}
-.v8big .v8bigdot{flex:0 0 auto;width:5px;height:5px;border-radius:2px;background:var(--accent)}
-.v8big .v8biglab{flex:0 0 auto;font-size:11.5px;font-weight:800;color:var(--ink);letter-spacing:.1px}
-.v8big i{flex:1 1 auto;height:1px;background:var(--line2);margin-left:3px}
 .v8grp{border-radius:9px;padding:1px 0}
 .v8side .v8nav .v8grp .v8cat{
   display:flex;align-items:center;gap:9px;width:100%;height:34px;padding:0 8px;border:0;border-radius:8px;
@@ -1811,10 +1705,7 @@ input::placeholder,textarea::placeholder{color:#a8b3c2}
 .v8side .v8nav .v8grp.open .v8cat{color:var(--ink);font-weight:700;background:transparent}
 .v8side .v8nav .v8grp .v8num{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:19px;height:19px;border-radius:5px;background:#f1f4f9;color:#8492a6;font-size:10.5px;font-weight:700;letter-spacing:0}
 .v8side .v8nav .v8grp.open .v8num{background:var(--accent-bg);color:var(--accent-ink)}
-.v8lab{flex:1 1 auto}
-.v8car{flex:0 0 auto;margin-left:auto;color:#c3ccd9;font-size:9px;line-height:1;display:inline-block;transition:transform .15s}
 .v8grp.open .v8car{transform:rotate(90deg);color:#8b99ac}
-.v8sub{display:none;margin:2px 0 3px 18px;padding-left:10px;border-left:1px solid #edf1f6}
 .v8grp.open>.v8sub{display:block}
 .v8side .v8sub .v8item{
   display:flex;align-items:center;gap:6px;width:100%;height:29px;padding:0 9px;border:0;border-radius:6px;
@@ -1912,7 +1803,6 @@ td.num{font-weight:600}
 .cancel{border-color:#f3c9c5;background:#fef6f5;color:#b42318}
 .worker{background:var(--fill);color:#3c4a5e;font-weight:500}
 .move{background:var(--fill);color:#3c4a5e;font-weight:600}
-.dtype{font-weight:600}
 .dtype.site{background:#fdecec;color:#b42318}
 .dtype.vendor{background:#EFF6FF;color:#1D4ED8}
 .dtype.courier{background:#FFF6E5;color:#8a5a09}
@@ -1957,14 +1847,15 @@ td.num{font-weight:600}
 .vsheet-table th{background:#f8fafc;color:#6b7a8f;font-weight:600}
 .vsheet-table td{border-bottom:1px solid var(--line2)}
 .vsheet-table tfoot .vsum td{background:#f8fafc;color:#16202e;font-weight:600}
-.tsline,.srcline,.prodref{background:#f8fafc;border-color:var(--hair)}
+.srcline,
+.prodref{background:#f8fafc;border-color:var(--hair)}
 .lotinfo{background:#f8fafc;border-left-color:#2563EB;color:#3c4a5e}
 .hubsec{color:#98a4b5}
 .hubbtn{background:#fff;border:1px solid var(--hair);border-radius:10px;color:#16202e;box-shadow:0 1px 1px rgba(0,0,0,.03)}
 .hubbtn:hover{background:#F7FAFF;border-color:#b8d2ff}
 .hubbtn small{color:#98a4b5}
 .photocard,.photo-item{background:#fff;border-color:var(--hair)}
-.reflect-list,.reflect-item{border-color:var(--hair)}
+.reflect-list{border-color:var(--hair)}
 .reflect-hint{background:#f8fafc;color:#6b7a8f;border-color:var(--hair)}
 .xls-count{background:var(--blue-bg);color:#1D4ED8;font-weight:600}
 .xls-count.none{background:#fff6e6;color:#8a5a09}
@@ -2013,8 +1904,6 @@ td.num{font-weight:600}
 
   .v8side{border-radius:0 0 14px 14px;padding:6px 7px}
   .v8side .v8nav .v8grp .v8cat{height:32px;padding:0 7px;font-size:12px}
-  .v8num{flex:0 0 18px;width:18px;height:18px;font-size:10px}
-  .v8sub{margin-left:0;padding-left:0;border-left:0;background:#fff;border:1px solid var(--hair);border-radius:12px;box-shadow:0 16px 34px rgba(0,0,0,.16);padding:6px}
   .v8side .v8sub .v8item{height:32px}
   .v8pagehead{flex-wrap:wrap}
   .v8pgright{width:100%;justify-content:flex-start}
@@ -2107,16 +1996,18 @@ td.num{font-weight:700;color:var(--ink)}
   .v8side{top:64px;max-height:calc(100vh - 84px)}
 }
 @media (max-width:768px){
-  .v8big{flex:1 1 100%;margin:6px 0 1px}
   .pacts .psep{display:none}
   .pacts .btn{height:27px;font-size:11.4px}
 }
-
 /* ==========================================================================
    v15 — 24인치(1920px) 전체 폭 확장 · 사이드바 196px 슬림 · 작업 열 통일
    ========================================================================== */
-/* ---------- 화면 가로 꽉 채우기 (좌우 바깥 여백 14px) ---------- */
-.v8shell,.top,.banner,.modesw,.kpis,.layout,.accwrap{max-width:none}
+.v8shell,
+.top,
+.banner,
+.kpis,
+.layout,
+.accwrap{max-width:none}
 .top{padding:10px 14px}
 .banner{margin:12px 14px 0}
 .v8shell{grid-template-columns:196px minmax(0,1fr);gap:12px;padding:14px 14px 46px}
@@ -2128,7 +2019,6 @@ td.num{font-weight:700;color:var(--ink)}
   .v8side .v8sub{margin:2px 0 3px 15px;padding-left:8px}
   .v8side .v8sub .v8item{gap:5px;padding:0 7px;font-size:12.2px}
   .v8side .v8sub .v8item .cnt{padding:1px 5px;font-size:10px}
-  .v8big{padding:0 7px}
 }
 
 /* ---------- 작업 열 — 어느 표든 [작업 ▾] 한 버튼 ---------- */
@@ -2517,11 +2407,23 @@ tbody tr.ugroup td.actcol{background:#F1F5F9}
 .utfoot b{color:#0F172A}
 .uempty{color:#475569}
 td.zero,.num.zero{color:#64748B}
-
 /* ---------- 5. 배지 · 라벨 — 각 잡힌 사각 라벨 ---------- */
-.tblu .whchip,.tblu .tag,.tblu .d,.tblu .fbadge,
-.badge,.dday,.dtype,.mtag,.cat-tag,.src-tag,.tax-tag,.move,.worker,
-.v8crumb,.itemtabs .itlbl,.chip,.utool .chip,.utool .utog{
+.tblu .whchip,
+.tblu .tag,
+.tblu .d,
+.tblu .fbadge,
+.badge,
+.dday,
+.mtag,
+.cat-tag,
+.src-tag,
+.tax-tag,
+.move,
+.worker,
+.v8crumb,
+.chip,
+.utool .chip,
+.utool .utog{
   border-radius:3px; box-shadow:none;
 }
 .tblu .whchip{height:20px;padding:0 6px;font-size:11px;font-weight:700;
@@ -2552,7 +2454,6 @@ td.zero,.num.zero{color:#64748B}
 .dday.ok{background:#F1F5F9;color:#475569;border-color:#CBD5E1}
 .dday.warn{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
 .dday.danger{background:#FEF2F1;color:#B42318;border-color:#F3C9C4}
-.dtype{padding:1px 5px;border:1px solid transparent}
 .dtype.site{background:#FEF2F1;color:#B42318;border-color:#F3C9C4}
 .dtype.vendor{background:#EFF6FF;color:#1D4ED8;border-color:#BFDBFE}
 .dtype.courier{background:#FFF5E5;color:#A15C00;border-color:#EFD9AE}
@@ -2565,23 +2466,42 @@ td.zero,.num.zero{color:#64748B}
 .utool .chip:hover{border-color:#94A3B8;background:#F8FAFC}
 .utool .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .utool .utog{border:1px solid #CBD5E1;background:#fff}
-.itemtabs .itlbl{border:1px solid #BFDBFE;background:#EFF6FF;color:#1D4ED8;padding:4px 9px;font-size:12px;font-weight:700}
 .v8crumb{border:1px solid #CBD5E1;background:#F1F5F9;color:#334155;padding:4px 9px}
 /* [작업 ▾] — 표 안의 각진 단추 */
 .actmenu,.tblu td.actcell .actmenu{height:26px;padding:0 8px;border-radius:3px;
   border:1px solid #CBD5E1;background:#fff;color:#334155;font-size:11.5px;font-weight:600;box-shadow:none}
 .actmenu:hover,.actmenu.on{background:#F1F5F9;border-color:#94A3B8;color:#1D4ED8}
-
 /* ---------- 6. 패널 · 툴바 · 버튼 · 입력창 ---------- */
-.panel,.kpi,.unicard,.unipane .unicard,.v8side,.reflectbox,.acc-quick,.login-card,
-.vsheet,.accwrap .panel{
+.panel,
+.kpi,
+.unicard,
+.unipane .unicard,
+.v8side,
+.acc-quick,
+.login-card,
+.vsheet,
+.accwrap .panel{
   border-radius:6px; border-color:#CBD5E1; box-shadow:none;
 }
 .modal-card{border-radius:6px;border-color:#CBD5E1;box-shadow:0 8px 24px rgba(15,23,42,.10)}
 .rowmenu,.fpop,.acpop{border-radius:4px;border-color:#CBD5E1;box-shadow:0 8px 20px rgba(15,23,42,.12)}
 .rowmenu button{border-radius:3px}
-.btn,.btn.tiny,.btn-row .btn,.accbtn,.act,.cancel,.docbtn,.more,.mini,.with-btn .mini,
-.v8mini,.v8st,.v8add,.submit,.utool .btn,.itemtabs .seg button,.sflinks button{
+.btn,
+.btn.tiny,
+.btn-row .btn,
+.accbtn,
+.act,
+.cancel,
+.docbtn,
+.more,
+.mini,
+.with-btn .mini,
+.v8mini,
+.v8st,
+.submit,
+.utool .btn,
+.itemtabs .seg button,
+.sflinks button{
   border-radius:4px; border-color:#CBD5E1; box-shadow:none;
 }
 .btn:hover,.accbtn:hover,.act:hover{box-shadow:none}
@@ -2718,11 +2638,6 @@ body{background:#F7F8FA;color:var(--v27-ink)}
 
 /* ---------- 3. 패널 ---------- */
 .panel,.unicard,.unipane .unicard,.list-panel{background:#fff;border:1px solid #EEF1F5;border-radius:12px;box-shadow:none}
-
-/* ---------- 4. 화면 탭(재고현황 · 입출고 내역) — 밑줄 탭 ---------- */
-.itemtabs{gap:14px;margin:2px 2px 12px;align-items:center}
-.itemtabs .itlbl{background:none;border:0;border-radius:0;padding:0;color:#94A3B8;
-  font-size:12.2px;font-weight:600;letter-spacing:-.1px}
 .itemtabs .seg{background:none;padding:0;gap:20px;border-radius:0;box-shadow:none}
 .itemtabs .seg button{background:none;border:0;border-radius:0;padding:1px 1px 7px;box-shadow:none;
   color:#8A94A6;font-size:12.5px;font-weight:600}
@@ -2801,6 +2716,8 @@ table.tblu thead th.on .car{color:#94A3B8;opacity:1}
 .tblu .cat{font-weight:600;font-size:12.4px}
 .tblu .dim{color:#A6AEBB}
 .tblu td.zero,.num.zero{color:#A6AEBB}
+/* v40 — 해동·재냉동 줄의 «27.2 이동» — 숫자 옆 작은 글자 하나로만 */
+.tblu .mvt{color:#94A3B8;font-size:10.2px;font-weight:600;margin-left:2px;letter-spacing:-.3px;white-space:nowrap}
 tr.group td{background:#F8FAFC;color:#0F172A;border-bottom:1px solid var(--v27-rule);font-weight:700}
 
 /* 품명 묶어보기 합계 줄 — 옅은 띠 + 굵은 품명·합계 */
@@ -2879,7 +2796,7 @@ table.tblu tbody tr.ugroup.open .g-name{color:#0F172A}
 /* 창고 칸이 빠진 냉동고·냉장고 화면 — 창고 이름은 화면 제목이 알려 준다 */
 .tblu tbody tr.utxrow td .cat{white-space:nowrap}
 .utool .chipset:empty{display:none}
-.itemtabs .seg.gap,.itemtabs{gap:18px}
+.itemtabs .seg.gap{gap:18px}
 
 /* ==========================================================================
    v28 — 단단하고 정갈한 업무 프로그램 톤 (v27의 밋밋함 되살리기)
@@ -3282,4 +3199,14 @@ table.tblu thead th.actcol{text-align:center}
 
 @media (max-width:768px){
   table.tblu tbody tr.ugroup .g-meta{display:none}
+}
+
+/* ==========================================================================
+   v40 — 폰에서는 왼쪽 메뉴를 접어 두고 아래 「☰ 메뉴」 단추로 연다
+     · 첫 화면부터 재고·입출고 표가 바로 보인다(메뉴 24줄을 지나 스크롤하지 않게)
+     · 메뉴에서 한 가지를 고르면 저절로 접히고 그 화면으로 간다
+   ========================================================================== */
+@media (max-width:768px){
+  #v8Side{display:none}
+  body.sideopen #v8Side{display:flex;padding:10px 10px 14px;border-radius:0 0 12px 12px}
 }

@@ -3028,12 +3028,12 @@ var ERP = (function () {
     { k: 'gc', t: '품목구분', w: 122, f: 1 },
     { k: 'tk', t: '거래구분', w: 92, f: 1 },
     { k: 'code', t: '품목코드', w: 100, f: 1 },
-    { k: 'n', t: '품목명', w: 240, f: 1 },
+    { k: 'n', t: '품목명', w: 228, f: 1 },
     { k: 'spec', t: '규격·단위', w: 108 },
     { k: 'lot', t: '로트번호', w: 122 },
-    { k: 'p', t: '거래처·생산품목', w: 186, f: 1 },
+    { k: 'p', t: '거래처·생산품목', w: 184, f: 1 },
     { k: 'inQ', t: '입고수량', w: 82, num: true },
-    { k: 'outQ', t: '출고수량', w: 82, num: true },
+    { k: 'outQ', t: '출고수량', w: 96, num: true },
     { k: 'bal', t: '잔여재고', w: 92, num: true },
     { k: 'price', t: '단가(원)', w: 86, num: true },
     { k: 'amt', t: '금액(원)', w: 104, num: true },
@@ -3447,6 +3447,8 @@ var ERP = (function () {
         code: uniMeatCodeOf(codes, e), n: e.n, spec: 'kg', unit: 'kg',
         lot: e.lid ? uniLotNo(e.i, Number(e.lid)) : '-',
         p: uniPartnerText(e), inQ: isIn ? r2(e.k) : 0, outQ: e.t === 'out' ? r2(e.k) : 0,
+        /* v40 — 해동·재냉동은 입고·출고가 아니라 창고 이동이라 두 칸이 모두 비었다. 옮긴 수량을 따로 들고 다닌다 */
+        mv: (e.t === 'thaw' || e.t === 're') ? r2(e.k) : 0,
         bal: 0, price: r2(e.price), amt: r2(e.amt), worker: e.worker || '', email: e.email || '',
         note: e.note || '', act: e.act === true, wh: e.w || 'F',
         lotKey: e.lid ? ('M|L' + e.lid) : ('M||' + [e.n, e.v, e.i, e.e].join('|'))
@@ -6712,12 +6714,24 @@ var LIVE = (function () {
   /* 폰에서는 하위 메뉴가 드롭다운이라, 하나 고르면 접어 준다 */
   function closeMobileGroups() {
     if (window.innerWidth > 768) return;
+    closeMobileSide();
     var grps = document.querySelectorAll('#v8Side .v8grp');
     for (var i = 0; i < grps.length; i++) {
       grps[i].classList.remove('open');
       var b = grps[i].querySelector('.v8cat');
       if (b) b.setAttribute('aria-expanded', 'false');
     }
+  }
+  /* v40 — 폰에서는 왼쪽 메뉴를 접어 두고 아래 「메뉴」 단추로 연다(첫 화면부터 표가 보이게) */
+  function mobileSideOpen() { return document.body.classList.contains('sideopen'); }
+  function setMobileSide(on) {
+    document.body.classList.toggle('sideopen', !!on);
+    var b = $('qbList');
+    if (b) { b.textContent = on ? '✕ 메뉴 닫기' : '☰ 메뉴'; b.setAttribute('aria-expanded', on ? 'true' : 'false'); b.classList.toggle('active', !!on); }
+  }
+  function closeMobileSide() {
+    if (window.innerWidth > 768) return;
+    if (mobileSideOpen()) setMobileSide(false);
   }
   function updatePageHead() {
     var h = PANE_HEAD[cur.erp] || PANE_HEAD.uni;
@@ -6743,10 +6757,17 @@ var LIVE = (function () {
   function accSideTab(t) {
     return t || 'V';
   }
-  /* v14 — 거래(매입·매출) 화면에서만 오른쪽 위 액션 바를 보여준다 */
+  /* v14 — 거래(매입·매출) 화면에서만 오른쪽 위 액션 바를 보여준다.
+     v40 — 매입 화면에서는 «매입·지급» 단추만, 매출 화면에서는 «매출·수금·명세표» 단추만 남긴다(반대쪽은 그 화면에서) */
   function renderPageActs(p) {
     var t = $('tradeActs');
-    if (t) t.classList.toggle('hidden', !(p === 'buy' || p === 'sale'));
+    if (!t) return;
+    var on = (p === 'buy' || p === 'sale');
+    t.classList.toggle('hidden', !on);
+    var bg = t.querySelector('.tgrp.buy'), sg = t.querySelector('.tgrp.sale'), sp = t.querySelector('.psep');
+    if (bg) bg.classList.toggle('hidden', !(on && p === 'buy'));
+    if (sg) sg.classList.toggle('hidden', !(on && p === 'sale'));
+    if (sp) sp.classList.add('hidden');
   }
   /* ==========================================================================
      v32 — 조회 화면 머리말 오른쪽 끝 공통 보조 버튼(＋ 품목 등록 · 엑셀 ▾)
@@ -6831,14 +6852,21 @@ var LIVE = (function () {
   function updateQuickLabels() {
     var f = $('qbForm'), l = $('qbList');
     if (!f) return;
-    f.textContent = '입출고 입력';
-    l.textContent = '메뉴';
+    f.textContent = '✏️ 입출고 입력';
+    l.textContent = mobileSideOpen() ? '✕ 메뉴 닫기' : '☰ 메뉴';
   }
   function openMeatQuick() {
     openIoHub();
   }
   function scrollPanel(which) {
     if (which === 'form') { openIoHub(); return; }
+    /* v40 — 폰: 메뉴 열기/닫기 (PC는 그대로 메뉴로 스크롤) */
+    if (window.innerWidth <= 768) {
+      var on = !mobileSideOpen();
+      setMobileSide(on);
+      if (on) { try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); } }
+      return;
+    }
     var side = $('v8Side');
     if (side) { try { side.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { side.scrollIntoView(); } }
   }
@@ -7231,7 +7259,11 @@ var LIVE = (function () {
   }
   function utxRowHtml(e) {
     var inQ = e.inQ > 0 ? '<span class="num b">' + fmtQty(e.inQ) + '</span>' : '<span class="dim">-</span>';
-    var outQ = e.outQ > 0 ? '<span class="num b">' + fmtQty(e.outQ) + '</span>' : '<span class="dim">-</span>';
+    /* v40 — 해동·재냉동 줄은 옮긴 수량을 출고 칸에 «27.2 이동» 으로 보여 준다(입출고 합계에는 안 들어간다) */
+    var mv = Number(e.mv) || 0;
+    var outQ = e.outQ > 0 ? '<span class="num b">' + fmtQty(e.outQ) + '</span>'
+      : (mv > 0 ? '<span class="num b">' + fmtQty(mv) + '</span><span class="mvt">이동</span>' : '<span class="dim">-</span>');
+    var mvTitle = mv > 0 ? (e.t === 're' ? '냉장고 → 냉동고 ' : '냉동고 → 냉장고 ') + fmtQty(mv) + ' kg 이동 (입고·출고 아님)' : '';
     return '<tr class="utxrow" data-kind="' + esc(e.kind) + '" data-id="' + esc(e.id) + '" data-t="' + esc(e.t) + '"' +
       ' data-act="' + (e.act ? '1' : '') + '">' +
       '<td class="num">' + esc(e.d || '-') + '</td>' +
@@ -7243,7 +7275,7 @@ var LIVE = (function () {
       '<td><span class="code">' + esc(e.lot || '-') + '</span></td>' +
       '<td class="sub" title="' + esc(e.p) + '">' + esc(e.p || '-') + '</td>' +
       '<td class="r">' + inQ + '</td>' +
-      '<td class="r">' + outQ + '</td>' +
+      '<td class="r"' + (mvTitle ? ' title="' + mvTitle + '"' : '') + '>' + outQ + '</td>' +
       '<td class="r balcell"><span class="num b">' + fmtQty(e.bal) + '</span></td>' +
       '<td class="r num">' + (e.price > 0 ? fmtInt(e.price) : '<span class="dim">-</span>') + '</td>' +
       '<td class="r num b">' + (e.amt > 0 ? fmtInt(e.amt) : '<span class="dim">-</span>') + '</td>' +
@@ -7381,7 +7413,7 @@ var LIVE = (function () {
     var out = [['날짜', '품목구분', '거래구분', '품목코드', '품목명', '규격/단위', '로트번호', '거래처·생산품목', '입고수량', '출고수량', '잔여재고', '단가(원)', '금액(원)', '작업자']];
     for (var i = 0; i < rows.length; i++) {
       out.push([rows[i].d, rows[i].gc, rows[i].tk, rows[i].code, rows[i].n, rows[i].spec, rows[i].lot, rows[i].p,
-        rows[i].inQ || '', rows[i].outQ || '', rows[i].bal, rows[i].price > 0 ? rows[i].price : '', rows[i].amt > 0 ? rows[i].amt : '', rows[i].worker]);
+        rows[i].inQ || '', rows[i].outQ || (rows[i].mv ? '이동 ' + rows[i].mv : ''), rows[i].bal, rows[i].price > 0 ? rows[i].price : '', rows[i].amt > 0 ? rows[i].amt : '', rows[i].worker]);
     }
     download(ERP.csvQuote(out), '통합입출고_' + today().replace(/-/g, '') + '.csv');
     toast('통합 입출고 ' + rows.length + '건을 CSV로 내려받았습니다.', 'ok');
@@ -8606,6 +8638,7 @@ var LIVE = (function () {
     return '<span class="vlotro">' + esc(m || '—') + '</span>';
   }
   function iosRowHtml(r, i) {
+    r.__st = iosStamp(r);
     return '<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '" data-g="' + esc(iosGroupOf(r)) + '">' +
       '<td class="c">' + iosKindCellHtml(r) + '</td>' +
       '<td>' + iosNameCellHtml(r) + '</td>' +
@@ -8647,7 +8680,19 @@ var LIVE = (function () {
     if ($('ioSheetSumAmt')) $('ioSheetSumAmt').textContent = amt ? fmtInt(amt) : '0';
     if ($('ioSheetWay')) $('ioSheetWay').textContent = '품목 ' + way + '줄 · 수량합 ' + fmtQty(q);
   }
-  /* 한 줄의 구분·창고·코드·로트·소비기한·단위 칸만 다시 그린다 */
+  /* v40 — 이 줄의 칸들이 «무엇으로» 그려졌는지 기억한다. 값이 그대로면 칸을 다시 그리지 않는다.
+     품목명을 치고 바로 소비기한 칸을 누를 때 줄 전체가 새로 그려져 첫 클릭이 먹히지 않던 문제 해결 */
+  function iosStamp(r) {
+    return {
+      kind: [r.kind, iosGroupOf(r), r.flag].join('|'),
+      wh: [r.kind, r.wh].join('|'),
+      lot: [r.kind, r.wh, r.name, r.lotId, r.lotNo, iosIsIn() ? 1 : 0].join('|'),
+      mfg: [r.kind, r.g, r.wh, r.lotId, r.mfg, iosIsIn() ? 1 : 0].join('|'),
+      exp: [r.kind, r.wh, r.name, r.lotId, r.expiry, iosIsIn() ? 1 : 0].join('|'),
+      unit: iosUnitOf(r)
+    };
+  }
+  /* 한 줄의 구분·창고·코드·로트·소비기한·단위 칸만 다시 그린다(바뀐 칸만) */
   function iosRefreshRow(i) {
     var r = iosRow(i);
     var tr = document.querySelector('#ioSheetBody tr[data-r="' + i + '"]');
@@ -8659,20 +8704,16 @@ var LIVE = (function () {
       ni.placeholder = isFp ? '예: 떡갈비 / W00100016' : '예: 등갈비';
       if (document.activeElement !== ni && ni.value !== r.name) ni.value = r.name;
     }
-    var kc = tr.children[0];
-    if (kc) kc.innerHTML = iosKindCellHtml(r);   /* 구분 + (완제품)자체/매입 함께 다시 그린다 */
+    var old = r.__st || {}, now = iosStamp(r), wc;
+    if (old.kind !== now.kind && tr.children[0]) tr.children[0].innerHTML = iosKindCellHtml(r);
     var cc = tr.querySelector('[data-cell="code"]');
     if (cc) cc.textContent = iosCodeOf(r) || '코드 자동';
-    var wc = tr.querySelector('[data-cell="wh"]');
-    if (wc) wc.innerHTML = iosWhCellHtml(r);
-    var lc = tr.querySelector('[data-cell="lot"]');
-    if (lc) lc.innerHTML = iosLotCellHtml(r);
-    var mc = tr.querySelector('[data-cell="mfg"]');
-    if (mc) mc.innerHTML = iosMfgCellHtml(r);
-    var ec = tr.querySelector('[data-cell="exp"]');
-    if (ec) ec.innerHTML = iosExpCellHtml(r);
-    var uc = tr.querySelector('[data-cell="unit"]');
-    if (uc) uc.textContent = iosUnitOf(r);
+    if (old.wh !== now.wh) { wc = tr.querySelector('[data-cell="wh"]'); if (wc) wc.innerHTML = iosWhCellHtml(r); }
+    if (old.lot !== now.lot) { wc = tr.querySelector('[data-cell="lot"]'); if (wc) wc.innerHTML = iosLotCellHtml(r); }
+    if (old.mfg !== now.mfg) { wc = tr.querySelector('[data-cell="mfg"]'); if (wc) wc.innerHTML = iosMfgCellHtml(r); }
+    if (old.exp !== now.exp) { wc = tr.querySelector('[data-cell="exp"]'); if (wc) wc.innerHTML = iosExpCellHtml(r); }
+    if (old.unit !== now.unit) { wc = tr.querySelector('[data-cell="unit"]'); if (wc) wc.textContent = iosUnitOf(r); }
+    r.__st = now;
     tr.setAttribute('data-kind', r.kind);
     tr.setAttribute('data-g', iosGroupOf(r));
     iosPaint();
@@ -8690,7 +8731,7 @@ var LIVE = (function () {
     pt = $('ioSheetPartner');
     if (lab) {
       lab.innerHTML = iosIsIn() ? '업체·거래처'
-        : (dk === 'site' ? '생산품목 (선택)' : (dk === 'other' ? '사유 / 수령처 (선택)' : '거래처/업체'));
+        : (dk === 'site' ? '생산품목 (선택)' : (dk === 'other' ? '사유 / 수령처 (선택)' : '거래처'));
     }
     if (pt) {
       if (iosIsIn()) {
@@ -8877,6 +8918,25 @@ var LIVE = (function () {
     var b = $('ioSheetSave');
     b.disabled = true; b.textContent = '저장 중…';
     var ok = 0, fail = 0, errs = [], whWarn = '';
+    var isIn = iosIsIn();
+    /* v40 — 저장한 줄이 매입·매출 전표로 바로 이어진다.
+       입고(매입) · 업체(판매) 출고(매출) 만, 단가×수량 > 0 인 줄만. 현장(생산)·자체생산·기타(폐기·증정)는 전표를 만들지 않는다. */
+    var linksFree = [], linksTax = [];
+    function linkOfRow(kind, row, self) {
+      if (!row || !row.id) return null;
+      var amt = Number(kind === 'fp' ? row.amount : row.total_amount) || 0;
+      if (!(amt > 0)) return null;
+      if (kind === 'meat') {
+        var ml = isIn ? ERP.linkOfMeat({ t: 'in', amt: amt, dbid: row.id })
+          : (dk === 'vendor' ? ERP.linkOfMeat({ t: 'out', dt: 'vendor', amt: amt, dbid: row.id }) : null);
+        if (ml) linksFree.push(ml);          /* 원료육은 면세 */
+        return ml;
+      }
+      if (isIn ? self : (dk !== 'vendor')) return null;
+      var fl = ERP.linkItemOf('fp', row.id);
+      if (fl) linksTax.push(fl);             /* 완제품·부자재는 과세 */
+      return fl;
+    }
     var chain = Promise.resolve();
     lines.forEach(function (ln) {
       chain = chain.then(function () {
@@ -8896,6 +8956,7 @@ var LIVE = (function () {
               allowNegative: false, source: 'manual',
               lotNo: iosFpLotNo(rw, p, date), lotId: null, inDate: date
             }).then(function (log) {
+              linkOfRow('fp', log, self);
               /* 보관 위치(memo) 저장이 실패해도 입고 자체는 살린다 — 나중에 [작업 ▾] 보관 위치 변경으로 고칠 수 있다 */
               return fpSaveMeta(log && log.lot_id, fwh, rw.g === 'fg' ? rw.mfg : '').then(null, function (e) {
                 whWarn = (e && e.message) ? e.message : String(e);
@@ -8909,7 +8970,7 @@ var LIVE = (function () {
             price: Number(rw.price || 0) > 0 ? Number(rw.price) : null,
             expiry: null, partner: fPartner, note: note, allowNegative: false, source: fSource,
             lotNo: '', lotId: Number(fLot.id), inDate: null
-          });
+          }).then(function (log) { linkOfRow('fp', log, false); return log; });
         }
         var mwh = rw.wh === 'C' ? 'C' : 'F';
         if (iosIsIn()) {
@@ -8917,7 +8978,7 @@ var LIVE = (function () {
             date: date, type: 'in', wh: mwh, name: iosTrim(rw.name), vendor: partner,
             in_date: date, exp_date: rw.expiry || null, kg: ln.qty,
             price: Number(rw.price || 0), note: note
-          });
+          }).then(function (row) { linkOfRow('meat', row, false); return row; });
         }
         var lot = iosPickMeatLot(rw);
         if (!lot) throw new Error((ln.i + 1) + '번째 줄: ' + iosWhName(mwh) + '에 출고할 ' + iosTrim(rw.name) + ' 재고가 없습니다.');
@@ -8925,7 +8986,7 @@ var LIVE = (function () {
           date: date, type: 'out', wh: mwh, lot_id: Number(lot.dbid),
           dest_type: dk, dest: dDest, kg: ln.qty,
           price: Number(rw.price || 0), note: note
-        });
+        }).then(function (row) { linkOfRow('meat', row, false); return row; });
       }).then(function () {
         ok += 1;
       }, function (e) {
@@ -8934,17 +8995,42 @@ var LIVE = (function () {
       });
     });
     chain.then(function () {
-      b.disabled = false; b.textContent = iosIsIn() ? '입고 저장' : '출고 저장';
-      var msg = (iosIsIn() ? '입고 ' : ('출고 · ' + (IOS_DEST_NAME[dk] || '') + ' ')) + ok + '줄 저장' + (fail ? ' · 실패 ' + fail + '줄' : '');
+      b.disabled = false; b.textContent = isIn ? '입고 저장' : '출고 저장';
+      var msg = (isIn ? '입고 ' : ('출고 · ' + (IOS_DEST_NAME[dk] || '') + ' ')) + ok + '줄 저장' + (fail ? ' · 실패 ' + fail + '줄' : '');
       toast(msg, fail ? 'warn' : 'in');
       if (errs.length) $('ioSheetMsg').textContent = errs.slice(0, 3).join(' / ');
       if (whWarn) toast('보관 위치를 저장하지 못했습니다: ' + whWarn, 'warn');
       cur.hLimit = 250; cur.fgLimit = 300;
-      return reload({ silent: true }).then(function () {
-        /* v33 — 저장하면 팝업은 닫히고, 뒷배경 「입출고 내역」 표에 방금 넣은 줄이 바로 보인다 */
-        if (fail) iosRenderRows();
-        else closeIoSheet();
+      return iosReflectVouchers(linksFree, linksTax).then(function () {
+        return reload({ silent: true }).then(function () {
+          /* v33 — 저장하면 팝업은 닫히고, 뒷배경 「입출고 내역」 표에 방금 넣은 줄이 바로 보인다 */
+          if (fail) iosRenderRows();
+          else closeIoSheet();
+        });
       });
+    });
+  }
+  /* v40 — 통합 입출고 저장 뒤 매입·매출 전표 자동 반영 (원료육 = 면세, 완제품·부자재 = 과세).
+     실패해도 재고 저장은 그대로 두고, 매입·매출 내역의 [⚡ 미반영 가져오기]로 보완할 수 있게만 알린다. */
+  function iosReflectVouchers(free, tax) {
+    if (typeof SB === 'undefined' || !SB.db || !SB.db.accReflect) return Promise.resolve(null);
+    var jobs = [], made = 0, skipped = 0, failed = 0;
+    function go(items, tt) {
+      if (!items || !items.length) return;
+      jobs.push(SB.db.accReflect(items, tt).then(function (res) {
+        made += Number(res && res.ok) || 0;
+        skipped += Number(res && res.skip) || 0;
+        return null;
+      }, function () { failed += items.length; return null; }));
+    }
+    go(free, 'free');
+    go(tax, 'tax');
+    if (!jobs.length) return Promise.resolve(null);
+    return Promise.all(jobs).then(function () {
+      if (made) toast('🔄 전표 ' + made + '건 자동 반영 — 매입·매출·회계관리에 함께 들어갔습니다.', 'ok');
+      else if (skipped) toast('이미 전표가 있어 ' + skipped + '건은 건너뛰었습니다.', 'warn');
+      if (failed) toast('저장은 됐지만 전표 자동 반영에 실패한 줄이 있습니다. 매입·매출 내역에서 [⚡ 미반영 가져오기]를 눌러 주세요.', 'warn', 7000);
+      return null;
     });
   }
   function bindIoSheet() {
