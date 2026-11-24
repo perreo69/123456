@@ -5261,4 +5261,48 @@ body .in-supplier-tools button[data-in-supplier].selected:not(:disabled){backgro
 #mainView .v18-line-header>b{color:var(--report-header-ink)!important}
 #mainView table th .v80-sort-label,#mainView .v75listhead .v80-sort-label{color:var(--report-header-ink)!important}
 }
+</style><style id="v108-consistent-workspace-palette">
+/* Shared screen roles, not business status colors. Preserve v106 action buttons and document print styles. */
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+:root{--workspace-bg:#f5f5f5;--workspace-white:#ffffff;--workspace-header:#eeeeee;--workspace-subtle:#f8f8f8;--workspace-hover:#f0f0f0;--workspace-selected:#e5e5e5;--workspace-rule:#d1d1d1;--workspace-soft-rule:#e5e5e5;--workspace-ink:#333333;--workspace-muted:#666666;--mac-bg:var(--workspace-bg);--mac-line:var(--workspace-rule);--mac-softline:var(--workspace-soft-rule)}
+/* Explicit movement headings and common table/title headers, including sticky end columns. */
+#mainView#mainView table thead,#mainView#mainView table thead>tr>th,#mainView#mainView table th,
+#mainView#mainView :is(.panel-top,.hist-toolbar,.v75listhead,.v97-list-head,.v50-intake-head,.v50-out-head,.intake-row-title,.v18-line-header,.v35-lot-heading,.v37-head,.v38-head,.v61-stock-header-title),
+#mainView#mainView .v36-recent>h3{
+ background:var(--workspace-header)!important;color:var(--workspace-ink)!important;border-color:var(--workspace-rule)!important
+}
+#mainView#mainView :is(.panel-top,.hist-toolbar,.v37-head,.v38-head) :is(h2,h3),#mainView#mainView .v61-stock-header-title>strong{color:var(--workspace-ink)!important}
+/* Same surface for dates, notes, totals, summary cards, and expanded input details. */
+#mainView#mainView .v97-transaction>:is(.v97-common,.v97-footer),
+#mainView#mainView :is(.intake-common,.v18-common,.intake-footer,.v18-bottom,.v36-inputs,.v36-summary,.v36-flow-node,.table-footer,.v50-in-detail,.v50-out-lot-section,.intake-detail-grid,.lot-summary,.v37-detail,.v38-summary),
+#mainView#mainView .ac-metrics>div{
+ background:var(--workspace-subtle)!important;border-color:var(--workspace-soft-rule)!important
+}
+/* Neutral white containers and secondary search/filter controls. */
+#mainView#mainView :is(.card,.inventory-panel,.history-panel,.v36-pane,.v87-history-filters,.v90-report-filters,.filters,.v36-searchline,.v72split aside){background:var(--workspace-white)!important;border-color:var(--workspace-rule)!important}
+/* Keep existing row grouping and use the same neutral color wherever a group is shaded. */
+#mainView#mainView .v75chilled .stock-table>tbody>tr.v76-band-0>td,
+#mainView#mainView .v74frozen .v72inner tbody tr:nth-child(n)>td,
+#mainView#mainView .stock-table-v41 tbody>tr.meat-group-row:not(.expanded)>td{background:var(--workspace-white)!important}
+#mainView#mainView .v75chilled .stock-table>tbody>tr.v76-band-1>td,
+#mainView#mainView .v73expanded>td{background:var(--workspace-subtle)!important}
+/* Pointer hover is a neutral gray, not blue. Exclude explicit warning/error/status cells. */
+#mainView#mainView table tbody tr:not(.danger,.warning,.error):hover>td:not(.danger,.warning,.error,.expiry),
+#mainView#mainView .v74frozen .v72pick:hover:not(.active),
+#mainView#mainView .v72pick:hover:not(.active){background:var(--workspace-hover)!important}
+/* Selected data is neutral gray; selected navigation/actions retain the reference blue. */
+#mainView#mainView .v72pick.active,#mainView#mainView .v72pick.active:hover,
+#mainView#mainView .v36-table tr.v36-chosen>td,
+#mainView#mainView .v18-lot-active>td,
+#mainView#mainView .v72product[aria-expanded="true"]>td,
+#mainView#mainView .stock-table-v41 tbody>tr.meat-group-row.expanded>td,
+#mainView#mainView .inventory-table tbody>tr.product-row.expanded>td{
+ background:var(--workspace-selected)!important
+}
+#mainView#mainView .v72pick.active{color:var(--workspace-ink)!important;border-color:var(--workspace-rule)!important;box-shadow:inset 2px 0 #888888!important}
+/* Screen dialogs use the same neutral header and footer, without changing their actions. */
+body :is(.drawer-header,.v33-edit-head,.v95-titlebar,.v88-top,.erp-window-grip){background:var(--workspace-header)!important;border-color:var(--workspace-rule)!important}
+body :is(.drawer-bottom,.v95-product-footer,.v33-edit-foot){background:var(--workspace-subtle)!important;border-color:var(--workspace-rule)!important}
+.topbar{background:var(--workspace-header)!important;border-color:var(--workspace-rule)!important}
+}
 </style></body></html>
