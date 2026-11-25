@@ -7135,6 +7135,11 @@ html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109Par
  #sidebar.sidebar #v130MoreHead{padding-right:0!important}
  #sidebar.sidebar #v130MoreHead button.v150-dismiss{padding-right:4px!important}
  #v17StatementDialog .v17-document-actions>div{align-items:center}
+ /* Keep the command surface above the scrollable LOT list and out of its stacking context. */
+ #v144EntryDialog #mainView .v97-list{position:relative!important;isolation:isolate;z-index:0!important}
+ #v144EntryDialog #mainView .v97-footer{position:relative!important;z-index:5!important;flex-shrink:0!important;isolation:isolate;background:#fff!important}
+ #v144EntryDialog #mainView .v97-commands{position:relative!important;z-index:1!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+ #v144EntryDialog #mainView .v97-commands .intake-save{grid-column:1/-1!important;width:100%!important;min-width:0!important}
 }
 </style>
 </body></html>
