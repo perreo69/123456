@@ -5,28 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>미르스타푸드 ERP · 입출고 · 재고 · 구매 · 판매 · 생산원가 · 회계</title>
 <meta name="description" content="미르스타푸드 ERP — 입출고·재고·구매·판매·생산원가·회계를 한 화면에서 자동으로 이어 씁니다 (Supabase 로그인)">
-<meta name="theme-color" content="#1b2431">
+<meta name="theme-color" content="#F5F5F7">
 <meta name="color-scheme" content="light">
 <!-- 폰 홈 화면에 추가하면 주소창 없이 앱처럼 열립니다 -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261124_57">
-<link rel="stylesheet" href="style.css?v=20261124_57">
+<link rel="stylesheet" href="style.legacy.css?v=20261125_58">
+<link rel="stylesheet" href="style.css?v=20261125_58">
 
 <style id="compact-sidebar">
-#v8Nav .nitem .cnt{font-size:10.5px;font-weight:500;color:#64748b;font-variant-numeric:tabular-nums;text-align:right}
-#v8Nav .nitem.npar,#v8Nav .nitem.nflat{font-weight:700}
+#v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
+#v8Nav .nitem.npar,#v8Nav .nitem.nflat{font-weight:500}
 #v8Nav .nitem.nleaf:not(.on){font-weight:400}
-#v8Nav .nitem.on .cnt{color:#2563eb}
+#v8Nav .nitem.on .cnt{color:rgba(255,255,255,.82)}
 @media (min-width: 901px){
 #v8Nav{gap:6px}
 #v8Nav>.nav-card>.glabel{height:25px}
-#v8Nav .nitem{height:27px;min-height:27px}
-#v8Nav .nitem.nleaf{height:24px;min-height:24px}
+#v8Nav .nitem{height:31px;min-height:31px}
+#v8Nav .nitem.nleaf{height:28px;min-height:28px}
 #v8Nav .nsub{padding-top:0;padding-bottom:0}
 }
 </style>
@@ -37,7 +37,7 @@
 <section class="login-view" id="loginView">
   <div class="login-card">
     <div class="login-brand">
-      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 18.5V6.2L12 13l6.5-6.8v12.3"/></svg></span>
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 18.5V6.2L12 13l6.5-6.8v12.3"/></svg></span>
       <div>
         <h1>미르스타푸드<span class="prod">ERP</span></h1>
         <p>입출고 · 재고 · 구매 · 판매 · 생산원가 · 회계를 한 화면에서</p>
@@ -83,7 +83,7 @@
 
   <header class="top">
     <div class="brand">
-      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 18.5V6.2L12 13l6.5-6.8v12.3"/></svg></span>
+      <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 18.5V6.2L12 13l6.5-6.8v12.3"/></svg></span>
       <div>
         <h1>미르스타푸드<span class="prod">ERP</span></h1>
         <p id="baseLabel">불러오는 중…</p>
@@ -138,7 +138,7 @@
       <div class="nacc open" data-accordion="meat">
         <button class="nitem npar" type="button" data-acc-toggle="meat" aria-expanded="true" aria-controls="naccMeat">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg><span>원료육</span><span class="cnt" id="navCntMeat">0</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nsub" id="naccMeat">
           <button class="nitem nleaf" type="button" data-nav="stock:meat"><span>전체 재고</span><span class="cnt" id="navCntMeatAll">0</span></button>
@@ -150,7 +150,7 @@
       <div class="nacc" data-accordion="fg">
         <button class="nitem npar" type="button" data-acc-toggle="fg" aria-expanded="false" aria-controls="naccFg">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 6h17v12h-17z"/><path d="M3.5 10h17M8 14h3"/></svg><span>완제품</span><span class="cnt" id="navCntFg">0</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nsub" id="naccFg">
           <button class="nitem nleaf" type="button" data-nav="stock:fg"><span>전체 재고</span><span class="cnt" id="navCntFgAll">0</span></button>
@@ -162,7 +162,7 @@
       <div class="nacc" data-accordion="mat">
         <button class="nitem npar" type="button" data-acc-toggle="mat" aria-expanded="false" aria-controls="naccMat">
           <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M4 8l1.6-4h12.8L20 8M9 12h6"/></svg><span>부재료</span><span class="cnt" id="navCntMat">0</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
         </button>
         <div class="nsub" id="naccMat">
           <button class="nitem nleaf" type="button" data-nav="stock:mat"><span>전체 재고</span><span class="cnt" id="navCntMatAll">0</span></button>
@@ -360,7 +360,7 @@
         <!-- v32 — 상단 두 줄 규격: 제목 줄(#v8Title + 오른쪽 품목 등록·엑셀) + 검색·요약 줄(아래 한 줄) -->
         <div class="utrow" id="uniFilterRow">
           <label class="usearch">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
             <input type="search" id="uniSearch" placeholder="품명 · 로트번호 · 업체명 검색" autocomplete="off">
           </label>
           <div class="chips" id="uniCatChips">
@@ -416,7 +416,7 @@
           <span class="hint" id="utxRangeDisplay"></span>
           <span class="sp"></span>
           <label class="usearch">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
             <input type="search" id="utxSearch" placeholder="품목명 · 로트 · 거래처 검색" autocomplete="off">
           </label>
           <div class="xlmenu" id="xlUtx">
@@ -465,7 +465,7 @@
         <div class="utrow" id="itemsFilterRow">
           <button class="btn primary" id="itemsBtnNew" type="button" title="완제품·소스·향신료·야채·부자재·기타 품목을 새로 등록합니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 품목 등록</button>
           <label class="usearch">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
             <input type="search" id="itemsSearch" placeholder="품명 · 품목코드 · 거래처 검색" autocomplete="off">
           </label>
           <div class="chips" id="itemsCatChips">
@@ -1759,7 +1759,7 @@
   <datalist id="dlAccCats"></datalist>
 </div>
 
-<script src="partners_data.js?v=20261124_57"></script>
-<script src="app.js?v=20261124_57"></script>
+<script src="partners_data.js?v=20261125_58"></script>
+<script src="app.js?v=20261125_58"></script>
 </body>
 </html>

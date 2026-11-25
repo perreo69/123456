@@ -4354,7 +4354,7 @@ var LIVE = (function () {
       bt.className = 'sd-cal';
       bt.title = '달력에서 고르기';
       bt.setAttribute('aria-label', '달력에서 날짜 고르기');
-      bt.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
+      bt.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
       bt.addEventListener('mousedown', function (e) { e.preventDefault(); });
       bt.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); sdPick(el); });
       wrap.appendChild(bt);
@@ -7207,7 +7207,7 @@ var LIVE = (function () {
      오른쪽 재고 칸에 같은 숫자를 또 찍지 않는다. 띠를 누르면 그 품목의 로트 줄이 접히거나 펼쳐진다. */
   /* v45 — 접힘·펴짐 표시는 왼쪽 카테고리(원료육 등)와 «같은» 아래쪽 역삼각형(V) 하나로 통일한다.
      옆으로 눕힌 모양(› · ▸)은 UI 어디에도 두지 않는다. */
-  var TRI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"' +
+  var TRI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"' +
     ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   function uniGroupRowHtml(g, cols, open) {
     var unit = g.unit || (g.cat === '원료육' ? 'kg' : '');
