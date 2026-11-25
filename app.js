@@ -9848,7 +9848,11 @@ var LIVE = (function () {
     price: ['단가', '입고단가', '매입단가', '원가', '가격', '단가원'],
     lot: ['로트', '로트번호', '제조번호', '로트no'],
     mfg: ['제조일', '제조일자', '생산일', '생산일자'],
-    note: ['비고', '메모', '참고', '적요', 'note']
+    note: ['비고', '메모', '참고', '적요', 'note'],
+    /* 재고 현황표를 일괄 입고로 착각해 올리지 않게 잡아내는 열 */
+    stock: ['재고중량', '재고', '현재고', '잔여재고', '재고량'],
+    /* 입출고가 섞인 표에서 출고 줄을 건너뛰기 위한 열 */
+    dir: ['입출구분', '입출고구분', '거래구분', '출고입고구분']
   };
   function v53Norm(v) {
     return String(v === null || v === undefined ? '' : v).replace(/[\s()\[\]{}\/\*\-_.·:]/g, '').toLowerCase();
@@ -9866,6 +9870,12 @@ var LIVE = (function () {
         for (j = 0; j < list.length; j++) if (h === v53Norm(list[j])) { map[key] = i; break; }
       }
       if (map.exp === undefined && h.slice(-2) === '기한') map.exp = i;
+      /* 「단가(kg)」·「입고중량」·「수량(개)」 처럼 뒤에 단위가 붙은 머리글도 잡는다 */
+      if (map.price === undefined && h.indexOf('단가') === 0) map.price = i;
+      if (map.qty === undefined && h.indexOf('수량') === 0) map.qty = i;
+      if (map.weight === undefined && h.indexOf('중량') >= 0) map.weight = i;
+      if (map.exp === undefined && h.indexOf('기한') >= 0) map.exp = i;
+      if (map.date === undefined && h.indexOf('입고일') === 0) map.date = i;
     }
     return map;
   }
@@ -10077,12 +10087,25 @@ var LIVE = (function () {
       $('ioSheetMsg').textContent = '엑셀 머리글 줄을 찾지 못했습니다.';
       return;
     }
+    /* 「재고중량」 열이 있는 표는 재고 현황표다 — 입고로 넣으면 재고가 두 배가 되니 막는다 */
+    if (map.stock !== undefined) {
+      v53.src = fileName || '';
+      ioV53Stat('재고 현황표로 보입니다(‘재고중량’ 열). 입고할 줄만 있는 파일을 올려 주세요 — 재고중량 열을 지우면 이 표 그대로 쓸 수 있습니다.', 'err');
+      $('ioSheetMsg').textContent = '재고 현황표는 일괄 입고로 올릴 수 없습니다.';
+      toast('재고 현황표는 일괄 입고로 올릴 수 없습니다. 입고 줄만 있는 파일을 올려 주세요.', 'warn', 8000);
+      return;
+    }
     function cell(row, k) { return map[k] === undefined ? '' : row[map[k]]; }
     var made = [], skipped = 0, line;
     for (i = headIdx + 1; i < rows.length; i++) {
       var rw = rows[i] || [];
       line = i + 1;
       if (!rw.length) { skipped += 1; continue; }
+      /* 입출고가 섞인 표면 출고·반품 줄은 입고로 넣지 않는다 */
+      if (map.dir !== undefined) {
+        var dirv = v53Norm(cell(rw, 'dir'));
+        if (/출고|반품|출하|폐기|out/.test(dirv)) { skipped += 1; continue; }
+      }
       var code = iosTrim(cell(rw, 'code')), name = iosTrim(cell(rw, 'name'));
       var p0 = code ? ERP.fpProductOf(st.fps, code) : null;
       if (!name && p0) name = p0.n;
