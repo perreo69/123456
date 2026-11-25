@@ -10066,8 +10066,11 @@ var LIVE = (function () {
         '<p class="mtip warn">이 품목은 지금 재고가 0입니다. 창고만 골라 저장할 수 있습니다.</p>' + iosMobWhHtml(r);
     }
     h.push('<div class="mstk-head"><b>기존 재고 <i>' + list.length + '로트</i></b><span class="mstk-tot">합 ' + iosFmtQty(tot) + esc(unit) + '</span></div>');
+    /* v60 — 로트가 많으면(로인립 17 등) 카드가 끝없이 길어지지 않게 소비기한 빠른 5장만,
+       나머지는 «더 보기» 한 번으로 편다. */
+    var cap = r.moreStock ? list.length : Math.min(list.length, 5);
     h.push('<div class="mstk-list">');
-    for (i = 0; i < list.length; i++) {
+    for (i = 0; i < cap; i++) {
       it = list[i];
       var on = (sel && it.id === sel.id && it.wh === sel.wh);
       var who = '', mfg = '';
@@ -10084,6 +10087,11 @@ var LIVE = (function () {
         '<span class="ml2">' + (it.L.e ? '~' + esc(it.L.e) + iosDd(it.L.e) : '<span class="mnull">소비기한 없음</span>') +
         (mfg ? '<span class="mmfg">제조 ' + esc(mfg) + '</span>' : '') + '</span></span>' +
         '<span class="mlq">' + iosFmtQty(it.q) + '<i>' + esc(unit) + '</i></span>' +
+        '</button>');
+    }
+    if (list.length > 5) {
+      h.push('<button type="button" class="mlmore" data-morestock="1">' +
+        (r.moreStock ? ('접기 — 소비기한 빠른 5장만') : ('나머지 ' + (list.length - 5) + '로트 더 보기')) +
         '</button>');
     }
     h.push('</div>');
@@ -10110,7 +10118,8 @@ var LIVE = (function () {
     return h.join('');
   }
   function iosMobSig(r) {
-    return [r.kind, iosGroupOf(r), r.wh, r.name, r.lotId, r.lotNo, r.mfg, r.expiry, iosIsIn() ? 1 : 0].join('|');
+    return [r.kind, iosGroupOf(r), r.wh, r.name, r.lotId, r.lotNo, r.mfg, r.expiry, iosIsIn() ? 1 : 0,
+      r.moreStock ? 1 : 0].join('|');
   }
   /* 폰 카드의 칸 다시 그리기 — 입력 중인 칸이 있으면 그 칸이 끝날 때까지 미룬다 */
   function iosMRefresh(r, tr) {
@@ -10717,6 +10726,13 @@ var LIVE = (function () {
           if (lwh) lr.wh = lwh;
           iosRefreshRow(Number(ltr.getAttribute('data-r')));
         }
+        return;
+      }
+      var mk = ev.target && ev.target.closest ? ev.target.closest('[data-morestock]') : null;
+      if (mk) {
+        var mtr = mk.closest('[data-r]');
+        var mr = mtr ? iosRow(Number(mtr.getAttribute('data-r'))) : null;
+        if (mr) { mr.moreStock = !mr.moreStock; iosRefreshRow(Number(mtr.getAttribute('data-r'))); }
         return;
       }
       var wk = ev.target && ev.target.closest ? ev.target.closest('[data-whpick]') : null;

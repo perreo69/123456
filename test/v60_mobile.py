@@ -240,6 +240,31 @@ def run(pw):
     chk(bool(ins), '⑤ 입고 저장 → DB 반영', [(l.get('product_name'), l.get('qty'), l.get('exp_date')) for l in T.MOCK.logs[-2:]])
     page.wait_for_timeout(400)
 
+    # ------------------------------------------- 5b. 로트가 많을 때 «더 보기»
+    open_out(page)
+    page.click('#ioSheetBody [data-f="name"]')
+    page.type('#ioSheetBody [data-f="name"]', '로인립', delay=70)
+    page.wait_for_timeout(500)
+    if page.evaluate("() => { const p = document.querySelector('.acpop'); return !!p && !p.classList.contains('hidden'); }"):
+        page.tap('.acpop .acitem >> nth=0')
+        page.wait_for_timeout(600)
+    many = page.evaluate("""() => { const w = document.querySelector('#ioSheetBody [data-cell=stock]');
+        return { n: w.querySelectorAll('.mlot').length,
+                 more: (w.querySelector('.mlmore') || {}).textContent || '',
+                 head: (w.querySelector('.mstk-head') || {}).textContent || '' }; }""")
+    chk(many['n'] == 5 and '더 보기' in many['more'], '⑤b 로트가 많으면 5장 + 더 보기', many)
+    page.screenshot(path=os.path.join(OUT, 'M9-로트많음-더보기.png'))
+    page.tap('#ioSheetBody .mlmore')
+    page.wait_for_timeout(500)
+    more = page.evaluate("() => document.querySelector('#ioSheetBody [data-cell=stock]').querySelectorAll('.mlot').length")
+    chk(more > 5, '⑤b 더 보기로 전부 펼침', more)
+    page.tap('#ioSheetBody .mlmore')
+    page.wait_for_timeout(400)
+    chk(page.evaluate("() => document.querySelector('#ioSheetBody [data-cell=stock]').querySelectorAll('.mlot').length") == 5,
+        '⑤b 다시 접힘', '')
+    page.click('#ioSheetClose')
+    page.wait_for_timeout(300)
+
     # ---------------------------------------------------------- 6. 검색 목록 통일
     open_out(page)
     page.click('#ioSheetDestSeg button[data-dest="vendor"]')

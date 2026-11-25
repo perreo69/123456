@@ -627,6 +627,9 @@ body:not(:has(#appView:not(.hidden))) .mtabs{display:none}
 .mdd.soon{background:rgba(255,59,48,.12);color:#D92D20}
 .mdd.mid{background:rgba(255,159,10,.16);color:#B45309}
 .mdd.late{background:rgba(255,59,48,.16);color:#D92D20}
+.mlmore{display:block;width:100%;min-height:46px;border:0;border-top:1px solid var(--m-line-2);
+  background:#FBFBFD;color:var(--m-blue);font-size:13px;font-weight:650;letter-spacing:-.1px}
+.mlmore:focus,.mlmore:focus-visible{outline:none!important}
 .mtip{margin:7px 0 0;font-size:12px;line-height:1.45;color:var(--m-ink-3)}
 .mtip b{color:var(--m-ink-2);font-weight:650}
 .mtip.warn{color:#B45309}
