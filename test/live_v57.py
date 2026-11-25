@@ -16,7 +16,8 @@ import sys
 os.environ.setdefault('LD_LIBRARY_PATH', '/workspace/tool-results/chromelibs')
 from playwright.sync_api import sync_playwright
 
-BASE = sys.argv[1] if len(sys.argv) > 1 else 'https://perreo69.github.io/123456/?v=20261125_65'
+BASE = sys.argv[1] if len(sys.argv) > 1 else 'https://perreo69.github.io/123456/?v=20261125_66'
+TOKEN = BASE.split('v=')[1].split('&')[0] if 'v=' in BASE else ''
 OUT = sys.argv[2] if len(sys.argv) > 2 else '/workspace/downloads/erp-v57-live'
 os.makedirs(OUT, exist_ok=True)
 
@@ -91,9 +92,9 @@ with sync_playwright() as pw:
     print('   로트 %d건 로드' % page.evaluate("() => (window.st && st.lots) ? st.lots.length : 0"))
 
     src = page.evaluate("() => (document.querySelector('script[src*=\"app.js\"]') || {}).src || ''")
-    chk('20261125_65' in src, '실서버 app.js 토큰 _65', src)
-    chk('20261125_65' in page.evaluate("() => (document.querySelector('link[href*=\"style.css\"]') || {}).href || ''"),
-        '실서버 style.css 토큰 _65')
+    chk(TOKEN and TOKEN in src, '실서버 app.js 토큰 ' + TOKEN, src)
+    chk(TOKEN and TOKEN in page.evaluate("() => (document.querySelector('link[href*=\"style.css\"]') || {}).href || ''"),
+        '실서버 style.css 토큰 ' + TOKEN)
 
     opened = open_move(page)
     chk(opened, '해동/냉동 팝업 열림')

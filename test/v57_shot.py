@@ -200,12 +200,12 @@ def run_pc(b):
 
     # 입력칸 스타일 — 단일 테두리 + 포커스 링 하나
     page.evaluate("() => { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); }")
-    page.wait_for_timeout(200)
+    page.wait_for_timeout(500)
     inp = page.evaluate("""() => { const e = document.getElementById('uniMoveLotQ'); const s = getComputedStyle(e);
       return {bg: s.backgroundColor, border: s.borderColor, shadow: s.boxShadow, outline: s.outlineStyle}; }""")
     chk(inp['bg'] == 'rgb(255, 255, 255)' and '209, 213, 219' in inp['border'], '로트 입력칸 흰 바탕·#D1D5DB 단일 테두리', inp)
     page.focus('#uniMoveLotQ')
-    page.wait_for_timeout(200)
+    page.wait_for_timeout(600)
     inf = page.evaluate("""() => { const s = getComputedStyle(document.getElementById('uniMoveLotQ'));
       return {border: s.borderColor, shadow: s.boxShadow, outline: s.outlineStyle}; }""")
     chk('0, 122, 255' in inf['border'] and inf['shadow'].count('rgb') <= 1 and inf['outline'] == 'none',
