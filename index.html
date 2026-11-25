@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261125_63">
-<link rel="stylesheet" href="style.css?v=20261125_63">
+<link rel="stylesheet" href="style.legacy.css?v=20261125_64">
+<link rel="stylesheet" href="style.css?v=20261125_64">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -671,7 +671,9 @@
         <div class="pane hidden" data-pane="thaw">
           <div class="flow"><span class="chip b"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</span><span class="arrow">→</span><span class="chip g"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</span></div>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="thDate"></label>
-          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="thLot"></select></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span>
+            <div class="lotcombo"><input type="text" class="lcq" id="thLotQ" placeholder="품명 · 업체 · 브랜드 · 소비기한" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="thLotPop" autocomplete="off"><span class="lccar" aria-hidden="true">▾</span><select id="thLot" class="lcsel" tabindex="-1" aria-hidden="true"></select></div>
+          </label>
           <div class="lotinfo empty" id="thInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>해동 중량(kg) <span class="req">*</span></span>
             <div class="with-btn"><input type="number" id="thKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="thAll">전량</button></div>
@@ -689,7 +691,9 @@
         <div class="pane hidden" data-pane="re">
           <div class="flow"><span class="chip g"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4.5c2.9 3.5 5.2 6.2 5.2 8.8A5.2 5.2 0 0 1 12 18.5a5.2 5.2 0 0 1-5.2-5.2c0-2.6 2.3-5.3 5.2-8.8Z"/></svg> 냉장고</span><span class="arrow">→</span><span class="chip b"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M4.4 7.6l15.2 8.8"/><path d="M19.6 7.6 4.4 16.4"/></svg> 냉동고</span></div>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="reDate"></label>
-          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="reLot"></select></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span>
+            <div class="lotcombo"><input type="text" class="lcq" id="reLotQ" placeholder="품명 · 업체 · 브랜드 · 소비기한" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="reLotPop" autocomplete="off"><span class="lccar" aria-hidden="true">▾</span><select id="reLot" class="lcsel" tabindex="-1" aria-hidden="true"></select></div>
+          </label>
           <div class="lotinfo empty" id="reInfo">냉장고 재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>재냉동 중량(kg) <span class="req">*</span></span>
             <div class="with-btn"><input type="number" id="reKg" step="0.01" min="0" placeholder="0.00"><button type="button" class="mini" id="reAll">전량</button></div>
@@ -711,7 +715,9 @@
             </div>
           </div>
           <label class="field"><span>날짜</span><input type="text" data-sd="1" id="outDate"></label>
-          <label class="field"><span>로트 선택 <span class="req">*</span></span><select id="outLot"></select></label>
+          <label class="field"><span>로트 선택 <span class="req">*</span></span>
+            <div class="lotcombo"><input type="text" class="lcq" id="outLotQ" placeholder="품명 · 업체 · 브랜드 · 소비기한" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="outLotPop" autocomplete="off"><span class="lccar" aria-hidden="true">▾</span><select id="outLot" class="lcsel" tabindex="-1" aria-hidden="true"></select></div>
+          </label>
           <div class="lotinfo empty" id="outInfo">재고표에서 로트 행을 클릭하거나 위에서 선택하세요.</div>
           <label class="field"><span>출고처 <span class="req">*</span></span>
             <div class="seg" id="destSeg">
@@ -1082,7 +1088,9 @@
       </div>
       <div class="mvgrid">
         <label class="field"><span>날짜</span><input type="text" data-sd="1" id="uniMoveDate"></label>
-        <label class="field"><span>로트 <span class="req">*</span></span><select id="uniMoveLot"></select></label>
+        <label class="field lotfield"><span>로트 <span class="req">*</span></span>
+          <div class="lotcombo"><input type="text" class="lcq" id="uniMoveLotQ" placeholder="품명 · 업체 · 브랜드 · 소비기한으로 검색" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="uniMoveLotPop" autocomplete="off"><span class="lccar" aria-hidden="true">▾</span><select id="uniMoveLot" class="lcsel" tabindex="-1" aria-hidden="true"></select></div>
+        </label>
         <label class="field"><span>수량(kg) <span class="req">*</span></span><input type="number" id="uniMoveKg" step="0.01" min="0" placeholder="0.00"></label>
         <label class="field"><span>단가(원/kg)</span><input type="number" id="uniMovePrice" step="1" min="0" placeholder="0"></label>
         <label class="field"><span>생산품명 (해동)</span><input id="uniMoveProd" placeholder="예: 선진바베큐폭립"></label>
@@ -1863,7 +1871,7 @@
 </div>
 
 <script src="partners_data.js?v=20261125_62"></script>
-<script src="app.js?v=20261125_63"></script>
+<script src="app.js?v=20261125_64"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_138" data-erp-design="v135">
 <script>
 (function(){

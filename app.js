@@ -5784,6 +5784,276 @@ var LIVE = (function () {
     sel.innerHTML = html.join('');
     if (prevVal && ERP.getLot(st, prevVal)) sel.value = prevVal;
     else sel.value = '';
+    /* v56 — 검색·선택 콤보박스도 같은 목록을 쓰도록 맞춘다 */
+    var lref = lcGet(sel);
+    if (lref) { lref.wh = wh; if (lref.open) lcBuild(lref); lcShow(sel.id); }
+  }
+
+  /* ==========================================================================
+     v56 — 로트 검색·선택 콤보박스
+       입력칸을 클릭(포커스)만 해도 보관 중인 로트가 전부 드롭다운으로 뜨고,
+       품명·업체명·브랜드·소비기한·원산지를 치면 그 자리에서 걸러진다.
+       고른 값은 기존 <select>(thLot·reLot·outLot·uniMoveLot)에 그대로 들어가므로
+       저장·조회 코드는 한 줄도 바꾸지 않는다.
+     ========================================================================== */
+  var LC = {};
+
+  function lcGet(sel) {
+    if (!sel || !sel.id) return null;
+    var ref = LC[sel.id];
+    if (ref) return ref;
+    if (!sel.closest) return null;
+    var wrap = sel.closest('.lotcombo');
+    if (!wrap) return null;
+    var input = wrap.querySelector('.lcq');
+    if (!input) return null;
+    ref = LC[sel.id] = {
+      sel: sel, wrap: wrap, input: input, pop: null,
+      items: [], view: [], idx: -1, q: '', open: false, wh: 'F', id: sel.id
+    };
+    lcBind(ref);
+    lcHook(sel);
+    lcShow(sel.id);
+    return ref;
+  }
+
+  /* 앱이 sel.value= 를 넣을 때마다 입력칸 글씨도 같이 바뀌도록 값 설정을 가로챈다 */
+  function lcHook(sel) {
+    try {
+      var d = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+      if (!d || !d.get || !d.set) return;
+      Object.defineProperty(sel, 'value', {
+        configurable: true, enumerable: true,
+        get: function () { return d.get.call(sel); },
+        set: function (v) { d.set.call(sel, v); lcShow(sel.id); }
+      });
+    } catch (e) { }
+  }
+
+  function lcLabel(lot) {
+    if (!lot) return '';
+    var v = lot.v && lot.v !== '업체없음' ? ' · ' + lot.v : '';
+    return (lot.n || '-') + v;
+  }
+
+  /* select 쪽 값 → 입력칸 글씨 (치는 중에는 건드리지 않는다) */
+  function lcShow(id) {
+    var ref = LC[id];
+    if (!ref) return;
+    if (ref.open && ref.q && ref.input === document.activeElement) return;
+    ref.input.value = lcLabel(ERP.getLot(st, ref.sel.value));
+  }
+
+  function lcBind(ref) {
+    var id = ref.id, input = ref.input;
+    input.addEventListener('focus', function () {
+      if (ref.open) return;
+      ref.q = '';
+      lcOpen(id);
+      try { input.select(); } catch (e) { }
+    });
+    input.addEventListener('click', function () {
+      if (ref.open) return;
+      ref.q = '';
+      lcOpen(id);
+      try { input.select(); } catch (e) { }
+    });
+    input.addEventListener('input', function () {
+      ref.q = input.value || '';
+      ref.idx = -1;
+      if (!ref.open) { ref.open = true; input.setAttribute('aria-expanded', 'true'); lcPop(ref).classList.remove('hidden'); }
+      lcBuild(ref);
+      lcRender(id);
+      lcPlace(id);
+    });
+    input.addEventListener('keydown', function (ev) {
+      var k = ev.key;
+      if (k === 'ArrowDown' || k === 'ArrowUp') {
+        ev.preventDefault();
+        if (!ref.open) { lcOpen(id); return; }
+        var n = ref.view.length;
+        if (!n) return;
+        ref.idx = k === 'ArrowDown' ? (ref.idx + 1) % n : (ref.idx <= 0 ? n - 1 : ref.idx - 1);
+        lcMark(ref);
+        return;
+      }
+      if (k === 'Enter') {
+        ev.preventDefault();
+        if (!ref.open) { lcOpen(id); return; }
+        if (!ref.view.length) return;
+        if (ref.idx < 0) ref.idx = 0;
+        lcPick(id, ref.idx);
+        return;
+      }
+      if (k === 'Escape') {
+        ev.preventDefault();
+        lcClose(id, true);
+        return;
+      }
+      if (k === 'Tab') lcClose(id, true);
+    });
+    input.addEventListener('blur', function () {
+      setTimeout(function () {
+        if (ref.open && document.activeElement !== input) lcClose(id, true);
+      }, 120);
+    });
+  }
+
+  function lcPop(ref) {
+    if (ref.pop) return ref.pop;
+    var el = document.createElement('div');
+    el.className = 'acpop lcpop hidden';
+    el.id = ref.id + 'Pop';
+    el.setAttribute('role', 'listbox');
+    el.addEventListener('mousedown', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('[data-lci]') : null;
+      if (!b) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      lcPick(ref.id, Number(b.getAttribute('data-lci')));
+    });
+    document.body.appendChild(el);
+    ref.pop = el;
+    return el;
+  }
+
+  function lcBuild(ref) {
+    var sel = ref.sel, out = [], i, o, l, label;
+    for (i = 0; i < sel.options.length; i++) {
+      o = sel.options[i];
+      if (!o.value) continue;
+      l = ERP.getLot(st, o.value);
+      if (!l) continue;
+      label = l.n + ' ' + (l.v || '') + ' ' + (l.b || '') + ' ' + (l.mt || '') + ' ' + (l.o || '') +
+        ' ' + (l.i || '') + ' ' + (l.e || '') + ' ' + (o.textContent || '');
+      out.push({ id: l.id, lot: l, hay: label.toLowerCase() });
+    }
+    ref.items = out;
+  }
+
+  function lcOpen(id) {
+    var ref = LC[id];
+    if (!ref) return;
+    ref.open = true;
+    ref.idx = -1;
+    ref.input.setAttribute('aria-expanded', 'true');
+    lcBuild(ref);
+    lcPop(ref).classList.remove('hidden');
+    lcRender(id);
+    lcPlace(id);
+  }
+
+  function lcRender(id) {
+    var ref = LC[id];
+    if (!ref || !ref.open) return;
+    var toks = String(ref.q || '').toLowerCase().split(/\s+/), rows = [], i, t, it, ok;
+    for (t = 0; t < toks.length; t++) if (!toks[t]) toks.splice(t--, 1);
+    for (i = 0; i < ref.items.length; i++) {
+      it = ref.items[i];
+      ok = true;
+      for (t = 0; t < toks.length; t++) { if (it.hay.indexOf(toks[t]) < 0) { ok = false; break; } }
+      if (ok) rows.push(i);
+    }
+    ref.view = rows;
+    if (ref.idx >= rows.length) ref.idx = rows.length - 1;
+    var whName = ref.wh === 'C' ? '냉장고' : '냉동고';
+    var h = ['<div class="lchead"><span>' + whName + ' 보관 중 <b>' + ref.items.length + '개</b>' +
+      (toks.length ? ' · 검색 ' + rows.length + '개' : '') + '</span>' +
+      '<span class="lch2">품명·업체·브랜드·소비기한</span></div>'];
+    if (!rows.length) {
+      h.push('<div class="lcempty">‘' + esc(ref.q) + '’ 에 맞는 로트가 없습니다.<br>' + whName + '에 보관 중인 로트만 나옵니다.</div>');
+    }
+    for (i = 0; i < rows.length; i++) {
+      it = ref.items[rows[i]];
+      var lot = it.lot;
+      h.push('<button type="button" class="acitem lcitem' + (it.id === ref.sel.value ? ' sel' : '') +
+        (i === ref.idx ? ' on' : '') + '" role="option" data-lci="' + i + '">' +
+        '<b class="act"><span class="lcn">' + esc(lot.n || '-') + '</span>' +
+        '<span class="lcq2">' + fmt(ERP.qtyOf(lot, ref.wh)) + 'kg</span></b>' +
+        '<span class="acs">' + esc(lcMeta(lot)) + '</span></button>');
+    }
+    ref.pop.innerHTML = h.join('');
+    lcMark(ref);
+  }
+
+  function lcMeta(lot) {
+    var a = [];
+    if (lot.v) a.push(lot.v);
+    if (lot.mt) a.push(lot.mt);
+    if (lot.o) a.push(lot.o);
+    if (lot.b) a.push(lot.b);
+    return (a.length ? a.join(' · ') : '-') + ' · 소비기한 ' + (lot.e || '-');
+  }
+
+  /* ↑↓ 커서만 옮긴다(전체를 다시 그리지 않음) */
+  function lcMark(ref) {
+    var rows = ref.pop ? ref.pop.querySelectorAll('.lcitem') : [], i;
+    for (i = 0; i < rows.length; i++) rows[i].classList.toggle('on', i === ref.idx);
+    var on = ref.pop ? ref.pop.querySelector('.lcitem.on') : null;
+    if (on && on.scrollIntoView) { try { on.scrollIntoView({ block: 'nearest' }); } catch (e) { } }
+  }
+
+  function lcPlace(id) {
+    var ref = LC[id];
+    if (!ref || !ref.open || !ref.pop) return;
+    var r = ref.input.getBoundingClientRect();
+    var vw = window.innerWidth || 1200, vh = window.innerHeight || 800;
+    var w = Math.max(300, Math.min(Math.round(r.width), vw - 20));
+    ref.pop.style.width = w + 'px';
+    ref.pop.style.left = Math.round(Math.min(Math.max(8, r.left), vw - w - 8)) + 'px';
+    var below = vh - r.bottom - 12, above = r.top - 12;
+    var up = below < 220 && above > below;
+    var maxH = Math.max(150, Math.min(340, up ? above : below));
+    ref.pop.style.maxHeight = Math.round(maxH) + 'px';
+    var hgt = ref.pop.offsetHeight || 0;
+    ref.pop.style.top = Math.round(up && hgt ? Math.max(8, r.top - hgt - 4) : r.bottom + 4) + 'px';
+  }
+
+  function lcPick(id, vi) {
+    var ref = LC[id];
+    if (!ref) return;
+    var real = ref.view[vi], it = ref.items[real === undefined ? vi : real];
+    if (!it) return;
+    ref.sel.value = it.id;
+    try { ref.sel.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) { }
+    ref.input.value = lcLabel(it.lot);
+    lcClose(id);
+  }
+
+  function lcClose(id, revert) {
+    var ref = LC[id];
+    if (!ref) return;
+    ref.open = false;
+    ref.q = '';
+    ref.idx = -1;
+    if (ref.pop) ref.pop.classList.add('hidden');
+    ref.input.setAttribute('aria-expanded', 'false');
+    if (revert) lcShow(id);
+  }
+
+  function lcCloseAll() {
+    for (var k in LC) { if (LC[k] && LC[k].open) lcClose(k, true); }
+  }
+
+  /* 네 개의 로트 칸에 붙이고, 목록 밖을 누르면 닫히게 한다 */
+  function lcSetupAll() {
+    ['thLot', 'reLot', 'outLot', 'uniMoveLot'].forEach(function (id) {
+      if ($(id)) lcGet($(id));
+    });
+    document.addEventListener('pointerdown', function (ev) {
+      var any = false, k;
+      for (k in LC) { if (LC[k] && LC[k].open) { any = true; break; } }
+      if (!any) return;
+      var t = ev.target;
+      if (t && t.closest && (t.closest('.lotcombo') || t.closest('.lcpop'))) return;
+      lcCloseAll();
+    }, true);
+    window.addEventListener('scroll', function () {
+      for (var k in LC) if (LC[k] && LC[k].open) lcPlace(k);
+    }, true);
+    window.addEventListener('resize', function () {
+      for (var k in LC) if (LC[k] && LC[k].open) lcPlace(k);
+    });
   }
 
   function lotInfoHtml(lot, wh, id) {
@@ -8293,6 +8563,9 @@ var LIVE = (function () {
     }
     sel.innerHTML = html.join('');
     sel.value = keep && ERP.getLot(st, keep) ? keep : '';
+    /* v56 — 검색 콤보박스도 같은 창고 목록으로 */
+    var lref = lcGet(sel);
+    if (lref) { lref.wh = wh; if (lref.open) lcBuild(lref); lcShow(sel.id); }
     mvInfo();
   }
   function mvInfo() {
@@ -8301,6 +8574,7 @@ var LIVE = (function () {
     if (!box) return;
     if (!lot) { box.innerHTML = (mvFromWh() === 'C' ? '냉장고' : '냉동고') + '에 보관 중인 로트를 고르세요.'; return; }
     var q = ERP.qtyOf(lot, mvFromWh());
+    if ($('uniMoveKg')) $('uniMoveKg').max = q;
     box.innerHTML = '<b>' + esc(lot.n) + '</b> · ' + esc(lot.mt || '-') + ' / ' + esc(lot.o || '-') +
       ' · 소비기한 ' + esc(lot.e || '-') + ddayHtml(lot.e) +
       ' · ' + (mvFromWh() === 'C' ? '냉장고' : '냉동고') + ' 현재고 <b>' + fmt(q) + ' kg</b>' +
@@ -8311,6 +8585,7 @@ var LIVE = (function () {
     /* v33 — 해동 팝업을 열면 입고·출고 팝업은 닫는다(한 번에 하나만) */
     var io = $('ioSheetModal');
     if (io) io.classList.add('hidden');
+    lcClose('uniMoveLot');
     mv.lot = lotId || '';
     mv.mode = wh === 'C' ? 're' : 'thaw';
     if ($('uniMoveDate') && !$('uniMoveDate').value) $('uniMoveDate').value = today();
@@ -8326,6 +8601,7 @@ var LIVE = (function () {
   }
   function closeUniMove() {
     var m = $('uniMoveModal'); if (m) m.classList.add('hidden');
+    lcClose('uniMoveLot');
   }
   function mvSave() {
     var lot = ERP.getLot(st, ($('uniMoveLot') || {}).value || '');
@@ -15117,6 +15393,7 @@ var LIVE = (function () {
     bindItems();
     popInit();
     acSetupAll();
+    lcSetupAll();
     sdScan(document);   /* v35 — 날짜 칸 전부 스마트 날짜 입력으로 */
     sdWatch();
     setSync('wait', '확인 중');
