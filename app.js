@@ -5957,9 +5957,12 @@ var LIVE = (function () {
     ref.view = rows;
     if (ref.idx >= rows.length) ref.idx = rows.length - 1;
     var whName = ref.wh === 'C' ? '냉장고' : '냉동고';
-    var h = ['<div class="lchead"><span>' + whName + ' 보관 중 <b>' + ref.items.length + '개</b>' +
-      (toks.length ? ' · 검색 ' + rows.length + '개' : '') + '</span>' +
-      '<span class="lch2">품명·업체·브랜드·소비기한</span></div>'];
+    /* v57 — 두 줄 나열을 없애고 세로 열이 맞는 한 줄 표로 그린다 */
+    var h = ['<div class="lchead">' +
+      '<div class="lchsum"><span>' + whName + ' 보관 중 <b>' + ref.items.length + '개</b></span>' +
+      '<span class="lchq">' + (toks.length ? '검색 ' + rows.length + '개' : '') + '</span></div>' +
+      '<div class="lccols" aria-hidden="true"><span>품명</span><span>업체 · 브랜드</span>' +
+      '<span class="r">소비기한</span><span class="r">중량</span></div></div>'];
     if (!rows.length) {
       h.push('<div class="lcempty">‘' + esc(ref.q) + '’ 에 맞는 로트가 없습니다.<br>' + whName + '에 보관 중인 로트만 나옵니다.</div>');
     }
@@ -5968,21 +5971,21 @@ var LIVE = (function () {
       var lot = it.lot;
       h.push('<button type="button" class="acitem lcitem' + (it.id === ref.sel.value ? ' sel' : '') +
         (i === ref.idx ? ' on' : '') + '" role="option" data-lci="' + i + '">' +
-        '<b class="act"><span class="lcn">' + esc(lot.n || '-') + '</span>' +
-        '<span class="lcq2">' + fmt(ERP.qtyOf(lot, ref.wh)) + 'kg</span></b>' +
-        '<span class="acs">' + esc(lcMeta(lot)) + '</span></button>');
+        '<span class="lcn">' + esc(lot.n || '-') + '</span>' +
+        '<span class="lcv">' + esc(lcVendor(lot)) + '</span>' +
+        '<span class="lce">' + esc(lot.e || '-') + '</span>' +
+        '<span class="lcw">' + fmt(ERP.qtyOf(lot, ref.wh)) + '<i>kg</i></span></button>');
     }
     ref.pop.innerHTML = h.join('');
     lcMark(ref);
   }
 
-  function lcMeta(lot) {
-    var a = [];
-    if (lot.v) a.push(lot.v);
-    if (lot.mt) a.push(lot.mt);
-    if (lot.o) a.push(lot.o);
-    if (lot.b) a.push(lot.b);
-    return (a.length ? a.join(' · ') : '-') + ' · 소비기한 ' + (lot.e || '-');
+  /* 업체 · 브랜드 한 칸(둘 다 없으면 —) */
+  function lcVendor(lot) {
+    var v = lot && lot.v && lot.v !== '업체없음' ? lot.v : '';
+    var b = lot && lot.b ? lot.b : '';
+    if (v && b) return v + ' · ' + b;
+    return v || b || '—';
   }
 
   /* ↑↓ 커서만 옮긴다(전체를 다시 그리지 않음) */
@@ -5993,20 +5996,39 @@ var LIVE = (function () {
     if (on && on.scrollIntoView) { try { on.scrollIntoView({ block: 'nearest' }); } catch (e) { } }
   }
 
+  /* v57 — 드롭다운은 팝업 카드 폭에 맞춰 넓게, 화면·카드 밖으로 잘리지 않게 놓는다 */
   function lcPlace(id) {
     var ref = LC[id];
     if (!ref || !ref.open || !ref.pop) return;
     var r = ref.input.getBoundingClientRect();
     var vw = window.innerWidth || 1200, vh = window.innerHeight || 800;
-    var w = Math.max(300, Math.min(Math.round(r.width), vw - 20));
-    ref.pop.style.width = w + 'px';
-    ref.pop.style.left = Math.round(Math.min(Math.max(8, r.left), vw - w - 8)) + 'px';
-    var below = vh - r.bottom - 12, above = r.top - 12;
-    var up = below < 220 && above > below;
-    var maxH = Math.max(150, Math.min(340, up ? above : below));
+    var card = ref.input.closest ? ref.input.closest('.modal-card') : null;
+    var left, w, cardBottom = vh;
+    if (card) {
+      var cr = card.getBoundingClientRect(), cs = window.getComputedStyle(card);
+      var pl = parseFloat(cs.paddingLeft) || 0, pr = parseFloat(cs.paddingRight) || 0;
+      w = Math.min(Math.round(cr.width - pl - pr), vw - 16);
+      left = cr.left + pl;
+      cardBottom = cr.bottom;
+    } else {
+      w = Math.max(300, Math.min(Math.round(r.width), vw - 16));
+      left = r.left;
+    }
+    if (!(w > 200)) w = Math.min(300, vw - 16);
+    left = Math.min(Math.max(8, left), vw - w - 8);
+    ref.pop.style.width = Math.round(w) + 'px';
+    ref.pop.style.left = Math.round(left) + 'px';
+    /* 세로 — 카드 안쪽에 먼저 맞추고(아래 14px 띄움), 자리가 모자라면 화면 기준으로 */
+    var belowIn = Math.min(cardBottom, vh) - r.bottom - 14;
+    var belowVp = vh - r.bottom - 12;
+    var above = r.top - 12;
+    var space = belowIn >= 180 ? belowIn : belowVp;
+    var up = false;
+    if (space < 180 && above > space) { up = true; space = above; }
+    var maxH = Math.max(160, Math.min(380, space));
     ref.pop.style.maxHeight = Math.round(maxH) + 'px';
     var hgt = ref.pop.offsetHeight || 0;
-    ref.pop.style.top = Math.round(up && hgt ? Math.max(8, r.top - hgt - 4) : r.bottom + 4) + 'px';
+    ref.pop.style.top = Math.round(up && hgt ? Math.max(8, r.top - hgt - 6) : Math.min(r.bottom + 6, vh - 80)) + 'px';
   }
 
   function lcPick(id, vi) {
