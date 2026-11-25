@@ -1,0 +1,183 @@
+name: ChatGPT ERP isolated browser QA
+on:
+  pull_request:
+    branches: [main]
+    paths: ['erp/**', '.github/workflows/erp-isolated-qa.yml']
+permissions:
+  contents: read
+jobs:
+  browser-qa:
+    if: github.head_ref == 'erp-qa-v150'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright && python -m playwright install --with-deps chromium
+      - name: Test synthetic fixture without production network or credentials
+        shell: bash
+        run: |
+          mkdir -p erp-qa-output
+          python - <<'CHECK'
+          import urllib.request, time
+          url='https://perreo69.github.io/123456/erp/erp-app-v85.html?qa=149-deployed'
+          try:
+            with urllib.request.urlopen(url,timeout=15) as r:
+              body=r.read().decode('utf-8')
+              assert 'id="v149-responsive-entry-review"' in body
+              print('PUBLIC DEPLOYMENT: v149 verified, HTTP',r.status)
+          except Exception as e:
+            print('PUBLIC DEPLOYMENT CHECK:',repr(e))
+          CHECK
+          python - <<'PY'
+          from playwright.sync_api import sync_playwright
+          from pathlib import Path
+          import json
+          app=Path("erp/erp-app-v85.html").read_text()
+          css=Path("design-system.css").read_text()
+          shell="""<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'><style>html,body{margin:0;height:100%;}iframe{border:0;width:100%;height:100%;display:block}</style><script>window.erpSeed={company:{n:'QA TEST'},__MEAT_ERP_SEED__:[],__V17_PARTNERS__:[['1234567890','QA Supplier','QA Supplier']],__V17_ITEMS__:[],__ERP_CATEGORY_SEED__:[]};window.erpInitialState=null;window.qaSaves=[];window.erpSave=s=>{window.erpInitialState=structuredClone(s);window.qaSaves.push(structuredClone(s));return true};window.erpAuditActor=()=>({id:'qa',name:'QA'});</script><iframe src='/erp/erp-app-v85.html'></iframe>"""
+          sizes=[(1920,1080,False),(1440,900,False),(1366,768,False),(800,900,False),(360,780,True),(390,844,True),(412,915,True),(844,390,True)]
+          views=['stock_overview','dashboard','frozen','chilled','products','partners','history','deleted','production_trace','ac_purchase','ac_sale','ac_payable','ac_receivable']
+          issues=[]
+          with sync_playwright() as p:
+            browser=p.chromium.launch()
+            for w,h,mobile in sizes:
+              name=f'{w}x{h}'
+              ctx=browser.new_context(viewport={'width':w,'height':h},is_mobile=mobile,has_touch=mobile,device_scale_factor=1)
+              page=ctx.new_page()
+              errors=[]
+              page.on('pageerror',lambda e: errors.append(str(e)))
+              page.on('dialog',lambda d:d.accept())
+              def route(r):
+                u=r.request.url
+                if u=='http://localhost:8765/':r.fulfill(content_type='text/html',body=shell)
+                elif '/erp/erp-app-v85.html' in u and u.startswith('http://localhost:8765/'):r.fulfill(content_type='text/html',body=app)
+                elif '/design-system.css' in u and u.startswith('http://localhost:8765/'):r.fulfill(content_type='text/css',body=css)
+                else:r.abort()
+              page.route('**/*',route)
+              try:
+                page.goto('http://localhost:8765/')
+                f=page.frame_locator('iframe')
+                f.locator('body').wait_for()
+                frame=page.frames[-1]
+                frame.wait_for_function('!!window.__MEAT_ERP_TEST__')
+                for view in views:
+                  try:
+                    frame.evaluate('(view)=>window.__MEAT_ERP_TEST__.setView(view)',view)
+                    f.locator('#mainView').wait_for()
+                    page.wait_for_timeout(80)
+                    overflow=frame.evaluate('Math.max(document.documentElement.scrollWidth,document.body.scrollWidth)-innerWidth')
+                    if overflow>2:issues.append([name,view,'document overflow',overflow])
+                    page.screenshot(path=f'erp-qa-output/{name}-{view}.png')
+                  except Exception as e:issues.append([name,view,str(e)])
+                # Verify mobile More, true square hit target, drawn circle, chevron and dismiss action.
+                try:
+                  if mobile:
+                    frame.evaluate("window.__MEAT_ERP_TEST__.setView('stock_overview')")
+                    f.locator('[data-v130-tab=more]').click(timeout=3000)
+                    f.locator('#sidebar.open').wait_for(timeout=3000)
+                    button=f.locator('#v130MoreHead button')
+                    button.wait_for()
+                    check=button.evaluate("(b)=>{const r=b.getBoundingClientRect(),p=getComputedStyle(b,'::before');return {w:r.width,h:r.height,discW:parseFloat(p.width),discH:parseFloat(p.height),svg:!!b.querySelector('svg')}}")
+                    assert abs(check['w']-44)<1 and abs(check['h']-44)<1 and check['discW']==check['discH']==30 and check['svg'],check
+                    heading=f.locator('#sidebar .nav-heading').filter(has=f.locator('.v100-chevron-icon')).first
+                    if heading.is_visible():
+                      before=heading.get_attribute('aria-expanded')
+                      heading.click()
+                      assert before!=heading.get_attribute('aria-expanded')
+                    page.screenshot(path=f'erp-qa-output/{name}-more-v150.png')
+                    button.click()
+                    f.locator('#sidebar.open').wait_for(state='detached',timeout=3000)
+                  frame.evaluate("window.__MEAT_ERP_TEST__.setView('products')")
+                  # Every rendered dismiss button must carry a drawn SVG and no legacy glyph.
+                  bad=frame.evaluate("Array.from(document.querySelectorAll('button.v150-dismiss')).filter(b=>!b.querySelector('svg')||b.textContent.trim()).map(b=>b.id)")
+                  assert not bad,bad
+                  print(name,'v150 close controls: PASS')
+                except Exception as e:issues.append([name,'v150 close controls',str(e)])
+                for view,save,err in [('intake','intakeSave','intakeError'),('ship','v18Save','v18Error'),('operations','v36Save','v36Error')]:
+                  try:
+                    frame.evaluate('(view)=>window.__MEAT_ERP_TEST__.setView(view)',view)
+                    d=f.locator('#v144EntryDialog')
+                    d.wait_for()
+                    page.wait_for_timeout(80)
+                    box=d.bounding_box()
+                    if box and (box['x'] < -1 or box['x']+box['width'] > w+1):issues.append([name,view,'dialog outside viewport',box])
+                    close=f.locator('#v144Close').bounding_box()
+                    expected=44 if mobile else 32
+                    if not close or abs(close['width']-expected)>1 or abs(close['height']-expected)>1:issues.append([name,view,'non-square close control',close])
+                    page.screenshot(path=f'erp-qa-output/{name}-{view}.png')
+                    before=page.evaluate('qaSaves.length')
+                    f.locator('#'+save).click(timeout=3000)
+                    if page.evaluate('qaSaves.length')!=before:issues.append([name,view,'blank submission wrote data'])
+                    if not f.locator('#'+err).inner_text().strip():issues.append([name,view,'missing blank submission error'])
+                    f.locator('#v144Close').click(timeout=3000)
+                    d.wait_for(state='detached',timeout=3000)
+                  except Exception as e:issues.append([name,view,str(e)])
+                try:
+                  # Exercise actual application save handlers in the isolated iframe.
+                  def total():
+                    return frame.evaluate('window.__MEAT_ERP_TEST__.summary()')
+                  def state():
+                    return page.evaluate('window.erpInitialState')
+                  def setval(selector,value):
+                    f.locator(selector).first.evaluate("(el,v)=>{el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))}",value)
+                  def close_entry():
+                    f.locator('#v144Close').click(timeout=3000)
+                    f.locator('#v144EntryDialog').wait_for(state='detached',timeout=3000)
+                  frame.evaluate("window.__MEAT_ERP_TEST__.setView('intake')")
+                  assert frame.evaluate('window.__V17_TEST__.partners()')==1, 'fixture partner count'
+                  f.locator('#intakeVendor').fill('QA Supplier')
+                  f.locator('#v17PartnerMatches button').first.click(timeout=3000)
+                  setval('.in-search','QA Pork')
+                  setval('.in-zone','frozen')
+                  setval('.in-expiry','2028-12-31')
+                  setval('.in-qty','10')
+                  setval('.in-origin','국내산')
+                  f.locator('#intakeSave').click(timeout=3000)
+                  assert total()['frozen']==1000, ('intake',total(),f.locator('#intakeError').inner_text())
+                  assert len(state()['receiptBatches'])==1
+                  assert f.locator('.v144-cancel').count()==1
+                  close_entry()
+                  frame.evaluate("window.__MEAT_ERP_TEST__.setView('operations')")
+                  setval('[data-v36-field=qty]','4')
+                  f.locator('#v36Save').click(timeout=3000)
+                  assert (total()['frozen'],total()['chilled'],total()['total'])==(600,400,1000), ('thaw',total(),f.locator('#v36Error').inner_text())
+                  f.locator('#v142MoveKind').select_option('refreeze')
+                  setval('[data-v36-field=qty]','1')
+                  f.locator('#v36Save').click(timeout=3000)
+                  assert (total()['frozen'],total()['chilled'],total()['total'])==(700,300,1000), ('refreeze',total())
+                  close_entry()
+                  frame.evaluate("window.__MEAT_ERP_TEST__.setView('ship')")
+                  f.locator('#v123Kind').select_option('company')
+                  f.locator('#v18PartnerInput').fill('QA Supplier')
+                  f.locator('#v18PartnerMatches button').first.click(timeout=3000)
+                  f.locator('.v18-search').first.fill('QA Pork')
+                  f.locator('.v18-suggestions button').first.click(timeout=3000)
+                  f.locator('.v18-qty').first.fill('2')
+                  f.locator('#v18Save').click(timeout=3000)
+                  assert total()['total']==800, ('ship',total(),f.locator('#v18Error').inner_text())
+                  assert len(state()['shippingBatches'])==1
+                  assert len(state()['transactions'])>=4
+                  close_entry()
+                  # The persisted snapshot is reused on reload; verify inventory survives.
+                  frame.evaluate('location.reload()')
+                  page.wait_for_timeout(300)
+                  frame.wait_for_function('!!window.__MEAT_ERP_TEST__')
+                  assert total()['total']==800, ('reload',total())
+                  print(name,'intake 10 / thaw 4 / refreeze 1 / ship 2 / persisted 8 kg: PASS')
+                except Exception as e:issues.append([name,'business flow',str(e)])
+                if errors:issues.append([name,'pageerror',errors])
+              except Exception as e:issues.append([name,'startup',str(e)])
+              finally:ctx.close()
+            browser.close()
+          Path('erp-qa-output/results.json').write_text(json.dumps(issues,ensure_ascii=False,indent=2))
+          print(json.dumps(issues,ensure_ascii=False,indent=2))
+          if issues:raise SystemExit(1)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: erp-browser-qa
+          path: erp-qa-output/
