@@ -13210,7 +13210,11 @@ var LIVE = (function () {
     }
     /* 신규 입력 = 명세서형 다중 품목 / 기존 전표 수정 = 단일 전표 화면 */
     var vcard = $('accVoucherModal') ? $('accVoucherModal').querySelector('.modal-card') : null;
-    if (vcard) vcard.classList.toggle('sheetcard', !edit);   /* 명세서형은 넓게, 수정은 예전 폭으로 */
+    if (vcard) {
+      vcard.classList.toggle('sheetcard', !edit);   /* 명세서형은 넓게, 수정은 예전 폭으로 */
+      /* v61 — 기존 전표 수정(품목 없음)일 때는 폰의 합계줄을 감춘다 */
+      vcard.classList.toggle('v61-simple', !!edit);
+    }
     if ($('accVSheetWrap')) $('accVSheetWrap').classList.toggle('hidden', edit);
     if ($('accVSimpleBox')) $('accVSimpleBox').classList.toggle('hidden', !edit);
     if ($('accVTypeField')) $('accVTypeField').classList.toggle('hidden', edit);
