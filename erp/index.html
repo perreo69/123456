@@ -86,7 +86,7 @@ async function openERP(){
   if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
   if(ticket!==epoch)return;session=s;window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;revision=Number(st.data.revision);lastJSON=st.data.body?JSON.stringify(st.data.body):'';blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=138&t='+Date.now();notice('연결됨 · 서버 저장');
+  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=139&t='+Date.now();notice('연결됨 · 서버 저장');
   if(!channel){channel=db.channel('mirrstar-erp-state-v85').on('postgres_changes',{event:'UPDATE',schema:'public',table:'erp_company_state',filter:'id=eq.1'},()=>{void sync();}).subscribe();}
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
@@ -105,7 +105,7 @@ $('login').onsubmit=async e=>{
   if(!db)throw Error('인증 모듈 연결 실패 (AUTH-SDK)');const result=await db.auth.signInWithPassword({email,password});if(result.error)throw Error('아이디 또는 비밀번호를 확인해 주세요.');session=result.data.session;$('pw').value='';await openERP();
  }catch(err){msg.textContent=err.message;}finally{$('pw').value='';$('submit').disabled=false;$('switchMode').disabled=false;}
 };
-window.erpAuditActor=()=>session?.user?{id:session.user.id,name:staffName||''}:null;
+window.erpAuditActor=()=>{const u=session?.user;if(!u)return null;const email=u.email||'';const login=email.endsWith(DOMAIN)?email.slice(0,-DOMAIN.length):email;return {id:u.id,name:String(staffName||'').trim()||login||u.id};};
 window.erpSave=function(state){
  if(blocked||!session?.access_token){alert('저장할 수 없습니다. 먼저 서버 연결을 복구해 주세요.');return false;}
  const snapshot=JSON.stringify(state);if(snapshot===lastJSON)return true;
