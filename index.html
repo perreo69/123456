@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261125_59">
-<link rel="stylesheet" href="style.css?v=20261125_59">
+<link rel="stylesheet" href="style.legacy.css?v=20261125_60">
+<link rel="stylesheet" href="style.css?v=20261125_60">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -969,13 +969,26 @@
         <div class="vsheetbar">
           <b>품목 줄</b>
           <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · 기본 3줄</span>
+          <span class="sp"></span>
+          <input type="file" id="ioBulkFile" accept=".xlsx,.xls,.csv" hidden>
+          <button type="button" class="btn vadd bulk" id="ioBulkUpload" title="엑셀(.xlsx · .xls · .csv) 파일을 올리면 입고 줄을 한 번에 채웁니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5V4.5"/><path d="M8 8.5 12 4.5l4 4"/><path d="M5 19.5h14"/></svg> 엑셀 일괄 업로드</button>
+          <button type="button" class="btn vadd" id="ioBulkTemplate" title="입고 일괄등록 표준 양식(.xlsx)을 내려받습니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 양식 받기</button>
           <button type="button" class="btn vadd" id="ioSheetAdd"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 줄 추가</button>
+        </div>
+        <div class="bulkbar hidden" id="ioBulkBar">
+          <div class="bulkbar-top">
+            <b id="ioBulkName">엑셀 일괄 인식</b>
+            <span class="bulkstat" id="ioBulkStat"></span>
+            <span class="sp"></span>
+            <button type="button" class="btn vadd" id="ioBulkClear" title="엑셀에서 채운 줄을 지우고 빈 3줄로 되돌립니다">인식 비우기</button>
+          </div>
+          <ul class="bulklist" id="ioBulkList"></ul>
         </div>
         <div class="vsheet-scroll">
           <table class="vsheet-table iosheet" id="ioSheetTable">
             <colgroup>
-              <col style="width:136px"><col style="width:320px"><col style="width:130px"><col style="width:140px">
-              <col style="width:132px"><col style="width:126px"><col style="width:100px"><col style="width:108px"><col style="width:36px">
+              <col style="width:124px"><col style="width:250px"><col style="width:104px"><col style="width:116px">
+              <col style="width:88px"><col style="width:112px"><col style="width:88px"><col style="width:92px"><col style="width:36px">
             </colgroup>
             <thead><tr>
               <th>구분</th><th>품목코드 / 품목명</th><th>창고</th><th>로트번호</th><th>제조일</th><th>소비기한</th>
@@ -1798,8 +1811,8 @@
   </datalist>
 </div>
 
-<script src="partners_data.js?v=20261125_59"></script>
-<script src="app.js?v=20261125_59"></script>
+<script src="partners_data.js?v=20261125_60"></script>
+<script src="app.js?v=20261125_60"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_137" data-erp-design="v135">
 </body>
 </html>

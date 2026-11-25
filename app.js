@@ -9264,7 +9264,10 @@ var LIVE = (function () {
   }
   function iosRowHtml(r, i) {
     r.__st = iosStamp(r);
-    return '<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '" data-g="' + esc(iosGroupOf(r)) + '">' +
+    /* v53 — 엑셀에서 채운 줄은 왼쪽에 상태선(정상·확인·오류)을 두고, 마우스를 올리면 이유가 보인다 */
+    var s53 = r.srcLine ? v53Check(r) : null;
+    return '<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '" data-g="' + esc(iosGroupOf(r)) + '"' +
+      (s53 ? ' class="st-' + s53.level + '" title="엑셀 ' + r.srcLine + '행 · ' + esc(s53.msg) + '"' : '') + '>' +
       '<td class="c">' + iosKindCellHtml(r) + '</td>' +
       '<td>' + iosNameCellHtml(r) + '</td>' +
       '<td data-cell="wh">' + iosWhCellHtml(r) + '</td>' +
@@ -9304,6 +9307,7 @@ var LIVE = (function () {
     if ($('ioSheetSumQty')) $('ioSheetSumQty').textContent = fmtQty(q);
     if ($('ioSheetSumAmt')) $('ioSheetSumAmt').textContent = amt ? fmtInt(amt) : '0';
     if ($('ioSheetWay')) $('ioSheetWay').textContent = '품목 ' + way + '줄 · 수량합 ' + fmtQty(q);
+    v53Paint();
   }
   /* v40 — 이 줄의 칸들이 «무엇으로» 그려졌는지 기억한다. 값이 그대로면 칸을 다시 그리지 않는다.
      품목명을 치고 바로 소비기한 칸을 누를 때 줄 전체가 새로 그려져 첫 클릭이 먹히지 않던 문제 해결 */
@@ -9341,6 +9345,11 @@ var LIVE = (function () {
     r.__st = now;
     tr.setAttribute('data-kind', r.kind);
     tr.setAttribute('data-g', iosGroupOf(r));
+    /* v53 — 고친 뒤에도 왼쪽 상태선·설명을 지금 값으로 다시 칠한다 */
+    var s53 = r.srcLine ? v53Check(r) : null;
+    tr.className = s53 ? ('st-' + s53.level) : '';
+    if (s53) tr.title = '엑셀 ' + r.srcLine + '행 · ' + s53.msg;
+    else tr.removeAttribute('title');
     iosPaint();
   }
   /* v30 — 출고 구분 버튼·거래처 칸의 라벨/placeholder/자동완성을 한 번에 맞춘다 */
@@ -9393,6 +9402,7 @@ var LIVE = (function () {
       ? '원료육은 <b>이름·업체·입고일·소비기한</b>이 같으면 같은 로트로 모입니다. 완제품 줄은 <b>제조일</b>까지 적으면 재고 표에 그대로 나오고, 로트번호를 비우면 <b>상품코드-입고일</b>로 자동 채워집니다.'
       : '출고는 고른 로트에서 나가고, 로트를 비우면 <b>그 창고의 소비기한이 빠른 로트</b>부터 나갑니다. 재고보다 많으면 그 줄만 실패합니다. <b>현장(생산)</b>은 매출·미수금 없이 재고 차감과 <b>생산원가</b>로만 집계됩니다.';
     iosPaintDest();
+    ioV53Panel(isIn && v53.active);   /* v53 — 엑셀 일괄은 입고에서만 */
   }
   /* ==========================================================================
      v34 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 지금 화면 그대로 + 팝업만 (v31과 같은 동작)
@@ -9419,6 +9429,7 @@ var LIVE = (function () {
     var other = $('uniMoveModal');
     if (other) other.classList.add('hidden');
     iosSetType(type);
+    ioV53Reset(false);          /* v53 — 팝업을 새로 열면 엑셀 인식 결과도 비운다 */
     ios.codes = null;
     ios.rows = [];
     /* v30 — 출고 구분 기본값: 원료육(프리셋 g=meat 또는 지금 화면이 원료육)이면 현장(생산), 그 외는 업체(판매) */
@@ -9527,23 +9538,31 @@ var LIVE = (function () {
     var dDest = partner || iosDestDest(dk);
     var fSource = dk === 'site' ? 'site' : 'manual';
     var fPartner = dk === 'vendor' ? partner : dDest;
-    var lines = [], i, r, q;
+    var lines = [], i, r, q, noName = 0;
     for (i = 0; i < ios.rows.length; i++) {
       r = ios.rows[i];
       q = Number(r.qty || 0);
       if (!(q > 0)) continue;
-      if (!iosTrim(r.name)) {
-        $('ioSheetMsg').textContent = (i + 1) + '번째 줄: 품목명을 입력하세요.';
-        return;
-      }
+      /* v53 — 품목명이 빠진 줄 하나 때문에 나머지 줄까지 통째로 막지 않는다.
+         그 줄만 건너뛰고 결과에 실패로 적는다(엑셀에서 빈 줄이 섞여 들어온 경우). */
+      if (!iosTrim(r.name)) { noName += 1; continue; }
       lines.push({ i: i, r: r, qty: q });
     }
-    if (!lines.length) { $('ioSheetMsg').textContent = '수량이 있는 줄이 없습니다.'; return; }
+    if (!lines.length && !noName) { $('ioSheetMsg').textContent = '수량이 있는 줄이 없습니다.'; return; }
     $('ioSheetMsg').textContent = '';
     var b = $('ioSheetSave');
     b.disabled = true; b.textContent = '저장 중…';
-    var ok = 0, fail = 0, errs = [], whWarn = '';
+    var ok = 0, fail = noName, errs = [], whWarn = '';
     var isIn = iosIsIn();
+    /* v53 — 여러 줄을 한 번에 넣을 때 「3/12 저장 중」 처럼 진행을 보여준다 */
+    var total = lines.length + noName, done = 0;
+    if (noName) errs.push('품목명이 없어 건너뛴 줄 ' + noName + '개');
+    function iosTick() {
+      done += 1;
+      if ($('ioSheetMsg') && done < total) {
+        $('ioSheetMsg').textContent = (isIn ? '입고 ' : '출고 ') + done + '/' + total + '건 저장 중…';
+      }
+    }
     /* v40 — 저장한 줄이 매입·매출 전표로 바로 이어진다.
        입고(매입) · 업체(판매) 출고(매출) 만, 단가×수량 > 0 인 줄만. 현장(생산)·자체생산·기타(폐기·증정)는 전표를 만들지 않는다. */
     var linksFree = [], linksTax = [];
@@ -9566,20 +9585,23 @@ var LIVE = (function () {
     lines.forEach(function (ln) {
       chain = chain.then(function () {
         var rw = ln.r;
+        /* v53 — 엑셀 줄이 자기 입고일·거래처를 들고 있으면 그 값을 쓴다(없으면 팝업 값) */
+        var rowDate = iosTrim(rw.date) || date;
+        var rowPartner = iosTrim(rw.vendor) || partner;
         if (rw.kind === 'fp') {
           var p = iosProduct(rw);
           if (!p) throw new Error((ln.i + 1) + '번째 줄: 완제품·부자재 품목을 찾을 수 없습니다. (품목 등록 후 다시 입력)' );
           var fwh = rw.wh === 'F' || rw.wh === 'C' ? rw.wh : 'A';
           var self = rw.g === 'fg' && rw.flag === '자체';
-          var fpartner = self ? '자체생산' : partner;
+          var fpartner = self ? '자체생산' : rowPartner;
           if (iosIsIn()) {
             return SB.db.fpApply({
-              code: p.code, type: 'IN', qty: ln.qty, date: date,
+              code: p.code, type: 'IN', qty: ln.qty, date: rowDate,
               price: Number(rw.price || 0) > 0 ? Number(rw.price) : null,
               expiry: rw.expiry || null,
               partner: fpartner, note: self ? ('[자체생산]' + (note ? ' ' + note : '')) : note,
               allowNegative: false, source: 'manual',
-              lotNo: iosFpLotNo(rw, p, date), lotId: null, inDate: date
+              lotNo: iosFpLotNo(rw, p, rowDate), lotId: null, inDate: rowDate
             }).then(function (log) {
               linkOfRow('fp', log, self);
               /* 보관 위치(memo) 저장이 실패해도 입고 자체는 살린다 — 나중에 [작업 ▾] 보관 위치 변경으로 고칠 수 있다 */
@@ -9591,7 +9613,7 @@ var LIVE = (function () {
           var fLot = iosPickFpLot(rw);
           if (!fLot) throw new Error((ln.i + 1) + '번째 줄: ' + iosWhName(fwh) + '에 출고할 ' + iosTrim(rw.name) + ' 재고가 없습니다.');
           return SB.db.fpApply({
-            code: p.code, type: 'OUT', qty: ln.qty, date: date,
+            code: p.code, type: 'OUT', qty: ln.qty, date: rowDate,
             price: Number(rw.price || 0) > 0 ? Number(rw.price) : null,
             expiry: null, partner: fPartner, note: note, allowNegative: false, source: fSource,
             lotNo: '', lotId: Number(fLot.id), inDate: null
@@ -9600,37 +9622,56 @@ var LIVE = (function () {
         var mwh = rw.wh === 'C' ? 'C' : 'F';
         if (iosIsIn()) {
           return SB.db.apply({
-            date: date, type: 'in', wh: mwh, name: iosTrim(rw.name), vendor: partner,
-            in_date: date, exp_date: rw.expiry || null, kg: ln.qty,
+            date: rowDate, type: 'in', wh: mwh, name: iosTrim(rw.name), vendor: rowPartner,
+            in_date: rowDate, exp_date: rw.expiry || null, kg: ln.qty,
             price: Number(rw.price || 0), note: note
           }).then(function (row) { linkOfRow('meat', row, false); return row; });
         }
         var lot = iosPickMeatLot(rw);
         if (!lot) throw new Error((ln.i + 1) + '번째 줄: ' + iosWhName(mwh) + '에 출고할 ' + iosTrim(rw.name) + ' 재고가 없습니다.');
         return SB.db.apply({
-          date: date, type: 'out', wh: mwh, lot_id: Number(lot.dbid),
+          date: rowDate, type: 'out', wh: mwh, lot_id: Number(lot.dbid),
           dest_type: dk, dest: dDest, kg: ln.qty,
           price: Number(rw.price || 0), note: note
         }).then(function (row) { linkOfRow('meat', row, false); return row; });
       }).then(function () {
+        ln.r.__saved = true;      /* v53 — 저장된 줄은 실패 줄만 남기고 표에서 걷어낸다 */
         ok += 1;
+        iosTick();
       }, function (e) {
         fail += 1;
+        iosTick();
         errs.push(e && e.message ? e.message : String(e));
       });
     });
     chain.then(function () {
       b.disabled = false; b.textContent = isIn ? '입고 저장' : '출고 저장';
-      var msg = (isIn ? '입고 ' : ('출고 · ' + (IOS_DEST_NAME[dk] || '') + ' ')) + ok + '줄 저장' + (fail ? ' · 실패 ' + fail + '줄' : '');
+      var msg = isIn
+        ? '입고 ' + total + '건 중 ' + ok + '건 입고 완료'
+        : '출고 · ' + (IOS_DEST_NAME[dk] || '') + ' ' + total + '건 중 ' + ok + '건 완료';
+      if (fail) msg += ' · 실패 ' + fail + '건';
       toast(msg, fail ? 'warn' : 'in');
       if (errs.length) $('ioSheetMsg').textContent = errs.slice(0, 3).join(' / ');
+      if (!fail && $('ioSheetMsg')) $('ioSheetMsg').textContent = msg;
       if (whWarn) toast('보관 위치를 저장하지 못했습니다: ' + whWarn, 'warn');
       cur.hLimit = 250; cur.fgLimit = 300;
       return iosReflectVouchers(linksFree, linksTax).then(function () {
         return reload({ silent: true }).then(function () {
           /* v33 — 저장하면 팝업은 닫히고, 뒷배경 「입출고 내역」 표에 방금 넣은 줄이 바로 보인다 */
-          if (fail) iosRenderRows();
-          else closeIoSheet();
+          if (fail) {
+            /* v53 — 일부만 실패하면 성공한 줄은 걷어내고 «남은 줄»만 보여 준다.
+               그대로 두면 다시 저장할 때 이미 들어간 줄이 또 들어간다. */
+            var keep = [], j2, rr;
+            for (j2 = 0; j2 < ios.rows.length; j2++) {
+              rr = ios.rows[j2];
+              if (rr && rr.__saved) continue;
+              keep.push(rr);
+            }
+            if (!keep.length) keep.push(iosNewRow('meat'));
+            ios.rows = keep;
+            iosRenderRows();
+            if ($('ioSheetMsg')) $('ioSheetMsg').textContent = msg + ' — 남은 줄을 고쳐 다시 저장하세요.';
+          } else closeIoSheet();
         });
       });
     });
@@ -9764,6 +9805,389 @@ var LIVE = (function () {
       else ios.rows.splice(idx, 1);
       iosRenderRows();
     });
+    /* v53 — 엑셀 일괄 업로드 · 양식 받기 */
+    if ($('ioBulkUpload')) $('ioBulkUpload').addEventListener('click', function () {
+      if ($('ioBulkFile')) $('ioBulkFile').click();
+    });
+    if ($('ioBulkTemplate')) $('ioBulkTemplate').addEventListener('click', ioV53Template);
+    if ($('ioBulkFile')) $('ioBulkFile').addEventListener('change', ioV53Pick);
+    if ($('ioBulkClear')) $('ioBulkClear').addEventListener('click', function () {
+      ioV53Reset(true);
+      toast('엑셀에서 채운 줄을 지우고 빈 3줄로 되돌렸습니다.', 'ok');
+    });
+  }
+
+  /* ==========================================================================
+     v53 — 입고 엑셀 일괄 업로드(.xlsx · .xls · .csv) + 표준 양식 받기
+       · [엑셀 일괄 업로드] 로 파일을 고르면 아래 품목 줄이 한 번에 채워지고,
+         줄마다 «정상 · 확인 · 오류» 를 왼쪽 상태선과 요약 줄로 보여준다.
+       · 채워진 줄은 표에서 그대로 고치고 지울 수 있고, [입고 저장] 한 번이면
+         기존 iosSave(tx_apply · fp_tx_apply + 전표 자동 반영) 로 순서대로 들어간다.
+       · 브라우저 자동화(다른 AI)용 고정 이름:
+           버튼 #ioBulkUpload · 파일칸 #ioBulkFile(accept=".xlsx,.xls,.csv")
+           양식 #ioBulkTemplate · 요약 #ioBulkStat · 비우기 #ioBulkClear
+       · .xlsx·.csv 는 앱 안의 ZIP 파서로 읽고(인터넷 없어도 됨),
+         구형 .xls 만 그때 SheetJS 를 한 번 내려받아 읽는다.
+     ========================================================================== */
+  var V53_MAX = 200;
+  var V53_SHEETJS = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  var v53 = { active: false, src: '', notes: [], sjsTried: false };
+  var V53_HEADS = {
+    kind: ['구분', '종류', '품목구분', '품목종류', '대분류', '분류'],
+    code: ['품목코드', '상품코드', '제품코드', '코드', '출고상품코드', '품번'],
+    name: ['품목명', '품명', '상품명', '제품명', '물품명', '명칭', '이름', '출고상품명', '품목'],
+    sub: ['세부분류', '육류', '육류세부분류', '부위', '상세분류', '소분류', '품목분류'],
+    wh: ['보관위치', '보관장소', '창고', '보관방법', '보관', '냉동냉장', '보관구분'],
+    origin: ['원산지', '원산', '산지', '국가'],
+    brand: ['브랜드', '상표', '제조사', '메이커', '브랜드명'],
+    vendor: ['거래처', '업체', '업체명', '거래처명', '매입처', '매출처', '공급처', '공급업체', '구매처', '납품처', '발주처', '거래선'],
+    date: ['입고일', '입고일자', '입고날짜', '날짜', '일자', '거래일', '거래일자'],
+    exp: ['소비기한', '유통기한', '소비기한일', '만료일', '유효기간', '소비기간'],
+    qty: ['수량', '입고수량', '수량중량', '총수량', '개수', '입수'],
+    weight: ['중량', '입고중량', '총중량', '중량kg', 'kg', '중량수량'],
+    price: ['단가', '입고단가', '매입단가', '원가', '가격', '단가원'],
+    lot: ['로트', '로트번호', '제조번호', '로트no'],
+    mfg: ['제조일', '제조일자', '생산일', '생산일자'],
+    note: ['비고', '메모', '참고', '적요', 'note']
+  };
+  function v53Norm(v) {
+    return String(v === null || v === undefined ? '' : v).replace(/[\s()\[\]{}\/\*\-_.·:]/g, '').toLowerCase();
+  }
+  /* 머리글 줄 — 첫 20줄 안에서 품목명 열 + (수량·중량·구분·기한 중 하나)이 있는 줄 */
+  function v53MapHeader(row) {
+    var map = {}, i, h, key, list, j;
+    row = row || [];
+    for (i = 0; i < row.length; i++) {
+      h = v53Norm(row[i]);
+      if (!h) continue;
+      for (key in V53_HEADS) {
+        if (!Object.prototype.hasOwnProperty.call(V53_HEADS, key) || map[key] !== undefined) continue;
+        list = V53_HEADS[key];
+        for (j = 0; j < list.length; j++) if (h === v53Norm(list[j])) { map[key] = i; break; }
+      }
+      if (map.exp === undefined && h.slice(-2) === '기한') map.exp = i;
+    }
+    return map;
+  }
+  /* 날짜 — 2026-11-25 · 2026.11.25 · 26.11.25 · 261125 · 20261125 · 엑셀 날짜 숫자 */
+  function v53Date(v) {
+    if (v === null || v === undefined || v === '') return '';
+    if (typeof v === 'number' && v > 20000 && v < 80000) return ERP.toDateStr(v);
+    var t = String(v).replace(/\s+/g, '');
+    if (!t) return '';
+    var d = ERP.toDateStr(v);
+    if (d) return d;
+    var m = /^(\d{4})(\d{2})(\d{2})$/.exec(t);
+    if (m) return m[1] + '-' + m[2] + '-' + m[3];
+    m = /^(\d{2})(\d{2})(\d{2})$/.exec(t);
+    if (m) return '20' + m[1] + '-' + m[2] + '-' + m[3];
+    return '';
+  }
+  function v53MeatKnown(name) {
+    var n = iosTrim(name), i;
+    if (!n) return false;
+    for (i = 0; i < st.lots.length; i++) if (st.lots[i].n === n) return true;
+    return false;
+  }
+  /* 구분 열 → 일곱 구분. 비면 세부분류 → 마스터(원료육 이름·품목 코드/이름) 순으로 찾는다. */
+  function v53KindOf(rawKind, rawSub, name, code) {
+    function pick(x) {
+      if (!x) return '';
+      if (/원료|육류|생고기|생육/.test(x)) return 'meat';
+      if (/완제|제품/.test(x)) return 'fg';
+      if (/소스|소오스/.test(x)) return 'sauce';
+      if (/향신|향료/.test(x)) return 'spice';
+      if (/야채|채소/.test(x)) return 'veg';
+      if (/부자재|포장/.test(x)) return 'sub';
+      if (/기타|부재료/.test(x)) return 'etc';
+      return '';
+    }
+    var g = pick(v53Norm(rawKind)) || pick(v53Norm(rawSub));
+    if (g) return g;
+    if (v53MeatKnown(name)) return 'meat';
+    var p = code ? ERP.fpProductOf(st.fps, code) : (name ? ERP.fpFind(st.fps, name) : null);
+    if (p) return ERP.uniGroupOf(ERP.uniFpCat(p, st.fpLogs));
+    return 'meat';
+  }
+  function v53WhOf(v) {
+    var t = v53Norm(v);
+    if (!t) return '';
+    if (t === 'f' || t === 'frozen' || /냉동/.test(t)) return 'F';
+    if (t === 'c' || t === 'chilled' || /냉장/.test(t)) return 'C';
+    if (t === 'a' || t === 'room' || /실온|상온|창고/.test(t)) return 'A';
+    return '';
+  }
+  /* 한 줄 상태 — 정상(ok) · 확인(warn) · 오류(err) */
+  function v53Check(r) {
+    if (!r || !r.srcLine) return null;
+    if (!iosTrim(r.name)) return { level: 'err', msg: '품목명이 없습니다' };
+    var q = Number(r.qty || 0);
+    if (!(q > 0)) return { level: 'err', msg: '수량이 0입니다' };
+    if (r.kind === 'fp') {
+      var p = iosProduct(r);
+      if (!p) return { level: 'err', msg: '품목 마스터에 없는 이름입니다 (품목 등록 먼저)' };
+      return { level: 'ok', msg: '품목 매칭 ' + p.code };
+    }
+    if (r.wh === 'A') return { level: 'warn', msg: '원료육은 냉동고·냉장고에만 저장됩니다' };
+    if (!r.expiry) return { level: 'warn', msg: '소비기한이 없습니다' };
+    if (!v53MeatKnown(r.name)) return { level: 'warn', msg: '지금 마스터에 없던 이름 — 새 로트로 들어갑니다' };
+    return { level: 'ok', msg: '기존 품목' };
+  }
+  function ioV53Panel(on) {
+    if ($('ioBulkBar')) $('ioBulkBar').classList.toggle('hidden', !on);
+  }
+  function ioV53Reset(withRows) {
+    v53.active = false; v53.src = ''; v53.notes = [];
+    ioV53Panel(false);
+    if ($('ioBulkList')) $('ioBulkList').innerHTML = '';
+    if ($('ioBulkStat')) { $('ioBulkStat').className = 'bulkstat'; $('ioBulkStat').textContent = ''; }
+    if ($('ioBulkFile')) $('ioBulkFile').value = '';
+    if (withRows) { iosResetRows(3); iosRenderRows(); }
+  }
+  function ioV53Show(fileName) {
+    ioV53Panel(true);
+    if ($('ioBulkName')) $('ioBulkName').textContent = fileName ? ('엑셀 일괄 인식 · ' + fileName) : '엑셀 일괄 인식';
+  }
+  function ioV53Stat(html, level) {
+    ioV53Show(v53.src);
+    var st = $('ioBulkStat');
+    if (st) { st.className = 'bulkstat' + (level ? ' ' + level : ''); st.innerHTML = html; }
+    if ($('ioBulkList')) $('ioBulkList').innerHTML = '';
+  }
+  function v53Paint() {
+    if (!v53.active) return;
+    var rows = ios.rows || [], ok = 0, warn = 0, err = 0, msgs = [], i, r, c;
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i];
+      c = v53Check(r);
+      if (!c) continue;
+      if (c.level === 'ok') ok += 1;
+      else if (c.level === 'warn') warn += 1;
+      else err += 1;
+      if (c.level !== 'ok' && msgs.length < 8) {
+        msgs.push('<li class="' + c.level + '">엑셀 ' + r.srcLine + '행 · <b>' + esc(iosTrim(r.name) || '(품목명 없음)') +
+          '</b> — ' + esc(c.msg) + '</li>');
+      }
+    }
+    var st = $('ioBulkStat');
+    if (st) {
+      st.className = 'bulkstat';
+      st.innerHTML = '정상 <b class="b-ok">' + ok + '</b> · 확인 <b class="b-warn">' + warn + '</b> · 오류 <b class="b-err">' + err + '</b>';
+    }
+    var list = $('ioBulkList'), html = '', n;
+    if (list) {
+      for (n = 0; n < v53.notes.length; n++) html += '<li class="info">' + esc(v53.notes[n]) + '</li>';
+      html += msgs.join('');
+      n = warn + err - msgs.length;
+      if (n > 0) html += '<li class="info">… 외 ' + n + '줄은 표에서 왼쪽 색으로 표시됩니다</li>';
+      list.innerHTML = html;
+    }
+  }
+  /* 파일 고르기 → 읽기 → 줄 채우기 */
+  function ioV53Pick(ev) {
+    var input = ev && ev.target ? ev.target : $('ioBulkFile');
+    var f = input && input.files && input.files[0];
+    if (!f) return;
+    v53.src = f.name || '';
+    ioV53Show(v53.src);
+    ioV53Stat('읽는 중…', '');
+    ioV53Read(f, function (err, rows) {
+      if (input) input.value = '';
+      if (err) {
+        v53.src = '';
+        ioV53Stat(esc(err.message), 'err');
+        $('ioSheetMsg').textContent = err.message;
+        toast(err.message, 'err', 7000);
+        return;
+      }
+      ioV53Ingest(rows, f.name || '');
+    });
+  }
+  /* 텍스트 디코딩 — 엑셀에서 저장한 CSV(cp949)도 깨지지 않게 */
+  function ioV53Decode(buf) {
+    function dec(enc, fatal) {
+      try { return new TextDecoder(enc, { fatal: !!fatal }).decode(buf); } catch (e) { return null; }
+    }
+    var t = dec('utf-8', true);
+    if (t === null || t.indexOf('\uFFFD') >= 0) t = dec('euc-kr') || dec('utf-8') || '';
+    return t || '';
+  }
+  function ioV53Read(file, cb) {
+    var name = String(file.name || '').toLowerCase();
+    var rdr = new FileReader();
+    if (/\.(csv|txt)$/.test(name)) {
+      rdr.onload = function (ev) {
+        try { cb(null, ERP.csvRows(ioV53Decode(new Uint8Array(ev.target.result || new ArrayBuffer(0))))); }
+        catch (e) { cb(new Error('CSV 를 읽지 못했습니다. (' + (e.message || e) + ')')); }
+      };
+      rdr.onerror = function () { cb(new Error('파일을 읽지 못했습니다.')); };
+      rdr.readAsArrayBuffer(file);
+      return;
+    }
+    rdr.onload = function (ev) {
+      var bytes = new Uint8Array(ev.target.result || new ArrayBuffer(0));
+      /* 구형 .xls 는 OLE( D0 CF 11 E0 ) 로 시작한다 — 이때만 SheetJS */
+      if (bytes.length > 3 && bytes[0] === 0xD0 && bytes[1] === 0xCF) { ioV53SheetJS(file, cb, null); return; }
+      try { cb(null, ERP.xlsxRows(bytes)); }
+      catch (e) { ioV53SheetJS(file, cb, e); }
+    };
+    rdr.onerror = function () { cb(new Error('파일을 읽지 못했습니다.')); };
+    rdr.readAsArrayBuffer(file);
+  }
+  function ioV53Load(cb) {
+    if (window.XLSX) { cb(null); return; }
+    if (v53.sjsTried) { cb(new Error('구형 .xls 를 읽는 기능을 내려받지 못했습니다. 엑셀에서 [다른 이름으로 저장 → Excel 통합 문서(.xlsx)] 로 저장해 다시 올려 주세요.')); return; }
+    v53.sjsTried = true;
+    var sc = document.createElement('script');
+    sc.src = V53_SHEETJS; sc.async = true;
+    sc.onload = function () {
+      cb(window.XLSX ? null : new Error('구형 .xls 읽기 기능을 불러오지 못했습니다. .xlsx 로 저장해 올려 주세요.'));
+    };
+    sc.onerror = function () { cb(new Error('구형 .xls 읽기 기능을 불러오지 못했습니다(인터넷 확인). .xlsx 로 저장해 올려 주세요.')); };
+    document.head.appendChild(sc);
+  }
+  function ioV53SheetJS(file, cb, prev) {
+    ioV53Load(function (err) {
+      if (err) { cb(new Error((prev ? '엑셀을 읽지 못했습니다. ' : '') + err.message)); return; }
+      var rdr = new FileReader();
+      rdr.onload = function (ev) {
+        try {
+          var wb = window.XLSX.read(new Uint8Array(ev.target.result || new ArrayBuffer(0)), { type: 'array', cellDates: false });
+          var ws = wb.Sheets[wb.SheetNames[0]];
+          cb(null, window.XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: '', blankrows: false }));
+        } catch (e) { cb(new Error('엑셀을 읽지 못했습니다. (' + (e.message || e) + ')')); }
+      };
+      rdr.onerror = function () { cb(new Error('파일을 읽지 못했습니다.')); };
+      rdr.readAsArrayBuffer(file);
+    });
+  }
+  /* 표 → 입고 줄. 매칭·검증 결과를 요약하고, 줄은 지금 표에 그대로 채운다. */
+  function ioV53Ingest(rows, fileName) {
+    var i, m, headIdx = -1, map = null;
+    rows = rows || [];
+    for (i = 0; i < Math.min(20, rows.length); i++) {
+      m = v53MapHeader(rows[i] || []);
+      if (m.name !== undefined && (m.qty !== undefined || m.weight !== undefined || m.kind !== undefined || m.exp !== undefined)) {
+        headIdx = i; map = m; break;
+      }
+    }
+    if (headIdx < 0) {
+      v53.src = fileName || '';
+      ioV53Stat('머리글 줄을 찾지 못했습니다. [양식 받기] 로 받은 양식의 열 이름(품목명·수량 …)을 확인해 주세요.', 'err');
+      $('ioSheetMsg').textContent = '엑셀 머리글 줄을 찾지 못했습니다.';
+      return;
+    }
+    function cell(row, k) { return map[k] === undefined ? '' : row[map[k]]; }
+    var made = [], skipped = 0, line;
+    for (i = headIdx + 1; i < rows.length; i++) {
+      var rw = rows[i] || [];
+      line = i + 1;
+      if (!rw.length) { skipped += 1; continue; }
+      var code = iosTrim(cell(rw, 'code')), name = iosTrim(cell(rw, 'name'));
+      var p0 = code ? ERP.fpProductOf(st.fps, code) : null;
+      if (!name && p0) name = p0.n;
+      if (/^\(?예시\)?/.test(name)) { skipped += 1; continue; }
+      if (/^(합계|총계|소계|총합계|계|합)$/.test(name.replace(/\s+/g, ''))) { skipped += 1; continue; }
+      /* 품목명이 비었어도 다른 칸에 값이 있으면 오류 줄로 세워 둔다(표에서 이름만 채우면 된다) */
+      var hasAny = false, jj;
+      for (jj = 0; jj < rw.length; jj++) if (iosTrim(rw[jj]) !== '') { hasAny = true; break; }
+      if (!hasAny) { skipped += 1; continue; }
+      var g = v53KindOf(cell(rw, 'kind'), cell(rw, 'sub'), name, code);
+      var qtyCol = (g === 'meat' && map.weight !== undefined) ? 'weight' : 'qty';
+      var qty = ERP.toNum(cell(rw, qtyCol));
+      if (!(qty > 0)) qty = ERP.toNum(cell(rw, qtyCol === 'qty' ? 'weight' : 'qty'));
+      var price = ERP.toNum(cell(rw, 'price'));
+      var p = p0 || (g === 'meat' ? null : ERP.fpFind(st.fps, name));
+      var row = iosNewRow(g);
+      row.kind = g === 'meat' ? 'meat' : 'fp';
+      row.g = g;
+      row.name = name;
+      row.code = p ? p.code : (code || '');
+      row.unit = g === 'meat' ? 'kg' : ((p && p.unit) || '개');
+      if (g === 'meat') {
+        row.wh = v53WhOf(cell(rw, 'wh')) === 'C' ? 'C' : 'F';
+        row.flag = '';
+      } else {
+        row.wh = v53WhOf(cell(rw, 'wh')) || iosLastWh(row.code) || 'A';
+        row.flag = g === 'fg' ? (p ? ERP.uniFpFlag(p, st.fpLogs) : (/자체/.test(String(cell(rw, 'kind'))) ? '자체' : '매입')) : '';
+      }
+      row.expiry = v53Date(cell(rw, 'exp'));
+      row.mfg = v53Date(cell(rw, 'mfg'));
+      row.qty = qty > 0 ? String(qty) : '';
+      row.price = price > 0 ? String(price) : (p && p.inp ? String(p.inp) : '');
+      row.lotNo = iosTrim(cell(rw, 'lot'));
+      row.vendor = iosTrim(cell(rw, 'vendor'));
+      row.date = v53Date(cell(rw, 'date'));
+      row.srcLine = line;
+      made.push(row);
+    }
+    v53.src = fileName || '';
+    if (!made.length) {
+      ioV53Stat('올릴 줄을 찾지 못했습니다. 품목명·수량 열이 있는지 확인해 주세요.' + (skipped ? ' (건너뜀 ' + skipped + '줄)' : ''), 'err');
+      $('ioSheetMsg').textContent = '엑셀에서 품목 줄을 찾지 못했습니다.';
+      return;
+    }
+    if (made.length > V53_MAX) { skipped += made.length - V53_MAX; made = made.slice(0, V53_MAX); }
+    ios.rows = made;
+    for (i = 0; i < made.length; i++) if (made[i].kind === 'meat') { ios.wh = made[i].wh; break; }
+    v53.active = true;
+    v53.notes = [];
+    iosRenderRows();
+    /* 입고일·거래처가 한 가지면 팝업 칸으로 올리고, 여러 가지면 줄이 자기 값을 이긴다 */
+    var ds = {}, vs = {}, k, keys;
+    for (i = 0; i < made.length; i++) {
+      if (made[i].date) ds[made[i].date] = 1;
+      if (made[i].vendor) vs[made[i].vendor] = 1;
+    }
+    keys = Object.keys(ds);
+    if (keys.length === 1) {
+      if ($('ioSheetDate')) $('ioSheetDate').value = keys[0];
+      for (i = 0; i < made.length; i++) made[i].date = '';
+    } else if (keys.length > 1) {
+      v53.notes.push('입고일이 ' + keys.length + '가지 — 줄마다 그 날짜로 저장합니다');
+    }
+    keys = Object.keys(vs);
+    if (keys.length === 1) {
+      if ($('ioSheetPartner')) $('ioSheetPartner').value = keys[0];
+      for (i = 0; i < made.length; i++) made[i].vendor = '';
+    } else if (keys.length > 1) {
+      v53.notes.push('거래처가 ' + keys.length + '가지 — 줄마다 그 업체로 저장합니다');
+    }
+    if (skipped) v53.notes.push('빈 줄·예시 줄·합계 줄 ' + skipped + '줄은 건너뛰었습니다');
+    ioV53Show(v53.src);
+    v53Paint();
+    toast('엑셀에서 ' + made.length + '줄을 채웠습니다. 확인한 뒤 [입고 저장]을 누르세요.', 'ok', 6000);
+  }
+  /* 표준 양식(.xlsx) — 원료육부터 부자재까지 한 시트에 적는다 */
+  function ioV53Template() {
+    var head = ['구분', '품목코드', '품목명', '세부분류', '보관위치', '원산지', '브랜드', '거래처', '입고일', '소비기한', '수량(중량)', '단가', '로트번호', '비고'];
+    var rows = [head,
+      ['원료육', '', '등갈비', '돈육', '냉동고', '국내', 'TEYS', '선우프레시', '2026-11-25', '2027-09-09', 10, 9500, '', '(예시) 이 줄은 지우고 쓰세요'],
+      ['완제품', '0000000896', '일식커리소스-Y 1kg', '', '실온', '', '', '', '2026-11-25', '2027-10-14', 8, 5630, '', '(예시) 코드가 있으면 코드로 찾습니다']
+    ];
+    var guide = [
+      ['열', '쓰는 법'],
+      ['구분', '원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타. 비우면 품목명으로 알아서 찾습니다.'],
+      ['품목코드', '완제품·부자재는 코드가 있으면 코드로 찾습니다(비워도 됨). 원료육은 쓰지 않습니다.'],
+      ['품목명', '반드시 있어야 합니다. 완제품은 품목 등록된 이름과 같아야 합니다.'],
+      ['세부분류', '원료육의 육류(돈육·우육 …) 또는 부재료의 소스·향신료·야채 구분.'],
+      ['보관위치', '냉동고 · 냉장고 · 실온(상온). 원료육은 냉동고·냉장고만 됩니다. 비우면 원료육은 냉동고, 나머지는 실온입니다.'],
+      ['원산지 / 브랜드', '원료육·완제품 품목 정보로 참고합니다(이 화면에서는 저장하지 않습니다).'],
+      ['거래처', '입고 업체명. 비우면 팝업의 업체·거래처 칸 값을 씁니다.'],
+      ['입고일', '2026-11-25 · 2026.11.25 · 26.11.25 · 261125 모두 됩니다. 비우면 팝업의 입고일을 씁니다.'],
+      ['소비기한', '위와 같은 날짜 형식. 원료육은 비우면 [확인]으로 표시됩니다.'],
+      ['수량(중량)', '원료육은 kg, 그 외는 품목 단위(개·팩 …)입니다. 숫자만 적습니다(쉼표·kg 붙여도 됨).'],
+      ['단가', '입고단가(원). 비우면 품목의 입고단가를 씁니다.'],
+      ['로트번호', '완제품만. 비우면 상품코드-입고일로 자동으로 만듭니다.'],
+      ['', ''],
+      ['읽는 법', '첫 번째 시트를 읽습니다. 첫 20줄 안에서 머리글 줄을 찾고, 빈 줄·합계 줄·(예시) 줄은 건너뜁니다.'],
+      ['저장', '[엑셀 일괄 업로드] 로 올려 줄이 채워지면 표에서 확인·수정한 뒤 [입고 저장] 한 번으로 전체가 들어갑니다.']
+    ];
+    downloadXlsxFile([
+      { name: '입고일괄', rows: rows, widths: [10, 14, 30, 12, 10, 10, 12, 18, 12, 12, 12, 10, 12, 30] },
+      { name: '설명', rows: guide, widths: [16, 96] }
+    ], '입고_일괄등록_양식_' + ymdTag() + '.xlsx');
+    toast('입고 일괄등록 양식(.xlsx)을 내려받았습니다.', 'ok');
   }
 
   /* ---------- 새 상품 등록 / 수정 ---------- */
