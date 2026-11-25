@@ -7070,6 +7070,7 @@ dialog.v147-info-dialog .v147-additional .v147-info-rows{border:0;border-top:1px
 }
 </style><style id="v150-unified-dismiss-and-more">
 /* A single round dismissal symbol; never inherit full-width form-button geometry. */
+html body #v144EntryDialog button#v144Close.v148-close.v150-dismiss,
 html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109PartnerDialog,#v66NewDialog,#v33EditDialog,#v17StatementDialog,#modalLayer,#mainView) button.v150-dismiss,
 html body button.v150-dismiss:is(.v147-close,.v95-close,#v110Close,#closeModal,#v33EditClose,#v17CloseStatement){
  --v150-hit:32px;--v150-disc:28px;
@@ -7083,6 +7084,7 @@ html body button.v150-dismiss:is(.v147-close,.v95-close,#v110Close,#closeModal,#
 }
 html body button.v150-dismiss::before{content:"";position:absolute;left:50%;top:50%;width:var(--v150-disc);height:var(--v150-disc);transform:translate(-50%,-50%);border-radius:50%;background:#e7e7eb;z-index:-1;pointer-events:none}
 html body button.v150-dismiss svg{display:block!important;width:16px!important;height:16px!important;flex:none!important;pointer-events:none}
+html body #v144EntryDialog button#v144Close.v148-close.v150-dismiss:is(:hover,:active){background:transparent!important}
 html body button.v150-dismiss:hover::before{background:#dedee2}
 html body button.v150-dismiss:active::before{background:#d1d1d6}
 html body button.v150-dismiss:focus-visible{outline:2px solid #007aff!important;outline-offset:2px}
@@ -7090,7 +7092,8 @@ html body button.v150-dismiss:focus-visible{outline:2px solid #007aff!important;
 #sidebar.sidebar .nav-heading .nav-chevron>.v100-chevron-icon{width:14px!important;height:14px!important}
 #sidebar.sidebar .nav-heading .nav-chevron>.v100-legacy-chevron{display:none!important}
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
- html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109PartnerDialog,#v66NewDialog,#v33EditDialog,#v17StatementDialog,#modalLayer,#mainView) button.v150-dismiss,
+ html body #v144EntryDialog button#v144Close.v148-close.v150-dismiss,
+html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109PartnerDialog,#v66NewDialog,#v33EditDialog,#v17StatementDialog,#modalLayer,#mainView) button.v150-dismiss,
  html body button.v150-dismiss:is(.v147-close,.v95-close,#v110Close,#closeModal,#v33EditClose,#v17CloseStatement){--v150-hit:44px;--v150-disc:30px}
  #sidebar.sidebar{padding:0 16px 18px!important;border-radius:22px!important;border:1px solid rgba(60,60,67,.12)!important;background:#f2f2f7!important;box-shadow:0 12px 36px rgba(0,0,0,.18)!important;scrollbar-width:none}
  #sidebar.sidebar::-webkit-scrollbar{display:none}
