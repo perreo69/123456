@@ -686,6 +686,265 @@ body:not(:has(#appView:not(.hidden))) .mtabs{display:none}
 /* 입력칸 안의 글자가 흐릿하지 않게 — 폰 카드 안 공통 */
 #ioSheetModal input,#ioSheetModal select{color:#111827}
 
+/* ===========================================================================
+   v61 — 남은 입력 시트도 v60 입고·출고 시트와 «같은 동선 · 같은 규격»으로
+     · 해동/냉동(이동) · 매입/매출 전표 · 수금/지급 · 로트 수정 · 품목 등록
+     · 이 블록은 mobile.css 안(=폰 폭)에서만 살아난다. PC 는 이 파일을 안 물린다.
+     · 위쪽 장황한 설명은 접고, 실무 순서대로 세우고, 칸은 46px · 글자 16px.
+   ========================================================================== */
+
+/* ---------------------------------------------- v61-1. 해동 / 냉동 (이동) */
+#uniMoveModal .modal-card{
+  display:flex!important;flex-direction:column;
+  padding:0 16px calc(12px + var(--m-safe))!important;
+}
+#uniMoveModal .modal-sub{display:none!important}
+#uniMoveModal .modal-head{order:1}
+#uniMoveModal .modes{
+  order:2;width:100%!important;display:flex;gap:4px;margin:8px 0 0!important;padding:3px;
+  background:rgba(118,118,128,.10);border-radius:12px;overflow:visible;
+}
+#uniMoveModal .modes .mode{
+  flex:1 1 0;min-height:40px!important;font-size:12.5px!important;border-radius:9px!important;
+  white-space:nowrap;padding:0 8px!important;border:0!important;background:transparent!important;
+  color:var(--m-ink-2)!important;font-weight:600!important;
+}
+#uniMoveModal .modes .mode.active{
+  background:#fff!important;color:var(--m-ink)!important;box-shadow:0 1px 3px rgba(0,0,0,.10)!important;
+}
+#uniMoveModal .mvgrid{display:contents!important}
+#uniMoveModal .mvgrid>label{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:0;margin:12px 0 0!important;width:auto!important;text-align:left!important;
+}
+#uniMoveModal .mvgrid>label>span{
+  font-size:12.5px!important;font-weight:600!important;color:var(--m-ink-3)!important;
+  margin:0 0 5px 2px!important;display:block!important;
+}
+#uniMoveModal .mvgrid>label>input{
+  width:100%!important;height:46px!important;min-height:46px!important;border-radius:12px!important;
+  font-size:16px!important;padding:0 13px!important;
+}
+#uniMoveModal .mvgrid>label.lotfield>.lotcombo{width:100%}
+#uniMoveModal .mvgrid>label.lotfield .lcq{height:46px!important;border-radius:12px!important;font-size:16px!important}
+#uniMoveModal .m61-mv-date{order:2}
+#uniMoveModal .m61-mv-lot{order:3}
+#uniMoveModal .m61-mv-kg{order:5}
+#uniMoveModal .m61-mv-price{order:6}
+#uniMoveModal .m61-mv-prod{order:7}
+#uniMoveModal .m61-mv-note{order:8}
+/* 고른 로트의 현재고·소비기한 — 로트 칸 바로 밑에 한 장 */
+#uniMoveModal .mvstat{
+  order:4;margin:10px 0 0!important;padding:9px 12px!important;
+  background:#F2F2F7!important;border-radius:12px!important;
+  font-size:12.5px!important;line-height:1.5;color:var(--m-ink-2)!important;
+}
+#uniMoveModal .msg{order:9}
+#uniMoveModal .modal-actions{order:10}
+
+/* --------------------------------------- v61-2. 매입 / 매출 전표 (명세서형) */
+#accVoucherModal .modal-card{
+  display:flex!important;flex-direction:column;
+  padding:0 16px calc(12px + var(--m-safe))!important;
+}
+#accVoucherModal .modal-sub{display:none!important}
+#accVoucherModal .modal-head{order:1}
+#accVoucherModal .vhead{display:contents!important}
+#accVoucherModal .vhead>label{
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  gap:0;margin:10px 0 0!important;width:auto!important;text-align:left!important;
+}
+#accVoucherModal .vhead>label>span{
+  font-size:12.5px!important;font-weight:600!important;color:var(--m-ink-3)!important;
+  margin:0 0 5px 2px!important;display:block!important;
+}
+#accVoucherModal .vhead>label>input,#accVoucherModal .vhead>label>select{
+  width:100%!important;height:46px!important;min-height:46px!important;border-radius:12px!important;
+  font-size:16px!important;padding:0 13px!important;border:1px solid rgba(60,60,67,.16)!important;
+}
+#accVoucherModal .m61-v-type{order:2}
+#accVoucherModal .m61-v-date{order:3}
+#accVoucherModal .m61-v-partner{order:4}
+#accVoucherModal .m61-v-doc{order:5}
+#accVoucherModal .m61-v-note{order:8}
+/* 전표 종류 — 한 줄 2칸 세그먼트 */
+#accVoucherModal .m61-v-type .seg{
+  width:100%;display:flex;gap:4px;padding:3px;background:rgba(118,118,128,.10);border-radius:12px;
+}
+#accVoucherModal .m61-v-type .seg button{
+  flex:1 1 0;min-height:38px!important;font-size:13px!important;border-radius:9px!important;
+  border:0!important;background:transparent!important;color:var(--m-ink-2)!important;font-weight:600!important;
+}
+#accVoucherModal .m61-v-type .seg button.active{
+  background:#fff!important;color:var(--m-ink)!important;box-shadow:0 1px 3px rgba(0,0,0,.10)!important;
+}
+/* 품목 줄 묶음 — 머리줄·표 틀을 없애고 줄 하나 = 카드 한 장 */
+#accVoucherModal .vsheet{display:contents!important}
+#accVoucherModal .vsheet-scroll{
+  order:6;margin-top:14px;overflow:visible!important;max-height:none!important;
+}
+#accVoucherModal .vsheetbar{
+  order:7;display:block!important;margin-top:10px!important;padding:0!important;
+  background:transparent!important;border:0!important;
+}
+#accVoucherModal .vsheetbar>b,#accVoucherModal .vsheetbar .tiny-hint,
+#accVoucherModal .vsheetbar .sp{display:none!important}
+#accVoucherModal .vsheetbar::after{content:none!important}
+#accVoucherModal #accVAddRow{
+  width:100%!important;height:46px!important;border-radius:12px!important;
+  border:1.5px dashed rgba(0,122,255,.40)!important;background:rgba(0,122,255,.055)!important;
+  color:var(--m-blue)!important;font-weight:650!important;font-size:14.5px!important;
+}
+#accVoucherModal .vsimple{order:6}
+#accVoucherModal .hint{order:9}
+#accVoucherModal .msg{order:10}
+#accVoucherModal .modal-actions{
+  order:11;flex-wrap:wrap!important;align-items:center!important;
+  margin:14px -16px 0!important;
+  background:linear-gradient(rgba(255,255,255,.97),#fff 42%)!important;
+}
+#accVoucherModal #accVMSum{
+  display:flex!important;flex:1 1 100%!important;align-items:baseline;gap:4px;
+  margin:0 0 2px!important;font-size:12px;font-weight:600;color:var(--m-ink-3);
+}
+#accVMSum span{flex:1 1 auto}
+#accVMSum b{font-weight:700;color:var(--m-ink-2);font-variant-numeric:tabular-nums}
+#accVMSum b.amt{font-size:15px;color:#111827;letter-spacing:-.2px}
+#accVMSum b.amt i{font-style:normal;font-size:11px;font-weight:600;color:var(--m-ink-3);margin-left:2px}
+/* 전표 표 → 카드 (칸 이름은 PC 표와 똑같다) */
+#accVoucherModal table#accVSheet{
+  display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;
+  table-layout:auto!important;border-collapse:separate!important;border-spacing:0!important;
+  background:transparent!important;border:0!important;border-radius:0!important;
+}
+#accVoucherModal table#accVSheet colgroup,
+#accVoucherModal table#accVSheet thead,
+#accVoucherModal table#accVSheet tfoot{display:none!important}
+#accVoucherModal table#accVSheet tbody{display:flex!important;flex-direction:column;gap:10px;width:100%!important}
+#accVoucherModal table#accVSheet tbody tr[data-mcard]{
+  display:block!important;margin:0!important;padding:12px 13px 10px!important;
+  background:#fff!important;border:1px solid rgba(60,60,67,.12)!important;border-radius:16px!important;
+  box-shadow:0 1px 2px rgba(9,17,30,.045)!important;
+}
+#accVoucherModal table#accVSheet tbody tr[data-mcard]>td{
+  display:block!important;width:auto!important;min-width:0!important;height:auto!important;
+  padding:0!important;border:0!important;background:transparent!important;text-align:left!important;
+  font-size:15px!important;
+}
+/* 과세/면세 — 머리줄의 작은 칩 */
+#accVoucherModal .acr-taxchip{flex:0 0 auto;margin-left:auto}
+#accVoucherModal .acr-taxchip select{
+  width:auto!important;height:32px!important;min-height:32px!important;padding:0 24px 0 11px!important;
+  border:0!important;border-radius:16px!important;background:rgba(118,118,128,.10)!important;
+  font-size:13px!important;font-weight:650!important;color:var(--m-ink-2)!important;
+}
+#accVoucherModal .mcr-top .vdel{margin-left:8px!important}
+/* 창고/로트 · 소비기한/규격 — 카드 안 한 줄 */
+#accVoucherModal .acr-lot,#accVoucherModal .acr-exp{margin-top:9px}
+#accVoucherModal .acr-lot:empty,#accVoucherModal .acr-exp:empty{display:none!important}
+#accVoucherModal .acr-lot select,#accVoucherModal .acr-exp input{
+  width:100%!important;height:44px!important;min-height:44px!important;border-radius:11px!important;
+  font-size:15px!important;padding:0 12px!important;border:1px solid rgba(60,60,67,.16)!important;
+  background:#fff!important;color:#111827!important;
+}
+#accVoucherModal .acr-exp .mfl{
+  display:block;font-size:11.5px;font-weight:600;color:var(--m-ink-3);margin:0 0 4px 2px;
+}
+#accVoucherModal .acr-lot .vlotro,#accVoucherModal .acr-exp .vlotro{
+  display:inline;font-size:12.5px;font-weight:600;color:var(--m-ink-2);white-space:normal;
+}
+#accVoucherModal .acr-lot .vlotstock,#accVoucherModal .acr-exp .vlotstock{
+  display:inline;font-size:12px;font-weight:500;color:#6B7280;white-space:normal;margin:0;
+}
+#accVoucherModal .acr-exp .vlotro+.vlotstock::before,
+#accVoucherModal .acr-lot .vlotro+.vlotstock::before{content:"· ";color:#B0B4BB}
+/* 값이 아직 없을 때도 «0» 이 보이게 (PC 표는 빈 칸이 기본) */
+#accVoucherModal .acr-amt b:empty::before,
+#accVoucherModal .acr-amt .acr-sub b:empty::before{content:"0"}
+#accVoucherModal .mcr-name{
+  flex-wrap:wrap!important;
+}
+#accVoucherModal .mcr-name .vnamein{flex:1 1 100%!important}
+#accVoucherModal .mcr-name .mcode{
+  order:3;margin-top:5px;
+  font-size:11px;font-weight:600;color:var(--m-ink-3);background:rgba(118,118,128,.10);
+  border-radius:7px;padding:3px 7px;
+}
+#accVoucherModal .mcr-name .mcode:empty{display:none!important}
+/* 수량·단가 칸의 초점 링은 상자에 (v60 입출고 시트와 같게) */
+:is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(#accVSheetBody .mqi):focus-within{
+  outline:none!important;border-color:var(--m-blue)!important;box-shadow:0 0 0 3px rgba(0,122,255,.14)!important}
+:is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(#accVSheetBody .mqi) :is(input):focus,
+:is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(#accVSheetBody .mqi) :is(input):focus-visible,
+:is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(#accVSheetBody .mqi) :is(input):hover{
+  border:0!important;background:transparent!important;outline:none!important;box-shadow:none!important}
+/* 합계줄 — 오른쪽에 공급·세액을 작게 */
+#accVoucherModal .acr-amt{flex-wrap:wrap}
+#accVoucherModal .acr-amt .acr-sub{
+  flex:1 1 100%!important;margin-top:2px;font-style:normal;font-size:11.5px;font-weight:500;color:#6B7280;
+  text-align:right;font-variant-numeric:tabular-nums;
+}
+#accVoucherModal .acr-amt .acr-sub b{font-weight:600;color:var(--m-ink-2)}
+
+/* ---------------------------------------------- v61-3. 수금 · 지급 / 경비 */
+#accPayModal .modal-card,#accExpModal .modal-card{
+  padding:0 16px calc(12px + var(--m-safe))!important;
+}
+#accPayModal .modal-sub,#accExpModal .modal-sub{display:none!important}
+#accPayModal .modal-card .grid2,#accExpModal .modal-card .grid2{
+  grid-template-columns:1fr 1fr!important;gap:8px!important;
+}
+#accPayModal .payfull,#accExpModal .payfull{margin-top:8px}
+
+/* ------------------------------------- v61-4. 로트 수정 (원료육 · 완제품) */
+#lotModal .modal-card,#fpLotModal .modal-card{
+  display:flex!important;flex-direction:column;
+  padding:0 16px calc(12px + var(--m-safe))!important;
+}
+#lotModal .modal-head,#fpLotModal .modal-head{order:1}
+#lotModal .modal-sub,#fpLotModal .modal-sub{order:2;margin:2px 0 0!important}
+/* 폼이 아니라 «실무 순서»로 — 품목명 → 업체 → 입고/소비기한 → 재고 → 단가 → 사유 → 분류 */
+#lotModal .m61-lot-name{order:3}
+#lotModal .m61-lot-vendor{order:4}
+#lotModal .m61-lot-date{order:5}
+#lotModal .m61-lot-adjline{order:6}
+#lotModal .m61-lot-stock{order:7}
+#lotModal .m61-lot-price{order:8}
+#lotModal .m61-lot-why{order:9}
+#lotModal #lotAdjHint{order:10}
+#lotModal .m61-lot-meat{order:11}
+#lotModal .msg{order:12}
+#lotModal .modal-actions{order:13}
+#lotModal .grid2,#fpLotModal .grid2{grid-template-columns:1fr 1fr!important;gap:8px!important}
+#fpLotModal .m61-fp-stock{order:3}
+#fpLotModal .m61-fp-why{order:4}
+#fpLotModal .m61-fp-meta{order:5}
+#fpLotModal #fpLotHint{order:6}
+#fpLotModal .msg{order:7}
+#fpLotModal .modal-actions{order:8}
+#lotModal .adjline{margin:16px 0 0!important;font-size:12px!important}
+#lotModal .m61-lot-meat{margin-top:16px!important;padding-top:12px!important;border-top:1px solid var(--m-line-2)}
+
+/* ------------------------------------------------- v61-5. 품목 등록/수정 */
+#fgNewModal .modal-card{
+  display:flex!important;flex-direction:column;
+  padding:0 16px calc(12px + var(--m-safe))!important;
+}
+#fgNewModal .modal-sub{display:none!important}
+#fgNewModal .modal-head{order:1}
+#fgNewModal .m61-fg-name{order:2}
+#fgNewModal .m61-fg-spec{order:3}
+#fgNewModal .m61-fg-code{order:4}
+#fgNewModal .m61-fg-price{order:5}
+#fgNewModal .m61-fg-stock{order:6}
+#fgNewModal .m61-fg-flag{order:7}
+#fgNewModal .m61-fg-bc{order:8}
+#fgNewModal .hint{order:9;display:none!important}
+#fgNewModal .check{order:10}
+#fgNewModal .msg{order:11}
+#fgNewModal .modal-actions{order:12}
+#fgNewModal .grid2{grid-template-columns:1fr 1fr!important;gap:8px!important}
+
 /* 팝업 안의 넓은 표(거래명세표 등)는 가로 스크롤 허용 — 내용 표는 그대로 */
 #stmtModal .modal-card,#v17StatementDialog{overflow:auto!important}
 #stmtModal .modal-card .sheet-scroll,#stmtModal .modal-card .stmtwrap{overflow-x:auto}

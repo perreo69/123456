@@ -14,10 +14,10 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261126_69">
-<link rel="stylesheet" href="style.css?v=20261126_69">
+<link rel="stylesheet" href="style.legacy.css?v=20261126_70">
+<link rel="stylesheet" href="style.css?v=20261126_70">
 <!-- v58 — 폰(≤768px) 전용 화면. media 조건 때문에 PC 브라우저는 이 파일을 적용하지 않는다 -->
-<link rel="stylesheet" href="mobile.css?v=20261126_69" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
+<link rel="stylesheet" href="mobile.css?v=20261126_70" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -1089,14 +1089,14 @@
         <button class="mode" data-mv="re" type="button">재냉동 (냉장고 → 냉동고)</button>
       </div>
       <div class="mvgrid">
-        <label class="field"><span>날짜</span><input type="text" data-sd="1" id="uniMoveDate"></label>
-        <label class="field lotfield"><span>로트 <span class="req">*</span></span>
+        <label class="field m61-mv-date"><span>날짜</span><input type="text" data-sd="1" id="uniMoveDate"></label>
+        <label class="field lotfield m61-mv-lot"><span>로트 <span class="req">*</span></span>
           <div class="lotcombo"><input type="text" class="lcq" id="uniMoveLotQ" placeholder="품명 · 업체 · 브랜드 · 소비기한으로 검색" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="uniMoveLotPop" autocomplete="off"><span class="lccar" aria-hidden="true">▾</span><select id="uniMoveLot" class="lcsel" tabindex="-1" aria-hidden="true"></select></div>
         </label>
-        <label class="field"><span>수량(kg) <span class="req">*</span></span><input type="number" id="uniMoveKg" step="0.01" min="0" placeholder="0.00"></label>
-        <label class="field"><span>단가(원/kg)</span><input type="number" id="uniMovePrice" step="1" min="0" placeholder="0"></label>
-        <label class="field"><span>생산품명 (해동)</span><input id="uniMoveProd" placeholder="예: 선진바베큐폭립"></label>
-        <label class="field"><span>비고</span><input id="uniMoveNote" placeholder="선택 입력"></label>
+        <label class="field m61-mv-kg"><span>수량(kg) <span class="req">*</span></span><input type="number" id="uniMoveKg" step="0.01" min="0" placeholder="0.00"></label>
+        <label class="field m61-mv-price"><span>단가(원/kg)</span><input type="number" id="uniMovePrice" step="1" min="0" placeholder="0"></label>
+        <label class="field m61-mv-prod"><span>생산품명 (해동)</span><input id="uniMoveProd" placeholder="예: 선진바베큐폭립"></label>
+        <label class="field m61-mv-note"><span>비고</span><input id="uniMoveNote" placeholder="선택 입력"></label>
       </div>
       <p class="mvstat" id="uniMoveStat"></p>
       <p class="msg" id="uniMoveMsg"></p>
@@ -1336,26 +1336,26 @@
         <button class="modal-x" id="lotClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="lotSub"></p>
-      <label class="field"><span>육류</span><input id="ltMeat" list="dlMeats"></label>
-      <label class="field"><span>품목명 <span class="req">*</span></span><input id="ltName" list="dlNames"></label>
-      <div class="grid2">
+      <label class="field m61-lot-meat"><span>육류</span><input id="ltMeat" list="dlMeats"></label>
+      <label class="field m61-lot-name"><span>품목명 <span class="req">*</span></span><input id="ltName" list="dlNames"></label>
+      <div class="grid2 m61-lot-vendor">
         <label class="field"><span>업체명</span><input id="ltVendor" list="dlVendors"></label>
         <label class="field"><span>브랜드</span><input id="ltBrand" list="dlBrands"></label>
       </div>
-      <div class="grid2">
+      <div class="grid2 m61-lot-price">
         <label class="field"><span>원산지</span><input id="ltOrigin" list="dlOrigins"></label>
         <label class="field"><span>기준단가(원/kg)</span><input type="number" id="ltPrice" step="1" min="0"></label>
       </div>
-      <div class="grid2">
+      <div class="grid2 m61-lot-date">
         <label class="field"><span>입고일</span><input type="text" data-sd="1" id="ltInDate"></label>
         <label class="field"><span>소비기한</span><input type="text" data-sd="1" id="ltExp"></label>
       </div>
-      <div class="adjline" id="lotAdjLine">재고 직접 수정</div>
-      <div class="grid2">
+      <div class="adjline m61-lot-adjline" id="lotAdjLine">재고 직접 수정</div>
+      <div class="grid2 m61-lot-stock">
         <label class="field"><span>냉동고 재고(kg)</span><input type="number" id="ltFrozen" step="0.01" min="0"></label>
         <label class="field"><span>냉장고 재고(kg)</span><input type="number" id="ltChilled" step="0.01" min="0"></label>
       </div>
-      <label class="field"><span>수정 사유</span><input id="ltWhy" list="dlAdjWhy" placeholder="예: 실사 조정, 입력 오타 정정 (비워 두면 「직접 수정」)"></label>
+      <label class="field m61-lot-why"><span>수정 사유</span><input id="ltWhy" list="dlAdjWhy" placeholder="예: 실사 조정, 입력 오타 정정 (비워 두면 「직접 수정」)"></label>
       <p class="msghint" id="lotAdjHint"></p>
       <p class="msg" id="lotMsg"></p>
       <div class="modal-actions">
@@ -1373,12 +1373,12 @@
         <button class="modal-x" id="fpLotClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="fpLotSub"></p>
-      <div class="grid2">
+      <div class="grid2 m61-fp-meta">
         <label class="field"><span>로트번호</span><input id="fpLotNo" readonly></label>
         <label class="field"><span>소비기한</span><input id="fpLotExp" readonly></label>
       </div>
-      <label class="field"><span>현재 재고 <b id="fpLotUnit"></b></span><input type="number" id="fpLotQty" step="0.001" min="0"></label>
-      <label class="field"><span>수정 사유</span><input id="fpLotWhy" list="dlAdjWhy" placeholder="예: 실사 조정, 입력 오타 정정 (비워 두면 「직접 수정」)"></label>
+      <label class="field m61-fp-stock"><span>현재 재고 <b id="fpLotUnit"></b></span><input type="number" id="fpLotQty" step="0.001" min="0"></label>
+      <label class="field m61-fp-why"><span>수정 사유</span><input id="fpLotWhy" list="dlAdjWhy" placeholder="예: 실사 조정, 입력 오타 정정 (비워 두면 「직접 수정」)"></label>
       <p class="msghint" id="fpLotHint"></p>
       <p class="msg" id="fpLotMsg"></p>
       <div class="modal-actions">
@@ -1440,31 +1440,31 @@
         <button class="modal-x" id="fgNewClose" type="button" aria-label="닫기"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
       <p class="modal-sub" id="fgNewSub">상품코드는 다음 번호로 자동 채워집니다. 필요하면 직접 고쳐 주세요.</p>
-      <div class="grid2">
+      <div class="grid2 m61-fg-code">
         <label class="field"><span>상품코드 <span class="req">*</span></span><input id="fgNewCode" placeholder="W00100001"></label>
         <label class="field"><span>세부분류</span><input id="fgNewCat" list="dlFgCats" placeholder="예: 치킨 · 피자 · 소시지"></label>
       </div>
-      <label class="field"><span>상품명 <span class="req">*</span></span><input id="fgNewName" placeholder="예: 떡갈비 500g*2"></label>
-      <div class="grid2">
+      <label class="field m61-fg-name"><span>상품명 <span class="req">*</span></span><input id="fgNewName" placeholder="예: 떡갈비 500g*2"></label>
+      <div class="grid2 m61-fg-spec">
         <label class="field"><span>규격</span><input id="fgNewSpec" list="dlFgSpecs" placeholder="예: 500g*2"></label>
         <label class="field"><span>단위</span><input id="fgNewUnit" list="dlFgUnits" placeholder="개"></label>
       </div>
-      <div class="grid2">
+      <div class="grid2 m61-fg-price">
         <label class="field"><span>입고단가(원)</span><input type="number" id="fgNewIn" step="1" min="0" placeholder="0"></label>
         <label class="field"><span>출고단가(원)</span><input type="number" id="fgNewOut" step="1" min="0" placeholder="0"></label>
       </div>
-      <div class="grid2">
+      <div class="grid2 m61-fg-stock">
         <label class="field" id="fgNewStockWrap"><span>초기재고</span><input type="number" id="fgNewStock" step="0.001" min="0" placeholder="0"></label>
         <label class="field"><span>소비기한</span><input type="text" data-sd="1" id="fgNewExpiry"></label>
       </div>
-      <div class="grid2">
+      <div class="grid2 m61-fg-flag">
         <label class="field"><span>자체 / 매입</span><select id="fgNewFlag">
           <option value="매입">외부매입</option>
           <option value="자체">자체생산</option>
         </select></label>
         <label class="field"><span>매입처</span><input id="fgNewSupplier" list="dlFgPartners" placeholder="선택 입력"></label>
       </div>
-      <div class="grid2">
+      <div class="grid2 m61-fg-bc">
         <label class="field"><span>바코드</span><input id="fgNewBarcode" placeholder="선택 입력"></label>
       </div>
       <p class="hint" id="fgNewHint">초기재고를 넣으면 상품을 만든 뒤 <b>입고</b>로 기록해 입출고 이력에도 남깁니다.</p>
@@ -1529,18 +1529,18 @@
 
       <!-- 상단 공통 영역 -->
       <div class="vhead">
-        <label class="field" id="accVTypeField"><span>전표 종류</span>
+        <label class="field m61-v-type" id="accVTypeField"><span>전표 종류</span>
           <div class="seg" id="accVoucherSeg">
             <button type="button" data-vtype="sale" class="active">매출</button>
             <button type="button" data-vtype="purchase">매입</button>
           </div>
         </label>
-        <label class="field"><span>전표일자 <span class="req">*</span></span><input type="text" data-sd="1" id="accVDate"></label>
-        <label class="field"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
-        <label class="field"><span>세금계산서</span>
+        <label class="field m61-v-date"><span>전표일자 <span class="req">*</span></span><input type="text" data-sd="1" id="accVDate"></label>
+        <label class="field m61-v-partner"><span id="accVPartnerLabel">거래처 <span class="req">*</span></span><input id="accVPartner" list="dlAccPartners" placeholder="예: 미트박스"></label>
+        <label class="field m61-v-doc"><span>세금계산서</span>
           <select id="accVDoc"><option value="none">미발행</option><option value="issued">발행완료</option><option value="received">수령완료</option></select>
         </label>
-        <label class="field"><span>비고</span><input id="accVNote" placeholder="예: 11월 납품분"></label>
+        <label class="field m61-v-note"><span>비고</span><input id="accVNote" placeholder="예: 11월 납품분"></label>
       </div>
 
       <!-- 가운데 명세서 표 (여러 줄) -->
@@ -1596,6 +1596,7 @@
       <p class="hint" id="accVHint"></p>
       <p class="msg" id="accVMsg"></p>
       <div class="modal-actions">
+        <p class="msum" id="accVMSum"></p>
         <button class="btn" id="accVoucherCancel" type="button">취소</button>
         <button class="submit" id="accVoucherSave" type="button">저장</button>
       </div>
@@ -1872,8 +1873,8 @@
   </datalist>
 </div>
 
-<script src="partners_data.js?v=20261126_69"></script>
-<script src="app.js?v=20261126_69"></script>
+<script src="partners_data.js?v=20261126_70"></script>
+<script src="app.js?v=20261126_70"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_138" data-erp-design="v135">
 
 </body>

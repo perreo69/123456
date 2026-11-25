@@ -12677,6 +12677,9 @@ var LIVE = (function () {
     return '<div data-cell="exp">' + accVExpInfoHtml(r) + '</div>';
   }
   function accVRowHtml(r, i) {
+    /* v61 — 폰(≤768px)은 11칸 표 대신 «한 줄 = 카드 한 장»으로 그린다.
+       칸 이름(data-f · data-cell · data-num)은 그대로라 저장·계산 코드는 손대지 않는다. */
+    if (accVMob()) return accVMobRowHtml(r, i);
     var n = accVRowNums(r);
     return '<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '">' +
       '<td class="c">' + accVOpts('kind', r.kind, [['meat', '원료육'], ['fp', '완제품·부자재'], ['etc', '기타']]) + '</td>' +
@@ -12691,6 +12694,42 @@ var LIVE = (function () {
       '<td class="r num b" data-num="total">' + (n.total ? fmtInt(n.total) : '') + '</td>' +
       '<td class="c"><button type="button" class="vdel" data-delrow="' + i + '" aria-label="줄 삭제" title="줄 삭제">×</button></td>' +
       '</tr>';
+  }
+  /* v61 — 폰 전표 시트: 실무 동선(품명 → 로트/창고 → 소비기한 → 수량·단가 → 과세 → 합계)을
+     한 장의 카드로 그린다. 값·이름은 PC 표와 똑같은 칸(data-f)을 쓴다. */
+  function accVMob() { return typeof mobOnNow === 'function' ? mobOnNow() : false; }
+  function accVMobUnit(r) {
+    if (r && r.kind === 'meat') return 'kg';
+    var p = r && r.kind === 'fp' ? accVRowProduct(r) : null;
+    return (p && p.unit) || '개';
+  }
+  function accVMobRowHtml(r, i) {
+    var n = accVRowNums(r);
+    var ph = r.kind === 'fp' ? '품명 또는 코드'
+      : (r.kind === 'meat' ? (accVIsBuy() ? '예: 등갈비' : '예: 등갈비 (보유 로트)') : '예: 운송비');
+    var meta = r.kind === 'meat' ? [r.meat, r.origin, r.brand].filter(function (x) { return !!x; }).join(' · ') : '';
+    var h = ['<tr data-r="' + i + '" data-kind="' + esc(r.kind) + '" data-mcard="1"><td colspan="11">'];
+    h.push('<div class="mcr-top acr-top"><div class="mcr-kind" data-kcell="1">' +
+      accVOpts('kind', r.kind, [['meat', '원료육'], ['fp', '완제품·부자재'], ['etc', '기타']]) + '</div>' +
+      '<div class="acr-taxchip">' + accVOpts('tax', r.tax, [['tax', '과세'], ['free', '면세']]) + '</div>' +
+      '<button type="button" class="vdel" data-delrow="' + i + '" aria-label="줄 삭제" title="줄 삭제">×</button></div>');
+    h.push('<div class="mcr-name"><input data-f="name" class="vnamein" value="' + esc(r.name) + '" placeholder="' +
+      esc(ph) + '" autocomplete="off"><span class="mcode" data-cell="meta">' + esc(meta) + '</span></div>');
+    h.push('<div class="acr-lot">' + accVLotCellHtml(r) + '</div>');
+    /* 매입 원료육의 소비기한 칸은 표 머리글이 없으니 폰에서만 작은 이름표를 붙인다 */
+    h.push('<div class="acr-exp">' +
+      (r.kind === 'meat' && accVIsBuy() ? '<span class="mfl">소비기한</span>' : '') +
+      accVExpCellHtml(r) + '</div>');
+    h.push('<div class="mcr-qty">' +
+      '<label class="mq"><span>수량</span><span class="mqi"><input type="number" data-f="qty" step="0.001" min="0" value="' +
+      esc(r.qty) + '" placeholder="0"><i>' + esc(accVMobUnit(r)) + '</i></span></label>' +
+      '<label class="mq"><span>단가</span><span class="mqi"><input type="number" data-f="price" step="1" min="0" value="' +
+      esc(r.price) + '" placeholder="0"><i>원</i></span></label></div>');
+    h.push('<div class="mcr-amt acr-amt"><span>합계</span><b data-num="total">' + (n.total ? fmtInt(n.total) : '0') + '</b><em>원</em>' +
+      '<i class="acr-sub">공급 <b data-num="supply">' + (n.supply ? fmtInt(n.supply) : '0') + '</b>' +
+      ' · 세액 <b data-num="vat">' + (n.vat ? fmtInt(n.vat) : '0') + '</b></i></div>');
+    h.push('</td></tr>');
+    return h.join('');
   }
   /* 입력칸은 그대로 두고 안내 글(육류·원산지·브랜드 · 소비기한 · 현재고)과 빈 단가만 채운다 */
   function accVRowRefresh(i) {
@@ -12738,6 +12777,16 @@ var LIVE = (function () {
     if ($('accVSumSupply')) $('accVSumSupply').textContent = fmtInt(sumS);
     if ($('accVSumVat')) $('accVSumVat').textContent = fmtInt(sumV);
     if ($('accVSumTotal')) $('accVSumTotal').textContent = fmtInt(sumT);
+    /* v61 — 폰은 표 아래 합계줄(tfoot)을 숨기고 저장 버튼 위 한 줄로 보여 준다 */
+    if ($('accVMSum')) {
+      var mrows = 0, mr;
+      for (i = 0; i < accV.rows.length; i++) {
+        mr = accV.rows[i];
+        if (trimV(mr.name) && Number(mr.qty) > 0) mrows += 1;
+      }
+      $('accVMSum').innerHTML = '<span>품목 ' + mrows + '줄 · 수량 ' + (sumQ ? fmtQty(sumQ) : '0') + '</span>' +
+        '<b>합계</b><b class="amt">' + fmtInt(sumT) + '<i>원</i></b>';
+    }
   }
   function accVRowBind(i) {
     var tr = document.querySelector('#accVSheetBody tr[data-r="' + i + '"]');
@@ -12854,6 +12903,8 @@ var LIVE = (function () {
       r = accV.rows[i];
       if (trimV(r.name) && (Number(r.qty) > 0)) rows += 1;
     }
+    /* v61 — 폰은 버튼이 두 줄로 늘어지지 않게 짧게 (줄 수·합계는 버튼 위 한 줄에 있다) */
+    if (accVMob()) return rows > 1 ? ('저장 · ' + rows + '줄') : '저장';
     return rows > 1
       ? '저장 (재고 + ' + (accVIsBuy() ? '매입' : '매출') + ' 전표 ' + rows + '건)'
       : '저장 (재고 + ' + (accVIsBuy() ? '매입' : '매출') + ' 전표)';
@@ -13197,7 +13248,8 @@ var LIVE = (function () {
     popCloseOthers('accVoucherModal');
     accV = { id: row ? row.id : null, type: row ? row.t : (type === 'purchase' ? 'purchase' : 'sale'),
              mode: row ? '' : (mode || ''), rows: [], seq: 0 };
-    accVResetRows(3);
+    /* v61 — 폰은 카드 한 장이 한 화면을 차지하므로 한 줄로 시작한다(+줄 추가로 늘린다) */
+    accVResetRows(accVMob() ? 1 : 3);
     $('accVDate').value = row ? row.d : d;
     $('accVPartner').value = row ? row.partner : '';
     $('accVNote').value = row ? row.note : '';
@@ -13221,7 +13273,7 @@ var LIVE = (function () {
     var t = v === 'purchase' ? 'purchase' : 'sale';
     if (t === accV.type) return;
     accV.type = t;
-    accVResetRows(3);
+    accVResetRows(accVMob() ? 1 : 3);
     accVSheetRender();
     updateAccVDoc();
     $('accVDoc').value = 'none';
@@ -16013,6 +16065,11 @@ var LIVE = (function () {
     /* v60 — 화면 폭이 넘나들면(폰↔PC) 열려 있는 입고·출고 시트를 그 화면 모양으로 다시 그린다 */
     if (was !== MOB.on && ios && ios.rows && ios.rows.length && $('ioSheetModal') && !$('ioSheetModal').classList.contains('hidden')) {
       try { iosRenderRows(); } catch (e) { }
+    }
+    /* v61 — 매입·매출 전표 시트도 폰↔PC 폭이 바뀌면 그 화면 모양으로 다시 그린다 */
+    if (was !== MOB.on && typeof accV !== 'undefined' && accV && accV.rows && accV.rows.length &&
+      $('accVoucherModal') && !$('accVoucherModal').classList.contains('hidden')) {
+      try { accVSheetRender(); } catch (e) { }
     }
     if (MOB.on) {
       mobBuildTabs();
