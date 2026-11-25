@@ -2054,8 +2054,8 @@ const v36Moods={
 };
 const v36LotKey=(l,zone)=>l.id+'|'+zone;
 function v36Eligible(){
- const from=v36Mode==='move'?'frozen':'chilled';
- return state.items.flatMap(l=>cents(l[from])>0?[{l,zone:from,key:v36LotKey(l,from),available:l[from]}]:[])
+ const zones=v36Mode==='field'?['frozen','chilled']:[v36Mode==='move'?'frozen':'chilled'];
+ return state.items.flatMap(l=>zones.flatMap(zone=>cents(l[zone])>0?[{l,zone,key:v36LotKey(l,zone),available:l[zone]}]:[]))
  .sort((a,b)=>(a.l.expiry||'9999').localeCompare(b.l.expiry||'9999')||a.l.name.localeCompare(b.l.name,'ko'));
 }
 
@@ -2218,46 +2218,45 @@ function v116TraceDetail(run){
 
 function v134MovementRow({l,zone,key,available}){
  const data=v36Lines.get(key)||{},qty=data.qty??'',num=Number(qty);
- const label=v36Mode==='field'?'출고수량':'이동수량',linked=v36Mode==='refreeze'||v36Mode==='field'&&l.traceRunId;
+ const label=v36Mode==='field'?'출고수량':'이동수량';
  const prod=v116RunName(l.traceRunId);
- return `<article class="v134-lot ${num>0?'v36-chosen':''}" data-v36-key="${esc(key)}"><div class="v134-lot-head"><strong>${esc(l.name)}</strong><b>${fmt(available)} kg</b></div><div class="v134-lot-meta">${esc([l.id,v66BrandLabel(l.brand),l.origin].filter(Boolean).join(' · '))}<br>소비기한 ${esc(l.expiry||'미기재')} · ${esc(ZONE[zone])}</div><div class="v134-qtyline"><label for="v134-qty-${esc(key)}">${label} (kg)</label><div class="v134-qtycontrols"><input id="v134-qty-${esc(key)}" type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${label}"><button class="v134-fill" type="button" data-v132-fill aria-label="이 LOT 전량 입력">전량</button></div></div>${linked?(prod?'<p class="v134-linked">생산품목 · '+esc(prod)+'</p>':''):`<details class="v134-production" ${data.production?'open':''}><summary>생산품목 개별 지정${data.production?' · '+esc(data.production):''}</summary><input data-v36-field="production" list="v116Names" maxlength="150" value="${esc(data.production||'')}" placeholder="공통 생산품목 적용" aria-label="행별 생산품목"></details>`}</article>`;
+ return `<article class="v134-lot ${num>0?'v36-chosen':''}" data-v36-key="${esc(key)}"><div class="v134-lot-head"><strong>${esc(l.name)}</strong><b>${fmt(available)} kg</b></div><div class="v134-lot-meta">${esc([l.id,v66BrandLabel(l.brand),l.origin].filter(Boolean).join(' · '))}<br>소비기한 ${esc(l.expiry||'미기재')} · ${esc(ZONE[zone])}</div><div class="v134-qtyline"><label for="v134-qty-${esc(key)}">${label} (kg)</label><div class="v134-qtycontrols"><input id="v134-qty-${esc(key)}" type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${label}"><button class="v134-fill" type="button" data-v132-fill aria-label="이 LOT 전량 입력">전량</button></div></div>${prod?'<p class="v134-linked">생산품목 · '+esc(prod)+'</p>':''}</article>`;
 }
 
 function v36Page(){
  if(!['move','refreeze','field'].includes(v36Mode))v36Mode='move';
  const mobile=v132Mobile();
  $('mainView').innerHTML=`<section class="card v36-root ${mobile?'v134-move':''}">
-  <div class="v36-mode" role="group" aria-label="이동 종류">
-    <button type="button" data-v36-mode="move">해동 <span class="v59-route">냉동고 → 냉장고</span></button>
-    <button type="button" data-v36-mode="refreeze">재냉동 <span class="v59-route">냉장고 → 냉동고</span></button><button type="button" data-v36-mode="field">현장 출고 <span class="v59-route">냉장고 → 생산현장</span></button>
+  <div class="v36-pane"><div class="v36-inputs v142-common">
+    <label>날짜 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="numeric" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="날짜 달력 선택"></span></label>
+    <label>이동구분<select id="v142MoveKind" aria-label="이동구분"><option value="move">해동</option><option value="refreeze">재냉동</option><option value="field">현장 출고</option></select></label>
+    <div id="v116MoveFields" class="v142-production"><label>생산품목<input id="v116CommonName" list="v116Names" autocomplete="off" placeholder="완제품명·품목코드 검색" maxlength="150"></label><details id="v142RunDetails"><summary>기존 생산번호 연결 (선택)</summary><select id="v116ExistingRun" aria-label="기존 생산번호 연결">${v116RunOptions()}</select></details><datalist id="v116Names">${v116NameSuggestions()}</datalist></div>
+    <label>전표 비고<input id="v36Note" placeholder="필요한 경우만 입력" autocomplete="off"></label>
   </div>
-  <div class="v36-pane"><div class="v36-inputs">
-    <label>작업일 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="numeric" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="작업일 달력"></span></label>
-    <label>비고 (선택)<input id="v36Note" placeholder="필요한 경우 이동 사유 입력"></label>
-  </div>
-  <div class="v116-move-fields" id="v116MoveFields"><label>생산품목<input id="v116CommonName" list="v116Names" autocomplete="off" placeholder="완제품명·품목코드 검색" maxlength="150"></label><label>기존 생산번호 연결<select id="v116ExistingRun">${v116RunOptions()}</select></label><datalist id="v116Names">${v116NameSuggestions()}</datalist></div><div class="v36-searchline"><label>LOT 검색<input id="v36Search" type="search" autocomplete="off" placeholder="품목·브랜드·업체·LOT번호·소비기한"></label><span class="v36-count" id="v36Count"></span></div>
-  <div class="v36-summary"><div class="v36-summary-main" id="v36Summary"></div><div class="v36-summary-actions"><button type="button" class="v132-mobile-control" id="v132MovePicked">선택 LOT</button><button type="button" id="v36Clear">수량 초기화</button><button type="button" class="primary" id="v36Save">저장</button></div></div>
+  <div class="v36-searchline"><label>LOT 검색<input id="v36Search" type="search" autocomplete="off" placeholder="품목·브랜드·업체·LOT번호·소비기한·창고"></label><span class="v36-count" id="v36Count"></span></div>
   <div class="v36-msg" id="v36Error" role="alert"></div>
-  ${mobile?'<div class="v134-lots" id="v36Body"></div><span id="v116QtyHeading" hidden></span>':`<div class="v36-table-wrap"><table class="v36-table"><colgroup><col style="width:30%"><col style="width:24%"><col style="width:14%"><col style="width:12%"><col style="width:10%"><col style="width:10%"></colgroup>
-    <thead><tr><th>품목 / LOT</th><th>생산품목</th><th>현재 창고</th><th>소비기한</th><th>재고 kg</th><th id="v116QtyHeading">이동 kg</th></tr></thead><tbody id="v36Body"></tbody>
-  </table></div>`}</div>
+  ${mobile?'<div class="v134-lots" id="v36Body"></div><span id="v116QtyHeading" hidden></span>':`<div class="v36-table-wrap"><table class="v36-table"><colgroup><col style="width:44%"><col style="width:15%"><col style="width:17%"><col style="width:12%"><col style="width:12%"></colgroup>
+    <thead><tr><th>품목 / LOT</th><th>현재 창고</th><th>소비기한</th><th>재고 kg</th><th id="v116QtyHeading">이동 kg</th></tr></thead><tbody id="v36Body"></tbody>
+  </table></div>`}
+  <div class="v36-summary"><div class="v36-summary-main" id="v36Summary"></div><div class="v36-summary-actions"><button type="button" class="v132-mobile-control" id="v132MovePicked">선택 LOT</button><button type="button" class="intake-btn" id="v36Clear">초기화</button><button type="button" class="intake-save" id="v36Save">저장</button></div></div>
+  </div>
   <p class="v36-foot" id="v36Help"></p>
  </section>`;
  bindIntakeQuickDates($('mainView'));
  $('v36Search').addEventListener('input',v36Draw);
  $('v116ExistingRun').onchange=()=>{const run=v116FindRun($('v116ExistingRun').value);if(run)$('v116CommonName').value=run.name;};
- $('mainView').querySelectorAll('[data-v36-mode]').forEach(b=>b.onclick=()=>{
-  if(v132Mobile()&&b.dataset.v36Mode===v36Mode)return;
-  if(v132Mobile()&&v132MovementDirty()&&!confirm('입력한 이동 수량을 초기화하고 작업 종류를 변경할까요?'))return;
-  v36Mode=b.dataset.v36Mode;v132OnlyPicked=false;v36Lines.clear();$('v36Search').value='';$('v116CommonName').value='';$('v116ExistingRun').value='';v36Draw();
- });
+ $('v142MoveKind').onchange=()=>{
+  const next=$('v142MoveKind').value;if(next===v36Mode)return;
+  if(v132MovementDirty()&&!confirm('입력한 이동 수량을 초기화하고 이동구분을 변경할까요?')){$('v142MoveKind').value=v36Mode;return;}
+  v36Mode=next;v132OnlyPicked=false;v36Lines.clear();$('v36Search').value='';$('v116CommonName').value='';$('v116ExistingRun').value='';$('v142RunDetails').open=false;$('v36Error').textContent='';v36Draw();
+ };
+ $('v116CommonName').addEventListener('input',()=>{const run=v116FindRun($('v116ExistingRun').value);if(run&&normName(run.name)!==normName($('v116CommonName').value))$('v116ExistingRun').value='';});
  $('v36Clear').onclick=()=>{v132OnlyPicked=false;v36Lines.clear();v36Draw()};
  $('v132MovePicked').onclick=()=>{v132OnlyPicked=!v132OnlyPicked;v36Draw();};
  $('v36Save').onclick=v36Save;
  $('v36Body').addEventListener('input',e=>{
   const row=e.target.closest('[data-v36-key]');if(!row)return;
   const key=row.dataset.v36Key,entry=v36Lines.get(key)||{};
-  if(e.target.dataset.v36Field==='production'){entry.production=e.target.value;v36Lines.set(key,entry);return;}
   if(e.target.dataset.v36Field!=='qty')return;
   entry.qty=e.target.value;v36Lines.set(key,entry);
   row.classList.toggle('v36-chosen',Number(entry.qty)>0);
@@ -2269,23 +2268,23 @@ function v36Page(){
 function v36Draw(){
  const q=$('v36Search').value,eligible=v36Eligible(),visible=eligible.filter(({l,zone,key})=>v132Mobile()&&v132OnlyPicked?Number(v36Lines.get(key)?.qty)>0:matchesSearch(q,[l.name,l.id,l.brand,l.vendor,l.origin,l.expiry,ZONE[zone],v116RunName(l.traceRunId),l.traceRootId]));
  $('v132MovePicked').textContent=v132Mobile()&&v132OnlyPicked?'전체 LOT':'선택 LOT';$('v132MovePicked').setAttribute('aria-pressed',String(v132Mobile()&&v132OnlyPicked));
- $('mainView').querySelectorAll('[data-v36-mode]').forEach(b=>{b.classList.toggle('active',b.dataset.v36Mode===v36Mode);b.setAttribute('aria-pressed',String(b.dataset.v36Mode===v36Mode))});
+ $('v142MoveKind').value=v36Mode;$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116MoveFields').closest('.v142-common').classList.toggle('v142-no-production',v36Mode==='refreeze');if($('v116ExistingRun').value)$('v142RunDetails').open=true;
  $('v36Help').innerHTML='<strong>재고 이동:</strong> 이동 수량만큼 출발 창고에서 차감하고 도착 창고에 더합니다. 원료육 총재고는 바뀌지 않습니다.';
- $('v36Save').textContent='저장';$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116QtyHeading').textContent=v36Mode==='field'?'출고 kg':'이동 kg';if(v36Mode==='field')$('v36Help').textContent='현장 출고는 냉장 재고를 차감합니다. 실제 사용 확인과 미사용 반납은 생산 이력에서 처리합니다. 완제품은 별도로 입고합니다.';
+ $('v36Save').textContent='저장';$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116QtyHeading').textContent=v36Mode==='field'?'출고 kg':'이동 kg';if(v36Mode==='field')$('v36Help').textContent='현장 출고는 선택한 냉동고·냉장고 재고를 차감합니다. 실제 사용 확인과 미사용 반납은 생산 이력에서 처리합니다. 완제품은 별도로 입고합니다.';
  $('v36Count').textContent=`표시 LOT ${visible.length}건 · 입력 가능한 전체 LOT ${eligible.length}건`;
  if($('v36Body').classList.contains('v134-lots')){$('v36Body').innerHTML=visible.length?visible.map(v134MovementRow).join(''):'<p class="v134-empty">해당 LOT가 없습니다.</p>';v36Summary();return;}
  $('v36Body').innerHTML=visible.length?visible.map(({l,zone,key,available})=>{
   const data=v36Lines.get(key)||{},qty=data.qty??'',num=Number(qty);
-  return `<tr class="v36-row ${num>0?'v36-chosen':''}" data-v36-key="${esc(key)}"><td><span class="v36-row-name">${esc(l.name)}</span><span class="v36-row-meta">${esc([l.id,v66BrandLabel(l.brand),l.origin].filter(Boolean).join(' · '))}</span></td>
-   <td>${v36Mode==='refreeze'?esc(v116RunName(l.traceRunId)||'—'):v36Mode==='field'&&l.traceRunId?esc(v116RunName(l.traceRunId))+'<small class="v116-run-small">'+esc(l.traceRunId)+'</small>':`<input data-v36-field="production" list="v116Names" maxlength="150" value="${esc(data.production||'')}" placeholder="상단 생산품목 적용" aria-label="행별 생산품목">`}</td><td>${esc(ZONE[zone])}</td><td>${esc(l.expiry||'미기재')}</td><td class="v36-stock">${fmt(available)}</td>
+  return `<tr class="v36-row ${num>0?'v36-chosen':''}" data-v36-key="${esc(key)}"><td><span class="v36-row-name">${esc(l.name)}</span><span class="v36-row-meta">${esc([l.id,v66BrandLabel(l.brand),l.origin].filter(Boolean).join(' · '))}</span>${l.traceRunId?'<span class="v36-row-meta">생산품목 · '+esc(v116RunName(l.traceRunId))+'</span>':''}</td>
+   <td>${esc(ZONE[zone])}</td><td>${esc(l.expiry||'미기재')}</td><td class="v36-stock">${fmt(available)}</td>
    <td><input type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${esc(ZONE[zone])} 이동 중량"><button class="v132-fill v132-mobile-control" type="button" data-v132-fill aria-label="이 LOT 전량 입력">전량</button></td></tr>`;
- }).join(''):'<tr><td colspan="6" class="v36-empty">해당 LOT가 없습니다.</td></tr>';
+ }).join(''):'<tr><td colspan="5" class="v36-empty">해당 LOT가 없습니다.</td></tr>';
  v36Summary();
 }
 function v36Picked(){
  return v36Eligible().flatMap(row=>{
   const data=v36Lines.get(row.key);if(!data||!data.qty||Number(data.qty)===0)return [];
-  return [{...row,qty:Number(data.qty),production:data.production||''}];
+  return [{...row,qty:Number(data.qty)}];
  });
 }
 function v36Summary(){
@@ -2295,9 +2294,10 @@ function v36Summary(){
 function v36Save(){
  const error=$('v36Error'),date=normalizeIntakeDate($('v36Date').value),picked=v36Picked();
  error.textContent='';
- if(!date){error.textContent='작업일을 확인해 주세요.';return;}
+ if(!date){error.textContent='날짜를 확인해 주세요.';return;}
  const note=$('v36Note').value.trim();
- if(!picked.length){error.textContent='이동할 LOT의 수량을 입력해 주세요.';return;}
+ if(!picked.length){error.textContent='처리할 LOT의 수량을 입력해 주세요.';return;}
+ if(v36Mode==='field'){const common=$('v116CommonName').value.trim(),selected=$('v116ExistingRun').value,linked=[...new Set(picked.map(e=>e.l.traceRunId).filter(Boolean))];if(linked.length>1||(selected&&linked.some(id=>id!==selected))||(common&&linked.some(id=>normName(v116RunName(id))!==normName(common)))){error.textContent='생산품목 또는 생산번호가 다른 LOT는 나누어 등록해 주세요.';return;}if(picked.some(e=>!e.l.traceRunId)&&!common&&!selected){error.textContent='생산품목을 입력해 주세요.';return;}if(linked.length===1&&picked.some(e=>!e.l.traceRunId)&&!selected){error.textContent='기존 생산번호와 함께 출고하려면 해당 생산번호를 연결해 주세요.';return;}}
  for(const e of picked){
   if(!Number.isFinite(e.qty)||e.qty<=0||Math.abs(e.qty*100-Math.round(e.qty*100))>0.00001){error.textContent=`${e.l.id} 이동 수량은 0보다 큰 kg 단위(소수 둘째 자리까지)로 입력해 주세요.`;return;}
   if(cents(e.qty)>cents(e.l[e.zone])){error.textContent=`${e.l.id} ${ZONE[e.zone]} 재고 ${fmt(e.available)}kg를 초과했습니다.`;return;}
@@ -2311,7 +2311,7 @@ function v36Save(){
   for(const e of picked){
    const lot=state.items.find(l=>l.id===e.l.id);if(!lot)throw Error('LOT를 찾을 수 없습니다.');
    if(cents(e.qty)>cents(lot[e.zone]))throw Error('작업 중 재고가 변경되었습니다.');
-   const label=e.production.trim()||common;
+   const label=common;
    if(mode==='refreeze'&&lot.traceThawDate&&date<lot.traceThawDate)throw Error('재냉동일은 해동일 이후여야 합니다.');
    if(mode==='field'){const runId=lot.traceRunId||v116ResolveRun(label,selected,date,cache);v116RecordField(lot,e.qty,runId,date,batchId,note,e.zone);continue;}
    const runId=mode==='move'?v116ResolveRun(label,selected,date,cache):lot.traceRunId||'';
@@ -2325,7 +2325,7 @@ function v36Save(){
   if(!persist())throw Error('브라우저에 저장하지 못했습니다.');
  }catch(e){state=previous;error.textContent='처리에 실패했습니다: '+e.message;return;}
  v132OnlyPicked=false;v36Lines.clear();$('v36Search').value='';$('v36Note').value='';$('v116CommonName').value='';$('v116ExistingRun').innerHTML=v116RunOptions();
- v36Draw();v68Counts();toast((mode==='field'?'현장 출고 ':'창고 이동 ')+fmt(result)+'kg 기록이 저장되었습니다.');
+ $('v142RunDetails').open=false;v36Draw();v68Counts();toast((mode==='field'?'현장 출고 ':'창고 이동 ')+fmt(result)+'kg 기록이 저장되었습니다.');
 }
 
 // v37 · 자체생산/외부매입 품목 분류, 생산 배합표, 생산 실행, 재고/원가 연결
@@ -3053,7 +3053,7 @@ function v132Restore(next,changed){
   if(saved&&input){input.value=saved.query;if(saved.query)input.dispatchEvent(new Event('input',{bubbles:true}));if(changed&&saved.scroll)requestAnimationFrame(()=>{if(view===next)document.scrollingElement?.scrollTo({top:saved.scroll,left:0,behavior:'instant'})});}
  }
 }
-function v132MovementDirty(){return [...v36Lines.values()].some(x=>String(x.qty||'').trim()||String(x.production||'').trim());}
+function v132MovementDirty(){return [...v36Lines.values()].some(x=>String(x.qty||'').trim())||!!$('v116CommonName')?.value.trim()||!!$('v116ExistingRun')?.value;}
 function v132StartMove(l){
  if(v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화하고 선택한 LOT로 이동할까요?'))return false;
  v36Mode=l.zone==='frozen'?'move':'refreeze';v132OnlyPicked=false;v36Lines.clear();v132Drafts.delete('operations');v36Prefill=l.lotId;setView('operations');return true;
@@ -6812,5 +6812,24 @@ html,body{overflow-x:hidden!important}
 #mainView#mainView .v138-zone{min-height:44px!important;white-space:normal;padding:3px!important;line-height:1.2}
 #mainView .v138-zone strong{display:block;margin-top:3px;font-size:12px}
 #mainView .v138-location{font-size:12px!important}
+}
+</style><style id="v142-move-unified">
+#mainView#mainView .v36-root .v142-common{display:grid!important;grid-template-columns:180px 112px minmax(0,1.45fr) minmax(0,1fr)!important;gap:14px!important;padding:18px 23px!important;align-items:start!important;background:#f7f7f9!important;border-bottom:1px solid #e5e5ea!important}
+#mainView#mainView .v36-root .v142-common.v142-no-production{grid-template-columns:180px 112px minmax(0,1fr)!important}
+#mainView#mainView .v142-common label{display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0!important;font-size:12px!important;font-weight:600!important;line-height:18px!important;margin:0!important}
+#mainView#mainView .v142-common :is(input:not([type=date]),select){height:38px!important;min-height:38px!important;width:100%;min-width:0;font-weight:400!important;box-sizing:border-box}
+#mainView .v142-production{min-width:0}
+#mainView .v142-production[hidden]{display:none!important}
+#mainView .v142-production details{margin-top:5px}
+#mainView .v142-production summary{font-size:11px;color:#636366;cursor:pointer}
+#mainView .v142-production details select{margin-top:5px}
+#mainView#mainView .v36-root .v36-pane>.v36-summary{border-bottom:0!important;border-top:1px solid #e5e5ea!important;padding:14px 23px!important;background:#fff!important}
+#mainView .v36-root .v36-table-wrap{padding-bottom:0}
+@media screen and (max-width:900px){#mainView#mainView .v36-root .v142-common,#mainView#mainView .v36-root .v142-common.v142-no-production{grid-template-columns:repeat(2,minmax(0,1fr))!important;padding:12px!important;gap:10px!important}}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){#mainView#mainView .v36-root .v142-common,#mainView#mainView .v36-root .v142-common.v142-no-production{grid-template-columns:minmax(0,1fr)!important;background:#fff!important;border:0!important;border-radius:12px!important;padding:4px 14px!important;gap:0!important}
+#mainView#mainView .v142-common label{display:grid!important;grid-template-columns:minmax(76px,32%) minmax(0,1fr)!important;align-items:center;min-height:45px;gap:6px!important;border-bottom:1px solid #e5e5ea;font-size:14px!important;font-weight:400!important}
+#mainView#mainView .v142-common :is(input:not([type=date]),select){min-height:44px!important;border:0!important;background:transparent!important;text-align:right;font-size:16px!important;padding:5px 4px!important;box-shadow:none!important}
+#mainView .v142-production details{padding:5px 0}
+#mainView#mainView .v36-root .v36-pane>.v36-summary{padding:7px 0!important;background:transparent!important;border:0!important}
 }
 </style></body></html>
