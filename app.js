@@ -7208,7 +7208,7 @@ var LIVE = (function () {
   /* v45 — 접힘·펴짐 표시는 왼쪽 카테고리(원료육 등)와 «같은» 아래쪽 역삼각형(V) 하나로 통일한다.
      옆으로 눕힌 모양(› · ▸)은 UI 어디에도 두지 않는다. */
   var TRI_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"' +
-    ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+    ' aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
   function uniGroupRowHtml(g, cols, open) {
     var unit = g.unit || (g.cat === '원료육' ? 'kg' : '');
     var qtyTxt = fmtQty(g.qty) + (unit ? ' <span class="unit">' + esc(unit) + '</span>' : '');
