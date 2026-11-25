@@ -74,8 +74,8 @@
   --glass:rgba(246,246,248,.84);
   --glass-blur:saturate(180%) blur(20px);
 
-  /* 타입 — 애플 시스템 폰트 우선, 없으면 Inter → Pretendard (모두 오픈소스) */
-  --font:-apple-system,BlinkMacSystemFont,"Inter","Pretendard","Pretendard Variable","Malgun Gothic",sans-serif;
+  /* 타입 — Inter → Pretendard Variable (오픈소스 웹폰트) */
+  --font:"Inter","Pretendard Variable",Pretendard,sans-serif;
 
   /* 이전 버전이 참조하던 이름들 — 새 팔레트로 다시 묶는다 */
   --panel:#fff;

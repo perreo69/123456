@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>미르스타푸드 ERP</title>
-<style>*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:"Malgun Gothic",Arial,sans-serif;color:#222;background:#eee}button,input{font:inherit}button{cursor:pointer;border:1px solid #bcbcbc;background:#fff;color:#222;border-radius:4px;padding:9px 13px}button.primary{color:white;background:#303030;border-color:#303030}button:disabled{opacity:.5;cursor:wait}input{width:100%;padding:11px;border:1px solid #bbb;border-radius:4px;background:white;color:#222}label{display:block;font-size:13px;margin:12px 0 5px}h1{font-size:23px;margin:0 0 5px}h2{font-size:17px;margin:0 0 12px}p{font-size:13px;line-height:1.6;color:#555}.panel{width:min(400px,calc(100% - 32px));padding:30px;border:1px solid #ccc;border-radius:8px;background:white;box-shadow:0 4px 20px #0001}#gate{min-height:100%;display:grid;place-items:center}.full{width:100%;margin-top:14px}.msg{min-height:24px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#333}#shell{height:100dvh;display:flex;flex-direction:column}#bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#eee;border-bottom:1px solid #bbb;flex-wrap:wrap;font-size:12px}#bar button{padding:5px 10px;font-size:12px}#status{margin-right:auto;color:#555}iframe{width:100%;flex:1;border:none;min-height:0;background:#fff}dialog{width:min(460px,calc(100% - 24px));border:1px solid #aaa;border-radius:6px;padding:22px}dialog::backdrop{background:#0006}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}#inviteOutput{overflow-wrap:anywhere;font-family:monospace;padding:12px;background:#f3f3f3;border:1px solid #ccc;user-select:all} [hidden]{display:none!important}@media(max-width:600px){.panel{padding:22px}#bar{padding:5px 7px;gap:5px}#bar button{padding:5px 6px}#status{max-width:100%;flex:1 1 100%;order:2}}</style>
+<style>*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;color:#222;background:#eee}button,input{font:inherit}button{cursor:pointer;border:1px solid #bcbcbc;background:#fff;color:#222;border-radius:4px;padding:9px 13px}button.primary{color:white;background:#303030;border-color:#303030}button:disabled{opacity:.5;cursor:wait}input{width:100%;padding:11px;border:1px solid #bbb;border-radius:4px;background:white;color:#222}label{display:block;font-size:13px;margin:12px 0 5px}h1{font-size:23px;margin:0 0 5px}h2{font-size:17px;margin:0 0 12px}p{font-size:13px;line-height:1.6;color:#555}.panel{width:min(400px,calc(100% - 32px));padding:30px;border:1px solid #ccc;border-radius:8px;background:white;box-shadow:0 4px 20px #0001}#gate{min-height:100%;display:grid;place-items:center}.full{width:100%;margin-top:14px}.msg{min-height:24px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#333}#shell{height:100dvh;display:flex;flex-direction:column}#bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#eee;border-bottom:1px solid #bbb;flex-wrap:wrap;font-size:12px}#bar button{padding:5px 10px;font-size:12px}#status{margin-right:auto;color:#555}iframe{width:100%;flex:1;border:none;min-height:0;background:#fff}dialog{width:min(460px,calc(100% - 24px));border:1px solid #aaa;border-radius:6px;padding:22px}dialog::backdrop{background:#0006}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}#inviteOutput{overflow-wrap:anywhere;font-family:monospace;padding:12px;background:#f3f3f3;border:1px solid #ccc;user-select:all} [hidden]{display:none!important}@media(max-width:600px){.panel{padding:22px}#bar{padding:5px 7px;gap:5px}#bar button{padding:5px 6px}#status{max-width:100%;flex:1 1 100%;order:2}}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><style id="v106-reference-buttons">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){button:not(:disabled){background:#fff;border-color:#c4c4ca;border-radius:5px;box-shadow:0 1px 1px #00000012;color:#2c2c30}button:not(:disabled):hover{background:#f2f2f4}button.primary:not(:disabled){background:linear-gradient(#55a7fa,#1978f4);border-color:#3289e9;color:#fff;box-shadow:0 1px 1px #00000010,inset 0 1px 0 #ffffff26}button.primary:not(:disabled):hover{background:linear-gradient(#4b9ef7,#146ce5)}button.primary:not(:disabled):active{background:linear-gradient(#3489ef,#125fd4)}}</style><style id="v129-mobile-shell">
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
 html,body{height:100%;background:#f2f2f7;overflow:hidden}
@@ -20,7 +20,7 @@ dialog{width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow:auto;bor
 }
 </style><style id="v130-native-shell">
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
-html,body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;background:#f2f2f7}
+html,body{font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;background:#f2f2f7}
 #bar{background:#f2f2f7!important;border:0!important;display:flex!important;align-items:center;gap:6px!important;padding:8px 14px 2px!important;min-height:40px;flex-wrap:nowrap}
 #who{min-width:0;max-width:40%;font-size:12px;font-weight:650;color:#66666d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #status{order:0;flex:1 1 0;white-space:normal;font-size:10px;color:#66666d;line-height:1.2;margin:0;min-width:0}
@@ -34,7 +34,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Ma
 </style><style id="v131-design-system-shell">
 @media screen{
 :root{--ds-bg:#f2f2f7;--ds-ink:#1c1c1e;--ds-secondary:#636366;--ds-rule:#e5e5ea;--ds-accent:#006bd6}
-#gate,#bar,dialog{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif}
+#gate,#bar,dialog{font-family:"Inter","Pretendard Variable",Pretendard,sans-serif}
 }
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
 #gate{background:var(--ds-bg)}
@@ -211,7 +211,7 @@ $('closeInvite').onclick=()=>{$('inviteDialog').close();$('inviteOutput').textCo
 :root{
  --mac-white:#fff;--mac-bg:#f5f5f7;--mac-sidebar:#eaeaed;--mac-bar:#f6f6f8;--mac-line:#d1d1d6;--mac-softline:#e5e5ea;--mac-ink:#1d1d1f;--mac-muted:#626269;--mac-blue:#0866d9;--mac-blue-top:#1979ed;--mac-blue-bottom:#0860ce;--mac-blue-border:#075ac5;--mac-tint:#e5efff;
  --mac-normal:linear-gradient(180deg,#fff 0%,#f0f0f2 100%);--mac-primary:linear-gradient(180deg,var(--mac-blue-top),var(--mac-blue-bottom));--mac-shadow:0 1px 2px #00000017,inset 0 1px 0 #ffffffb0;--mac-primary-shadow:0 1px 2px #00000022,inset 0 1px 0 #ffffff3d;
- --mac-radius:5px;--mac-control:32px;--mac-font:"Segoe UI","Malgun Gothic",Arial,sans-serif;--ink:var(--mac-ink);--muted:var(--mac-muted);--bg:var(--mac-bg);--border:var(--mac-softline);--blue:var(--mac-blue);--blue-h:var(--mac-blue-border)
+ --mac-radius:5px;--mac-control:32px;--mac-font:"Inter","Pretendard Variable",Pretendard,sans-serif;--ink:var(--mac-ink);--muted:var(--mac-muted);--bg:var(--mac-bg);--border:var(--mac-softline);--blue:var(--mac-blue);--blue-h:var(--mac-blue-border)
 }
 html,body{background:#f5f5f7!important;color:var(--mac-ink)!important;font-family:var(--mac-font)!important}
 .panel{border:1px solid #d1d1d6!important;border-radius:11px!important;background:white!important;box-shadow:0 8px 28px #00000015!important}
@@ -241,4 +241,5 @@ html,body,#shell{box-sizing:border-box!important;width:100%!important;max-width:
 #refresh{grid-column:2}#changePw{grid-column:3}#logout{grid-column:4}
 #app{display:block;flex:1 1 0!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:0!important;border:0}
 }
-</style></body></html>
+</style><link rel="stylesheet" href="../design-system.css?v=20261125_135" data-erp-design="v135">
+</body></html>

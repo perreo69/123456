@@ -1,0 +1,41 @@
+/* Mirrstar Food ERP — v135 cross-platform open-font design tokens.
+ * Inter & Pretendard: SIL OFL 1.1. No Apple font or symbol files.
+ * HIG-inspired web equivalents, not native OS components. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap");
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
+@media screen {
+:root{--erp-font:"Inter","Pretendard Variable",Pretendard,sans-serif;--mac-font:var(--erp-font);--font:var(--erp-font);--erp-bg:#f2f2f7;--erp-paper:#fff;--erp-text:#1c1c1e;--erp-secondary:#636366;--erp-rule:#e5e5ea;--erp-accent:#006bd6;--erp-control-radius:8px;--erp-panel-radius:12px;--erp-sheet-radius:18px;--erp-glass:rgba(250,250,252,.86);--erp-glass-filter:saturate(150%) blur(20px);--erp-space-1:4px;--erp-space-2:8px;--erp-space-3:12px;--erp-space-4:16px}
+html body,html body :is(button,input,select,textarea),#mainView,#sidebar,.heading-section,.topbar{font-family:var(--erp-font)!important}
+:where(input,select,textarea,button):focus-visible{outline:2px solid var(--erp-accent);outline-offset:2px}
+:where(.numeric,.num,.v68-count,.v72qty,.v75qty,.v133-stock-qty,.kpi-value){font-variant-numeric:tabular-nums}
+:where(button,nav,.v133-search-wrap,.v133-stock-row) svg{stroke-linecap:round;stroke-linejoin:round}
+}
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+:root{--mac-radius:8px;--mac-control:32px;--mac-bg:#f5f5f7;--mac-line:#d1d1d6;--mac-blue:#006bd6;--mac-blue-top:#2589ed;--mac-blue-bottom:#006bd6;--mac-blue-border:#0063c8;--mac-tint:#e8f2ff}
+#sidebar.sidebar{background:rgba(238,238,242,.92)!important;border-right:1px solid var(--erp-rule)!important;padding:16px 10px 12px!important}
+#sidebar.sidebar .brand{border-bottom:0!important;margin-bottom:12px!important}
+#sidebar.sidebar .v68-card{margin-bottom:12px!important}
+#sidebar.sidebar .v68-card .side-menu :is(.v68-link,.v68-parent){border-radius:7px!important}
+#sidebar.sidebar .v68-card .side-menu .v68-link.selected{border-radius:7px!important}
+.topbar,#bar{background:var(--erp-glass)!important;backdrop-filter:var(--erp-glass-filter);border-bottom:1px solid var(--erp-rule)!important}
+#modalLayer .drawer,dialog:not(#v17StatementDialog):not(.v88-calendar){border-radius:var(--erp-panel-radius)!important}
+#gate .panel,.login-card{border-radius:var(--erp-sheet-radius)!important}
+#gate .panel input{border-radius:var(--erp-control-radius)!important}
+}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+:root{--ds-radius:14px;--app-accent:var(--erp-accent);--app-bg:var(--erp-bg)}
+html body{background:var(--erp-bg)}
+#bar{background:var(--erp-glass)!important;backdrop-filter:var(--erp-glass-filter)}
+#v130Tabs,.quickbar{background:var(--erp-glass)!important;backdrop-filter:var(--erp-glass-filter);border:1px solid rgba(60,60,67,.12)!important;box-shadow:0 5px 20px rgba(0,0,0,.10)!important}
+#v130Tabs button svg{width:24px;height:24px;stroke-width:1.75!important}
+#v130Tabs button[aria-current=page]{background:#e8f2ff!important;color:var(--erp-accent)!important}
+#v130Tabs button,.quickbar .qb{min-height:44px}
+#v132QuickBar:not([hidden]) button,#v133FullView,#v130MoreHead button{min-height:44px}
+#gate .panel{border-radius:20px!important;background:var(--erp-paper);padding:24px 20px}
+#gate .panel input{min-height:48px;font-size:16px!important;border-radius:10px!important}
+#gate .panel .full{min-height:48px;border-radius:10px!important}
+#gate .panel #submit{background:var(--erp-accent)!important;border-color:var(--erp-accent)!important;color:white!important}
+#mainView .v133-stock,#mainView .v134-lot,#mainView .v50-in-row,#mainView .v50-out-row{border-radius:14px!important}
+#v132StockDetail article{border-radius:12px}
+}
+@media (prefers-reduced-transparency:reduce){#v130Tabs,.quickbar,.topbar,#bar{backdrop-filter:none!important;background:#f7f7fa!important}}
