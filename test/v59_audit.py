@@ -176,8 +176,36 @@ def run_mobile(pw):
     page.wait_for_timeout(600)
     code = page.eval_on_selector('#ioSheetBody tr[data-r="1"] [data-cell="code"]', 'e => e.textContent')
     chk(code.startswith('FP-') or code.startswith('W'), '③ 고른 품목의 코드가 채워짐', code)
-    page.click('#ioSheetClose')
+
+    # 시트 맨 아래 줄 — 목록이 위로 뒤집히고, 저장 버튼에 가려지지 않는지
+    page.evaluate("() => { const tr = document.querySelector('#ioSheetBody tr[data-r=\"2\"]'); tr.scrollIntoView({block:'center'}); }")
     page.wait_for_timeout(300)
+    ni3 = '#ioSheetBody tr[data-r="2"] input[data-f="name"]'
+    page.click(ni3)
+    page.type(ni3, '등갈', delay=80)
+    page.wait_for_timeout(600)
+    s = page.evaluate(POP)
+    chk(s.get('open') and s['n'] >= 1, '③b 아래쪽 줄에서도 목록', s.get('texts'))
+    chk(s.get('inView'), '③b 목록이 화면(저장 바) 위에 있음', [s.get('top'), s.get('bottom'), s.get('vh')])
+    hit = page.evaluate("""() => { const p = document.querySelector('.acpop .acitem'); const r = p.getBoundingClientRect();
+        const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { inPop: !!(e && e.closest && e.closest('.acpop')) }; }""")
+    chk(hit['inPop'], '③b 목록이 저장 버튼 위에서 눌린다(가려지지 않음)', hit)
+    page.screenshot(path=os.path.join(OUT, 'F5b-아래줄-목록.png'))
+    page.tap('.acpop .acitem >> nth=0')
+    page.wait_for_timeout(300)
+    # 실제 저장까지 (팝업에서 고른 값으로)
+    page.fill('#ioSheetBody tr[data-r="2"] input[data-f="qty"]', '5')
+    page.fill('#ioSheetBody tr[data-r="2"] input[data-f="expiry"]', '2027-12-31')
+    page.fill('#ioSheetBody tr[data-r="2"] input[data-f="price"]', '9000')
+    page.evaluate("() => document.getElementById('ioSheetSave').click()")
+    page.wait_for_timeout(1800)
+    sv = page.evaluate("""() => ({ closed: document.getElementById('ioSheetModal').classList.contains('hidden'),
+        msg: (document.getElementById('ioSheetMsg') || {}).textContent || '' })""")
+    chk(sv['closed'], '③c 팝업에서 고른 품명으로 입고 저장 완료', sv)
+    if not sv['closed']:
+        page.evaluate("() => document.getElementById('ioSheetClose').click()")
+        page.wait_for_timeout(300)
 
     # ---------- 4. 해동/냉동 · 생산품명 (해동) ----------
     page.click('#mobTabs [data-mtab="out"]')
