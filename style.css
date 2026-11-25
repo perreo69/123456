@@ -1550,3 +1550,24 @@ td.actcell{text-align:center;padding:0 10px}
 
 /* 모달 뒤 화면 — 보던 화면이 비치도록 옅은 스크림 + 8px 블러 (macOS 시트) */
 .modal{background:rgba(0,0,0,.16);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+
+/* ==========================================================================
+   v52 — 재고 직접 수정 · 재고조정 이력
+   ========================================================================== */
+/* 로트 수정 팝업의 구획 제목 — 재고를 직접 고치는 자리임을 알린다 */
+.adjline{
+  margin:14px 0 8px;padding-top:12px;
+  border-top:1px solid var(--line-2);
+  font-size:11.5px;font-weight:700;letter-spacing:.02em;color:var(--muted);
+}
+/* 팝업 아래 작은 안내 — 지금 재고와 남는 기록 */
+.msghint{margin:6px 0 0;font-size:11.5px;line-height:1.5;color:var(--muted);letter-spacing:-.005em}
+.msghint b{color:var(--ink-2);font-weight:600}
+/* 입출고 내역 — 재고조정 배지 */
+.tblu .tag.adj{color:var(--violet);border-color:var(--violet-line);background:var(--violet-bg)}
+/* 품명 밑에 붙는 「699.84 → 726.84 kg (+27)」 한 줄 */
+.tblu .utxadj{
+  display:block;margin-top:1px;
+  font-size:10.6px;font-weight:600;color:var(--violet);
+  font-variant-numeric:tabular-nums;letter-spacing:-.01em;
+}
