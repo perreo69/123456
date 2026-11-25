@@ -152,6 +152,18 @@ class Mock:
                             lot[col] = body[key]
                     lot['updated_at'] = '2026-11-25T01:00:00Z'
                     return 200, lot, {}
+                if fn == 'tx_undo':
+                    lg = next((x for x in self.logs if x['id'] == body.get('p_log_id')), None)
+                    if lg is None:
+                        return 400, {'message': '해당 이력을 찾을 수 없습니다.'}, {}
+                    lot = next((x for x in self.lots if x['id'] == lg['lot_id']), None)
+                    if lot is not None and lg['tx_type'] == 'in':
+                        if lg['warehouse'] == 'C':
+                            lot['chilled_qty'] = round(lot['chilled_qty'] - lg['qty'], 3)
+                        else:
+                            lot['frozen_qty'] = round(lot['frozen_qty'] - lg['qty'], 3)
+                    self.logs.remove(lg)
+                    return 200, lg, {}
                 if fn == 'fp_product_save':
                     code = body.get('p_code') or ''
                     p = next((x for x in self.fp_products if x['code'] == code), None)
@@ -478,7 +490,38 @@ def main():
         chk(page.evaluate("() => (document.querySelector('#auditTypeChips [data-atype=\"재고조정\"]') || {}).className || ''").find('on') >= 0,
             '링크로 오면 구분=재고조정 으로 걸러 줌')
 
-        # ---------- 6) 모바일 390×844 ----------
+        # ---------- 6) 입출고 취소 → 삭제 기록 ----------
+        nav(page, 'tx', 1800)
+        page.evaluate("""() => {
+            const trs = Array.from(document.querySelectorAll('#utxTableWrap tbody tr.utxrow'));
+            const tr = trs.find(t => t.innerText.indexOf('목전지') >= 0);
+            const bt = tr ? tr.querySelector('.actmenu') : null;
+            if (bt) bt.click();
+        }""")
+        page.wait_for_timeout(500)
+        citems = page.evaluate("() => Array.from(document.querySelectorAll('#rowMenu button')).map(b => b.textContent.trim())")
+        chk('취소' in citems, '입출고 내역 [작업] 에 취소 있음', citems)
+        page.evaluate("""() => {
+            const b = Array.from(document.querySelectorAll('#rowMenu button')).find(x => x.textContent.trim() === '취소');
+            if (b) b.click();
+        }""")
+        page.wait_for_timeout(2000)
+        dele = [a for a in MOCK.audit if a['action_type'] == '삭제']
+        chk(len(dele) == 1, 'audit_logs 에 삭제 1줄', len(dele))
+        if dele:
+            chk('목전지' == dele[0]['product_name'] and '120' in dele[0]['summary'] and '취소' in dele[0]['summary'],
+                '삭제 줄: 목전지 · 120kg · 취소', dele[0]['summary'])
+            chk(dele[0]['reason'] == '입출고 내역 취소', '삭제 사유', dele[0]['reason'])
+        nav(page, 'audit', 1600)
+        page.click('#auditTypeChips [data-atype="삭제"]')
+        page.wait_for_timeout(500)
+        dr = arows(page)
+        chk(len(dr) == 1 and dr[0]['type'] == '삭제' and '목전지' in dr[0]['target'], '구분=삭제 → 1줄', dr)
+        shot(page, 'pc-05-변경이력-삭제')
+        page.click('#auditTypeChips [data-atype="all"]')
+        page.wait_for_timeout(300)
+
+        # ---------- 7) 모바일 390×844 ----------
         m = b.new_page(viewport={'width': 390, 'height': 844})
         m.on('pageerror', lambda e: errors.append(str(e)))
         m.on('dialog', lambda d: d.accept())
@@ -491,7 +534,7 @@ def main():
         chk(m.evaluate("() => !document.getElementById('auditMode').classList.contains('hidden')"), '폰: 변경이력 화면 열림')
         chk(overflow(m) <= 0, '폰 390px 가로 넘침 0', overflow(m))
         mr = arows(m)
-        chk(len(mr) == 3, '폰에서도 3줄', len(mr))
+        chk(len(mr) == 4, '폰에서도 4줄', len(mr))
         shot(m, 'mobile-390-변경이력')
 
         # ---------- 7) audit_logs 표가 없을 때 (SQL 미실행) ----------
