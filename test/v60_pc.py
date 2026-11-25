@@ -190,7 +190,11 @@ def main():
             for key in geos['v57']:
                 if geos['v57'][key] != geos['v58'].get(key):
                     geo.append(key)
-            chk(not geo, '%dx%d — 모든 요소의 위치·크기 v57 과 완전 동일' % (w, h), geo[:6])
+            # v60 — 「입고팝업」만 다르다: 사용자가 지시한 «AI 자료 붙여넣기» 버튼을 지워
+            #        버튼 줄 높이가 줄었다(의도된 변화). 표·칸·저장 버튼 위치는
+            #        test/v60_pc_popup.py 가 따로 «완전 동일»로 확인한다.
+            geo = [g for g in geo if g != '입고팝업']
+            chk(not geo, '%dx%d — 모든 요소의 위치·크기 v57 과 완전 동일(AI 버튼 제거한 입고팝업 제외)' % (w, h), geo[:6])
         b.close()
     print('RESULT', 'PASS' if ok else 'FAIL')
 
