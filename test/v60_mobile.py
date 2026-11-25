@@ -167,6 +167,11 @@ def run(pw):
     page.wait_for_timeout(400)
     amt = page.eval_on_selector('#ioSheetBody [data-num="amt"]', 'e => e.textContent')
     page.screenshot(path=os.path.join(OUT, 'M4-로트선택-수량.png'))
+    page.evaluate("() => { const c = document.querySelector('#ioSheetModal .modal-card'); c.scrollTop = c.scrollHeight; }")
+    page.wait_for_timeout(400)
+    page.screenshot(path=os.path.join(OUT, 'M4b-아래끝-비고-저장.png'))
+    page.evaluate("() => { const c = document.querySelector('#ioSheetModal .modal-card'); c.scrollTop = 0; }")
+    page.wait_for_timeout(200)
     chk(amt != '', '② 금액 자동 표시(단가 0이면 0)', amt)
 
     # ---------------------------------------------------------------- 3. 저장

@@ -10250,8 +10250,11 @@ var LIVE = (function () {
     lab = $('ioSheetPartnerLabel');
     pt = $('ioSheetPartner');
     if (lab) {
+      /* v60 — 폰은 라벨을 짧게 («(선택)» 은 화면에서 군더더기) */
+      var mob = iosMob();
       lab.innerHTML = iosIsIn() ? '업체·거래처'
-        : (dk === 'site' ? '생산품목 (선택)' : (dk === 'other' ? '사유 / 수령처 (선택)' : '거래처'));
+        : (dk === 'site' ? (mob ? '생산품목' : '생산품목 (선택)')
+          : (dk === 'other' ? (mob ? '사유·수령처' : '사유 / 수령처 (선택)') : '거래처'));
     }
     if (pt) {
       if (iosIsIn()) {
@@ -10877,7 +10880,7 @@ var LIVE = (function () {
     if ($('ioBulkList')) $('ioBulkList').innerHTML = '';
     if ($('ioBulkStat')) { $('ioBulkStat').className = 'bulkstat'; $('ioBulkStat').textContent = ''; }
     if ($('ioBulkFile')) $('ioBulkFile').value = '';
-    if (withRows) { iosResetRows(3); iosRenderRows(); }
+    if (withRows) { iosResetRows(iosMob() ? 1 : 3); iosRenderRows(); }
   }
   function ioV53Show(fileName) {
     ioV53Panel(true);

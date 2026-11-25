@@ -210,7 +210,8 @@ def run():
         box = page.evaluate("""() => { const i = document.querySelector('#ioSheetBody input[data-f="qty"]');
              const r = i.getBoundingClientRect(); return {h: Math.round(r.height), fs: getComputedStyle(i).fontSize}; }""")
         chk(box['h'] >= 44, '출고 줄 입력칸 높이 44 이상', box)
-        chk(box['fs'] == '16px', '입력칸 글자 16px (iOS 확대 방지)', box)
+        # v60 — 수량 칸은 «큰 숫자»(19px)로 키웠다. iOS 확대 방지는 16px 이상이면 된다.
+        chk(float(box['fs'].replace('px', '')) >= 16, '입력칸 글자 16px 이상 (iOS 확대 방지)', box)
         page.click('#ioSheetClose')
         page.wait_for_timeout(300)
 
@@ -222,14 +223,16 @@ def run():
         m = page.evaluate(MODAL)
         chk(bool(m) and m['id'] == 'ioSheetModal', '입고 팝업이 시트로 열림', m)
         page.screenshot(path=os.path.join(OUT, 'M-입고바텀시트.png'))
-        # 줄 카드 모양
+        # 줄 카드 모양 — v60 부터 폰은 «줄 하나 = 카드 한 장»(한 칸)으로 그린다
         row = page.evaluate("""() => { const tr = document.querySelector('#ioSheetBody tr[data-r="0"]');
-             const tds = Array.from(tr.children).map(td => { const b = td.getBoundingClientRect();
-               return {l: td.getAttribute('data-l'), w: Math.round(b.width), top: Math.round(b.top)}; });
              const r = tr.getBoundingClientRect();
-             return {w: Math.round(r.width), tds: tds}; }""")
+             const parts = ['.mcr-kind', '.mcr-name', '.mcr-stock', '.mcr-qty'].map(s => {
+               const e = tr.querySelector(s); if (!e) return null;
+               const b = e.getBoundingClientRect(); return {s: s, w: Math.round(b.width), top: Math.round(b.top)}; });
+             return {w: Math.round(r.width), mcard: tr.getAttribute('data-mcard'), parts: parts}; }""")
         chk(row['w'] <= 390, '입고 줄 카드가 화면 안에', row['w'])
-        chk(sum(1 for t in row['tds'] if t['w'] > 200) >= 2, '입고 줄이 세로로 넓게 배치', row['tds'][:4])
+        chk(row['mcard'] == '1' and all(row['parts']) and sum(1 for t in row['parts'] if t['w'] > 200) >= 2,
+            '입고 줄이 세로로 넓게 배치(구분·품명·재고·수량 카드)', row['parts'])
         page.screenshot(path=os.path.join(OUT, 'M-입고줄카드.png'))
         # 실제 저장 동작(기능 그대로)
         page.fill('#ioSheetPartner', '도드람푸드')

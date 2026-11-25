@@ -162,7 +162,9 @@ def run_mobile(pw):
     page.tap('.acpop .acitem >> nth=0')
     page.wait_for_timeout(300)
     chk(page.eval_on_selector(ni, 'e => e.value') == '등갈비', '③ 품목 줄 터치 입력', page.eval_on_selector(ni, 'e => e.value'))
-    # 완제품 줄
+    # 완제품 줄 — v60 부터 폰은 기본 1줄이라 한 줄 더 만든 뒤 쓴다
+    page.click('#ioSheetAdd')
+    page.wait_for_timeout(400)
     page.select_option('#ioSheetBody tr[data-r="1"] select[data-f="kind"]', 'fg')
     page.wait_for_timeout(400)
     ni2 = '#ioSheetBody tr[data-r="1"] input[data-f="name"]'
@@ -178,6 +180,8 @@ def run_mobile(pw):
     chk(code.startswith('FP-') or code.startswith('W'), '③ 고른 품목의 코드가 채워짐', code)
 
     # 시트 맨 아래 줄 — 목록이 위로 뒤집히고, 저장 버튼에 가려지지 않는지
+    page.click('#ioSheetAdd')
+    page.wait_for_timeout(400)
     page.evaluate("() => { const tr = document.querySelector('#ioSheetBody tr[data-r=\"2\"]'); tr.scrollIntoView({block:'center'}); }")
     page.wait_for_timeout(300)
     ni3 = '#ioSheetBody tr[data-r="2"] input[data-f="name"]'
