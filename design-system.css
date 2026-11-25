@@ -51,13 +51,28 @@ html body{background:var(--erp-bg)}
   border-color:var(--erp-input-focus)!important;
   box-shadow:0 0 0 3px var(--erp-input-halo)!important;
  }
- /* Composite search fields draw their ring on the container, never twice. */
- body :is(.usearch,.fsearch):focus-within{
+ /* Composite search fields draw their ring on the container, never twice.
+    v55 — v137's inner override was outranked by the generic focus rule above
+    (3 IDs + 11 attribute tests), so the inner input kept its own 3px halo and
+    the search box looked double-bordered. Four ID repetitions + !important win;
+    the inner input is now fully transparent (border · background · ring · outline). */
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch,.v133-search-wrap):focus-within{
   outline:none!important;border-color:var(--erp-input-focus)!important;
   box-shadow:0 0 0 3px var(--erp-input-halo)!important;
  }
- :is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch) input:focus{
-  outline:none!important;border-color:transparent!important;box-shadow:none!important;
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch,.v133-search-wrap) :is(input,textarea),
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch,.v133-search-wrap) :is(input,textarea):hover,
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch,.v133-search-wrap) :is(input,textarea):focus,
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch,.v133-search-wrap) :is(input,textarea):focus-visible{
+  border:0!important;border-radius:0!important;background:transparent!important;
+  box-shadow:none!important;outline:none!important;
+ }
+ /* 크롬 기본 지우기(×)는 안쪽 여백을 조금 두고 오른쪽 끝에 둔다 */
+ :is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch) input[type=search]::-webkit-search-cancel-button{
+  -webkit-appearance:none;appearance:none;width:13px;height:13px;margin:0 2px 0 6px;
+  background:center/13px 13px no-repeat;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.2' stroke-linecap='round'><path d='M7 7l10 10M17 7 7 17'/></svg>");
+  cursor:pointer;
  }
 }
 @media screen and (forced-colors:active){

@@ -9637,9 +9637,10 @@ var LIVE = (function () {
     var p = iosProduct(r);
     return (p && p.unit) || r.unit || '개';
   }
-  /* 구분 칸 — 일곱 구분 + 완제품 줄은 바로 아래에 자체/매입 */
+  /* 구분 칸 — 일곱 구분 + 완제품 줄은 바로 아래에 자체/매입.
+     v55 — 칸(td)은 table-cell 로 두고 안쪽 .kcell 만 세로로 쌓는다(줄 경계 정렬). */
   function iosKindCellHtml(r) {
-    var g = iosGroupOf(r), h = ['<select data-f="kind" aria-label="구분">'], i;
+    var g = iosGroupOf(r), h = ['<span class="kcell"><select data-f="kind" aria-label="구분">'], i;
     for (i = 0; i < IOS_KINDS.length; i++) {
       h.push('<option value="' + IOS_KINDS[i][0] + '"' + (g === IOS_KINDS[i][0] ? ' selected' : '') + '>' + IOS_KINDS[i][1] + '</option>');
     }
@@ -9649,6 +9650,7 @@ var LIVE = (function () {
         '<option value="자체"' + (r.flag === '자체' ? ' selected' : '') + '>자체</option>' +
         '<option value="매입"' + (r.flag === '자체' ? '' : ' selected') + '>매입</option></select>');
     }
+    h.push('</span>');
     return h.join('');
   }
   /* 창고 칸 — 일곱 구분 모두 고른다 (원료육은 DB가 받는 냉동고 · 냉장고 두 가지) */
