@@ -1,0 +1,41 @@
+name: Verify public ChatGPT ERP v149
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.github/workflows/erp-v149-public-verify.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify deployed HTML matches tested source exactly
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib, time, urllib.request
+          expected=pathlib.Path('erp/erp-app-v85.html').read_bytes()
+          digest=hashlib.sha256(expected).hexdigest()
+          base='https://perreo69.github.io/123456/erp/'
+          for attempt in range(10):
+            try:
+              with urllib.request.urlopen(base+'?verify='+str(time.time_ns()),timeout=10) as response:
+                assert response.status==200
+                assert b'erp-app-v85.html' in response.read()
+              with urllib.request.urlopen(base+'erp-app-v85.html?verify='+str(time.time_ns()),timeout=10) as response:
+                body=response.read()
+                assert response.status==200
+              actual=hashlib.sha256(body).hexdigest()
+              if actual==digest:
+                print('PUBLIC ERP: HTTP 200, login shell and exact tested HTML verified SHA256='+actual)
+                break
+              print('Deployment pending: '+actual,flush=True)
+            except Exception as e:
+              print(repr(e),flush=True)
+            time.sleep(5)
+          else:
+            raise SystemExit('Public deployment not verified')
+          PY
