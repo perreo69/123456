@@ -4047,6 +4047,22 @@ var SB = (function () {
     });
   }
 
+  /* ---------- v54 변경이력(audit_logs) — 표가 아직 없어도 앱은 그대로 돈다 ----------
+     audit_logs.sql 을 아직 실행하지 않은 DB 에서는 404 / PGRST205 가 오는데,
+     그때는 오류를 띄우지 않고 조용히 { ok:false } 로 돌려준다(무중단). */
+  function auditLoad(limit) {
+    return rest('audit_logs?select=*&order=created_at.desc&limit=' + (Number(limit) || 2000)).then(function (rows) {
+      return { ok: true, rows: rows || [] };
+    }, function () {
+      return { ok: false, rows: [] };
+    });
+  }
+  function auditAdd(row) {
+    return rest('audit_logs', {
+      method: 'POST', body: row, headers: { Prefer: 'return=representation' }
+    }).then(function (res) { return res && res[0] ? res[0] : null; }, function () { return null; });
+  }
+
   /* ---------- v4 회계 ---------- */
   function accVoucherSave(p) {
     return rest('rpc/acc_voucher_save', { method: 'POST', body: {
@@ -4113,6 +4129,7 @@ var SB = (function () {
       fpBatch: fpBatch, fpBatchPrice: fpBatchPrice,
       lotSetQty: lotSetQty, txLogAdd: txLogAdd, txLogRemove: txLogRemove,
       fpLotSetQty: fpLotSetQty, fpLogAdd: fpLogAdd, fpLogRemove: fpLogRemove, fpProductStock: fpProductStock,
+      auditLoad: auditLoad, auditAdd: auditAdd,
       accVoucherSave: accVoucherSave, accVoucherDelete: accVoucherDelete, accReflect: accReflect,
       accPaymentSave: accPaymentSave, accPaymentDelete: accPaymentDelete,
       accExpenseSave: accExpenseSave, accExpenseDelete: accExpenseDelete,
@@ -4210,7 +4227,7 @@ var LIVE = (function () {
 /* ============================== UI:START ============================== */
 (function () {
   'use strict';
-  var st = { lots: [], logs: [], fps: [], fpLogs: [], fpLots: [], vouchers: [], payments: [], expenses: [], loadedAt: 0 };
+  var st = { lots: [], logs: [], fps: [], fpLogs: [], fpLots: [], vouchers: [], payments: [], expenses: [], audit: [], auditOk: null, loadedAt: 0 };
   var cur = {
     mode: 'in', tab: 'F', wh: 'F', whIn: 'F', whOut: 'C', dest: 'site',
     search: '', showZero: false, hFilter: 'all', hLimit: 250, lotId: null,
@@ -4247,6 +4264,8 @@ var LIVE = (function () {
     uni: { g: 'all', view: '', wh: 'all', flag: 'all', q: '', sortKey: 'e', sortDir: 1, limit: 400,
       zero: false, closed: {} },   /* 재고 0 포함 · v36 띠를 눌러 «접은» 품목만 기억(기본은 모두 펼침) */
     utx: { g: 'all', tk: 'all', q: '', preset: 'all', from: '', to: '', sortKey: 'd', sortDir: -1, limit: 400, view: '' },
+    /* v54 — 변경이력 */
+    audit: { type: 'all', q: '', preset: 'all', from: '', to: '', sortKey: '', sortDir: -1, limit: 400 },
     fUni: {}, fUtx: {}, sortUni: { k: 'e', dir: 1 }, sortUtx: { k: 'd', dir: -1 }
   };
   var prev = {};
@@ -4258,11 +4277,11 @@ var LIVE = (function () {
   function $(id) { return document.getElementById(id); }
 
   /* ---------- 열 너비 (엑셀처럼 머리글을 끌어서 조절 · localStorage 저장) ---------- */
-  var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {}, items: {}, uni: {}, unitx: {} };
+  var COLW = { lot: {}, log: {}, chg: {}, fpG: {}, fpL: {}, fpP: {}, accV: {}, accR: {}, accE: {}, accM: {}, accB: {}, accS: {}, prodD: {}, prodM: {}, prodC: {}, items: {}, uni: {}, unitx: {}, audit: {} };
   var COL_MIN = 44, COL_MAX = 720;
   /* v15 — 어느 표든 작업 열은 [작업 ▾] 한 버튼이라 폭이 같다 */
   var ACT_DEF = { lot: 76, log: 76, fpG: 76, fpL: 76, fpP: 76, accV: 76, accR: 76, accE: 76, accB: 76, accS: 76, items: 76 };
-  var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC', 'items', 'uni', 'unitx'];
+  var COLW_KEYS = ['lot', 'log', 'chg', 'fpG', 'fpL', 'fpP', 'accV', 'accR', 'accE', 'accM', 'accB', 'accS', 'prodD', 'prodM', 'prodC', 'items', 'uni', 'unitx', 'audit'];
   var COLW_KEY = 'meatERP.colw.v4';
   function tblOf(tab) { return tab === 'H' ? 'log' : (tab === 'V' ? 'chg' : 'lot'); }
   function loadColW() {
@@ -4950,6 +4969,7 @@ var LIVE = (function () {
   /* ---------- 기간 바 ---------- */
   function rangeTarget() {
     if (cur.erp === 'unitx') return cur.utx;
+    if (cur.erp === 'audit') return cur.audit;
     if (cur.erp === 'fg') return cur.fgRange;
     if (cur.erp === 'acc') return cur.accRange;
     if (cur.erp === 'buy') return cur.buyRange;
@@ -4960,6 +4980,7 @@ var LIVE = (function () {
   }
   function rangeUI() {
     if (cur.erp === 'unitx') return { presets: 'utxPeriodChips', from: 'utxFrom', to: 'utxTo', display: 'utxRangeDisplay', sum: '' };
+    if (cur.erp === 'audit') return { presets: 'auditPeriodChips', from: 'auditFrom', to: 'auditTo', display: 'auditRangeDisplay', sum: '' };
     if (cur.erp === 'fg') return { presets: 'fgPresets', from: 'fgFrom', to: 'fgTo', display: '', sum: 'fgRangeSum' };
     if (cur.erp === 'acc') return { presets: 'accPresets', from: 'accFrom', to: 'accTo', display: 'accRangeDisplay', sum: 'accRangeSum' };
     if (cur.erp === 'buy') return { presets: '', from: 'buyFrom', to: 'buyTo', display: 'buyRangeDisplay', sum: 'buyRangeSum' };
@@ -4971,6 +4992,7 @@ var LIVE = (function () {
   function afterRange() {
     renderRangeBar();
     if (cur.erp === 'unitx') renderUniTx();
+    else if (cur.erp === 'audit') renderAudit();
     else if (cur.erp === 'fg') renderFgTable();
     else if (cur.erp === 'acc') renderAccTable();
     else if (cur.erp === 'buy') renderBuy();
@@ -6034,6 +6056,7 @@ var LIVE = (function () {
     renderProd();
     if (cur.reflectOpen) renderAccReflect();
     if (cur.erp === 'items') renderItems();
+    if (cur.erp === 'audit') renderAudit();
     updatePriceHint();
     photoTick(false);
     if (xls.kind) renderXls();
@@ -6045,9 +6068,12 @@ var LIVE = (function () {
     if (loading) { again = true; return Promise.resolve(); }
     loading = true;
     if (!opts.silent) setSync('wait', '불러오는 중…');
-    return Promise.all([SB.db.loadAll(), SB.db.loadAllV4()]).then(function (pair) {
-      var res = pair[0], v4 = pair[1] || {};
+    return Promise.all([SB.db.loadAll(), SB.db.loadAllV4(), SB.db.auditLoad()]).then(function (triple) {
+      var res = triple[0], v4 = triple[1] || {}, aud = triple[2] || { ok: false, rows: [] };
       st = ERP.stateFrom(res.lots, res.logs);
+      /* v54 — 변경이력은 따로 읽는다. 표가 아직 없으면(aud.ok=false) 조용히 비워 둔다 */
+      st.audit = aud.rows || [];
+      st.auditOk = !!aud.ok;
       var f = ERP.fpStateFrom(v4.fps, v4.fpLogs, v4.fpLots);
       var a = ERP.accStateFrom(v4.vouchers, v4.payments, v4.expenses);
       st.fps = f.fps; st.fpLogs = f.fpLogs; st.fpLots = f.fpLots;
@@ -6382,9 +6408,23 @@ var LIVE = (function () {
     };
     var bad = ERP.precheckUpdate(p);
     if (bad) { $('editMsg').textContent = bad.msg; return; }
+    /* v54 — 입출고 내역 한 줄을 고친 것도 전 → 후로 남긴다 */
+    var e0 = editing, ch = [];
+    if ((e0.d || '') !== (p.date || '')) ch.push('날짜 ' + (e0.d || '-') + ' → ' + (p.date || '-'));
+    if (Math.abs(ERP.r2(e0.k) - ERP.r2(p.kg)) > 0.004) ch.push('수량 ' + ERP.adjNum(e0.k) + ' → ' + ERP.adjNum(p.kg) + 'kg');
+    if (ERP.r2(e0.price) !== ERP.r2(p.price)) ch.push('단가 ' + fmtInt(e0.price) + ' → ' + fmtInt(p.price) + '원');
+    if ((e0.w || '') !== (p.wh || '')) ch.push('창고 ' + ERP.whName(e0.w) + ' → ' + ERP.whName(p.wh));
+    if ((e0.p || '') !== (p.dest || '')) ch.push('거래처·생산품목 ' + (e0.p || '-') + ' → ' + (p.dest || '-'));
+    if ((e0.note || '') !== (p.note || '')) ch.push('비고 ' + (e0.note || '-') + ' → ' + (p.note || '-'));
     var b = $('editSave');
     b.disabled = true; b.textContent = '저장 중…';
     SB.db.update(p).then(function (row) {
+      if (!ch.length) return null;
+      return auditWrite({
+        type: '정보수정', target: e0.major || '원료육', id: 'tx:' + e0.dbid, name: e0.n,
+        summary: ch.join(' · '), before: ERP.adjNum(e0.k) + 'kg', after: ERP.adjNum(p.kg) + 'kg', reason: ''
+      });
+    }).then(function () {
       closeEdit();
       toast('수정 완료: ' + (row && row.product_name || editing && editing.n) + ' ' +
         Number(row && row.qty || p.kg).toFixed(2) + 'kg', 'ok');
@@ -6450,6 +6490,7 @@ var LIVE = (function () {
       };
       return SB.db.txLogAdd(row).then(function (res) {
         var newId = res && res[0] ? res[0].id : null;
+        if (newId && meta.ids) meta.ids.push(newId);   /* v54 — 변경이력과 이어 붙일 이력 id */
         var patch = j.wh === 'F' ? SB.db.lotSetQty(lot.dbid, j.to, null) : SB.db.lotSetQty(lot.dbid, null, j.to);
         return patch.then(null, function (e) {
           return (newId ? SB.db.txLogRemove(newId) : Promise.resolve()).then(function () { throw e; });
@@ -6496,6 +6537,7 @@ var LIVE = (function () {
     if (!why && jobs.length) why = '직접 수정';
     var b = $('lotSave');
     b.disabled = true; b.textContent = '저장 중…';
+    var meta = { why: why, by: by, email: email, changes: ch, name: name, exp: newExp, ids: [] };
     var chain = Promise.resolve(null);
     if (ch.length) {
       chain = chain.then(function () {
@@ -6507,7 +6549,23 @@ var LIVE = (function () {
       });
     }
     chain.then(function () {
-      return lotStockAdjust(lot, jobs, { why: why, by: by, email: email, changes: ch, name: name, exp: newExp });
+      return lotStockAdjust(lot, jobs, meta);
+    }).then(function () {
+      /* v54 — 재고가 아니라 정보만 고쳤어도, 재고를 고쳤어도 한 줄 남긴다 */
+      var jt = jobs.map(function (j) {
+        return (j.wh === 'F' ? '냉동고 ' : '냉장고 ') + ERP.adjNum(j.from) + ' → ' + ERP.adjNum(j.to) + ' kg (' +
+          ERP.adjSigned(ERP.r2(j.to - j.from)) + ')';
+      });
+      var jb = jobs.map(function (j) { return (j.wh === 'F' ? '냉동고 ' : '냉장고 ') + ERP.adjNum(j.from) + ' kg'; });
+      var ja = jobs.map(function (j) { return (j.wh === 'F' ? '냉동고 ' : '냉장고 ') + ERP.adjNum(j.to) + ' kg'; });
+      return auditWrite({
+        type: jobs.length ? '재고조정' : '정보수정',
+        target: lot.major || '원료육',
+        id: 'lot:' + lot.dbid + (meta.ids.length ? '|' + meta.ids.map(function (x) { return 'txlog:' + x; }).join('|') : ''),
+        name: name,
+        summary: jt.concat(ch.length ? ch : []).join(' · '),
+        before: jb.join(' / '), after: ja.join(' / '), reason: why
+      });
     }).then(function () {
       b.disabled = false; b.textContent = '수정 저장';
       closeLot();
@@ -6578,10 +6636,12 @@ var LIVE = (function () {
     };
     var b = $('fpLotSave');
     b.disabled = true; b.textContent = '저장 중…';
+    var fpLogNew = null;
     SB.db.fpLotSetQty(L.id, nq).then(function () {
       return SB.db.fpLogAdd(row);
     }).then(function (res) {
       var newId = res && res[0] ? res[0].id : null;
+      fpLogNew = newId;
       var prodStock = (p && p.stock !== undefined) ? ERP.r3(Number(p.stock) + delta) : null;
       var prodStep = prodStock === null ? Promise.resolve(true) : SB.db.fpProductStock(L.code, prodStock);
       return prodStep.then(null, function (e) {
@@ -6589,6 +6649,17 @@ var LIVE = (function () {
         return (newId ? SB.db.fpLogRemove(newId) : Promise.resolve())
           .then(function () { return SB.db.fpLotSetQty(L.id, old); })
           .then(function () { throw e; });
+      });
+    }).then(function () {
+      /* v54 — 변경이력 */
+      var whNm = ERP.UNI_WH_NAME[ERP.uniWhOfMemo(L.memo)] || '실온';
+      return auditWrite({
+        type: '재고조정', target: L.cat || '완제품',
+        id: 'fplot:' + L.id + (fpLogNew ? '|fplog:' + fpLogNew : ''),
+        name: L.n, reason: why,
+        summary: whNm + ' ' + ERP.adjNum(old) + ' → ' + ERP.adjNum(nq) + ' ' + (L.unit || '개') + ' (' + ERP.adjSigned(delta) + ')',
+        before: whNm + ' ' + ERP.adjNum(old) + ' ' + (L.unit || '개'),
+        after: whNm + ' ' + ERP.adjNum(nq) + ' ' + (L.unit || '개')
       });
     }).then(function () {
       b.disabled = false; b.textContent = '수정 저장';
@@ -6883,11 +6954,13 @@ var LIVE = (function () {
   var MODE_KEY = 'meatERP.erpMode.v2';
   /* v34 — 왼쪽 「입고 · 출고 · 재고 이동 · 해동」 = 지금 보고 있던 화면 그대로 + 팝업만
      (v33의 뒷배경 「입출고 내역」 전환(utxShowAll)과 메뉴 물들이기(ioNavHold)는 없앴다 — v31과 같은 동작) */
-  var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', items: 'itemsMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
-  var PANE_CAT = { uni: 'stock', unitx: 'stock', items: 'items', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
+  var PANE_HOSTS = { uni: 'uniMode', unitx: 'uniTxMode', audit: 'auditMode', items: 'itemsMode', meat: 'meatMode', fg: 'fgMode', buy: 'buyPane', sale: 'salePane', prod: 'prodPane', acc: 'accMode' };
+  var PANE_CAT = { uni: 'stock', unitx: 'stock', audit: 'io', items: 'items', meat: 'stock', fg: 'stock', buy: 'trade', sale: 'trade', prod: 'prod', acc: 'acc' };
   var PANE_HEAD = {
     uni: ['재고현황', '일곱 구분(원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재 · 기타)을 한 표에서 봅니다. 원산지와 브랜드는 따로, 완제품은 자체 · 매입을 세부분류에 적습니다.', '통합 관리 · 재고현황'],
     unitx: ['입출고내역', '일곱 구분의 입고·출고·해동·현장이 한 줄기로 이어지고, 줄마다 잔여재고가 남습니다.', '통합 관리 · 입출고내역'],
+    /* v54 — 변경이력 : 수정·삭제 기록을 전 → 후·사유·수정자까지 */
+    audit: ['변경이력', '재고조정 · 정보수정 · 삭제 기록을 전 → 후와 사유·수정자까지 한 줄씩 봅니다.', '입출고 관리 · 변경이력'],
     /* v47 — 품목관리 : 등록·수정·사용/미사용을 한 화면에서 */
     items: ['품목관리', '등록된 품목을 한 곳에서 봅니다. 새 품목 등록 · 정보 수정 · 사용/미사용 전환을 여기서 끝냅니다.', '품목관리'],
     meat: ['원료육 재고', '냉동고·냉장고를 나눠 보고, 표에서 바로 해동·출고로 이어집니다.', '품목별 관리 · 원료육'],
@@ -7168,6 +7241,7 @@ var LIVE = (function () {
       renderRangeBar();
       if (p === 'uni') renderUni();
       else if (p === 'unitx') renderUniTx();
+      else if (p === 'audit') renderAudit();
       else if (p === 'items') renderItems();
       else if (p === 'meat') { syncMeatTabUI(); renderTable(); }
       else if (p === 'fg') { renderFgKPI(); renderFgCatBar(); renderFgTable(); }
@@ -7204,6 +7278,7 @@ var LIVE = (function () {
   function renderCurrent() {
     if (cur.erp === 'uni') renderUni();
     else if (cur.erp === 'unitx') renderUniTx();
+    else if (cur.erp === 'audit') renderAudit();
     else if (cur.erp === 'items') renderItems();
     else if (cur.erp === 'fg') renderFgTable();
     else if (cur.erp === 'buy') renderBuy();
@@ -7729,6 +7804,249 @@ var LIVE = (function () {
     var more = $('btnUtxMore');
     if (more) more.addEventListener('click', function () { cur.utx.limit += 400; renderUniTx(); });
   }
+  /* ==========================================================================
+     v54 — 변경이력 (audit_logs + 예전 tx_logs · fp_logs 의 「[재고조정]」 병합)
+       · 고치거나 지우는 모든 자리에서 auditWrite 한 번으로 한 줄씩 남는다.
+       · audit_logs.sql 을 아직 실행하지 않은 DB 에서는 조용히 건너뛰고,
+         화면은 예전 「[재고조정]」 기록만 보여 주며 위에 작은 안내를 띄운다.
+     ========================================================================== */
+  var AUDIT_COLS = [
+    { k: 'ts', t: '일시', w: 132 },
+    { k: 'type', t: '구분', w: 82 },
+    { k: 'target', t: '대상', w: 226 },
+    { k: 'summary', t: '변경 내용', w: 470 },
+    { k: 'reason', t: '사유', w: 170 },
+    { k: 'actor', t: '수정자', w: 186 }
+  ];
+  var AUDIT_TYPE_EN = { '재고조정': 'adj', '정보수정': 'info', '삭제': 'del' };
+  /* 안내 배너의 [SQL 복사] — 사용자가 Supabase SQL Editor 에 그대로 붙여 넣는다 */
+  var AUDIT_SQL = [
+    '-- 미르스타푸드 ERP v54 변경이력(audit_logs) — 한 번만 실행하면 됩니다.',
+    'create table if not exists public.audit_logs (',
+    '  id bigserial primary key,',
+    '  created_at timestamptz not null default now(),',
+    "  action_type text not null default '',",
+    "  target_type text not null default '',",
+    "  target_id text not null default '',",
+    "  product_name text not null default '',",
+    "  summary text not null default '',",
+    "  before_val text not null default '',",
+    "  after_val text not null default '',",
+    "  reason text not null default '',",
+    "  actor_email text not null default '',",
+    "  actor_name text not null default ''",
+    ');',
+    'create index if not exists audit_logs_created_at_idx on public.audit_logs (created_at desc);',
+    'create index if not exists audit_logs_action_type_idx on public.audit_logs (action_type, created_at desc);',
+    'alter table public.audit_logs enable row level security;',
+    'drop policy if exists "audit_logs_select_authenticated" on public.audit_logs;',
+    'create policy "audit_logs_select_authenticated" on public.audit_logs for select to authenticated using (true);',
+    'drop policy if exists "audit_logs_insert_authenticated" on public.audit_logs;',
+    'create policy "audit_logs_insert_authenticated" on public.audit_logs for insert to authenticated with check (true);',
+    'grant select, insert on public.audit_logs to authenticated;',
+    'grant usage, select on sequence public.audit_logs_id_seq to authenticated;'
+  ].join('\n');
+  function auditPad(n) { return (n < 10 ? '0' : '') + n; }
+  function auditStamp(v) {
+    var t = String(v || '').replace(/^\s+|\s+$/g, '');
+    if (!t) return '';
+    var d = new Date(t);
+    if (isNaN(d.getTime())) return t.slice(0, 16).replace('T', ' ');
+    return d.getFullYear() + '-' + auditPad(d.getMonth() + 1) + '-' + auditPad(d.getDate()) + ' ' +
+      auditPad(d.getHours()) + ':' + auditPad(d.getMinutes());
+  }
+  function auditActor() {
+    var s = SB.auth.session() || {};
+    return { email: s.email || '', name: s.name || '사용자' };
+  }
+  /* 한 줄 남기기 — 표가 없으면(st.auditOk === false) 아무 것도 하지 않는다
+     o = { type, target, id, name, summary, before, after, reason } */
+  function auditWrite(o) {
+    o = o || {};
+    if (st.auditOk === false) return Promise.resolve(null);
+    var who = auditActor();
+    var row = {
+      action_type: o.type || '정보수정',
+      target_type: o.target || '',
+      target_id: o.id || '',
+      product_name: o.name || '',
+      summary: o.summary || '',
+      before_val: o.before === undefined || o.before === null ? '' : String(o.before),
+      after_val: o.after === undefined || o.after === null ? '' : String(o.after),
+      reason: o.reason || '',
+      actor_email: who.email,
+      actor_name: who.name
+    };
+    return SB.db.auditAdd(row).then(function (saved) {
+      if (saved) { st.auditOk = true; st.audit.unshift(saved); }
+      else st.auditOk = false;
+      return saved;
+    });
+  }
+  /* 화면에 뿌릴 줄 — audit_logs + 예전 「[재고조정]」 이력 (같은 조정은 한 번만) */
+  function auditRowsAll() {
+    var out = [], used = {}, i, j, seg, parts, list = st.audit || [];
+    for (i = 0; i < list.length; i++) {
+      var a = list[i];
+      parts = String(a.target_id || '').split('|');
+      for (j = 0; j < parts.length; j++) {
+        seg = parts[j].replace(/^\s+|\s+$/g, '');
+        if (seg.indexOf('txlog:') === 0) used['t' + seg.slice(6)] = 1;
+        else if (seg.indexOf('fplog:') === 0) used['f' + seg.slice(6)] = 1;
+      }
+      out.push({
+        src: 'a', ts: auditStamp(a.created_at), type: a.action_type || '정보수정',
+        cat: a.target_type || '', name: a.product_name || '',
+        summary: a.summary || '', reason: a.reason || '',
+        actor: a.actor_name || '', email: a.actor_email || '',
+        before: a.before_val || '', after: a.after_val || ''
+      });
+    }
+    /* 예전 재고조정 — tx_logs 의 note 맨 앞 「[재고조정]」 */
+    for (i = 0; i < (st.logs || []).length; i++) {
+      var L = st.logs[i], ad = ERP.adjOf(L.note);
+      if (!ad || used['t' + L.dbid]) continue;
+      out.push({
+        src: 't', ts: L.at ? auditStamp(L.at) : (L.d || ''), type: '재고조정',
+        cat: L.major || '원료육', name: L.n || '',
+        summary: (ad.ok ? ad.wh + ' ' + ERP.adjNum(ad.before) + ' → ' + ERP.adjNum(ad.after) +
+          (ad.unit ? ' ' + ad.unit : '') + ' (' + ERP.adjSigned(ad.delta) + ')' : ad.raw) +
+          (ad.changes ? ' · ' + ad.changes : ''),
+        reason: ad.why || '', actor: ad.by || '', email: ad.email || '',
+        before: ad.ok ? ad.wh + ' ' + ERP.adjNum(ad.before) : '',
+        after: ad.ok ? ad.wh + ' ' + ERP.adjNum(ad.after) : ''
+      });
+    }
+    /* 예전 재고조정 — fp_logs 의 note 맨 앞 「[재고조정]」 */
+    for (i = 0; i < (st.fpLogs || []).length; i++) {
+      var F = st.fpLogs[i], af = ERP.adjOf(F.note);
+      if (!af || used['f' + F.id]) continue;
+      out.push({
+        src: 'f', ts: F.at ? auditStamp(F.at) : (F.d || ''), type: '재고조정',
+        cat: F.cat || '완제품', name: F.n || '',
+        summary: (af.ok ? af.wh + ' ' + ERP.adjNum(af.before) + ' → ' + ERP.adjNum(af.after) +
+          (af.unit ? ' ' + af.unit : '') + ' (' + ERP.adjSigned(af.delta) + ')' : af.raw) +
+          (af.changes ? ' · ' + af.changes : ''),
+        reason: af.why || '', actor: af.by || '', email: af.email || '',
+        before: af.ok ? af.wh + ' ' + ERP.adjNum(af.before) : '',
+        after: af.ok ? af.wh + ' ' + ERP.adjNum(af.after) : ''
+      });
+    }
+    return out;
+  }
+  function auditFiltered() {
+    var q = String(cur.audit.q || '').replace(/^\s+|\s+$/g, '').toLowerCase();
+    var all = auditRowsAll(), out = [], i, r, d, hay;
+    for (i = 0; i < all.length; i++) {
+      r = all[i];
+      if (cur.audit.type !== 'all' && r.type !== cur.audit.type) continue;
+      d = String(r.ts || '').slice(0, 10);
+      if (cur.audit.from && (!d || d < cur.audit.from)) continue;
+      if (cur.audit.to && (!d || d > cur.audit.to)) continue;
+      if (q) {
+        hay = (r.name + ' ' + r.cat + ' ' + r.type + ' ' + r.actor + ' ' + r.email + ' ' +
+          r.reason + ' ' + r.summary).toLowerCase();
+        if (hay.indexOf(q) < 0) continue;
+      }
+      out.push(r);
+    }
+    var k = cur.audit.sortKey || 'ts', dir = cur.audit.sortDir === 1 ? 1 : -1;
+    out.sort(function (a, b) {
+      var av, bv;
+      if (k === 'type') { av = a.type; bv = b.type; }
+      else if (k === 'target') { av = a.cat + ' ' + a.name; bv = b.cat + ' ' + b.name; }
+      else if (k === 'summary') { av = a.summary; bv = b.summary; }
+      else if (k === 'reason') { av = a.reason; bv = b.reason; }
+      else if (k === 'actor') { av = a.actor + ' ' + a.email; bv = b.actor + ' ' + b.email; }
+      else { av = a.ts; bv = b.ts; }
+      var c = String(av).localeCompare(String(bv), 'ko');
+      if (c !== 0) return c * dir;
+      return (String(a.ts) < String(b.ts) ? -1 : (String(a.ts) > String(b.ts) ? 1 : 0)) * dir;
+    });
+    return out;
+  }
+  function auditTh(c) {
+    var on = !!(cur.audit.sortKey && cur.audit.sortKey === c.k);
+    var arrow = on ? '<span class="uarrow">' + (cur.audit.sortDir === -1 ? '▼' : '▲') + '</span>' : '';
+    return '<th data-col="' + c.k + '">' +
+      '<button type="button" class="uhd plain' + (on ? ' srt' : '') + '" data-asort="' + c.k + '"' +
+      ' title="' + esc(c.t) + ' — 누르면 정렬(오름▲·내림▼·기본)">' +
+      '<span class="ht">' + esc(c.t) + '</span>' + arrow + '</button>' +
+      '<span class="colrz" data-rz="' + c.k + '" title="드래그: 열 너비 조절 / 더블클릭: 내용에 맞춤"></span></th>';
+  }
+  function auditRowHtml(r) {
+    var bcl = AUDIT_TYPE_EN[r.type] || 'info';
+    var txt = r.summary || ((r.before || r.after) ? (r.before || '-') + ' → ' + (r.after || '-') : '-');
+    return '<tr>' +
+      '<td class="num audts">' + esc(r.ts || '-') + '</td>' +
+      '<td><span class="tag ' + bcl + '">' + esc(r.type) + '</span></td>' +
+      '<td class="audtg"><span class="cat">' + esc(r.cat || '-') + '</span> · ' +
+        '<span class="audnm" title="' + esc(r.name) + '">' + esc(r.name || '-') + '</span></td>' +
+      '<td class="audsm" title="' + esc(txt) + '">' + esc(txt) + '</td>' +
+      '<td class="sub">' + esc(r.reason || '-') + '</td>' +
+      '<td class="sub ellip audwho">' + esc(r.actor || '-') +
+        (r.email ? '<span class="aude">' + esc(r.email) + '</span>' : '') + '</td>' +
+      '</tr>';
+  }
+  function auditSortClick(key) {
+    var s = cur.audit;
+    if (s.sortKey !== key) { s.sortKey = key; s.sortDir = 1; }
+    else if (s.sortDir === 1) s.sortDir = -1;
+    else { s.sortKey = ''; s.sortDir = -1; }
+    renderAudit();
+  }
+  function auditSetPreset(key) {
+    var rg = ERP.rangeOf(key === 'all' ? 'all' : key, today());
+    cur.audit.preset = key || 'all';
+    cur.audit.from = rg.from || '';
+    cur.audit.to = rg.to || '';
+    cur.audit.limit = 400;
+    renderAudit();
+  }
+  function renderAudit() {
+    var wrap = $('auditTableWrap');
+    if (!wrap) return;
+    var keep = wrap.scrollTop, keepL = wrap.scrollLeft, i;
+    var noSql = st.auditOk === false;
+    if ($('auditSqlNotice')) $('auditSqlNotice').classList.toggle('hidden', !noSql);
+    var pb = document.querySelectorAll('#auditPeriodChips [data-apreset]');
+    for (i = 0; i < pb.length; i++) pb[i].classList.toggle('on', pb[i].getAttribute('data-apreset') === (cur.audit.preset || 'all'));
+    var tb = document.querySelectorAll('#auditTypeChips [data-atype]');
+    for (i = 0; i < tb.length; i++) tb[i].classList.toggle('on', tb[i].getAttribute('data-atype') === (cur.audit.type || 'all'));
+    if ($('auditFrom')) $('auditFrom').value = cur.audit.from || '';
+    if ($('auditTo')) $('auditTo').value = cur.audit.to || '';
+    setTxt('auditRangeDisplay', cur.audit.from || cur.audit.to
+      ? (cur.audit.from || '처음') + ' ~ ' + (cur.audit.to || '오늘') : '전체 기간');
+    var rows = auditFiltered();
+    var nAdj = 0, nInfo = 0, nDel = 0;
+    for (i = 0; i < rows.length; i++) {
+      if (rows[i].type === '재고조정') nAdj++;
+      else if (rows[i].type === '삭제') nDel++;
+      else nInfo++;
+    }
+    setTxt('auditSum', '총 ' + rows.length + '건 · 재고조정 ' + nAdj + ' · 정보수정 ' + nInfo + ' · 삭제 ' + nDel);
+    if (!rows.length) {
+      wrap.innerHTML = '<div class="uempty">' + (noSql
+        ? '아직 남은 기록이 없습니다. 재고를 고치면 이곳에 한 줄씩 쌓입니다.'
+        : '조건에 맞는 기록이 없습니다. 기간 · 구분 · 검색어를 바꿔 보세요.') + '</div>';
+      return;
+    }
+    var page = rows.slice(0, cur.audit.limit);
+    var html = [tableOpen('t-uni t-audit tblu', 'audit', AUDIT_COLS, 0, 'auditTableWrap'), '<thead><tr>'];
+    for (i = 0; i < AUDIT_COLS.length; i++) html.push(auditTh(AUDIT_COLS[i]));
+    html.push('</tr></thead><tbody>');
+    for (i = 0; i < page.length; i++) html.push(auditRowHtml(page[i]));
+    html.push('</tbody></table>');
+    html.push('<div class="utfoot"><span>총 <b>' + rows.length + '</b>건 · 재고조정 <b>' + nAdj +
+      '</b> · 정보수정 <b>' + nInfo + '</b> · 삭제 <b>' + nDel + '</b></span>' +
+      '<span class="pginfo">' + (rows.length > page.length
+        ? '<button class="more" id="btnAuditMore">더 보기 (' + (rows.length - page.length) + '건 남음)</button>' : '') + '</span></div>');
+    wrap.innerHTML = html.join('');
+    wrap.scrollTop = keep; wrap.scrollLeft = keepL;
+    var more = $('btnAuditMore');
+    if (more) more.addEventListener('click', function () { cur.audit.limit += 400; renderAudit(); });
+  }
+
   /* ---------- 정렬 · 필터 상태 ---------- */
   function uniSortClick(key, tbl) {
     var s0 = tbl === 'unitx' ? cur.sortUtx : cur.sortUni;
@@ -7915,6 +8233,12 @@ var LIVE = (function () {
     }).then(function () {
       fillFgDatalists();
       acCache = {};   /* 자동완성 후보도 다시 만든다 */
+      return auditWrite({
+        type: '정보수정', target: p.cat || '완제품', id: 'prod:' + p.code, name: p.n,
+        summary: '사용여부 ' + (on ? '미사용 → 사용' : '사용 → 미사용'),
+        before: on ? '미사용' : '사용', after: on ? '사용' : '미사용', reason: ''
+      });
+    }).then(function () {
       toast((on ? '다시 사용으로 되돌렸습니다: ' : '미사용으로 전환했습니다: ') + p.n, 'ok');
     }, function (e) {
       p.active = back;
@@ -8071,9 +8395,21 @@ var LIVE = (function () {
   }
   function saveFpWh() {
     if (!fwh.lotId) { $('fpWhMsg').textContent = '로트가 없어 저장할 수 없습니다.'; return; }
+    /* v54 — 바꾸기 전 보관 위치를 기억해 둔다 */
+    var oldWh = '', i, LL;
+    for (i = 0; i < (st.fpLots || []).length; i++) {
+      LL = st.fpLots[i];
+      if (Number(LL.id) === Number(fwh.lotId)) { oldWh = ERP.uniWhOfMemo(LL.memo); break; }
+    }
     var b = $('fpWhSave');
     if (b) { b.disabled = true; b.textContent = '저장 중…'; }
     fpSaveWh(fwh.lotId, fwh.wh).then(function () {
+      var on = ERP.UNI_WH_NAME[fwh.wh] || '실온', on0 = ERP.UNI_WH_NAME[oldWh] || '실온';
+      return auditWrite({
+        type: '정보수정', target: (LL && LL.cat) || '완제품', id: 'fplot:' + fwh.lotId, name: fwh.name || (LL && LL.n) || '',
+        summary: '보관 위치 ' + on0 + ' → ' + on, before: on0, after: on, reason: ''
+      });
+    }).then(function () {
       toast('보관 위치를 ' + (ERP.UNI_WH_NAME[fwh.wh] || '실온') + '으로 바꿨습니다: ' + (fwh.name || fwh.lotno), 'ok');
       closeFpWh();
       return reload({ silent: true });
@@ -8096,6 +8432,7 @@ var LIVE = (function () {
   function navKeyFor() {
     /* v34 — 팝업을 띄워도 왼쪽 메뉴 표시는 지금 보고 있는 화면 그대로 둔다 */
     if (cur.erp === 'items') return 'items';
+    if (cur.erp === 'audit') return 'audit';
     /* v18 — 왼쪽 품목 메뉴는 전용 화면이다. 통합 재고의 칩은 메뉴 표시를 바꾸지 않는다. */
     if (cur.erp === 'uni') return cur.uni.view ? uniNavKey(cur.uni.view) : 'stock:all';
     if (cur.erp === 'unitx') return cur.utx.view ? uniNavKey(cur.utx.view) : 'tx';
@@ -8147,6 +8484,9 @@ var LIVE = (function () {
       cur.utx.view = '';
       cur.utx.g = 'all';
       setPane('unitx');
+    } else if (nav === 'audit') {
+      /* v54 — 모든 수정 · 삭제 기록 */
+      setPane('audit');
     } else if (nav === 'in') {
       /* v33 — 지금 보고 있는 품목을 기본값으로, 뒷배경은 입출고 내역 + 통일 팝업 */
       ioPopupOpen('in');
@@ -8240,6 +8580,53 @@ var LIVE = (function () {
       pbtns[p].addEventListener('click', function () { setUtxPreset(this.getAttribute('data-upreset')); });
     }
     if ($('utxBtnPeriod')) $('utxBtnPeriod').addEventListener('click', openRange);
+    /* v54 — 변경이력 화면 */
+    if ($('auditBtnPeriod')) $('auditBtnPeriod').addEventListener('click', openRange);
+    var apb = document.querySelectorAll('#auditPeriodChips [data-apreset]');
+    for (var ap = 0; ap < apb.length; ap++) {
+      apb[ap].addEventListener('click', function () { auditSetPreset(this.getAttribute('data-apreset')); });
+    }
+    var atb = document.querySelectorAll('#auditTypeChips [data-atype]');
+    for (var at = 0; at < atb.length; at++) {
+      atb[at].addEventListener('click', function () {
+        cur.audit.type = this.getAttribute('data-atype');
+        cur.audit.limit = 400;
+        renderAudit();
+      });
+    }
+    if ($('auditSearch')) $('auditSearch').addEventListener('input', function () {
+      cur.audit.q = this.value;
+      cur.audit.limit = 400;
+      renderAudit();
+    });
+    if ($('auditColReset')) $('auditColReset').addEventListener('click', function () {
+      COLW.audit = {}; saveColW(); renderAudit();
+      toast('열 너비를 기본값으로 되돌렸습니다.', 'ok');
+    });
+    if ($('auditTableWrap')) $('auditTableWrap').addEventListener('click', function (ev) {
+      var ab = ev.target.closest ? ev.target.closest('[data-asort]') : null;
+      if (!ab) return;
+      ev.preventDefault();
+      auditSortClick(ab.getAttribute('data-asort'));
+    });
+    bindColResizeWrap('auditTableWrap', 'audit', renderAudit);
+    if ($('auditSqlCopy')) $('auditSqlCopy').addEventListener('click', function () {
+      function done() {
+        if ($('auditSqlCopied')) {
+          $('auditSqlCopied').classList.remove('hidden');
+          setTimeout(function () { if ($('auditSqlCopied')) $('auditSqlCopied').classList.add('hidden'); }, 2200);
+        }
+        toast('SQL을 복사했습니다. Supabase SQL Editor 에 붙여 넣고 실행해 주세요.', 'ok', 6000);
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(AUDIT_SQL).then(done, function () { download(AUDIT_SQL, 'audit_logs.sql'); done(); });
+          return;
+        }
+      } catch (e) { /* 복사 못 하면 파일로 내려 준다 */ }
+      download(AUDIT_SQL, 'audit_logs.sql');
+      done();
+    });
     if ($('utxRangeDisplay')) $('utxRangeDisplay').addEventListener('click', openRange);
     ['utxFrom', 'utxTo'].forEach(function (id) {
       if (!$(id)) return;
@@ -8273,6 +8660,12 @@ var LIVE = (function () {
       mvInfo();
     });
     if ($('btnUtxCsv')) $('btnUtxCsv').addEventListener('click', utxCsvExport);
+    /* v54 — 입출고 내역에서 재고조정 기록은 변경이력으로 */
+    if ($('utxToAudit')) $('utxToAudit').addEventListener('click', function () {
+      cur.audit.type = '재고조정';
+      cur.audit.limit = 400;
+      setPane('audit');
+    });
     if ($('btnUtxStockCsv')) $('btnUtxStockCsv').addEventListener('click', uniCsvExport);
     /* 표 클릭 — 정렬 · 필터 · [작업 ▾] */
     bindTableClicks('uniTableWrap', function (ev, t) {
@@ -9019,8 +9412,22 @@ var LIVE = (function () {
     if (!window.confirm('이 완제품 입출고를 취소할까요?\n재고가 입력 전으로 돌아가고, 이력에는 취소 표시가 남습니다.')) return;
     if (btn) btn.disabled = true;
     var lv = linkedVoucher('fp', id);
+    var f0 = null, fi0, undoneTxt = '';
+    for (fi0 = 0; fi0 < (st.fpLogs || []).length; fi0++) if (Number(st.fpLogs[fi0].id) === Number(id)) f0 = st.fpLogs[fi0];
     SB.db.fpUndo(id).then(function (row) {
-      toast('취소됨: ' + (row && row.name ? row.name + ' ' + fmtQty(row.qty) + (row.unit || '') : '완제품 이력') +
+      /* v54 — 취소(삭제)도 한 줄 남긴다 */
+      var nm = (row && row.name) || (f0 && f0.n) || '';
+      var qty = Number((row && row.qty) || (f0 && f0.q) || 0);
+      var un = (row && row.unit) || (f0 && f0.unit) || '';
+      undoneTxt = row && row.name ? row.name + ' ' + fmtQty(row.qty) + (row.unit || '') : '완제품 이력';
+      return auditWrite({
+        type: '삭제', target: (f0 && f0.cat) || '완제품', id: 'fplog:' + id, name: nm,
+        summary: (f0 ? ERP.fpTypeName(f0.t) + ' ' : '입출고 ') + '취소 · ' + ERP.adjNum(qty) + un +
+          (f0 && f0.d ? ' · ' + f0.d : ''),
+        before: ERP.adjNum(qty) + un, after: '0' + un, reason: '완제품 입출고 취소'
+      });
+    }).then(function () {
+      toast('취소됨: ' + undoneTxt +
         (lv ? ' · 자동으로 만들어진 ' + (lv.t === 'sale' ? '매출' : '매입') + ' 전표는 구매·판매관리에서 삭제해 주세요.' : ''),
         lv ? 'warn' : 'ok', lv ? 7000 : undefined);
       return reload({ silent: true });
@@ -10272,6 +10679,20 @@ var LIVE = (function () {
       active: fgNewEditing ? ($('fgNewActive') ? !!$('fgNewActive').checked : fgNewEditing.active !== false) : true
     };
     var stock = Number($('fgNewStock').value || 0);
+    /* v54 — 고치기 전 값을 기억해 전 → 후를 한 줄로 남긴다 */
+    var old = fgNewEditing, ch = [];
+    if (old) {
+      if ((old.n || '') !== p.name) ch.push('품명 ' + (old.n || '-') + ' → ' + p.name);
+      if ((old.cat || '') !== p.cat) ch.push('구분 ' + (old.cat || '-') + ' → ' + p.cat);
+      if ((old.spec || '') !== (p.spec || '')) ch.push('규격 ' + (old.spec || '-') + ' → ' + (p.spec || '-'));
+      if ((old.unit || '개') !== p.unit) ch.push('단위 ' + (old.unit || '개') + ' → ' + p.unit);
+      if (ERP.r2(old.inp) !== ERP.r2(p.inp)) ch.push('입고단가 ' + fmtInt(old.inp) + ' → ' + fmtInt(p.inp) + '원');
+      if (ERP.r2(old.outp) !== ERP.r2(p.outp)) ch.push('출고단가 ' + fmtInt(old.outp) + ' → ' + fmtInt(p.outp) + '원');
+      if ((old.e || '') !== (p.expiry || '')) ch.push('소비기한 ' + (old.e || '-') + ' → ' + (p.expiry || '-'));
+      if ((old.sup || '') !== (p.sup || '')) ch.push('거래처 ' + (old.sup || '-') + ' → ' + (p.sup || '-'));
+      if ((old.bc || '') !== (p.bc || '')) ch.push('바코드 ' + (old.bc || '-') + ' → ' + (p.bc || '-'));
+      if ((old.active !== false) !== (p.active !== false)) ch.push('사용여부 ' + (old.active !== false ? '사용' : '미사용') + ' → ' + (p.active !== false ? '사용' : '미사용'));
+    }
     var b = $('fgNewSave');
     b.disabled = true; b.textContent = '저장 중…';
     SB.db.fpProductSave(p).then(function () {
@@ -10282,6 +10703,12 @@ var LIVE = (function () {
         });
       }
       return null;
+    }).then(function () {
+      if (!old || !ch.length) return null;
+      return auditWrite({
+        type: '정보수정', target: p.cat, id: 'prod:' + p.code, name: p.name,
+        summary: ch.join(' · '), before: old.n || '', after: p.name, reason: ''
+      });
     }).then(function () {
       b.disabled = false;
       closeFgNew();
@@ -10315,12 +10742,22 @@ var LIVE = (function () {
   function saveFgPrice() {
     var p = ERP.fpProductOf(st.fps, fgPriceCode);
     if (!p) { closeFgPrice(); return; }
+    var nIn = Number($('fgPriceIn').value || 0), nOut = Number($('fgPriceOut').value || 0), ch = [];
+    if (ERP.r2(p.inp) !== ERP.r2(nIn)) ch.push('입고단가 ' + fmtInt(p.inp) + ' → ' + fmtInt(nIn) + '원');
+    if (ERP.r2(p.outp) !== ERP.r2(nOut)) ch.push('출고단가 ' + fmtInt(p.outp) + ' → ' + fmtInt(nOut) + '원');
     var b = $('fgPriceSave');
     b.disabled = true; b.textContent = '저장 중…';
     SB.db.fpProductSave({
       code: p.code, cat: p.cat, name: p.n, spec: p.spec, unit: p.unit,
-      inp: Number($('fgPriceIn').value || 0), outp: Number($('fgPriceOut').value || 0),
+      inp: nIn, outp: nOut,
       expiry: p.e || null, sup: p.sup, bc: p.bc, active: p.active
+    }).then(function () {
+      if (!ch.length) return null;
+      return auditWrite({
+        type: '정보수정', target: p.cat || '완제품', id: 'prod:' + p.code, name: p.n,
+        summary: ch.join(' · '), before: fmtInt(p.inp) + ' / ' + fmtInt(p.outp),
+        after: fmtInt(nIn) + ' / ' + fmtInt(nOut), reason: '단가 수정'
+      });
     }).then(function () {
       b.disabled = false; b.textContent = '저장';
       closeFgPrice();
@@ -12397,8 +12834,38 @@ var LIVE = (function () {
     var msg = kind === 'v' ? '이 전표를 삭제할까요?\n(원료육·완제품에서 넘어온 전표는 다시 반영할 수 있습니다)'
       : (kind === 'e' ? '이 경비·수입 기록을 삭제할까요?' : '이 기록을 삭제할까요?');
     if (!window.confirm(msg)) return;
+    /* v54 — 삭제한 것이 무엇인지 남긴다 */
+    var lbl = '', amt = 0, i;
+    if (kind === 'v') {
+      var vv = voucherOf(id);
+      if (vv) { lbl = (vv.t === 'sale' ? '매출 전표' : '매입 전표') + (vv.partner ? ' · ' + vv.partner : '') + ' · ' + (vv.d || ''); amt = vv.total; }
+    } else if (kind === 'e') {
+      for (i = 0; i < (st.expenses || []).length; i++) {
+        if (Number(st.expenses[i].id) === Number(id)) {
+          var ex = st.expenses[i];
+          lbl = (ex.t === 'income' ? '수입' : '경비') + ' · ' + (ex.cat || '') + (ex.partner ? ' · ' + ex.partner : '') + (ex.note ? ' · ' + ex.note : '') + ' · ' + (ex.d || '');
+          amt = ex.amount;
+          break;
+        }
+      }
+    } else {
+      for (i = 0; i < (st.payments || []).length; i++) {
+        if (Number(st.payments[i].id) === Number(id)) {
+          var py = st.payments[i];
+          lbl = (py.t === 'in' ? '수금' : '지급') + ' · ' + (py.partner || '') + ' · ' + (py.d || '');
+          amt = py.amount;
+          break;
+        }
+      }
+    }
     var p = kind === 'v' ? SB.db.accVoucherDelete(id) : (kind === 'e' ? SB.db.accExpenseDelete(id) : SB.db.accPaymentDelete(id));
     p.then(function () {
+      return auditWrite({
+        type: '삭제', target: '회계', id: kind + ':' + id, name: lbl || '회계 기록',
+        summary: lbl + (amt ? ' · ' + fmtInt(amt) + '원' : ''),
+        before: fmtInt(amt) + '원', after: '0원', reason: '회계 기록 삭제'
+      });
+    }).then(function () {
       if (kind === 'v') accVGroupDrop(id);
       toast('삭제했습니다.', 'ok');
       return reload({ silent: true });
@@ -14547,9 +15014,19 @@ var LIVE = (function () {
   function undoEntry(logId, btn) {
     if (!window.confirm('이 입력을 취소할까요?\n재고가 입력 전으로 되돌아가고, 이력에서 사라집니다.')) return;
     if (btn) btn.disabled = true;
-    var lv = linkedVoucher('meat', logId);
+    var lv = linkedVoucher('meat', logId), e0 = ERP.getLog(st, logId);
     SB.db.undo(logId).then(function (row) {
-      toast('취소됨: ' + (row && row.product_name ? row.product_name + ' ' + Number(row.qty).toFixed(2) + 'kg' : '입력 건') +
+      /* v54 — 취소(삭제)도 한 줄 남긴다 */
+      var nm = (row && row.product_name) || (e0 && e0.n) || '';
+      var qty = Number((row && row.qty) || (e0 && e0.k) || 0);
+      var txd = (row && row.tx_date) || (e0 && e0.d) || '';
+      return auditWrite({
+        type: '삭제', target: (e0 && e0.major) || '원료육', id: 'tx:' + logId, name: nm,
+        summary: (e0 ? ERP.typeName(e0.t) + ' ' : '입출고 ') + '취소 · ' + ERP.adjNum(qty) + 'kg' + (txd ? ' · ' + txd : ''),
+        before: ERP.adjNum(qty) + 'kg', after: '0kg', reason: '입출고 내역 취소'
+      });
+    }).then(function () {
+      toast('취소됨: ' + (e0 && e0.n ? e0.n + ' ' + Number((e0 && e0.k) || 0).toFixed(2) + 'kg' : '입력 건') +
         (lv ? ' · 자동으로 만들어진 ' + (lv.t === 'sale' ? '매출' : '매입') + ' 전표는 구매·판매관리에서 삭제해 주세요.' : ''),
         lv ? 'warn' : 'ok', lv ? 7000 : undefined);
       return reload({ silent: true });

@@ -14,8 +14,8 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261125_61">
-<link rel="stylesheet" href="style.css?v=20261125_61">
+<link rel="stylesheet" href="style.legacy.css?v=20261125_62">
+<link rel="stylesheet" href="style.css?v=20261125_62">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -123,6 +123,10 @@
       </button>
       <button class="nitem" type="button" data-nav="tx">
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h14v16H5z"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/></svg><span>입출고 내역</span><span class="cnt" id="navCntTx">0</span>
+      </button>
+      <!-- v54 — 모든 수정 · 삭제 기록 -->
+      <button class="nitem" type="button" data-nav="audit" title="재고조정 · 정보수정 · 삭제 기록을 전 → 후 · 사유 · 수정자까지 봅니다">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4.6V10H9"/><path d="M12 7.8V12l3.2 1.9"/></svg><span>변경이력</span>
       </button>
       </section>
 
@@ -451,11 +455,57 @@
             <button class="chip soft" type="button" data-utk="기타">기타</button>
           </div>
           <span class="sp"></span>
+          <!-- v54 — 재고조정은 「변경이력」으로 나뉘었다. 기본 흐름은 입고·출고·해동·현장만 봐도 되도록 짧은 길을 둔다 -->
+          <button class="lnk" type="button" id="utxToAudit" title="재고조정 · 정보수정 · 삭제 기록을 전 → 후 · 사유까지 봅니다">재고조정 기록은 「변경이력」에서 →</button>
           <span class="hint">잔여재고 = 그 거래 직후 로트에 남은 수량</span>
           <button class="btn ghost xs v32off" id="utxColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
         </div>
       </div>
       <div class="table-wrap" id="utxTableWrap"></div>
+    </section>
+  </main>
+
+  <!-- ===================== v54 · 변경이력 (모든 수정 · 삭제 기록) ===================== -->
+  <main class="v8pane unipane hidden" id="auditMode">
+    <section class="panel list-panel unicard">
+      <!-- audit_logs.sql 을 아직 실행하지 않았을 때만 보이는 작은 안내 -->
+      <div class="audbanner hidden" id="auditSqlNotice">
+        <span class="abn-ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.4M12 16h.01"/></svg></span>
+        <p>지금은 <b>재고조정 기록</b>만 보입니다. 단가 · 소비기한 · 삭제까지 모두 남기려면 안내된 <b>SQL을 한 번 실행</b>해 주세요.</p>
+        <button class="btn ghost xs" type="button" id="auditSqlCopy" title="Supabase SQL Editor 에 붙여 넣을 SQL을 복사합니다">SQL 복사</button>
+        <span class="abn-ok hidden" id="auditSqlCopied">복사됨</span>
+      </div>
+      <div class="utool">
+        <div class="utrow">
+          <div class="chips" id="auditPeriodChips">
+            <button class="chip soft on" type="button" data-apreset="all">전체 기간</button>
+            <button class="chip soft" type="button" data-apreset="today">오늘</button>
+            <button class="chip soft" type="button" data-apreset="week">이번 주</button>
+            <button class="chip soft" type="button" data-apreset="month">이번 달</button>
+          </div>
+          <button class="btn tiny period" id="auditBtnPeriod" type="button" title="두 달 달력에서 기간 고르기">기간선택</button>
+          <label class="rng"><input type="text" data-sd="1" id="auditFrom" aria-label="시작일"><span class="tilde">~</span><input type="text" data-sd="1" id="auditTo" aria-label="종료일"></label>
+          <span class="hint" id="auditRangeDisplay"></span>
+          <span class="sp"></span>
+          <label class="usearch">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></svg>
+            <input type="search" id="auditSearch" placeholder="품목명 · 수정자 · 사유 · 내용 검색" autocomplete="off">
+          </label>
+        </div>
+        <div class="utrow">
+          <span class="lbl">구분</span>
+          <div class="chips" id="auditTypeChips">
+            <button class="chip soft on" type="button" data-atype="all">전체</button>
+            <button class="chip soft" type="button" data-atype="재고조정">재고조정</button>
+            <button class="chip soft" type="button" data-atype="정보수정">정보수정</button>
+            <button class="chip soft" type="button" data-atype="삭제">삭제</button>
+          </div>
+          <span class="sp"></span>
+          <span class="hint" id="auditSum"></span>
+          <button class="btn ghost xs v32off" id="auditColReset" type="button" title="드래그로 바꾼 열 너비를 기본값으로">↔ 열 너비</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="auditTableWrap"></div>
     </section>
   </main>
 
@@ -1812,8 +1862,8 @@
   </datalist>
 </div>
 
-<script src="partners_data.js?v=20261125_61"></script>
-<script src="app.js?v=20261125_61"></script>
+<script src="partners_data.js?v=20261125_62"></script>
+<script src="app.js?v=20261125_62"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_137" data-erp-design="v135">
 <script>
 (function(){

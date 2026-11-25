@@ -1597,3 +1597,38 @@ td.actcell{text-align:center;padding:0 10px}
   font-size:10.6px;font-weight:600;color:var(--violet);
   font-variant-numeric:tabular-nums;letter-spacing:-.01em;
 }
+
+/* ==========================================================================
+   v54 — 변경이력 (모든 수정 · 삭제 기록)
+   ========================================================================== */
+/* 구분 배지 — 재고조정(보라, v52 그대로) · 정보수정(파랑) · 삭제(빨강) */
+.tblu .tag.info{color:#1D4ED8}
+.tblu .tag.del{color:#B42318}
+/* 일시 — 숫자 폭 고정, 한 줄 */
+.t-audit td.audts{font-variant-numeric:tabular-nums;color:var(--ink-3);white-space:nowrap}
+/* 대상 — 구분(원료육) + 품목명 */
+.t-audit td.audtg{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t-audit .audtg .cat{display:inline-block;min-width:46px;margin-right:7px;font-size:11px;font-weight:600;color:var(--muted-2)}
+.t-audit .audtg .audnm{font-weight:600;color:var(--ink)}
+/* 변경 내용 — 길면 표 안에서 줄바꿈(칸 안 스크롤 없음) */
+.t-audit td.audsm{white-space:normal;overflow-wrap:anywhere;line-height:1.5;color:var(--ink-2)}
+/* 수정자 — 이름 아래 이메일 */
+.t-audit td.audwho{white-space:nowrap}
+.t-audit .aude{display:block;font-size:10.6px;font-weight:400;color:var(--muted-2);letter-spacing:-.01em}
+/* 입출고 내역 → 변경이력 가는 글자 링크 */
+.utool .lnk{border:0;background:none;padding:0;margin:0 2px 0 0;
+  font-size:11.5px;font-weight:600;color:var(--brand-2);letter-spacing:-.005em;cursor:pointer}
+.utool .lnk:hover{text-decoration:underline;text-underline-offset:2px}
+
+/* SQL 안내 배너 — 표 위 한 줄, 조용한 톤 */
+.audbanner{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  border-bottom:1px solid var(--line-2);background:#FFFBF1;color:#7A5B14;
+  font-size:12px;line-height:1.55;letter-spacing:-.005em}
+.audbanner p{margin:0;flex:1 1 auto}
+.audbanner b{font-weight:700;color:#5C4310}
+.audbanner .abn-ic{display:inline-flex;flex:0 0 auto;color:#B8860B}
+.audbanner .abn-ok{font-size:11.5px;font-weight:700;color:#0E7C5A}
+@media (max-width:768px){
+  .audbanner{align-items:flex-start;flex-wrap:wrap;font-size:11.5px}
+  .audbanner p{flex:1 1 100%}
+}
