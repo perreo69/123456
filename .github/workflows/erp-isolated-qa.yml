@@ -72,6 +72,30 @@ jobs:
                     if overflow>2:issues.append([name,view,'document overflow',overflow])
                     page.screenshot(path=f'erp-qa-output/{name}-{view}.png')
                   except Exception as e:issues.append([name,view,str(e)])
+                # Verify mobile More, true square hit target, drawn circle, chevron and dismiss action.
+                try:
+                  if mobile:
+                    frame.evaluate("window.__MEAT_ERP_TEST__.setView('stock_overview')")
+                    f.locator('[data-v130-tab=more]').click(timeout=3000)
+                    f.locator('#sidebar.open').wait_for(timeout=3000)
+                    button=f.locator('#v130MoreHead button')
+                    button.wait_for()
+                    check=button.evaluate("(b)=>{const r=b.getBoundingClientRect(),p=getComputedStyle(b,'::before');return {w:r.width,h:r.height,discW:parseFloat(p.width),discH:parseFloat(p.height),svg:!!b.querySelector('svg')}}")
+                    assert abs(check['w']-44)<1 and abs(check['h']-44)<1 and check['discW']==check['discH']==30 and check['svg'],check
+                    heading=f.locator('#sidebar .nav-heading').filter(has=f.locator('.v100-chevron-icon')).first
+                    if heading.is_visible():
+                      before=heading.get_attribute('aria-expanded')
+                      heading.click()
+                      assert before!=heading.get_attribute('aria-expanded')
+                    page.screenshot(path=f'erp-qa-output/{name}-more-v150.png')
+                    button.click()
+                    f.locator('#sidebar.open').wait_for(state='detached',timeout=3000)
+                  frame.evaluate("window.__MEAT_ERP_TEST__.setView('products')")
+                  # Every rendered dismiss button must carry a drawn SVG and no legacy glyph.
+                  bad=frame.evaluate("Array.from(document.querySelectorAll('button.v150-dismiss')).filter(b=>!b.querySelector('svg')||b.textContent.trim()).map(b=>b.id)")
+                  assert not bad,bad
+                  print(name,'v150 close controls: PASS')
+                except Exception as e:issues.append([name,'v150 close controls',str(e)])
                 for view,save,err in [('intake','intakeSave','intakeError'),('ship','v18Save','v18Error'),('operations','v36Save','v36Error')]:
                   try:
                     frame.evaluate('(view)=>window.__MEAT_ERP_TEST__.setView(view)',view)
@@ -80,9 +104,9 @@ jobs:
                     page.wait_for_timeout(80)
                     box=d.bounding_box()
                     if box and (box['x'] < -1 or box['x']+box['width'] > w+1):issues.append([name,view,'dialog outside viewport',box])
-                    if mobile:
-                      close=f.locator('#v144Close').bounding_box()
-                      if not close or min(close['width'],close['height'])<43:issues.append([name,view,'small close control',close])
+                    close=f.locator('#v144Close').bounding_box()
+                    expected=44 if mobile else 32
+                    if not close or abs(close['width']-expected)>1 or abs(close['height']-expected)>1:issues.append([name,view,'non-square close control',close])
                     page.screenshot(path=f'erp-qa-output/{name}-{view}.png')
                     before=page.evaluate('qaSaves.length')
                     f.locator('#'+save).click(timeout=3000)
