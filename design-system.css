@@ -39,3 +39,29 @@ html body{background:var(--erp-bg)}
 #v132StockDetail article{border-radius:12px}
 }
 @media (prefers-reduced-transparency:reduce){#v130Tabs,.quickbar,.topbar,#bar{backdrop-filter:none!important;background:#f7f7fa!important}}
+
+/* v137 — a single soft focus ring, matching the approved input reference.
+   No layout/size changes; keyboard focus on buttons remains independent. */
+@media screen {
+ :root{--erp-input-focus:#007aff;--erp-input-halo:rgba(0,122,255,.25)}
+ /* Use one selector for the existing ID-scoped desktop and mobile controls.
+    Exclude native toggles, file inputs and non-editing buttons. */
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]):not([type=image]):not([type=color]):not(.quick-date-calendar),select,textarea):focus{
+  outline:none!important;outline-offset:0!important;
+  border-color:var(--erp-input-focus)!important;
+  box-shadow:0 0 0 3px var(--erp-input-halo)!important;
+ }
+ /* Composite search fields draw their ring on the container, never twice. */
+ body :is(.usearch,.fsearch):focus-within{
+  outline:none!important;border-color:var(--erp-input-focus)!important;
+  box-shadow:0 0 0 3px var(--erp-input-halo)!important;
+ }
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(.usearch,.fsearch) input:focus{
+  outline:none!important;border-color:transparent!important;box-shadow:none!important;
+ }
+}
+@media screen and (forced-colors:active){
+ :is(body,#mainView):is(body,#mainView):is(body,#mainView) :is(input:not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea):focus{
+  outline:2px solid Highlight!important;outline-offset:1px!important;box-shadow:none!important;
+ }
+}

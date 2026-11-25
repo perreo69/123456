@@ -86,7 +86,7 @@ async function openERP(){
   if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
   if(ticket!==epoch)return;session=s;window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;revision=Number(st.data.revision);lastJSON=st.data.body?JSON.stringify(st.data.body):'';blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=136&t='+Date.now();notice('연결됨 · 서버 저장');
+  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=137&t='+Date.now();notice('연결됨 · 서버 저장');
   if(!channel){channel=db.channel('mirrstar-erp-state-v85').on('postgres_changes',{event:'UPDATE',schema:'public',table:'erp_company_state',filter:'id=eq.1'},()=>{void sync();}).subscribe();}
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
@@ -131,7 +131,7 @@ async function sync(){
 $('refresh').onclick=()=>{
  if(!confirm('최신 ERP 버전과 서버 데이터를 다시 불러옵니다. 저장하지 않은 입력 내용은 사라질 수 있습니다. 계속할까요?'))return;
  $('refresh').disabled=true;notice('최신 버전 불러오는 중');
- const target=new URL('./',location.href);target.searchParams.set('refresh',String(Date.now()));target.searchParams.set('build','136');location.replace(target.href);
+ const target=new URL('./',location.href);target.searchParams.set('refresh',String(Date.now()));target.searchParams.set('build','137');location.replace(target.href);
 };
 if(new URL(location.href).searchParams.has('refresh'))history.replaceState(null,'',new URL('./',location.href).pathname+location.hash);
 $('logout').onclick=async()=>{if(confirm('로그아웃하시겠습니까?')){await closeERP();await db.auth.signOut();msg.textContent='로그아웃되었습니다.';}};
@@ -241,5 +241,5 @@ html,body,#shell{box-sizing:border-box!important;width:100%!important;max-width:
 #refresh{grid-column:2}#changePw{grid-column:3}#logout{grid-column:4}
 #app{display:block;flex:1 1 0!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:0!important;border:0}
 }
-</style><link rel="stylesheet" href="../design-system.css?v=20261125_135" data-erp-design="v135">
+</style><link rel="stylesheet" href="../design-system.css?v=20261125_137" data-erp-design="v135">
 </body></html>
