@@ -7047,4 +7047,25 @@ dialog.v147-info-dialog .v147-additional .v147-info-rows{border:0;border-top:1px
 #v144EntryDialog #mainView#mainView .quick-date>input[data-quick-date]{padding-right:42px!important}
 #v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar{width:40px!important;min-width:40px!important;max-width:40px!important;background-size:20px 20px!important}
 }
+</style><style id="v149-responsive-entry-review">
+/* Shared entry dialogs: scoped to ChatGPT ERP; preserve business and storage logic. */
+#v144EntryDialog .v144-titlebar{align-items:center!important}
+#v144EntryDialog .v144-titlebar>div{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+#v144EntryDialog #mainView .v97-list{min-width:0;max-width:100%}
+#v144EntryDialog #mainView :is(.v97-commands,.v36-summary-actions){gap:8px}
+#v144EntryDialog #mainView :is(.v97-error,.v36-msg,#intakeError,#v18Error,#v36Error){overflow-wrap:anywhere;word-break:keep-all}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+#v144EntryDialog .v144-titlebar{gap:10px!important;padding:10px 14px!important;touch-action:pan-y!important;cursor:default!important}
+#v144EntryDialog .v144-titlebar p{overflow-wrap:anywhere;word-break:keep-all}
+#v144EntryDialog button#v144Close.v148-close{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;max-width:44px!important;max-height:44px!important;flex:0 0 44px!important;background:radial-gradient(circle,#e7e7eb 0 14px,transparent 14.5px)!important}
+#v144EntryDialog button#v144Close.v148-close:active{background:radial-gradient(circle,#d2d2d7 0 14px,transparent 14.5px)!important}
+#v144EntryDialog #mainView#mainView .quick-date>input[data-quick-date]{padding-right:46px!important}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar{width:44px!important;min-width:44px!important;max-width:44px!important}
+#v144EntryDialog #mainView :is(#intakeSave,#v18Save,#v36Save,.v144-cancel,#intakeAdd,#v18AddLine){min-height:44px!important;max-height:none!important}
+#v144EntryDialog #mainView :is(.v97-commands,.v36-summary-actions){justify-content:flex-end;flex-wrap:wrap}
+#v144EntryDialog #mainView .v145-lot-toolbar label{min-width:0}
+}
+@media screen and (min-width:768px) and (max-width:980px) and (pointer:fine){
+#v144EntryDialog #mainView .v97-list{overflow-x:auto!important;overscroll-behavior-x:contain}
+}
 </style></body></html>
