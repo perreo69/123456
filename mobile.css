@@ -537,7 +537,7 @@ body:not(:has(#appView:not(.hidden))) .mtabs{display:none}
 #ioSheetModal .vsheetbar>b,#ioSheetModal .vsheetbar .tiny-hint,#ioSheetModal .vsheetbar .sp{display:none!important}
 #ioSheetModal .vsheetbar::after{content:none!important}
 #ioSheetModal .vsheetbar .btn{height:38px!important;border-radius:10px!important;font-size:12.5px!important}
-#ioSheetModal #ioSheetAdd{flex:1 1 100%!important;height:46px!important;border-radius:12px!important;
+#ioSheetModal #ioSheetAdd{order:-1;flex:1 1 100%!important;height:46px!important;border-radius:12px!important;
   border:1.5px dashed rgba(0,122,255,.40)!important;background:rgba(0,122,255,.055)!important;
   color:var(--m-blue)!important;font-weight:650!important;font-size:14.5px!important}
 #ioSheetModal #ioSheetAdd .bt{font-size:0!important}
