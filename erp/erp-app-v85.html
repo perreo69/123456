@@ -4235,7 +4235,7 @@ function saveIntake(){
  }catch(e){state=old;return fail('입고 저장에 실패했습니다. '+e.message)}
  v53LastInDocIds=[...vendorGroups.values()].map(g=>g.id);
   v17LastInId=v53LastInDocIds[0];intakeLastSaved=`${valid.length}개 품목의 입고가 재고에 반영되고 거래명세서 ${vendorGroups.size}건이 자동 생성·저장됐습니다.`;
- intakeRows=[rowDefault()];intakePage();$('intakeVendor').value=vendor;$('intakeDate').value=receiptDate;$('intakeError').classList.add('hidden');v68Counts();toast(intakeLastSaved);
+ intakeRows=[rowDefault()];intakePage();if(v144Window)v144Show('intake',v144Window.prior.view);$('intakeVendor').value=vendor;$('intakeDate').value=receiptDate;$('intakeError').classList.add('hidden');v68Counts();toast(intakeLastSaved);
 }
 
  // v53: A registration operation is the single source of truth for both the stock journal
