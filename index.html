@@ -14,10 +14,10 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261126_68">
-<link rel="stylesheet" href="style.css?v=20261126_68">
+<link rel="stylesheet" href="style.legacy.css?v=20261126_69">
+<link rel="stylesheet" href="style.css?v=20261126_69">
 <!-- v58 — 폰(≤768px) 전용 화면. media 조건 때문에 PC 브라우저는 이 파일을 적용하지 않는다 -->
-<link rel="stylesheet" href="mobile.css?v=20261126_68" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
+<link rel="stylesheet" href="mobile.css?v=20261126_69" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -1017,7 +1017,7 @@
       <div class="vhead">
         <label class="field"><span id="ioSheetDateLabel">입고일 <span class="req">*</span></span><input type="text" data-sd="1" id="ioSheetDate"></label>
         <label class="field"><span id="ioSheetPartnerLabel">업체·거래처</span><input id="ioSheetPartner" list="dlVendors" placeholder="예: 도드람푸드"></label>
-        <label class="field"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
+        <label class="field fnote"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
       </div>
 
       <p class="minfo"><span class="dot"></span>원료육 줄은 <b>냉동고 · 냉장고</b>, 그 외 품목은 <b>냉동 · 냉장 · 실온</b>을 고릅니다. 완제품 줄은 <b>자체 / 매입</b>과 <b>제조일</b>도 함께 적습니다.
@@ -1029,10 +1029,9 @@
           <span class="tiny-hint">구분을 고르고 품목명을 치면 목록이 뜹니다 · 기본 3줄</span>
           <span class="sp"></span>
           <input type="file" id="ioBulkFile" accept=".xlsx,.xls,.csv" hidden>
-          <button type="button" class="btn vadd" id="ioAiPaste">AI 자료 붙여넣기</button>
           <button type="button" class="btn vadd bulk" id="ioBulkUpload" title="엑셀(.xlsx · .xls · .csv) 파일을 올리면 입고 줄을 한 번에 채웁니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5V4.5"/><path d="M8 8.5 12 4.5l4 4"/><path d="M5 19.5h14"/></svg> 엑셀 일괄 업로드</button>
           <button type="button" class="btn vadd" id="ioBulkTemplate" title="입고 일괄등록 표준 양식(.xlsx)을 내려받습니다"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v9.5"/><path d="M8 10 12 14l4-4"/><path d="M5 19h14"/></svg> 양식 받기</button>
-          <button type="button" class="btn vadd" id="ioSheetAdd"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> 줄 추가</button>
+          <button type="button" class="btn vadd" id="ioSheetAdd"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> <span class="bt">줄 추가</span></button>
         </div>
         <div class="bulkbar hidden" id="ioBulkBar">
           <div class="bulkbar-top">
@@ -1070,6 +1069,7 @@
       <p class="hint" id="ioSheetHint"></p>
       <p class="msg" id="ioSheetMsg"></p>
       <div class="modal-actions">
+        <p class="msum" id="ioSheetMSum"></p>
         <button class="btn" id="ioSheetCancel" type="button">취소</button>
         <button class="submit" id="ioSheetSave" type="button">입고 저장</button>
       </div>
@@ -1872,29 +1872,9 @@
   </datalist>
 </div>
 
-<script src="partners_data.js?v=20261126_68"></script>
-<script src="app.js?v=20261126_68"></script>
+<script src="partners_data.js?v=20261126_69"></script>
+<script src="app.js?v=20261126_69"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_138" data-erp-design="v135">
-<script>
-(function(){
-var b=document.getElementById('ioAiPaste'), f=document.getElementById('ioBulkFile');
-if(!b||!f)return;
-var header='구분,품목코드,품목명,보관위치,거래처,입고일,소비기한,수량(중량),단가,로트번호';
-var guide='입고 자료를 CSV로 변환해 주세요. 첫 줄은 '+header+' 입니다. 원료육 수량은 kg, 나머지는 등록 품목 단위입니다. 날짜는 YYYY-MM-DD, 보관위치는 냉동고/냉장고/실온으로 적고 추측하지 마세요. 최대 200개 품목, 코드블록 없이 CSV만 출력하세요. 원산지와 브랜드는 현재 자동 저장되지 않으므로 별도 확인이 필요합니다.';
-b.addEventListener('click',function(){
-var d=document.createElement('dialog');d.style.cssText='width:min(620px,92vw);max-height:85vh;border:1px solid #d1d5db;border-radius:14px;padding:20px;color:inherit;background:var(--surface,#fff);box-sizing:border-box';
-var h=document.createElement('h3');h.textContent='AI 자료 붙여넣기';d.appendChild(h);
-var p=document.createElement('p');p.textContent='AI가 만든 CSV를 붙여넣으면 입고 품목 줄에 반영됩니다. 실제 저장은 입고 저장 버튼으로 진행합니다.';d.appendChild(p);
-var c=document.createElement('button');c.type='button';c.className='btn';c.textContent='AI 요청문 복사';d.appendChild(c);
-c.onclick=function(){navigator.clipboard.writeText(guide).then(function(){c.textContent='복사됨';},function(){window.prompt('AI 요청문 복사',guide);});};
-var t=document.createElement('textarea');t.setAttribute('aria-label','CSV 입고 자료');t.placeholder=header;t.style.cssText='display:block;width:100%;height:220px;margin:12px 0;box-sizing:border-box;font:inherit;';d.appendChild(t);
-var m=document.createElement('p');m.setAttribute('role','alert');d.appendChild(m);
-var cancel=document.createElement('button');cancel.type='button';cancel.className='btn';cancel.textContent='취소';cancel.onclick=function(){d.close();};d.appendChild(cancel);
-var go=document.createElement('button');go.type='button';go.className='btn primary';go.textContent='품목 줄 채우기';go.style.marginLeft='8px';d.appendChild(go);
-go.onclick=function(){var v=t.value.trim().replace(/^\x60\x60\x60(?:csv)?\s*\n/i,'').replace(/\n\x60\x60\x60$/,'').trim();if(!v||!v.includes('품목명')||!v.includes('수량')){m.textContent='품목명과 수량 머리글이 있는 CSV를 입력하세요.';return;}if(v.split(/\r?\n/).length>201){m.textContent='한 번에 200개 품목까지만 입력하세요.';return;}if(!window.confirm('현재 입력된 품목 줄을 AI 자료로 교체하시겠습니까?'))return;try{var dt=new DataTransfer();dt.items.add(new File([v],'AI_입고자료.csv',{type:'text/csv'}));f.files=dt.files;f.dispatchEvent(new Event('change',{bubbles:true}));d.close();}catch(e){m.textContent='붙여넣기를 지원하지 않는 브라우저입니다. CSV 파일 업로드를 이용하세요.';}};
-d.addEventListener('close',function(){d.remove();});document.body.appendChild(d);d.showModal();t.focus();
-});
-})();
-</script>
+
 </body>
 </html>

@@ -1746,3 +1746,15 @@ td.actcell{text-align:center;padding:0 10px}
 .acpop .acitem.on .act{color:var(--brand-ink)}
 .acpop .acitem .acs{color:var(--muted-2);font-weight:400;line-height:15px;height:15px;margin-top:1px}
 .acpop .acnone{padding:12px 10px;text-align:center;font-size:12.5px;color:var(--muted-2)}
+
+/* ==========================================================================
+   v60 — 폰(≤768px) 시트에만 쓰는 부품은 넓은 화면에서 자리도 차지하지 않는다.
+     #ioSheetMSum = 폰 시트 저장 버튼 위 합계 줄 (PC 는 지금처럼 .minfo 의 합계)
+   ========================================================================== */
+#ioSheetMSum{display:none}
+
+/* ==========================================================================
+   v60 — 상단 머리의 「입고 대기(사진 대기함)」 버튼은 화면에서 뺀다.
+     (사진 대기함 자체는 그대로 살아 있다 — 입출고 허브의 「입고 사진 대기함」으로 연다)
+   ========================================================================== */
+#btnPhotoInbox{display:none!important}

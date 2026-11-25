@@ -9972,6 +9972,172 @@ var LIVE = (function () {
     var m = L ? ERP.uniMfgOfMemo(L.memo) || (L.inD || '') : '';
     return '<span class="vlotro">' + esc(m || '—') + '</span>';
   }
+  /* ==========================================================================
+     v60 — 폰(≤768px) 출고·입고 시트: 실무 동선 그대로 그리는 카드
+       순서: 구분·삭제 → 품명 검색 → 기존 재고(로트) 고르기 → 수량·단가·금액
+       · 저장·계산은 지금 코드가 그대로 쓴다 — 줄(data-r)과 칸(data-f)의 이름이 같다.
+       · PC(MOB.on=false)는 지금까지의 10칸 표(iosRowHtml) 그대로다.
+     ========================================================================== */
+  function iosMob() { return typeof mobOnNow === 'function' ? mobOnNow() : false; }
+  function iosFmtQty(v) { return fmtQty(v); }
+  /* 소비기한 D-day 배지 — 남은 날 / 지난 날 */
+  function iosDd(exp) {
+    var d = daysLeft(exp);
+    if (d === null) return '';
+    var cls = d < 0 ? 'late' : (d <= 7 ? 'soon' : (d <= 30 ? 'mid' : 'far'));
+    var txt = d < 0 ? ('D+' + Math.abs(d)) : (d === 0 ? 'D-day' : ('D-' + d));
+    return '<span class="mdd ' + cls + '">' + txt + '</span>';
+  }
+  /* 그 품목의 «지금 재고가 있는» 로트 전부 — 창고마다 따로 한 줄(냉동·냉장·실온)
+     → 폰에서는 창고를 먼저 고를 필요 없이, 한눈에 보고 한 번에 고른다. */
+  function iosStockAll(r) {
+    var out = [], i, L, list, n = iosTrim(r && r.name);
+    if (!n) return out;
+    if (r.kind === 'meat') {
+      for (i = 0; i < (st.lots || []).length; i++) {
+        L = st.lots[i];
+        if (!L || L.n !== n) continue;
+        if (L.fq > ERP.EPS) out.push({ L: L, wh: 'F', q: L.fq, id: Number(L.dbid) });
+        if (L.cq > ERP.EPS) out.push({ L: L, wh: 'C', q: L.cq, id: Number(L.dbid) });
+      }
+    } else {
+      var p = iosProduct(r);
+      if (!p) return out;
+      list = ERP.fpLotsOf(st, p.code);
+      for (i = 0; i < list.length; i++) {
+        L = list[i];
+        if (!(L.qty > 0.0004)) continue;
+        out.push({ L: L, wh: ERP.uniWhOfMemo(L.memo) || 'A', q: L.qty, id: Number(L.id) });
+      }
+    }
+    out.sort(function (a, b) {
+      var ae = a.L.e || '9999-99-99', be = b.L.e || '9999-99-99';
+      if (ae !== be) return ae < be ? -1 : 1;
+      if (a.wh !== b.wh) return a.wh < b.wh ? -1 : 1;
+      return (a.id || 0) - (b.id || 0);
+    });
+    return out;
+  }
+  /* 출고 — 고른 로트(창고까지)를 따라가게 맞춘다. 보유 로트가 하나뿐이면 자동 선택 */
+  function iosAutoStock(r) {
+    if (!r || iosIsIn()) return;
+    var list = iosStockAll(r), hit = null, i;
+    if (!iosTrim(r.name)) { if (list.length) r.lotId = null; return; }
+    for (i = 0; i < list.length; i++) if (list[i].id === Number(r.lotId) && list[i].wh === r.wh) hit = list[i];
+    if (!hit) for (i = 0; i < list.length; i++) if (list[i].id === Number(r.lotId)) hit = list[i];
+    if (hit) { r.wh = hit.wh; r.lotFor = iosTrim(r.name); return; }
+    if (r.lotId) r.lotId = null;            /* 재고에서 사라진 로트 */
+    if (list.length === 1) { r.lotId = list[0].id; r.wh = list[0].wh; r.lotFor = iosTrim(r.name); }
+  }
+  /* 창고 고르기 — 폰에서는 좁은 <select> 대신 한 줄 칩 */
+  function iosMobWhHtml(r) {
+    var keys = iosWhKeys(r), h = ['<div class="mwhchips">'], i;
+    for (i = 0; i < keys.length; i++) {
+      h.push('<button type="button" class="mwhc' + (r.wh === keys[i] ? ' on' : '') + '" data-whpick="' + keys[i] + '">' +
+        esc(iosWhPickName(r.kind, keys[i])) + '</button>');
+    }
+    h.push('</div>');
+    return h.join('');
+  }
+  /* 입고 — 창고 칩 + 로트번호·제조일·소비기한 (칸은 지금 이름 그대로 data-f) */
+  function iosMobInHtml(r) {
+    var h = ['<div class="mstk-head"><b>보관 창고</b></div>', iosMobWhHtml(r)], rows = [];
+    if (r.kind === 'fp') {
+      rows.push('<label class="mf"><span>로트번호</span><input data-f="lot" value="' + esc(r.lotNo) + '" placeholder="비우면 자동" autocomplete="off"></label>');
+      if (r.g === 'fg') rows.push('<label class="mf"><span>제조일</span><input type="text" data-sd="1" data-f="mfg" value="' + esc(r.mfg) + '" placeholder="선택"></label>');
+    }
+    rows.push('<label class="mf"><span>소비기한</span><input type="text" data-sd="1" data-f="expiry" value="' + esc(r.expiry) + '" placeholder="20270131"></label>');
+    h.push('<div class="mfields">' + rows.join('') + '</div>');
+    if (r.kind === 'meat') h.push('<p class="mtip">이름 · 업체 · 입고일 · 소비기한이 같으면 한 로트로 묶입니다.</p>');
+    return h.join('');
+  }
+  /* 출고 — 기존 재고 카드 목록(창고 배지 · 업체/브랜드 · 소비기한 D-day · 현재고) */
+  function iosMobStockHtml(r) {
+    if (iosIsIn()) return iosMobInHtml(r);
+    if (!iosTrim(r.name)) return '<p class="mtip">품명을 고르면 <b>지금 있는 로트</b>가 여기에 나옵니다.</p>';
+    var list = iosStockAll(r), h = [], i, it, sel = null, tot = 0, unit = iosUnitOf(r);
+    for (i = 0; i < list.length; i++) {
+      tot += list[i].q;
+      if (list[i].id === Number(r.lotId) && list[i].wh === r.wh) sel = list[i];
+    }
+    if (!sel) for (i = 0; i < list.length; i++) if (list[i].id === Number(r.lotId)) sel = list[i];
+    if (!list.length) {
+      return '<div class="mstk-head"><b>기존 재고</b><span class="mstk-zero">없음</span></div>' +
+        '<p class="mtip warn">이 품목은 지금 재고가 0입니다. 창고만 골라 저장할 수 있습니다.</p>' + iosMobWhHtml(r);
+    }
+    h.push('<div class="mstk-head"><b>기존 재고 <i>' + list.length + '로트</i></b><span class="mstk-tot">합 ' + iosFmtQty(tot) + esc(unit) + '</span></div>');
+    h.push('<div class="mstk-list">');
+    for (i = 0; i < list.length; i++) {
+      it = list[i];
+      var on = (sel && it.id === sel.id && it.wh === sel.wh);
+      var who = '', mfg = '';
+      if (r.kind === 'meat') {
+        who = [it.L.v || '', it.L.b || ''].filter(function (v, k, a) { return v && a.indexOf(v) === k; }).join(' · ');
+      } else {
+        who = it.L.sup || '';
+        mfg = ERP.uniMfgOfMemo(it.L.memo) || it.L.inD || '';
+      }
+      h.push('<button type="button" class="mlot' + (on ? ' on' : '') + '" data-lotpick="' + it.id + '" data-lotwh="' + it.wh + '">' +
+        '<span class="mlr" aria-hidden="true"></span>' +
+        '<span class="mlb"><span class="ml1"><b class="mwh">' + esc(iosWhPickName(r.kind, it.wh)) + '</b>' +
+        (who ? esc(who) : '<span class="mnull">업체 없음</span>') + '</span>' +
+        '<span class="ml2">' + (it.L.e ? '~' + esc(it.L.e) + iosDd(it.L.e) : '<span class="mnull">소비기한 없음</span>') +
+        (mfg ? '<span class="mmfg">제조 ' + esc(mfg) + '</span>' : '') + '</span></span>' +
+        '<span class="mlq">' + iosFmtQty(it.q) + '<i>' + esc(unit) + '</i></span>' +
+        '</button>');
+    }
+    h.push('</div>');
+    return h.join('');
+  }
+  function iosMobRowHtml(r, i) {
+    r.__st = iosStamp(r);
+    var s53 = r.srcLine ? v53Check(r) : null, isFp = r.kind === 'fp';
+    var h = ['<tr data-r="' + i + '" data-mcard="1" data-kind="' + esc(r.kind) + '" data-g="' + esc(iosGroupOf(r)) + '"' +
+      (s53 ? ' class="st-' + s53.level + '" title="엑셀 ' + r.srcLine + '행 · ' + esc(s53.msg) + '"' : '') + '><td colspan="10">'];
+    h.push('<div class="mcr-top"><div class="mcr-kind" data-cell="kind" data-sig="' +
+      esc([r.kind, iosGroupOf(r), r.flag].join('|')) + '">' + iosKindCellHtml(r) + '</div>' +
+      '<button type="button" class="vdel" data-delrow="' + i + '" aria-label="줄 삭제" title="줄 삭제">×</button></div>');
+    h.push('<div class="mcr-name"><input data-f="name" class="vnamein" value="' + esc(r.name) + '" placeholder="' +
+      (isFp ? '품명 또는 코드' : '예: 등갈비') + '" autocomplete="off" list="' + (isFp ? 'dlFgNames' : 'dlNames') + '">' +
+      '<span class="mcode" data-cell="code">' + esc(iosCodeOf(r) || '') + '</span></div>');
+    h.push('<div class="mcr-stock" data-cell="stock" data-sig="' + esc(iosMobSig(r)) + '">' + iosMobStockHtml(r) + '</div>');
+    h.push('<div class="mcr-qty">' +
+      '<label class="mq"><span>수량</span><span class="mqi"><input type="number" data-f="qty" step="0.001" min="0" value="' + esc(r.qty) + '" placeholder="0">' +
+      '<i data-cell="unit">' + esc(iosUnitOf(r)) + '</i></span></label>' +
+      '<label class="mq"><span>단가</span><span class="mqi"><input type="number" data-f="price" step="1" min="0" value="' + esc(r.price) + '" placeholder="0"><i>원</i></span></label></div>');
+    h.push('<div class="mcr-amt"><span>금액</span><b data-num="amt" data-zero="0">' + (iosAmt(r) ? fmtInt(iosAmt(r)) : '0') + '</b><em>원</em></div>');
+    h.push('</td></tr>');
+    return h.join('');
+  }
+  function iosMobSig(r) {
+    return [r.kind, iosGroupOf(r), r.wh, r.name, r.lotId, r.lotNo, r.mfg, r.expiry, iosIsIn() ? 1 : 0].join('|');
+  }
+  /* 폰 카드의 칸 다시 그리기 — 입력 중인 칸이 있으면 그 칸이 끝날 때까지 미룬다 */
+  function iosMRefresh(r, tr) {
+    var ni = tr.querySelector('[data-f="name"]');
+    if (ni) {
+      var isFp = r.kind === 'fp';
+      ni.placeholder = isFp ? '품명 또는 코드' : '예: 등갈비';
+      setAcList(ni, isFp ? 'dlFgNames' : 'dlNames');
+      if (document.activeElement !== ni && ni.value !== r.name) ni.value = r.name;
+    }
+    var kc = tr.querySelector('[data-cell="kind"]'), ksig = [r.kind, iosGroupOf(r), r.flag].join('|');
+    if (kc && kc.getAttribute('data-sig') !== ksig) { kc.innerHTML = iosKindCellHtml(r); kc.setAttribute('data-sig', ksig); }
+    var cc = tr.querySelector('[data-cell="code"]');
+    if (cc) cc.textContent = iosCodeOf(r) || '';
+    var sc = tr.querySelector('[data-cell="stock"]'), ssig = iosMobSig(r);
+    if (sc && sc.getAttribute('data-sig') !== ssig) {
+      /* 글자를 치고 있는 칸(input·select)이면 그 칸이 끝날 때까지 미룬다.
+         버튼(로트 카드·창고 칩)은 눌린 뒤 초점을 가질 뿐이라 미루지 않는다. */
+      var ae = document.activeElement;
+      if (ae && sc.contains(ae) && /^(INPUT|SELECT|TEXTAREA)$/.test(ae.tagName)) r.__mpend = 1;
+      else { sc.innerHTML = iosMobStockHtml(r); sc.setAttribute('data-sig', ssig); r.__mpend = 0; }
+    }
+    var uc = tr.querySelector('[data-cell="unit"]');
+    if (uc) uc.textContent = iosUnitOf(r);
+    tr.setAttribute('data-kind', r.kind);
+    tr.setAttribute('data-g', iosGroupOf(r));
+  }
   function iosRowHtml(r, i) {
     r.__st = iosStamp(r);
     /* v53 — 엑셀에서 채운 줄은 왼쪽에 상태선(정상·확인·오류)을 두고, 마우스를 올리면 이유가 보인다 */
@@ -9995,8 +10161,11 @@ var LIVE = (function () {
     var body = $('ioSheetBody');
     if (!body) return;
     ios.codes = null;
-    var h = [], i;
-    for (i = 0; i < ios.rows.length; i++) h.push(iosRowHtml(ios.rows[i], i));
+    var h = [], i, mob = iosMob();
+    for (i = 0; i < ios.rows.length; i++) {
+      if (mob) { iosAutoStock(ios.rows[i]); h.push(iosMobRowHtml(ios.rows[i], i)); }
+      else h.push(iosRowHtml(ios.rows[i], i));
+    }
     body.innerHTML = h.join('');
     iosPaint();
   }
@@ -10008,15 +10177,21 @@ var LIVE = (function () {
       q += n > 0 ? n : 0;
       if (n > 0) way++;
       amt += iosAmt(r);
-      tr = document.querySelector('#ioSheetBody tr[data-r="' + i + '"]');
+      tr = document.querySelector('#ioSheetBody [data-r="' + i + '"]');
       if (tr) {
         cell = tr.querySelector('[data-num="amt"]');
-        if (cell) cell.textContent = iosAmt(r) ? fmtInt(iosAmt(r)) : '';
+        if (cell) cell.textContent = iosAmt(r) ? fmtInt(iosAmt(r)) : (cell.getAttribute('data-zero') || '');
       }
     }
     if ($('ioSheetSumQty')) $('ioSheetSumQty').textContent = fmtQty(q);
     if ($('ioSheetSumAmt')) $('ioSheetSumAmt').textContent = amt ? fmtInt(amt) : '0';
     if ($('ioSheetWay')) $('ioSheetWay').textContent = '품목 ' + way + '줄 · 수량합 ' + fmtQty(q);
+    /* v60 — 폰 시트 맨 아래(저장 버튼 옆) 합계 */
+    var ms = $('ioSheetMSum');
+    if (ms) {
+      ms.innerHTML = '<span>품목 <b>' + way + '</b>줄 · 수량합 <b>' + fmtQty(q) + '</b></span>' +
+        '<b class="amt">' + (amt ? fmtInt(amt) : '0') + '<i>원</i></b>';
+    }
     v53Paint();
   }
   /* v40 — 이 줄의 칸들이 «무엇으로» 그려졌는지 기억한다. 값이 그대로면 칸을 다시 그리지 않는다.
@@ -10034,8 +10209,9 @@ var LIVE = (function () {
   /* 한 줄의 구분·창고·코드·로트·소비기한·단위 칸만 다시 그린다(바뀐 칸만) */
   function iosRefreshRow(i) {
     var r = iosRow(i);
-    var tr = document.querySelector('#ioSheetBody tr[data-r="' + i + '"]');
+    var tr = document.querySelector('#ioSheetBody [data-r="' + i + '"]');
     if (!r || !tr) return;
+    if (tr.getAttribute('data-mcard') === '1') { iosAutoStock(r); iosMRefresh(r, tr); iosPaint(); return; }
     var ni = tr.querySelector('[data-f="name"]');
     if (ni) {
       var isFp = r.kind === 'fp';
@@ -10102,10 +10278,15 @@ var LIVE = (function () {
   function iosSetType(t) {
     ios.type = t === 'OUT' ? 'OUT' : 'IN';
     var isIn = iosIsIn();
+    var mob = iosMob();
     if ($('ioSheetTitle')) $('ioSheetTitle').textContent = isIn ? '입고 등록' : '출고 등록';
     if ($('ioSheetSub')) $('ioSheetSub').textContent = isIn
-      ? '원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재·기타를 한 팝업에서 처리합니다. 줄마다 창고를 고릅니다.'
-      : '위에서 출고 구분(현장(생산) · 업체(판매) · 기타)을 고르고, 한 번에 여러 품목을 줄로 적어 저장합니다.';
+      ? (mob ? '입고일과 거래처를 적고, 품목과 수량을 채우세요.'
+        : '원료육 · 완제품 · 소스 · 향신료 · 야채 · 부자재·기타를 한 팝업에서 처리합니다. 줄마다 창고를 고릅니다.')
+      : (mob ? '출고 구분과 날짜를 고른 뒤, 품목과 기존 재고를 고르세요.'
+        : '위에서 출고 구분(현장(생산) · 업체(판매) · 기타)을 고르고, 한 번에 여러 품목을 줄로 적어 저장합니다.');
+    var mEl = $('ioSheetModal');
+    if (mEl) { mEl.classList.toggle('is-in', isIn); mEl.classList.toggle('is-out', !isIn); }
     if ($('ioSheetDateLabel')) $('ioSheetDateLabel').innerHTML = (isIn ? '입고일' : '출고일') + ' <span class="req">*</span>';
     if ($('ioSheetSave')) $('ioSheetSave').textContent = isIn ? '입고 저장' : '출고 저장';
     if ($('ioSheetHint')) $('ioSheetHint').innerHTML = isIn
@@ -10148,7 +10329,7 @@ var LIVE = (function () {
     iosSetDest(defSite ? 'site' : 'vendor');
     /* v33 — 부르는 쪽이 정한 출고 구분(원료육 기본 = 현장(생산)) */
     if (opt.dest) iosSetDest(opt.dest);
-    iosResetRows(3);
+    iosResetRows(iosMob() ? 1 : 3);
     /* v22 — 품목별 관리 화면에서 연 입고·출고 팝업은 그 품목 구분을 기본값으로 둔다 */
     if (preset && preset.g && IOS_KIND_KEYS.indexOf(preset.g) >= 0 && !preset.name && !preset.code) {
       for (var gi0 = 0; gi0 < ios.rows.length; gi0++) {
@@ -10182,7 +10363,13 @@ var LIVE = (function () {
     iosRenderRows();
     var m = $('ioSheetModal');
     if (m) m.classList.remove('hidden');
-    setTimeout(function () { try { document.querySelector('#ioSheetBody [data-f="name"]').focus(); } catch (e) { } }, 60);
+    /* v60 — 폰은 시트를 열자마자 «맨 위(출고 구분·날짜·거래처)» 부터 보이게 한다.
+       (예전엔 첫 품명 칸으로 초점이 가서 화면이 아래로 밀렸다) */
+    var card = m ? m.querySelector('.modal-card') : null;
+    if (card) card.scrollTop = 0;
+    if (!iosMob()) {
+      setTimeout(function () { try { document.querySelector('#ioSheetBody [data-f="name"]').focus(); } catch (e) { } }, 60);
+    }
   }
   function closeIoSheet() {
     var m = $('ioSheetModal');
@@ -10431,7 +10618,7 @@ var LIVE = (function () {
     body.addEventListener('input', function (ev) {
       var el = ev.target;
       if (!el || !el.getAttribute) return;
-      var tr = el.closest ? el.closest('tr[data-r]') : null;
+      var tr = el.closest ? el.closest('[data-r]') : null;
       if (!tr) return;
       var r = iosRow(Number(tr.getAttribute('data-r')));
       if (!r) return;
@@ -10446,7 +10633,7 @@ var LIVE = (function () {
     body.addEventListener('change', function (ev) {
       var el = ev.target;
       if (!el || !el.getAttribute) return;
-      var tr = el.closest ? el.closest('tr[data-r]') : null;
+      var tr = el.closest ? el.closest('[data-r]') : null;
       if (!tr) return;
       var idx = Number(tr.getAttribute('data-r')), r = iosRow(idx);
       if (!r) return;
@@ -10482,7 +10669,9 @@ var LIVE = (function () {
       } else if (f === 'name') {
         var prevCode = r.code;
         r.name = el.value;
-        r.lotId = null;
+        /* v60 — 로트 카드를 누르면 품명 칸이 blur 되며 change 가 온다.
+           이름이 그대로면(방금 고른 로트) 지우지 않는다. 이름이 바뀌었을 때만 비운다. */
+        if (r.lotId && r.lotFor !== iosTrim(el.value)) r.lotId = null;
         if (r.kind === 'fp') {
           var p2 = iosProduct(r);
           if (p2) {
@@ -10503,11 +10692,37 @@ var LIVE = (function () {
         iosRefreshRow(idx);
       } else if (f === 'expiry') {
         r.expiry = el.value;
+        if (r.__mpend) iosRefreshRow(idx);
       } else if (f === 'mfg') {
         r.mfg = el.value;
+        if (r.__mpend) iosRefreshRow(idx);
+      } else if (f === 'lot') {
+        r.lotNo = el.value;
+        if (r.__mpend) iosRefreshRow(idx);
       }
     });
     body.addEventListener('click', function (ev) {
+      /* v60 — 폰: 기존 재고(로트) 카드 · 창고 칩 */
+      var lk = ev.target && ev.target.closest ? ev.target.closest('[data-lotpick]') : null;
+      if (lk) {
+        var ltr = lk.closest('[data-r]');
+        var lr = ltr ? iosRow(Number(ltr.getAttribute('data-r'))) : null;
+        if (lr) {
+          lr.lotId = Number(lk.getAttribute('data-lotpick'));
+          lr.lotFor = iosTrim(lr.name);          /* 이 품명에서 고른 로트 — 이름이 그대로면 유지 */
+          var lwh = lk.getAttribute('data-lotwh');
+          if (lwh) lr.wh = lwh;
+          iosRefreshRow(Number(ltr.getAttribute('data-r')));
+        }
+        return;
+      }
+      var wk = ev.target && ev.target.closest ? ev.target.closest('[data-whpick]') : null;
+      if (wk) {
+        var wtr = wk.closest('[data-r]');
+        var wr = wtr ? iosRow(Number(wtr.getAttribute('data-r'))) : null;
+        if (wr) { wr.wh = wk.getAttribute('data-whpick') || 'F'; iosRefreshRow(Number(wtr.getAttribute('data-r'))); }
+        return;
+      }
       var del = ev.target && ev.target.closest ? ev.target.closest('[data-delrow]') : null;
       if (!del) return;
       var idx = Number(del.getAttribute('data-delrow'));
@@ -15773,8 +15988,13 @@ var LIVE = (function () {
 
   /* ---------- ④ 켜고 끄기 ---------- */
   function mobApply() {
+    var was = MOB.on;
     MOB.on = mobOnNow();
     document.body.classList.toggle('mob', MOB.on);
+    /* v60 — 화면 폭이 넘나들면(폰↔PC) 열려 있는 입고·출고 시트를 그 화면 모양으로 다시 그린다 */
+    if (was !== MOB.on && ios && ios.rows && ios.rows.length && $('ioSheetModal') && !$('ioSheetModal').classList.contains('hidden')) {
+      try { iosRenderRows(); } catch (e) { }
+    }
     if (MOB.on) {
       mobBuildTabs();
       mobSheetBuild();
