@@ -10039,8 +10039,8 @@ var LIVE = (function () {
     var ni = tr.querySelector('[data-f="name"]');
     if (ni) {
       var isFp = r.kind === 'fp';
-      ni.setAttribute('list', isFp ? 'dlFgNames' : 'dlNames');
       ni.placeholder = isFp ? '예: 떡갈비 / W00100016' : '예: 등갈비';
+      setAcList(ni, isFp ? 'dlFgNames' : 'dlNames');
       if (document.activeElement !== ni && ni.value !== r.name) ni.value = r.name;
     }
     var old = r.__st || {}, now = iosStamp(r), wc;
@@ -10080,17 +10080,17 @@ var LIVE = (function () {
     if (pt) {
       if (iosIsIn()) {
         pt.placeholder = '예: 도드람푸드';
-        pt.setAttribute('list', 'dlVendors');
+        setAcList(pt, 'dlVendors');
       } else if (dk === 'site') {
-        /* 현장(생산) — 생산품목 이름을 적는 칸이라 거래처 자동완성을 붙이지 않는다(비워도 저장) */
+        /* v59 — 현장(생산)은 생산품목 이름을 적는 칸이라, 거래처가 아니라 «등록 품목»을 실시간으로 찾아 준다 */
         pt.placeholder = '예: 오븐바베큐치킨 (비워둬도 됨)';
-        pt.removeAttribute('list');
+        setAcList(pt, 'dlFgNames');
       } else if (dk === 'other') {
         pt.placeholder = '예: 샘플 제공 / 폐기';
-        pt.setAttribute('list', 'dlVendors');
+        setAcList(pt, 'dlVendors');
       } else {
         pt.placeholder = '예: 도드람푸드';
-        pt.setAttribute('list', 'dlVendors');
+        setAcList(pt, 'dlVendors');
       }
     }
   }
@@ -12418,7 +12418,8 @@ var LIVE = (function () {
     var ph = r.kind === 'fp' ? '예: 떡갈비 / W00100016'
       : (r.kind === 'meat' ? (accVIsBuy() ? '예: 등갈비' : '예: 등갈비 (보유 로트)') : '예: 운송비');
     var meta = r.kind === 'meat' ? [r.meat, r.origin, r.brand].filter(function (x) { return !!x; }).join(' · ') : '';
-    return '<input data-f="name" class="vnamein" value="' + esc(r.name) + '" placeholder="' + esc(ph) + '" autocomplete="off">' +
+    return '<input data-f="name" class="vnamein" value="' + esc(r.name) + '" placeholder="' + esc(ph) + '" autocomplete="off"' +
+      ' data-aclist="' + (r.kind === 'fp' ? 'dlFgNames' : (r.kind === 'meat' ? 'dlNames' : '')) + '">' +
       '<span class="vrowmeta" data-cell="meta">' + esc(meta) + '</span>';
   }
   function accVExpInfoHtml(r) {
@@ -13603,6 +13604,11 @@ var LIVE = (function () {
   }
   function acPaint() {
     var el = acPopEl(), h = [], i, it;
+    if (!acNow.items.length) {
+      /* v59 — 아무것도 안 맞아도 «목록이 죽은 것»으로 보이지 않게 한 줄 알린다 */
+      el.innerHTML = '<div class="acnone">일치하는 항목이 없습니다</div>';
+      return;
+    }
     for (i = 0; i < acNow.items.length; i++) {
       it = acNow.items[i];
       h.push('<button type="button" class="acitem' + (i === acNow.idx ? ' on' : '') + '" role="option" data-aci="' + i + '">' +
@@ -13612,17 +13618,36 @@ var LIVE = (function () {
     }
     el.innerHTML = h.join('');
   }
+  /* v59 — 폰에서는 키보드가 올라와도 보이는 영역(visualViewport) 안에 목록을 앉힌다 */
+  function acView() {
+    var vv = window.visualViewport;
+    if (vv && vv.height) return { top: vv.offsetTop || 0, left: vv.offsetLeft || 0, h: vv.height, w: vv.width || (window.innerWidth || 1200) };
+    return { top: 0, left: 0, h: window.innerHeight || 800, w: window.innerWidth || 1200 };
+  }
+  function acNarrow() {
+    if ((window.innerWidth || 1200) <= 768) return true;
+    try { return !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (e) { return false; }
+  }
   function acPlace() {
     var el = acPopEl(), inp = acNow.input;
     if (!inp || !inp.getBoundingClientRect) return;
-    var r = inp.getBoundingClientRect();
-    var w = Math.max(240, Math.round(r.width));
-    el.style.width = w + 'px';
-    el.style.left = Math.round(Math.min(r.left, (window.innerWidth || 1200) - w - 8)) + 'px';
-    var top = Math.round(r.bottom + 3);
-    var hgt = el.offsetHeight || 0;
-    if (top + hgt > (window.innerHeight || 800) - 10 && r.top > hgt + 12) top = Math.round(r.top - hgt - 3);
-    el.style.top = top + 'px';
+    var r = inp.getBoundingClientRect(), v = acView(), narrow = acNarrow();
+    var pad = 8, gap = 6;
+    var w = narrow ? Math.min(v.w - pad * 2, Math.max(240, Math.round(r.width))) : Math.max(240, Math.round(r.width));
+    var leftV = Math.min(r.left - v.left, v.w - w - pad);
+    if (leftV < pad) leftV = pad;
+    el.style.width = Math.round(w) + 'px';
+    el.style.left = Math.round(leftV + v.left) + 'px';
+    var below = (v.top + v.h) - r.bottom - gap - pad;
+    var above = (r.top - v.top) - gap - pad;
+    var cap = narrow ? 420 : 286;
+    var useBelow = below >= Math.min(cap, 170) || below >= above;
+    var space = Math.max(96, Math.min(cap, useBelow ? below : above));
+    el.style.maxHeight = Math.round(space) + 'px';
+    var hgt = Math.min(el.offsetHeight || 0, space);
+    var topV = useBelow ? (r.bottom + gap) : (r.top - gap - hgt);
+    topV = Math.max(v.top + pad, Math.min(topV, v.top + v.h - hgt - pad));
+    el.style.top = Math.round(topV + v.top) + 'px';
   }
   function acMove(d) {
     if (!acNow.open || !acNow.items.length) return;
@@ -13651,7 +13676,12 @@ var LIVE = (function () {
     var q = inp.value || '';
     var cands = opts.cands ? opts.cands() : [];
     var items = ERP.smartPick(cands, q, 9);
-    if (!items.length) { acHide(); return []; }
+    if (!items.length) {
+      if (!String(q || '').replace(/\s+/g, '')) { acHide(); return []; }
+      acNow.items = []; acNow.idx = 0; acNow.open = true; acNow.input = inp; acNow.opts = opts;
+      acPaint(); acPopEl().classList.remove('hidden'); acPlace();
+      return [];
+    }
     acNow.items = items; acNow.idx = 0; acNow.open = true; acNow.input = inp; acNow.opts = opts;
     acPaint(); acPopEl().classList.remove('hidden'); acPlace();
     return items;
@@ -13664,8 +13694,14 @@ var LIVE = (function () {
     inp.__ac = { cands: cands, onPick: onPick };
     /* 실제로 타자를 칠 때만 목록을 연다 — 프로그램이 값을 넣은 경우(붙여넣기 제외)는 열지 않는다 */
     inp.addEventListener('keydown', function () { inp.__acAt = Date.now(); }, true);
-    inp.addEventListener('input', function () {
-      if (Date.now() - (inp.__acAt || 0) < 500) acRun(inp, false); else acHide();
+    /* v59 — 폰 한글 키보드는 keydown 이 비는 경우가 있어, 누르고 포커스만 해도 «사람이 친 것»으로 본다 */
+    inp.addEventListener('focus', function () { inp.__acAt = Date.now(); }, true);
+    inp.addEventListener('pointerdown', function () { inp.__acAt = Date.now(); }, true);
+    inp.addEventListener('input', function (ev) {
+      /* v59 — 사람이 친 입력(isTrusted)이면 연다. 프로그램이 값을 넣으며 보낸 input 이면 닫는다.
+         폰 한글 키보드는 keydown 이 비어 «최근 0.5초» 규칙으로는 목록이 안 떴다. */
+      if (ev && ev.isTrusted === false) { acHide(); return; }
+      acRun(inp, false);
     });
     inp.addEventListener('blur', function () { setTimeout(function () { if (acNow.input === inp) acHide(); }, 140); });
     inp.addEventListener('keydown', function (ev) {
@@ -13673,17 +13709,42 @@ var LIVE = (function () {
       if (ev.key === 'ArrowUp') { if (acNow.open && acNow.input === inp) acMove(-1); ev.preventDefault(); return; }
       if (ev.key === 'Escape') { if (acNow.open) { acHide(); ev.preventDefault(); } return; }
       if (ev.key === 'Enter') {
-        var list = (acNow.open && acNow.input === inp && acNow.items.length) ? acNow.items : acRun(inp, false);
+        /* v59 — 목록이 떠 있으면 Enter 로 폼이 전송되지 않는다 (후보가 없을 때도) */
+        if (acNow.open && acNow.input === inp) {
+          ev.preventDefault();
+          if (acNow.items.length) { ev.stopPropagation(); acSelect(acNow.idx); } else acHide();
+          return;
+        }
+        var list = acRun(inp, false);
         if (list && list.length) {
           ev.preventDefault();     /* 폼 전송 금지 — 1순위를 그 자리에 넣는다 */
           ev.stopPropagation();
-          acSelect(acNow.open ? acNow.idx : 0);
+          acSelect(0);
         }
       }
     });
   }
   function acAttach(id, cands, onPick) {
     acWire($(id), cands, onPick);
+  }
+  /* v59 — list="…" 만 붙은 입력칸(줄마다 새로 그려지는 칸 포함)도 같은 드롭다운을 쓴다 */
+  function acAutoId(inp) {
+    return inp && inp.getAttribute ? (inp.getAttribute('data-aclist') || inp.getAttribute('list') || '') : '';
+  }
+  function acAutoWire(inp) {
+    if (!inp || inp.nodeName !== 'INPUT' || inp.__ac || inp.disabled || inp.readOnly) return;
+    var id = acAutoId(inp);
+    if (!id || !acListCands(id).length) return;
+    inp.setAttribute('data-aclist', id);
+    acWire(inp, function () { return acListCands(acAutoId(inp)); }, null);
+    inp.__acAuto = 1;
+  }
+  /* 목록 이름을 바꿔 달 때: 이미 드롭다운이 붙은 칸은 data-aclist 만 바꾼다(브라우저 기본 목록과 겹치지 않게) */
+  function setAcList(el, id) {
+    if (!el || !el.getAttribute) return;
+    if (id) el.setAttribute('data-aclist', id); else el.removeAttribute('data-aclist');
+    if (el.__ac) { if (el.hasAttribute('list')) el.removeAttribute('list'); return; }
+    if (id) el.setAttribute('list', id); else el.removeAttribute('list');
   }
   function acShowAll(id) {
     var inp = $(id);
@@ -13734,13 +13795,84 @@ var LIVE = (function () {
       return out.concat(acFromList(list, '장부·입출고 거래처'));
     });
   }
+  /* v59 — 품목 후보: ERP에 등록된 «사용 중» 품목 전부(완제품·소스·향신료·야채·부자재 등)를
+     품명·코드·규격·구분으로 함께 찾는다. 띄어쓰기·부분일치는 smartPick 이 처리한다. */
   function acProductCands() {
     return acCached('products', function () {
-      var d = ERP.dict(st);
-      var fps = st.fps.filter(function (p) { return p.active !== false; });   /* v43 — 미사용 품목 제외 */
-      return acFromList(d.names, '원료육 품목').concat(acFromList(d.products, '생산품목'))
-        .concat(acFromList(fps.map(function (p) { return p.n; }), '완제품·부자재'));
+      var out = [], seen = {}, i, p, d = ERP.dict(st);
+      function add(v, s, hay) {
+        var k = String(v === null || v === undefined ? '' : v).replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+        if (!k || seen[k]) return;
+        seen[k] = 1;
+        out.push({ v: k, t: k, s: s || '', h: hay || k });
+      }
+      for (i = 0; i < st.fps.length; i++) {
+        p = st.fps[i];
+        if (!p || p.active === false || !p.n) continue;   /* v43 — 미사용 품목 제외 */
+        add(p.n, [p.code, p.spec, p.cat].filter(function (x) { return !!x; }).join(' · '),
+          [p.n, p.code, p.spec, p.cat, p.unit].filter(function (x) { return !!x; }).join(' '));
+      }
+      for (i = 0; i < d.products.length; i++) add(d.products[i], '생산품목');
+      for (i = 0; i < d.names.length; i++) add(d.names[i], '원료육 품목');
+      return out;
     });
+  }
+  /* v59 — 입출고 줄의 «품목코드/품명» 칸: 넣는 값은 품명 하나, 설명에 코드·규격·구분 */
+  function acFgNameCands() {
+    return acCached('fgname', function () {
+      var out = [], seen = {}, i, p;
+      for (i = 0; i < st.fps.length; i++) {
+        p = st.fps[i];
+        if (!p || p.active === false || !p.n || seen[p.n]) continue;
+        seen[p.n] = 1;
+        out.push({
+          v: p.n, t: p.n,
+          h: [p.n, p.code, p.spec, p.cat, p.unit].filter(function (x) { return !!x; }).join(' '),
+          s: [p.code, p.spec, p.cat].filter(function (x) { return !!x; }).join(' · ')
+        });
+      }
+      return out;
+    });
+  }
+  /* v59 — 원료육 줄의 품명 칸: 지금까지 쓴 원료육 품명만 */
+  function acMeatNameCands() {
+    return acCached('meatnames', function () {
+      return acFromList(ERP.dict(st).names, '원료육 품목');
+    });
+  }
+  /* v59 — 출고 시트의 「생산품목 / 거래처」 칸: 구분에 따라 후보가 바뀐다 */
+  function acIoPartnerCands() {
+    if (iosIsIn()) return acPartnerAll();            /* 입고 = 업체·거래처 */
+    if (iosDestNow() === 'site') return acProductCands();   /* 현장(생산) = 생산품목 */
+    return acPartnerAll();                           /* 업체(판매)·기타 = 거래처 */
+  }
+  /* v59 — 목록(datalist)에만 있는 후보는 그 목록을 그대로 읽는다 */
+  function acDatalistCands(id) {
+    var dl = id ? document.getElementById(id) : null, out = [], i, o, opts;
+    if (!dl) return out;
+    opts = dl.querySelectorAll('option');
+    for (i = 0; i < opts.length; i++) {
+      o = opts[i];
+      if (!o.value) continue;
+      out.push({ v: o.value, t: o.value, s: '', h: o.value });
+    }
+    return out;
+  }
+  /* v59 — 입력칸의 list/data-aclist 이름 → 후보 목록 */
+  function acListCands(id) {
+    if (!id) return [];
+    switch (id) {
+      case 'dlNames': return acMeatNameCands();
+      case 'dlProducts': return acProductCands();
+      case 'dlFgNames': return acFgNameCands();
+      case 'dlVendors': case 'dlFgPartners': case 'dlAccPartners': return acPartnerAll();
+      case 'dlMeats': return acCached('meats', function () { return acFromList(ERP.dict(st).meats, '원료육'); });
+      case 'dlOrigins': return acCached('origins', function () { return acFromList(ERP.dict(st).origins, '원산지'); });
+      case 'dlBrands': return acCached('brands', function () { return acFromList(ERP.brandList().concat(ERP.dict(st).brands), '표준 브랜드'); });
+      case 'dlCourier': return acCached('courier', function () { return acFromList(ERP.destHistory(st).courier, '지난 출고처'); });
+      case 'dlOther': return acCached('other', function () { return acFromList(ERP.destHistory(st).other, '지난 사유·출고처'); });
+      default: return acDatalistCands(id);
+    }
   }
   function acFgCands() {
     return acCached('fg', function () {
@@ -13772,6 +13904,21 @@ var LIVE = (function () {
     }, true);
     window.addEventListener('scroll', function () { if (acNow.open) acPlace(); }, true);
     window.addEventListener('resize', function () { if (acNow.open) acPlace(); });
+    if (window.visualViewport) {
+      try {
+        window.visualViewport.addEventListener('resize', function () { if (acNow.open) acPlace(); });
+        window.visualViewport.addEventListener('scroll', function () { if (acNow.open) acPlace(); });
+      } catch (e) { }
+    }
+    /* v59 — 뒤에 그려지는 입력칸도 포커스·입력 순간에 자동으로 붙인다 */
+    document.addEventListener('focusin', function (ev) {
+      var t = ev.target;
+      if (t && t.nodeName === 'INPUT') acAutoWire(t);
+    }, true);
+    document.addEventListener('input', function (ev) {
+      var t = ev.target;
+      if (t && t.nodeName === 'INPUT' && !t.__ac) acAutoWire(t);
+    }, true);
   }
   function acSetupAll() {
     acBindGlobal();
@@ -13782,11 +13929,19 @@ var LIVE = (function () {
     acAttach('thProd', acProductCands, function () { });
     acAttach('outDest', acSiteCands, function () { });
     acAttach('fgQuery', acFgCands, function () { fgPickProduct(true); });
-    acAttach('fgPartner', acPartnerAll, function () { });
+    acAttach('fgPartner', function () { return cur.fgUse === 'site' ? acProductCands() : acPartnerAll(); }, function () { });
     acAttach('fgNewSupplier', acPartnerAll, function () { });
     acAttach('accVPartner', acPartnerAll, function () { });
     acAttach('accPPartner', acPartnerAll, function () { });
     acAttach('accEPartner', acPartnerAll, function () { });
+    /* v59 — 출고 시트의 「생산품목 / 거래처」 칸과 원료육 내역 수정의 「생산품목 / 비고」 칸 */
+    acAttach('ioSheetPartner', acIoPartnerCands, null);
+    acAttach('uniMoveProd', acProductCands, null);
+    acAttach('edDestDetail', function () {
+      var isThaw = editing && editing.t === 'thaw';
+      var dk = $('edDest') ? ERP.destKey($('edDest').value) : 'site';
+      return (isThaw || dk === 'site') ? acProductCands() : acPartnerAll();
+    }, null);
     if ($('stmtBuyerName')) {
       /* 명세표 공급받는자 칸 — 고르면 DB 값으로 다시 채운다 */
       acAttach('stmtBuyerName', acPartnerCands, function (it) {

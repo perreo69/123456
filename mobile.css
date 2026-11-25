@@ -641,4 +641,28 @@ body.sideopen::after{inset:50px 0 0 0!important;z-index:75!important;background:
 /* 인쇄·명세표 미리보기 폭 */
 .stmt-A4,.stmt-sheet{max-width:100%!important}
 
+/* ------------------------------------------------------------------ v59
+   품목·거래처 실시간 검색 드롭다운 — 폰에서 손가락으로 누르기 좋게,
+   바텀 시트·하단 탭 바·저장 버튼 «위로» 뜨게 한다. */
+.acpop{
+  z-index:1200!important;
+  padding:6px!important;
+  border:1px solid rgba(0,0,0,.06)!important;
+  border-radius:16px!important;
+  background:#fff!important;
+  box-shadow:0 20px 48px rgba(9,17,30,.26),0 2px 8px rgba(9,17,30,.10)!important;
+  overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+}
+.acitem{
+  min-height:44px!important;
+  padding:4px 12px!important;
+  border-radius:11px!important;
+  justify-content:center;
+  gap:0!important;
+}
+.acitem .act{font-size:15px!important;font-weight:650!important;line-height:19px!important;height:19px!important;letter-spacing:-.2px}
+.acitem .acs{font-size:12px!important;line-height:16px!important;height:16px!important;color:var(--m-ink-3,#8A8A8E);margin-top:1px}
+.acitem.on,.acitem:hover{background:rgba(0,122,255,.10)!important}
+.acitem.on .act{color:var(--m-blue,#007AFF)}
+
 } /* @media (max-width:768px) */
