@@ -5984,7 +5984,8 @@ var LIVE = (function () {
   function lcVendor(lot) {
     var v = lot && lot.v && lot.v !== '업체없음' ? lot.v : '';
     var b = lot && lot.b ? lot.b : '';
-    if (v && b) return v + ' · ' + b;
+    /* 한 줄에 조금이라도 더 들어가도록 가운데 점 좌우 공백을 두지 않는다 */
+    if (v && b) return v + '·' + b;
     return v || b || '—';
   }
 

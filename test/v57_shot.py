@@ -85,6 +85,8 @@ POP = r"""(pid) => {
     wAlign: one ? getComputedStyle(one.querySelector('.lcw')).textAlign : '',
     first: one ? one.textContent : '',
     clipped: p.scrollWidth - p.clientWidth,
+    cutN: rows.filter(r => r.querySelector('.lcn').scrollWidth > r.querySelector('.lcn').clientWidth).length,
+    cutV: rows.filter(r => r.querySelector('.lcv').scrollWidth > r.querySelector('.lcv').clientWidth).length,
     vw: innerWidth, vh: innerHeight
   };
 }"""
@@ -126,7 +128,7 @@ def run_pc(b):
     page.click('#uniMoveLotQ')
     page.wait_for_timeout(500)
     pop = page.evaluate(POP)
-    print('   PC 목록', json.dumps({k: pop[k] for k in ('n', 'bg', 'border', 'rect', 'card', 'rowH', 'rowBorder', 'clipped')}, ensure_ascii=False))
+    print('   PC 목록', json.dumps({k: pop[k] for k in ('n', 'bg', 'border', 'rect', 'card', 'rowH', 'rowBorder', 'clipped', 'cutN', 'cutV')}, ensure_ascii=False))
     chk(not pop.get('hidden') and pop['n'] > 10, '클릭만 해도 전체 로트', pop.get('n'))
     chk(pop['bg'] == 'rgb(255, 255, 255)', '드롭다운 순백 #FFFFFF', pop['bg'])
     chk('209, 213, 219' in pop['border'], '테두리 #D1D5DB', pop['border'])

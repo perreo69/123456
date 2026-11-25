@@ -30,7 +30,8 @@ def chk(cond, label, extra=''):
 
 
 POP = r"""(pid) => {
-  const p = document.getElementById(pid || 'uniMoveLotPop');
+  pid = pid || 'uniMoveLotPop';
+  const p = document.getElementById(pid);
   if (!p) return {missing: true};
   const card = document.querySelector(pid === 'uniMoveLotPop' ? '#uniMoveModal .modal-card' : '#meatFormModal .modal-card');
   const rows = Array.from(p.querySelectorAll('.lcitem'));
@@ -46,7 +47,7 @@ POP = r"""(pid) => {
     headText: head ? head.textContent : '',
     heads: head ? Array.from(head.children).map(e => Math.round(e.getBoundingClientRect().left)) : [],
     cols: rows.map(r => [col(r, '.lcn'), col(r, '.lcv'), col(r, '.lce'), col(r, '.lcw')]),
-    rowH: rows.map(r => Math.round(r.height)),
+    rowH: rows.map(r => Math.round(r.getBoundingClientRect().height)),
     first: one ? one.textContent : '',
     clipped: p.scrollWidth - p.clientWidth,
     vw: innerWidth, vh: innerHeight
@@ -81,6 +82,13 @@ with sync_playwright() as pw:
     page.click('#btnLogin')
     page.wait_for_selector('#appView:not(.hidden)', timeout=45000)
     page.wait_for_timeout(6000)
+    # 스텁이 아닌 실서버라 로트 목록이 늦게 올 수 있다 — 목록이 찰 때까지 기다린다
+    for _ in range(20):
+        n = page.evaluate("() => (window.st && st.lots) ? st.lots.length : 0")
+        if n > 0:
+            break
+        page.wait_for_timeout(1000)
+    print('   로트 %d건 로드' % page.evaluate("() => (window.st && st.lots) ? st.lots.length : 0"))
 
     src = page.evaluate("() => (document.querySelector('script[src*=\"app.js\"]') || {}).src || ''")
     chk('20261125_65' in src, '실서버 app.js 토큰 _65', src)
@@ -92,6 +100,12 @@ with sync_playwright() as pw:
     if opened:
         page.click('#uniMoveLotQ')
         page.wait_for_timeout(600)
+        for _ in range(10):
+            if page.evaluate("() => document.querySelectorAll('#uniMoveLotPop .lcitem').length") > 0:
+                break
+            page.wait_for_timeout(700)
+            page.click('#uniMoveLotQ')
+            page.wait_for_timeout(300)
         pop = page.evaluate(POP)
         print('   PC 목록', json.dumps({k: pop[k] for k in ('n', 'bg', 'border', 'rect', 'card', 'rowH', 'clipped')}, ensure_ascii=False))
         chk(not pop.get('hidden') and pop['n'] > 10, '클릭만 해도 보관 로트 전체', pop.get('n'))
@@ -165,7 +179,8 @@ with sync_playwright() as pw:
         page.click('#uniMoveLotQ')
         page.wait_for_timeout(450)
         pr = page.evaluate(POP)
-        chk('냉장고' in (pr.get('headText') or ''), '재냉동 전환 시 냉장고 목록', pr.get('headText'))
+        chk('냉장고' in page.evaluate("() => document.querySelector('#uniMoveLotPop .lchsum').textContent"),
+            '재냉동 전환 시 냉장고 목록', page.evaluate("() => document.querySelector('#uniMoveLotPop .lchsum').textContent"))
         page.screenshot(path=os.path.join(OUT, '04-pc-re.png'))
         page.keyboard.press('Escape')
         page.wait_for_timeout(200)
