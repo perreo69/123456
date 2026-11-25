@@ -102,18 +102,18 @@ with sync_playwright() as pw:
                         clip=page.evaluate("""() => { const r = document.querySelector('#uniMoveModal .modal-card').getBoundingClientRect();
                           return {x: Math.max(0, r.left - 10), y: Math.max(0, r.top - 10), width: Math.min(r.width + 20, innerWidth - 2), height: Math.min(r.height + 20, innerHeight - 2)}; }"""))
 
-        page.fill('#uniMoveLotQ', '알전')
+        page.fill('#uniMoveLotQ', '목전')
         page.wait_for_timeout(500)
         p = page.evaluate(POP)
-        print('   알전', json.dumps(p, ensure_ascii=False)[:260])
-        chk(0 < p.get('n', 0) <= 4, '‘알전’ 검색으로 걸러짐', p.get('n'))
+        print('   목전', json.dumps(p, ensure_ascii=False)[:260])
+        chk(0 < p.get('n', 0) <= 6, '‘목전’ 검색으로 걸러짐', p.get('n'))
         page.screenshot(path=os.path.join(OUT, '02-filter.png'))
 
         page.press('#uniMoveLotQ', 'Enter')
         page.wait_for_timeout(600)
         st = page.evaluate(STATE)
         print('   선택', json.dumps(st, ensure_ascii=False))
-        chk(st['lot'] != '' and st['input'].startswith('알전'), 'Enter 로 로트 선택', st['input'])
+        chk(st['lot'] != '' and st['input'].startswith('목전'), 'Enter 로 로트 선택', st['input'])
         chk(st['price'] not in ('', '0'), '단가 자동 채움', st['price'])
         chk('현재고' in st['stat'], '현재고·이동 방향 안내', st['stat'])
         page.screenshot(path=os.path.join(OUT, '03-picked.png'))
@@ -129,6 +129,50 @@ with sync_playwright() as pw:
         page.wait_for_timeout(200)
         page.evaluate("() => { const b = document.getElementById('uniMoveClose'); if (b) b.click(); }")
         page.wait_for_timeout(300)
+
+
+    # [작업] → 이동 으로 특정 로트를 미리 채워 열기 (읽기 전용)
+    page.evaluate("() => { const b = document.querySelector('#v8Side [data-nav=\"stock:meat\"]'); if (b) b.click(); }")
+    page.wait_for_timeout(2200)
+    got = page.evaluate("""() => { const t = document.querySelector('#uniTableWrap tbody tr.ulot .actmenu');
+      if (!t) return false; t.click(); return true; }""")
+    page.wait_for_timeout(500)
+    page.evaluate("""() => { const b = Array.from(document.querySelectorAll('#rowMenu button')).find(x => x.textContent.trim() === '이동'); if (b) b.click(); }""")
+    page.wait_for_timeout(900)
+    st2 = page.evaluate(STATE)
+    print('   [작업]→이동', got, json.dumps(st2, ensure_ascii=False)[:160])
+    chk(got and st2['lot'] != '' and st2['input'].strip() != '' and '로트 선택' not in st2['input'],
+        '[작업] → 이동으로 연 로트가 입력칸에 그대로', st2['input'])
+    page.screenshot(path=os.path.join(OUT, '04b-row-move.png'))
+    page.evaluate("() => { const b = document.getElementById('uniMoveClose'); if (b) b.click(); }")
+    page.wait_for_timeout(300)
+
+    # 원료육 입력 팝업(출고) 로트 칸 (저장하지 않음)
+    page.evaluate("() => { const h = document.getElementById('ioHubModal'); if (h) h.classList.remove('hidden'); }")
+    page.wait_for_timeout(300)
+    page.evaluate("() => { const b = document.querySelector('#ioHubModal [data-io=\"out\"]'); if (b) b.click(); }")
+    page.wait_for_timeout(1500)
+    if page.evaluate("() => !document.getElementById('meatFormModal').classList.contains('hidden')"):
+        page.click('#outLotQ')
+        page.wait_for_timeout(500)
+        p3 = page.evaluate("""() => { const p = document.getElementById('outLotPop');
+          return {hidden: p.classList.contains('hidden'), n: p.querySelectorAll('.lcitem').length}; }""")
+        chk(not p3['hidden'] and p3['n'] > 0, '원료육 출고 팝업 로트 칸도 전체 목록', p3['n'])
+        page.fill('#outLotQ', '목전')
+        page.wait_for_timeout(400)
+        page.press('#outLotQ', 'Enter')
+        page.wait_for_timeout(400)
+        s4 = page.evaluate("""() => ({lot: document.getElementById('outLot').value,
+          input: document.getElementById('outLotQ').value, info: document.getElementById('outInfo').textContent.slice(0, 200)})""")
+        chk(s4['lot'] != '' and s4['input'].startswith('목전'), '출고 팝업에서도 검색·선택', s4['input'])
+        chk('현재고' in s4['info'], '출고 팝업 로트 정보 갱신', s4['info'])
+        page.screenshot(path=os.path.join(OUT, '04c-out-popup.png'))
+        page.keyboard.press('Escape')
+        page.wait_for_timeout(200)
+        page.evaluate("() => document.querySelectorAll('.modal').forEach(m => m.classList.add('hidden'))")
+        page.wait_for_timeout(300)
+    else:
+        chk(False, '원료육 출고 팝업 열림')
 
     over = page.evaluate("() => document.documentElement.scrollWidth - window.innerWidth")
     chk(over == 0, 'PC 가로 넘침 0px', over)
