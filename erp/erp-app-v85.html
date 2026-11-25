@@ -4013,7 +4013,7 @@ function intakeRowHtml(r,i){
    <span class="v50-in-num">${String(i+1).padStart(2,'0')}</span>
    <label class="in-category"><span class="v50-mobile-label">구분</span><select class="in-cat" aria-label="${i+1}번 품목 구분">${catOptions}</select></label>
    <label class="in-item v50-in-item"><span class="v50-mobile-label">품목명</span><div class="in-find"><input class="in-search" type="search" autocomplete="off" value="${esc(r.name)}" placeholder="품목명·브랜드 검색" aria-label="${i+1}번 품목 검색"><div class="in-suggest hidden" role="listbox"></div></div></label>
-   ${isMeat?`<label class="in-zone-label"><span class="v50-mobile-label">창고</span><select class="in-zone" aria-label="${i+1}번 원료육 보관 창고" required><option value="" ${!r.zone?'selected':''}>창고 선택</option><option value="frozen" ${r.zone==='frozen'?'selected':''}>냉동고</option><option value="chilled" ${r.zone==='chilled'?'selected':''}>냉장고</option></select></label>`:'<span class="v145-zone-na" aria-hidden="true">—</span>'}
+   <label class="in-zone-label ${isMeat?'':'v146-zone-disabled'}"><span class="v50-mobile-label">창고</span><select class="in-zone" aria-label="${i+1}번 원료육 보관 창고" ${isMeat?'required':'disabled'}><option value="" ${!isMeat||!r.zone?'selected':''}>${isMeat?'창고 선택':'해당 없음'}</option><option value="frozen" ${isMeat&&r.zone==='frozen'?'selected':''}>냉동고</option><option value="chilled" ${isMeat&&r.zone==='chilled'?'selected':''}>냉장고</option></select></label>
    <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
    <label><span class="v50-mobile-label">수량</span><input class="in-qty" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="수량" aria-label="입고수량" value="${esc(r.qty)}"></label>
    <label><span class="v50-mobile-label">단위</span><select class="in-unit" aria-label="입고단위">${unitOptions}</select></label>
@@ -4057,7 +4057,7 @@ function drawIntakeRows(){
   el.querySelector('.in-qty').addEventListener('input',e=>{r.qty=e.target.value;updateIntakeSummary();});
   el.querySelector('.in-received')?.addEventListener('change',e=>{r.received=e.target.value;r.dateEdited=true});
   el.querySelector('.in-expiry').onchange=e=>r.expiry=e.target.value;
-  const zoneInput=el.querySelector('.in-zone');if(zoneInput){zoneInput.onchange=e=>{r.zone=e.target.value;e.target.dataset.zone=r.zone;updateIntakeSummary();};zoneInput.dataset.zone=r.zone;}else r.zone='';
+  const zoneInput=el.querySelector('.in-zone');if(zoneInput){if(r.category!=='meat')r.zone='';zoneInput.onchange=e=>{if(r.category!=='meat'||e.target.disabled){r.zone='';e.target.value='';return;}r.zone=e.target.value;e.target.dataset.zone=r.zone;updateIntakeSummary();};zoneInput.dataset.zone=r.zone;}else r.zone='';
   el.querySelector('details').ontoggle=e=>r.expanded=e.target.open;
   el.querySelectorAll('.intake-detail input,.intake-detail select').forEach(inp=>inp.addEventListener('input',()=>{readIntakeRow(el,r);if(inp.classList.contains('v56-required-field')&&String(inp.value).trim())v56ClearIntakeDetailNotice(el);}));
  });
@@ -6961,4 +6961,8 @@ html,body{overflow-x:hidden!important}
 #v144EntryDialog #mainView#mainView .v145-movement .v36-pane>.v36-summary{padding:10px 12px!important;min-height:0!important;align-items:stretch!important}
 #v144EntryDialog #mainView .v145-movement .v36-summary-actions{justify-content:flex-end}
 }
+</style><style id="v146-inactive-warehouse">
+#v144EntryDialog #mainView#mainView .v50-in-grid .in-zone-label.v146-zone-disabled{opacity:1!important;pointer-events:none}
+#v144EntryDialog #mainView#mainView .v50-in-grid .in-zone:disabled{opacity:1!important;background:#f2f2f4!important;color:#a2a2a8!important;-webkit-text-fill-color:#a2a2a8!important;border-color:#e2e2e5!important;box-shadow:none!important;cursor:default!important;font-weight:400!important}
+#v144EntryDialog #mainView#mainView .v50-in-grid .v146-zone-disabled .v50-mobile-label{color:#a2a2a8!important}
 </style></body></html>
