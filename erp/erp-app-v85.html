@@ -4011,13 +4011,13 @@ function intakeRowHtml(r,i){
   <div class="intake-row-title v50-visually-hidden"><b>${String(i+1).padStart(2,'0')}</b><span>${r.name?esc(r.name):'신규 품목'}</span></div>
   <div class="intake-grid v50-in-grid">
    <span class="v50-in-num">${String(i+1).padStart(2,'0')}</span>
-   <label class="in-item v50-in-item"><span class="v50-mobile-label">품목명</span><div class="in-find"><input class="in-search" type="search" autocomplete="off" value="${esc(r.name)}" placeholder="품목명·브랜드 검색" aria-label="${i+1}번 품목 검색"><div class="in-suggest hidden" role="listbox"></div></div></label>
    <label class="in-category"><span class="v50-mobile-label">구분</span><select class="in-cat" aria-label="${i+1}번 품목 구분">${catOptions}</select></label>
+   <label class="in-item v50-in-item"><span class="v50-mobile-label">품목명</span><div class="in-find"><input class="in-search" type="search" autocomplete="off" value="${esc(r.name)}" placeholder="품목명·브랜드 검색" aria-label="${i+1}번 품목 검색"><div class="in-suggest hidden" role="listbox"></div></div></label>
+   <label class="in-zone-label ${isMeat?'':'hidden'}"><span class="v50-mobile-label">창고</span><select class="in-zone" aria-label="${i+1}번 원료육 보관 창고" ${isMeat?'required':''}><option value="" ${!r.zone?'selected':''}>창고 선택</option><option value="frozen" ${r.zone==='frozen'?'selected':''}>냉동고</option><option value="chilled" ${r.zone==='chilled'?'selected':''}>냉장고</option></select></label>
+   <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
    <label><span class="v50-mobile-label">수량</span><input class="in-qty" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="수량" aria-label="입고수량" value="${esc(r.qty)}"></label>
    <label><span class="v50-mobile-label">단위</span><select class="in-unit" aria-label="입고단위">${unitOptions}</select></label>
    <label class="v50-price-cell"><span class="v50-mobile-label">입고 단가</span><input class="in-price" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(r.price||'')}" placeholder="단가" aria-label="입고 단가"><span class="in-price-hint">${v48PriceHint(r)}</span></label>
-   <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
-   <label class="in-zone-label ${isMeat?'':'hidden'}"><span class="v50-mobile-label">창고</span><select class="in-zone" aria-label="${i+1}번 원료육 보관 창고" ${isMeat?'required':''}><option value="" ${!r.zone?'selected':''}>창고 선택</option><option value="frozen" ${r.zone==='frozen'?'selected':''}>냉동고</option><option value="chilled" ${r.zone==='chilled'?'selected':''}>냉장고</option></select></label>
    <div class="v50-in-actions"><button type="button" class="v50-in-detail-toggle" title="상세정보 펼치기" aria-label="상세정보">상세</button><button type="button" class="v133-repeat v132-mobile-control" aria-label="같은 품목 추가">같은 품목</button><button type="button" class="in-remove" aria-label="${i+1}번 입고 품목 삭제" title="품목 삭제">×</button></div>
   </div>
   <div class="v56-detail-validation" role="alert" hidden></div>
@@ -6679,7 +6679,7 @@ const $=id=>document.getElementById(id),status=bar.querySelector('.v132-status')
 const modes={intake:{save:'intakeSave',add:'intakeAdd',summary:'intakeSummary',error:'intakeError',label:'+ 품목'},ship:{save:'v18Save',add:'v18AddLine',summary:'v18Summary',error:'v18Error',label:'+ 품목'},move:{save:'v36Save',add:'v132MovePicked',summary:'v36Summary',error:'v36Error',label:'선택 LOT'}};
 let active=null,queued=false;
 function update(){
- queued=false;active=mq.matches()&&!$('v144EntryDialog')?( $('intakeSave')?modes.intake:$('v18Save')?modes.ship:$('v36Save')?modes.move:null):null;
+ queued=false;active=mq.matches&&!$('v144EntryDialog')?( $('intakeSave')?modes.intake:$('v18Save')?modes.ship:$('v36Save')?modes.move:null):null;
  bar.hidden=!active;document.body.classList.toggle('v132-working',!!active);if(!active)return;
  const err=$(active.error),msg=err&&!err.classList.contains('hidden')?err.textContent.trim():'',summary=$(active.summary)?.textContent||'';
  status.textContent=msg||summary.replace(' · 저장 시 LOT',' · LOT').replace(' 자동 생성','').replace(/ · 전체 재고 증감.*$/,'');status.classList.toggle('v132-error',!!msg);
@@ -6903,7 +6903,7 @@ html,body{overflow-x:hidden!important}
 #v144EntryDialog #mainView .v144-cancel{min-width:64px}
 #v144EntryDialog #mainView :is(.intake-save,#v36Save){min-width:92px;white-space:nowrap}
 @media screen and (min-width:768px) and (pointer:fine){
-#v144EntryDialog #mainView#mainView .v97-list-head,#v144EntryDialog #mainView#mainView .v50-in-grid{grid-template-columns:35px minmax(85px,.8fr) minmax(170px,2fr) minmax(94px,.9fr) minmax(128px,1.2fr) minmax(72px,.75fr) 60px minmax(92px,.8fr) 72px!important;min-width:880px!important;gap:7px!important}
+#v144EntryDialog #mainView#mainView .v50-intake-head,#v144EntryDialog #mainView#mainView .v50-in-grid{grid-template-columns:35px minmax(85px,.8fr) minmax(170px,2fr) minmax(94px,.9fr) minmax(128px,1.2fr) minmax(72px,.75fr) 60px minmax(92px,.8fr) 72px!important;min-width:880px!important;gap:7px!important}
 #v144EntryDialog #mainView#mainView .v50-in-grid>.v50-in-num{grid-column:1;grid-row:1}
 #v144EntryDialog #mainView#mainView .v50-in-grid>.in-category{grid-column:2;grid-row:1}
 #v144EntryDialog #mainView#mainView .v50-in-grid>.in-item{grid-column:3!important;grid-row:1}
@@ -6914,7 +6914,7 @@ html,body{overflow-x:hidden!important}
 #v144EntryDialog #mainView#mainView .v50-in-grid>.v50-price-cell{grid-column:8;grid-row:1}
 #v144EntryDialog #mainView#mainView .v50-in-grid>.v50-in-actions{grid-column:9;grid-row:1}
 #v144EntryDialog #mainView#mainView .v50-in-grid>.in-zone-label.hidden{display:none!important}
-#v144EntryDialog #mainView#mainView .v97-list-head.v50-out-head{grid-template-columns:42px minmax(230px,2.5fr) 110px 110px 115px minmax(150px,1fr) 100px 55px!important}
+
 #v144EntryDialog #mainView#mainView .v97-common,#v144EntryDialog #mainView#mainView .v142-common{background:white!important;padding:16px 24px!important}
 #v144EntryDialog #mainView .v97-list{max-height:48vh;overflow:auto!important}
 }
