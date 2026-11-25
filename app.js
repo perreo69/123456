@@ -5452,6 +5452,8 @@ var LIVE = (function () {
       html.push('<button type="button" class="' + (it.danger ? 'danger' : '') + (it.dis ? ' dis' : '') + '" role="menuitem" data-mi="' + i + '"' +
         (it.dis ? ' disabled' : '') + '>' + esc(it.label) + '</button>');
     }
+    /* v58 — 폰에서는 이 메뉴가 화면 아래 «액션 시트»로 뜨므로 마지막에 취소 줄을 둔다 */
+    if (MOB.on) html.push('<button type="button" class="rm-cancel" role="menuitem" data-mi="-1">취소</button>');
     el.innerHTML = html.join('');
     el.classList.remove('hidden');
     var r = btn.getBoundingClientRect();
@@ -14055,6 +14057,8 @@ var LIVE = (function () {
     head.classList.add('popgrab');
     head.addEventListener('pointerdown', function (ev) {
       if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+      /* v58 — 폰에서는 팝업이 «바텀 시트»로 열리므로 제목 줄 끌기를 막는다 */
+      if (MOB.on) return;
       var t = ev.target;
       if (t && t.closest && t.closest('button,a,input,textarea,select,label,option')) return;
       var r = card.getBoundingClientRect();
@@ -15395,6 +15399,253 @@ var LIVE = (function () {
     });
   }
 
+  /* ==========================================================================
+     v58 — 폰(≤768px) 전용 화면: iOS 카드 목록 · 하단 탭 바 · 시트
+       · 이 블록은 «보이는 모양»만 손댄다. 저장·계산·검색·필터·정렬 코드는 그대로다.
+       · MOB.on 이 false(PC)면 아무 일도 하지 않는다 → PC 화면·동작 변화 0.
+     ========================================================================== */
+  var MOB = { on: false, obs: null, raf: 0, tabs: null, mq: null };
+  var MOB_ICON = {
+    stock: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg>',
+    in: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5v10.5"/><path d="M7.5 9.8 12 14.3l4.5-4.5"/><path d="M4.5 20h15"/></svg>',
+    out: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h12.5"/><path d="M13.5 5l3 3-3 3"/><path d="M20 16H7.5"/><path d="M10.5 13l-3 3 3 3"/></svg>',
+    tx: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5z"/><path d="M8.5 9.5h7M8.5 13h7M8.5 16.5h4"/></svg>'
+  };
+
+  /* 폰 = 768px 이하, 또는 손가락으로 만지는 화면의 가로 모드(≤900px). PC(마우스)는 여기 안 들어온다. */
+  var MOB_MQ = '(max-width: 768px), (max-width: 900px) and (pointer: coarse)';
+  function mobOnNow() {
+    try { return !!(window.matchMedia && window.matchMedia(MOB_MQ).matches); }
+    catch (e) { return false; }
+  }
+
+  /* ---------- ① 하단 탭 바 ---------- */
+  function mobBuildTabs() {
+    var d = $('mobTabs');
+    if (!d) {
+      d = document.createElement('nav');
+      d.className = 'mtabs';
+      d.id = 'mobTabs';
+      d.setAttribute('aria-label', '빠른 이동');
+      d.innerHTML =
+        '<button type="button" class="mtab" data-mtab="stock" aria-label="재고">' + MOB_ICON.stock + '<span>재고</span></button>' +
+        '<button type="button" class="mtab" data-mtab="in" aria-label="입고">' + MOB_ICON.in + '<span>입고</span></button>' +
+        '<button type="button" class="mtab" data-mtab="out" aria-label="출고 이동">' + MOB_ICON.out + '<span>출고/이동</span></button>' +
+        '<button type="button" class="mtab" data-mtab="tx" aria-label="입출고 내역">' + MOB_ICON.tx + '<span>내역</span></button>' +
+        '<button type="button" class="mtab mtab-more" data-mtab="more" aria-label="더보기"><span class="dots"><i></i><i></i><i></i></span><span>더보기</span></button>';
+      document.body.appendChild(d);
+      d.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('.mtab') : null;
+        if (!b) return;
+        var k = b.getAttribute('data-mtab');
+        if (k === 'stock') { navGo('stock:meat'); mobScrollTop(); }
+        else if (k === 'in') navGo('in');
+        else if (k === 'out') mobSheetOpen('출고 · 이동', mobOutHtml());
+        else if (k === 'tx') { navGo('tx'); mobScrollTop(); }
+        else if (k === 'more') mobSheetOpen('더보기', mobMoreHtml());
+        mobSync();
+      });
+    }
+    MOB.tabs = d;
+  }
+  function mobScrollTop() {
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (e) { window.scrollTo(0, 0); }
+  }
+  function mobSync() {
+    if (!MOB.tabs) return;
+    var want = '';
+    if (cur.erp === 'unitx') want = 'tx';
+    else if (cur.erp === 'uni' && cur.uni) {
+      if (cur.uni.view === 'meat' || (!cur.uni.view && (cur.uni.g === 'all' || cur.uni.g === 'meat'))) want = 'stock';
+    }
+    var btns = MOB.tabs.querySelectorAll('.mtab'), i;
+    for (i = 0; i < btns.length; i++) {
+      var on = btns[i].getAttribute('data-mtab') === want;
+      btns[i].classList.toggle('on', on);
+      if (on) btns[i].setAttribute('aria-current', 'page'); else btns[i].removeAttribute('aria-current');
+    }
+  }
+
+  /* ---------- ② 시트(더보기 · 출고/이동 고르기) ---------- */
+  function mobSheetBuild() {
+    if ($('mobSheet')) return;
+    var d = document.createElement('div');
+    d.className = 'msheet';
+    d.id = 'mobSheet';
+    d.innerHTML = '<div class="ms-scrim" data-ms-close="1"></div>' +
+      '<div class="ms-card" role="dialog" aria-modal="true" aria-labelledby="mobSheetTitle">' +
+      '<div class="ms-grab"></div>' +
+      '<div class="ms-head"><h3 id="mobSheetTitle">더보기</h3>' +
+      '<button type="button" class="ms-x" data-ms-close="1">닫기</button></div>' +
+      '<div class="ms-body" id="mobSheetBody"></div></div>';
+    document.body.appendChild(d);
+    d.addEventListener('keydown', function (ev) { if (ev.key === 'Escape') mobSheetClose(); });
+    d.addEventListener('click', function (ev) {
+      var t = ev.target;
+      if (!t || !t.closest) return;
+      if (t.closest('[data-ms-close]')) { mobSheetClose(); return; }
+      var row = t.closest('[data-nav]');
+      if (row) {
+        var nav = row.getAttribute('data-nav');
+        mobSheetClose();
+        navGo(nav);
+        mobSync();
+        return;
+      }
+      if (t.closest('[data-drawer]')) { mobSheetClose(); setMobileSide(true); }
+    });
+  }
+  function mobSheetOpen(title, html) {
+    mobSheetBuild();
+    var d = $('mobSheet');
+    if (!d) return;
+    var h = $('mobSheetTitle');
+    if (h) h.textContent = title;
+    var b = $('mobSheetBody');
+    if (b) b.innerHTML = html;
+    d.classList.add('open');
+    document.body.classList.add('msopen');
+  }
+  function mobSheetClose() {
+    var d = $('mobSheet');
+    if (!d) return;
+    d.classList.remove('open');
+    document.body.classList.remove('msopen');
+  }
+  function mobCnt(id) {
+    var el = $(id);
+    if (!el) return '';
+    var v = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    return v && v !== '0' ? v : '';
+  }
+  function mobRow(label, nav, num) {
+    return '<button type="button" class="ms-row" data-nav="' + esc(nav) + '"><span>' + esc(label) + '</span>' +
+      '<span class="ms-n">' + (num ? esc(num) : '') + '</span><span class="ms-car">›</span></button>';
+  }
+  function mobOutHtml() {
+    return '<div class="ms-list">' +
+      mobRow('출고 입력', 'out') +
+      mobRow('이동 — 해동 / 재냉동', 'move') +
+      '</div>';
+  }
+  function mobMoreHtml() {
+    var h = [];
+    h.push('<div class="ms-sec">재고</div><div class="ms-list">');
+    h.push(mobRow('전체 재고', 'stock:all', mobCnt('navAllCnt')));
+    h.push(mobRow('원료육 전체', 'stock:meat', mobCnt('navCntMeat')));
+    h.push(mobRow('냉동고', 'stock:meat:F', mobCnt('navCntMeatF')));
+    h.push(mobRow('냉장고', 'stock:meat:C', mobCnt('navCntMeatC')));
+    h.push(mobRow('완제품 전체', 'stock:fg', mobCnt('navCntFg')));
+    h.push(mobRow('완제품 · 자체생산', 'stock:fg:self', mobCnt('navCntFgSelf')));
+    h.push(mobRow('완제품 · 매입판매', 'stock:fg:buy', mobCnt('navCntFgBuy')));
+    h.push(mobRow('부재료 전체', 'stock:mat', mobCnt('navCntMat')));
+    h.push(mobRow('소스', 'stock:mat:sauce', mobCnt('navCntSauce')));
+    h.push(mobRow('향신료', 'stock:mat:spice', mobCnt('navCntSpice')));
+    h.push(mobRow('야채', 'stock:mat:veg', mobCnt('navCntVeg')));
+    h.push(mobRow('부자재', 'stock:sub', mobCnt('navCntSub')));
+    h.push('</div>');
+    h.push('<div class="ms-sec">관리</div><div class="ms-list">');
+    h.push(mobRow('품목관리', 'items', mobCnt('navCntItems')));
+    h.push(mobRow('변경이력', 'audit'));
+    h.push('</div>');
+    h.push('<div class="ms-sec">회계</div><div class="ms-list">');
+    h.push(mobRow('매입 내역', 'buy-list'));
+    h.push(mobRow('매출 내역', 'sale-list'));
+    h.push(mobRow('미지급금', 'buy-status'));
+    h.push(mobRow('미수금', 'sale-status'));
+    h.push('</div>');
+    h.push('<div class="ms-sec">&nbsp;</div><div class="ms-list">' +
+      '<button type="button" class="ms-row" data-drawer="1"><span>왼쪽 전체 메뉴</span><span class="ms-n"></span><span class="ms-car">›</span></button></div>');
+    return h.join('');
+  }
+
+  /* ---------- ③ 표 → 카드: 칸마다 «머리글 이름»을 붙인다 ----------
+     표의 값은 하나도 바꾸지 않고, data-l(보이는 이름) · data-c(칸 키)만 붙인다.
+     이 두 속성은 넓은 화면에서는 쓰이지 않으므로 PC 표는 그대로다. */
+  function mobDecorTable(tb) {
+    var ths = tb.querySelectorAll('thead tr th'), info = [], i;
+    if (!ths.length) return;
+    for (i = 0; i < ths.length; i++) {
+      var th = ths[i];
+      var cell = th.querySelector('.ht') || th.querySelector('.th-plain');
+      var lab = (cell ? cell.textContent : th.textContent) || '';
+      info.push({ k: th.getAttribute('data-col') || '', l: lab.replace(/\s+/g, ' ').trim() });
+    }
+    var rows = tb.querySelectorAll('tbody tr');
+    for (var ri = 0; ri < rows.length; ri++) {
+      var tr = rows[ri], ci = 0;
+      if (tr.classList.contains('ugroup') || tr.classList.contains('group')) continue;
+      var nameTd = null;
+      for (var c = 0; c < tr.children.length; c++) {
+        var td = tr.children[c];
+        if (!td || td.tagName !== 'TD') continue;
+        var n = info[ci] || null;
+        if (n) {
+          if (n.k && !td.getAttribute('data-c')) td.setAttribute('data-c', n.k);
+          if (n.l && !td.getAttribute('data-l')) td.setAttribute('data-l', n.l);
+          if (n.k === 'n') nameTd = td;
+        }
+        /* v58 — 값이 ‘-’ 뿐인 칸은 폰 카드에서 접는다(넓은 화면은 그대로) */
+        var tx = (td.textContent || '').replace(/\s+/g, ' ').trim();
+        if (tx === '' || tx === '-') td.setAttribute('data-empty', '1');
+        else td.removeAttribute('data-empty');
+        ci += td.colSpan || 1;
+      }
+      /* 품명 칸이 채워진 줄(완제품·품목 등)은 업체·거래처칸을 «보조 줄»로 내린다 */
+      var hasName = !!(nameTd && !nameTd.getAttribute('data-empty'));
+      tr.classList.toggle('m-name', hasName);
+    }
+  }
+  function mobDecorate() {
+    if (!MOB.on) return;
+    var tbs = document.querySelectorAll('.table-wrap table, table.vsheet-table, table.iosheet'), i;
+    for (i = 0; i < tbs.length; i++) {
+      try { mobDecorTable(tbs[i]); } catch (e) { }
+    }
+  }
+  function mobObserve() {
+    if (MOB.obs || !window.MutationObserver) return;
+    MOB.obs = new MutationObserver(function () {
+      if (MOB.raf) return;
+      MOB.raf = (window.requestAnimationFrame || function (f) { return setTimeout(f, 16); })(function () {
+        MOB.raf = 0;
+        mobDecorate();
+        mobSync();
+      });
+    });
+    MOB.obs.observe(document.body, { childList: true, subtree: true });
+  }
+
+  /* ---------- ④ 켜고 끄기 ---------- */
+  function mobApply() {
+    MOB.on = mobOnNow();
+    document.body.classList.toggle('mob', MOB.on);
+    if (MOB.on) {
+      mobBuildTabs();
+      mobSheetBuild();
+      mobDecorate();
+      mobObserve();
+      mobSync();
+    } else {
+      var t = $('mobTabs'); if (t && t.parentNode) t.parentNode.removeChild(t);
+      MOB.tabs = null;
+      mobSheetClose();
+      var s = $('mobSheet'); if (s && s.parentNode) s.parentNode.removeChild(s);
+      if (MOB.obs) { MOB.obs.disconnect(); MOB.obs = null; }
+    }
+  }
+  function mobInit() {
+    mobApply();
+    if (window.matchMedia) {
+      try {
+        MOB.mq = window.matchMedia(MOB_MQ);
+        var h = function () { mobApply(); };
+        if (MOB.mq.addEventListener) MOB.mq.addEventListener('change', h);
+        else if (MOB.mq.addListener) MOB.mq.addListener(h);
+      } catch (e) { }
+    }
+  }
+
   /* ---------- 시작 ---------- */
   /* v8.1 — partners_data.js 의 거래처 2,350건을 CORE에 올린다 */
   function partnersInit() {
@@ -15415,6 +15666,7 @@ var LIVE = (function () {
     bindV16();
     bindItems();
     popInit();
+    mobInit();
     acSetupAll();
     lcSetupAll();
     sdScan(document);   /* v35 — 날짜 칸 전부 스마트 날짜 입력으로 */
