@@ -3141,7 +3141,7 @@ function v144Prepare(next,origin){
  back.querySelectorAll('input,select,textarea,button').forEach(n=>n.disabled=true);
  parent.insertBefore(back,root);
  const dlg=document.createElement('dialog');dlg.id='v144EntryDialog';dlg.setAttribute('aria-labelledby','v144EntryTitle');
- dlg.innerHTML='<header class="v144-titlebar" data-drag-handle><div><h2 id="v144EntryTitle"></h2><p id="v144EntrySub"></p></div><button type="button" id="v144Close" aria-label="닫기" autofocus>×</button></header>';
+ dlg.innerHTML='<header class="v144-titlebar" data-drag-handle><div><h2 id="v144EntryTitle"></h2><p id="v144EntrySub"></p></div><button type="button" id="v144Close" class="v148-close" aria-label="닫기" autofocus><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg></button></header>';
  const prior={view:origin||view,opener:document.activeElement,head:Object.fromEntries(['breadcrumbSection','breadcrumbCurrent','pageTitle','pageDesc'].map(id=>[id,$(id).textContent])),actions:document.querySelector('.heading-section .top-actions')?.innerHTML||'',scroll:document.scrollingElement?.scrollTop||0};
  v144Window={dlg,parent,root,back,prior};document.body.append(dlg);dlg.append(root);
  dlg.querySelector('#v144Close').onclick=v144Cancel;
@@ -3873,7 +3873,14 @@ function bindIntakeQuickDates(root){
   });
   inp.addEventListener('blur',()=>sync(true));
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sync(true);inp.blur();}});
-  if(cal)cal.addEventListener('change',()=>{const previous=inp.value;inp.value=cal.value;sync(false);if(previous!==inp.value)inp.dispatchEvent(new Event('change',{bubbles:true}));});
+  if(cal){
+   cal.addEventListener('change',()=>{const previous=inp.value;inp.value=cal.value;sync(false);if(previous!==inp.value)inp.dispatchEvent(new Event('change',{bubbles:true}));});
+   if(cal.closest('#v144EntryDialog')){
+    const openPicker=e=>{if(cal.disabled||typeof cal.showPicker!=='function')return;try{cal.showPicker();e.preventDefault();}catch{}};
+    cal.addEventListener('click',openPicker);
+    cal.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')openPicker(e);});
+   }
+  }
  });
 }
 
@@ -7022,4 +7029,22 @@ dialog.v147-info-dialog .v147-additional .v147-info-rows{border:0;border-top:1px
 #v132StockDetail.v147-info-dialog .v132-detail-total,#v132StockDetail.v147-info-dialog .v132-detail-list{border:1px solid #ebebee;border-radius:11px!important}
 @media screen and (min-width:1024px) and (pointer:fine){#v132StockDetail.v147-info-dialog{width:min(520px,calc(100vw - 32px))!important;max-width:calc(100vw - 32px)!important;max-height:calc(100dvh - 32px)!important;margin:auto!important;inset:0!important;border-radius:16px!important}}
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){dialog.v147-info-dialog .v147-titlebar{cursor:default;padding:12px 14px 8px}dialog.v147-info-dialog button.v147-close{width:36px!important;height:36px!important;min-height:36px!important;min-width:36px!important;flex-basis:36px}dialog.v147-info-dialog .v147-body{padding:6px 13px 14px;gap:10px}dialog.v147-info-dialog .v147-additional summary{min-height:44px}dialog.v147-info-dialog .v147-info-rows>div{padding:9px 0}#v132StockDetail.v147-info-dialog{width:100%!important;max-width:620px!important;border-radius:18px 18px 0 0!important}}
+</style><style id="v148-entry-controls">
+#v144EntryDialog button#v144Close.v148-close{display:grid!important;place-items:center!important;flex:0 0 28px!important;box-sizing:border-box!important;width:28px!important;min-width:28px!important;max-width:28px!important;height:28px!important;min-height:28px!important;max-height:28px!important;padding:0!important;border:0!important;border-radius:50%!important;background:#e7e7eb!important;color:#737378!important;box-shadow:none!important;text-shadow:none!important;outline:0;cursor:pointer!important;line-height:1!important}
+#v144EntryDialog button#v144Close.v148-close svg{width:16px;height:16px;display:block;pointer-events:none}
+#v144EntryDialog button#v144Close.v148-close:hover{background:#dedee2!important;color:#29292b!important}
+#v144EntryDialog button#v144Close.v148-close:active{background:#d2d2d7!important}
+#v144EntryDialog button#v144Close.v148-close:focus-visible{outline:2px solid #007aff!important;outline-offset:2px}
+#v144EntryDialog #mainView#mainView .quick-date{display:flex!important;position:relative!important;align-items:center!important;width:100%!important;min-width:0!important;gap:0!important;box-sizing:border-box}
+#v144EntryDialog #mainView#mainView .quick-date>input[data-quick-date]{flex:1 1 100%!important;width:100%!important;min-width:0!important;max-width:none!important;padding-right:34px!important;box-sizing:border-box!important}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar{position:absolute!important;inset:0 0 0 auto!important;display:block!important;flex:none!important;box-sizing:border-box!important;width:32px!important;min-width:32px!important;max-width:32px!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23787880' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.8' width='13' height='12' rx='2'/%3E%3Cpath d='M6.5 3.2v3.2m7-3.2v3.2M3.5 8.5h13'/%3E%3C/svg%3E") center center/18px 18px no-repeat!important;color:transparent!important;-webkit-text-fill-color:transparent!important;font-size:0!important;cursor:pointer!important;z-index:1}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar::-webkit-datetime-edit{display:none!important}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar::-webkit-calendar-picker-indicator{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;box-sizing:border-box!important;margin:0!important;padding:0!important;opacity:0!important;cursor:pointer!important}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar:focus-visible{outline:2px solid #007aff!important;outline-offset:-3px;border-radius:5px!important}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar:disabled{opacity:.4!important;cursor:default!important}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+#v144EntryDialog button#v144Close.v148-close{flex-basis:36px!important;width:36px!important;min-width:36px!important;max-width:36px!important;height:36px!important;min-height:36px!important;max-height:36px!important}
+#v144EntryDialog #mainView#mainView .quick-date>input[data-quick-date]{padding-right:42px!important}
+#v144EntryDialog #mainView#mainView .quick-date>input.quick-date-calendar{width:40px!important;min-width:40px!important;max-width:40px!important;background-size:20px 20px!important}
+}
 </style></body></html>
