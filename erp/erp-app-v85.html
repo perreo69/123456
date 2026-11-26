@@ -3740,7 +3740,7 @@ function v158ReceiptDelete(t){
   if(hit.kind==='meat'){for(const e of t.effects||[]){if(e.lotId!==l.id||!['frozen','chilled'].includes(e.zone)||e.delta<=0)throw Error('입고 효과 불일치');l[e.zone]=amount(cents(l[e.zone])-cents(e.delta));}}
   else Object.assign(l,{qty:0,packs:0,kg:0,boxes:0});
   t.undone=true;t.deleteMeta=meta;
-  if(b&&!(b.entries||[]).some(e=>state.transactions.some(x=>x.lotId===e.id&&x.batchId===b.id&&v110Live(x)))){b.canceled=true;b.canceledAt=meta.at;b.deleteMeta=meta;}
+  if(b&&(b.entries||[]).every(e=>state.transactions.some(x=>x.lotId===e.id&&x.batchId===b.id&&x.undone&&['receive','receiveExtra'].includes(x.type)))){b.canceled=true;b.canceledAt=meta.at;b.deleteMeta=meta;}
   if(!persist())throw Error('서버 저장 실패');
  }catch(e){state=before;toast(e.message);return false;}
  return true;
@@ -3752,9 +3752,11 @@ function v158HistoryEdit(id){
   v33OpenLotEditor(t.lotId);
   return;
  }
- const locked=!!(receipt||v110HasPayment(t.batchId)||t.traceRunId||t.traceChildId||['fieldIssue','fieldReturn','production','productionExtra','productionReceipt'].includes(t.type)||v116DeletionBlocked(t));
+ const child=t.traceChildId&&state.items.find(l=>l.id===t.traceChildId);
+ const split=!!(t.type==='move'&&child&&child.traceParentId===t.lotId&&!child.traceRunId&&!t.traceRunId&&!v158Later(t)&&(t.effects||[]).length===2&&(t.effects||[]).some(e=>e.lotId===t.lotId&&e.zone==='frozen'&&e.delta===-Number(t.qty))&&(t.effects||[]).some(e=>e.lotId===child.id&&e.zone==='chilled'&&e.delta===Number(t.qty)));
+ const locked=!!(receipt||v110HasPayment(t.batchId)||t.traceRunId||(t.traceChildId&&!split)||['fieldIssue','fieldReturn','production','productionExtra','productionReceipt'].includes(t.type)||v116DeletionBlocked(t));
  const single=!!sb&&sb.version===18&&sb.lines?.length===1&&sb.deltas?.length===1&&state.transactions.filter(x=>x.batchId===sb.id&&v110Live(x)).length===1;
- const effects=t.effects||[],simple=effects.length>0&&effects.every(e=>e.lotId===t.lotId&&['frozen','chilled'].includes(e.zone)&&Math.abs(Number(e.delta))===Number(t.qty));
+ const effects=t.effects||[],simple=split||effects.length>0&&effects.every(e=>e.lotId===t.lotId&&['frozen','chilled'].includes(e.zone)&&Math.abs(Number(e.delta))===Number(t.qty));
  const canQty=!locked&&['ship','issue','move','refreeze'].includes(t.type)&&!v158Later(t)&&simple&&(!sb||single&&sb.deltas[0].src==='meat'&&sb.deltas[0].ref===t.lotId&&effects.length===1&&effects[0].delta===-Number(t.qty)&&sb.deltas[0].zone===effects[0].zone&&Number(sb.deltas[0].delta)===Number(t.qty));
  const canDate=canQty&&(!sb||single);
  const canDelete=!locked&&(sb?sb.version===18&&!state.transactions.some(x=>x.batchId===sb.id&&v110Live(x)&&(x.traceRunId||x.traceChildId||['fieldIssue','fieldReturn'].includes(x.type))):['ship','issue','move','refreeze'].includes(t.type)&&simple&&!v158Later(t));
@@ -3784,7 +3786,7 @@ function v158HistoryEdit(id){
     for(const e of live.effects){const lot=state.items.find(l=>l.id===e.lotId),sign=Math.sign(e.delta);lot[e.zone]=amount(cents(lot[e.zone])+cents(sign*(qty-old)));e.delta=sign*qty;}
     live.qty=qty;if(batch){batch.lines[0].qty=qty;batch.lines[0].amount=qty*Number(batch.lines[0].price||0);batch.deltas[0].delta=qty;}
    }
-   live.note=note;if(canDate&&newDate!==v70Date(live)){live.operationDate=newDate;if(batch&&single)batch.date=newDate;}if(batch&&single)batch.note=note;
+   live.note=note;if(canDate&&newDate!==v70Date(live)){live.operationDate=newDate;if(batch&&single)batch.date=newDate;if(split){const currentChild=state.items.find(l=>l.id===live.traceChildId);if(!currentChild||currentChild.traceRunId)throw Error('해동 LOT 연결이 변경되었습니다.');currentChild.traceThawDate=newDate;if(live.traceSource)live.traceSource.thawDate=newDate;}}if(batch&&single)batch.note=note;
    if(!persist())throw Error('서버 저장 실패');
   }catch(e){state=before;return error(e.message);}
   d.close();renderHistory();v68Counts();toast('작업 기록을 수정했습니다.');
@@ -5328,6 +5330,7 @@ function v33OpenBatchPicker(id){
 function v33OpenLotEditor(lotId){
  if(state.items.some(l=>(l.id===lotId&&l.traceRunId)||l.traceRootId===lotId||l.traceParentId===lotId)||(state.transactions||[]).some(t=>v110Live(t)&&t.traceRunId&&t.lotId===lotId)||v116OutputsForLot(lotId))return toast('생산 이력과 연결된 LOT입니다. 원본 정보 보호를 위해 직접 수정을 제한합니다.');
  const hit=v33Locate(lotId);if(!hit)return toast('입고 LOT를 찾지 못했습니다.');
+ if(state.transactions.some(t=>t.lotId===lotId&&t.undone&&['receive','receiveExtra'].includes(t.type)))return toast('삭제된 입고 LOT는 수정할 수 없습니다.');
  if(v110HasPayment(hit.record.receiptId))return toast('정산 기록이 연결된 입고는 수정할 수 없습니다.');
  const {record:l,kind}=hit,batch=(state.receiptBatches||[]).find(x=>x.id===l.receiptId);
  const entry=batch?.entries?.find(e=>e.id===l.id)||null;
