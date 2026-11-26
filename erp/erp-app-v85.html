@@ -2048,7 +2048,7 @@ function externalCategoryPage(category){if(category==='finished_own')return fini
 
 // v59: Movement screen only processes physical raw-meat stock transfers.
 // Historical 'production' transactions remain in state and can still be reviewed elsewhere.
-let v36Mode='move',v36Lines=new Map(),v36Prefill='';
+let v36Mode='move',v36Lines=new Map(),v36Prefill='',v160MoveScope=null,v160Opening=false;
 const v36Moods={
  move:{label:'해동',help:'냉동고에서 냉장고로 옮깁니다. 전체 재고량은 변하지 않습니다.'},
  refreeze:{label:'재냉동',help:'냉장고에서 냉동고로 옮깁니다. 전체 재고량은 변하지 않습니다.'}
@@ -2056,7 +2056,7 @@ const v36Moods={
 const v36LotKey=(l,zone)=>l.id+'|'+zone;
 function v36Eligible(){
  const zones=v36Mode==='field'?['frozen','chilled']:[v36Mode==='move'?'frozen':'chilled'];
- return state.items.flatMap(l=>zones.flatMap(zone=>cents(l[zone])>0?[{l,zone,key:v36LotKey(l,zone),available:l[zone]}]:[]))
+ return state.items.filter(l=>!v160MoveScope||(l.productId===v160MoveScope.productId&&(!v160MoveScope.lotId||l.id===v160MoveScope.lotId))).flatMap(l=>zones.flatMap(zone=>(!v160MoveScope||zone===v160MoveScope.zone)&&cents(l[zone])>0?[{l,zone,key:v36LotKey(l,zone),available:l[zone]}]:[]))
  .sort((a,b)=>(a.l.expiry||'9999').localeCompare(b.l.expiry||'9999')||a.l.name.localeCompare(b.l.name,'ko'));
 }
 
@@ -2239,18 +2239,28 @@ function v134MovementRow({l,zone,key,available}){
  return `<article class="v134-lot ${num>0?'v36-chosen':''}" data-v36-key="${esc(key)}"><div class="v134-lot-head"><strong>${esc(l.name)}</strong><b>${fmt(available)} kg</b></div><div class="v134-lot-meta">${esc([l.id,v66BrandLabel(l.brand),l.origin].filter(Boolean).join(' · '))}<br>소비기한 ${esc(l.expiry||'미기재')} · ${esc(ZONE[zone])}</div><div class="v134-qtyline"><label for="v134-qty-${esc(key)}">${label} (kg)</label><div class="v134-qtycontrols"><input id="v134-qty-${esc(key)}" type="number" data-v36-field="qty" min="0" step="0.01" max="${available}" inputmode="decimal" value="${esc(qty)}" placeholder="0" aria-label="${esc(l.id)} ${label}"><button class="v134-fill" type="button" data-v132-fill aria-label="이 LOT 전량 입력">전량</button></div></div>${prod?'<p class="v134-linked">생산품목 · '+esc(prod)+'</p>':''}</article>`;
 }
 
+function v160OpenMove(opts,mode){
+ const zone=opts.from||opts.zone||(mode==='refreeze'?'chilled':'frozen');
+ const productId=opts.productId||state.items.find(l=>l.id===opts.lotId)?.productId;
+ const matches=state.items.filter(l=>l.productId===productId&&(!opts.lotId||l.id===opts.lotId)&&cents(l[zone])>0);
+ if(!['frozen','chilled'].includes(zone)||!productId||!matches.length){toast('해당 창고의 이동 가능한 재고가 없습니다.');return false;}
+ if(v144Window&&v158Dirty(v144Window.dlg)&&!confirm('작성 중인 내역을 초기화하고 선택한 재고로 이동할까요?'))return false;
+ v160MoveScope={productId,lotId:opts.lotId||'',zone,name:matches[0].name};v36Mode=zone==='frozen'?'move':'refreeze';v132OnlyPicked=false;v36Lines.clear();v36Prefill='';v132Drafts.delete('operations');v160Opening=true;
+ try{setView('operations');}finally{v160Opening=false;}
+ return true;
+}
 function v36Page(){
  if(!['move','refreeze','field'].includes(v36Mode))v36Mode='move';
  const mobile=v132Mobile();
  $('mainView').innerHTML=`<section class="card v36-root v145-movement ${mobile?'v134-move':''}">
   <div class="v36-pane"><div class="v36-inputs v142-common">
     <label>날짜 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="numeric" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="날짜 달력 선택"></span></label>
-    <label>이동구분<select id="v142MoveKind" aria-label="이동구분"><option value="move">해동</option><option value="refreeze">냉동</option><option value="field">현장</option></select></label>
+    <label>이동구분<select id="v142MoveKind" aria-label="이동구분">${!v160MoveScope||v160MoveScope.zone==='frozen'?'<option value="move">해동</option>':''}${!v160MoveScope||v160MoveScope.zone==='chilled'?'<option value="refreeze">재냉동</option>':''}<option value="field">현장</option></select></label>
     <label>전표 비고<input id="v36Note" placeholder="필요한 경우만 입력" autocomplete="off"></label>
     <div id="v116MoveFields" class="v142-production"><label>생산품목 (선택)<input id="v116CommonName" list="v116Names" autocomplete="off" placeholder="완제품명·품목코드 검색" maxlength="150"></label><details id="v142RunDetails"><summary>기존 생산번호 연결 (선택)</summary><select id="v116ExistingRun" aria-label="기존 생산번호 연결">${v116RunOptions()}</select></details><datalist id="v116Names">${v116NameSuggestions()}</datalist></div>
-    <label class="v159-raw-search">원료육 검색<input id="v36Search" type="search" autocomplete="off" placeholder="품목·업체·브랜드·LOT 검색"></label>
+    <label class="v159-raw-search">${v160MoveScope?'선택 품목':'원료육 검색'}<input id="v36Search" type="search" autocomplete="off" ${v160MoveScope?`value="${esc(v160MoveScope.name)}" readonly aria-label="선택 품목"`:'placeholder="품목·업체·브랜드·LOT 검색"'}></label>
   </div>
-  <div class="v145-lot-sheet"><div class="v36-searchline v145-lot-toolbar"><div class="v145-lot-title"><strong>품목 / LOT</strong><span id="v145Route"></span></div><span class="v36-count" id="v36Count"></span></div>
+  <div class="v145-lot-sheet"><div class="v36-searchline v145-lot-toolbar"><div class="v145-lot-title"><strong>${v160MoveScope?esc(v160MoveScope.name):'품목 / LOT'}</strong><span id="v145Route"></span>${v160MoveScope?'<span class="v160-scope-tag">'+esc(v160MoveScope.lotId?'선택 LOT · '+v160MoveScope.lotId:'선택 품목의 LOT')+'</span>':''}</div><span class="v36-count" id="v36Count"></span></div>
   <div class="v36-msg" id="v36Error" role="alert"></div>
   ${mobile?'<div class="v134-lots" id="v36Body"></div><span id="v116QtyHeading" hidden></span>':`<div class="v36-table-wrap"><table class="v36-table"><colgroup><col style="width:39%"><col style="width:14%"><col style="width:19%"><col style="width:14%"><col style="width:14%"></colgroup>
     <thead><tr><th>품목 / LOT</th><th>창고</th><th>소비기한</th><th>재고(kg)</th><th id="v116QtyHeading">이동수량(kg)</th></tr></thead><tbody id="v36Body"></tbody>
@@ -2267,7 +2277,7 @@ function v36Page(){
  $('v142MoveKind').onchange=()=>{
   const next=$('v142MoveKind').value;if(next===v36Mode)return;
   if(v132MovementDirty()&&!confirm('입력한 이동 수량을 초기화하고 이동구분을 변경할까요?')){$('v142MoveKind').value=v36Mode;return;}
-  v36Mode=next;v132OnlyPicked=false;v36Lines.clear();$('v36Search').value='';$('v116CommonName').value='';$('v116ExistingRun').value='';$('v142RunDetails').open=false;$('v36Error').textContent='';v36Draw();
+  v36Mode=next;v132OnlyPicked=false;v36Lines.clear();$('v36Search').value=v160MoveScope?.name||'';$('v116CommonName').value='';$('v116ExistingRun').value='';$('v142RunDetails').open=false;$('v36Error').textContent='';v36Draw();
  };
  $('v116CommonName').addEventListener('input',()=>{const run=v116FindRun($('v116ExistingRun').value);if(run&&normName(run.name)!==normName($('v116CommonName').value))$('v116ExistingRun').value='';});
  $('v36Clear').onclick=()=>{v132OnlyPicked=false;v36Lines.clear();v36Draw()};
@@ -2285,7 +2295,7 @@ function v36Page(){
  if(v36Prefill){$('v36Search').value=v36Prefill;v36Prefill='';v36Draw();}
 }
 function v36Draw(){
- const q=$('v36Search').value,eligible=v36Eligible(),visible=eligible.filter(({l,zone,key})=>v132OnlyPicked?Number(v36Lines.get(key)?.qty)>0:matchesSearch(q,[l.name,l.id,l.brand,l.vendor,l.origin,l.expiry,ZONE[zone],v116RunName(l.traceRunId),l.traceRootId]));
+ const q=$('v36Search').value,eligible=v36Eligible(),visible=eligible.filter(({l,zone,key})=>v132OnlyPicked?Number(v36Lines.get(key)?.qty)>0:v160MoveScope?true:matchesSearch(q,[l.name,l.id,l.brand,l.vendor,l.origin,l.expiry,ZONE[zone],v116RunName(l.traceRunId),l.traceRootId]));
  $('v132MovePicked').textContent=v132OnlyPicked?'전체 LOT':'선택 LOT';$('v132MovePicked').setAttribute('aria-pressed',String(v132OnlyPicked));
  $('v142MoveKind').value=v36Mode;$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116MoveFields').closest('.v142-common').classList.toggle('v142-no-production',v36Mode==='refreeze');if($('v116ExistingRun').value)$('v142RunDetails').open=true;
  $('v36Help').innerHTML='<strong>재고 이동:</strong> 이동 수량만큼 출발 창고에서 차감하고 도착 창고에 더합니다. 원료육 총재고는 바뀌지 않습니다.';
@@ -3074,19 +3084,16 @@ function v132Capture(from){
 }
 function v132Restore(next,changed){
  if(!v132Mobile())return;
- const draft=changed?v132Drafts.get(next):null;
+ const draft=changed&&!(next==='operations'&&v160MoveScope)?v132Drafts.get(next):null;
  if(draft&&v132Fields[next])for(const [id,value] of Object.entries(draft)){const el=$(id);if(!el)continue;el.value=value;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal){const d=normalizeIntakeDate(value);if(d)cal.value=d;}}
- if(next==='operations'&&draft)v36Draw();
+ if(next==='operations'&&draft&&!v160MoveScope)v36Draw();
  if(v132StockViews.has(next)){
   const saved=v132StockSearch.get(next),input=$('v133StockSearch')||$('v61AllSearch')||$('searchInput')||$('categorySearch')||$('fg20Search');
   if(saved&&input){input.value=saved.query;if(saved.query)input.dispatchEvent(new Event('input',{bubbles:true}));if(changed&&saved.scroll)requestAnimationFrame(()=>{if(view===next)document.scrollingElement?.scrollTo({top:saved.scroll,left:0,behavior:'instant'})});}
  }
 }
 function v132MovementDirty(){return [...v36Lines.values()].some(x=>String(x.qty||'').trim())||!!$('v116CommonName')?.value.trim()||!!$('v116ExistingRun')?.value;}
-function v132StartMove(l){
- if(v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화하고 선택한 LOT로 이동할까요?'))return false;
- v36Mode=l.zone==='frozen'?'move':'refreeze';v132OnlyPicked=false;v36Lines.clear();v132Drafts.delete('operations');v36Prefill=l.lotId;setView('operations');return true;
-}
+function v132StartMove(l){return v160OpenMove({productId:l.productId,lotId:l.lotId,from:l.zone});}
 function v132StartShip(l){
  if(v123Kind==='field'&&!(l.src==='meat'&&['frozen','chilled'].includes(l.zone))){alert('작성 중인 현장 출고가 있습니다. 출고구분을 변경한 후 다시 선택해 주세요.');return false;}
  if(view==='ship')v18Sync();
@@ -3243,6 +3250,7 @@ function v144Show(next,origin){
  Object.entries(w.prior.head).forEach(([id,value])=>$(id).textContent=value);
  const ta=document.querySelector('.heading-section .top-actions');if(ta)ta.innerHTML=w.prior.actions;
  if(!w.dlg.open)w.dlg.showModal();
+ if(next==='operations'&&v160MoveScope){$('v144EntryTitle').textContent=v160MoveScope.name+' · 이동 등록';$('v144EntrySub').textContent=(v160MoveScope.zone==='frozen'?'냉동고':'냉장고')+' 재고 · '+(v160MoveScope.lotId?'선택한 LOT만 표시합니다.':'선택한 품목의 LOT만 표시합니다.');}
  v158Guard(w.dlg,v144Cancel);
  const save=$(next==='intake'?'intakeSave':next==='ship'?'v18Save':'v36Save');
  if(save){save.textContent=({intake:'입고 저장',ship:'출고 저장',operations:'이동 저장'})[next];const p=save.parentElement;if(!p.querySelector('.v144-cancel')){const b=document.createElement('button');b.type='button';b.className='intake-btn v144-cancel';b.textContent='취소';b.onclick=v144Cancel;p.insertBefore(b,save);}}
@@ -3258,11 +3266,13 @@ function v144Cancel(){
  const old=view;
  if(old==='intake'){intakeRows=[rowDefault()];v17InboundPartner=null;}
  if(old==='ship'){v18Lines=[v18NewLine()];v18Partner=null;v123Kind='';v123Recipient='';}
- if(old==='operations'){v36Lines.clear();v132OnlyPicked=false;v36Prefill='';}
+ if(old==='operations'){v36Lines.clear();v132OnlyPicked=false;v36Prefill='';v160MoveScope=null;}
  const prior=v144Detach();setView(v144EntryViews.has(prior.view)?'stock_overview':prior.view);v132Drafts.delete(old);
  requestAnimationFrame(()=>{document.scrollingElement?.scrollTo({top:prior.scroll,left:0,behavior:'instant'});if(prior.opener?.isConnected)prior.opener.focus({preventScroll:true});});
 }
 function setView(next,accountingOrigin=''){
+ if(next==='operations'&&!v160Opening&&view!=='operations'){v160MoveScope=null;}
+ if(next!=='operations'&&view==='operations'){v160MoveScope=null;}
  if(v144Window&&!v144EntryViews.has(next))v144Detach();
  if(v144EntryViews.has(next))v144Prepare(next,accountingOrigin);
  if(next!==view||v132StockViews.has(view))v132Capture(view);
@@ -3385,7 +3395,7 @@ function showActionMenu(anchor,opts={}){
  const route=(mode,from='')=>{
   closeActionMenu();
   if(mode==='edit'){v33OpenMeatEdit(opts);return;}
-  if(['move','refreeze','field'].includes(mode)){if(v132Mobile()&&v132MovementDirty()&&!confirm('작성 중인 이동 내역을 초기화할까요?'))return;v132Drafts.delete('operations');v132OnlyPicked=false;v36Mode=mode;v36Lines.clear();v36Prefill=opts.lotId||state.products.find(p=>p.id===opts.productId)?.name||'';setView('operations');return;}
+  if(['move','refreeze','field'].includes(mode)){v160OpenMove({...opts,from:from||opts.from},mode);return;}
   
  };
  draw();
@@ -3737,7 +3747,7 @@ function v158BindInputDialog(dlg){
  v158Guard(dlg,()=>v158AskClose(dlg));
  if(!dlg.dataset.v158Cancel){dlg.dataset.v158Cancel='1';dlg.addEventListener('cancel',e=>{e.preventDefault();v158AskClose(dlg);});}
 }
-function v158EntryFinish(){if(!v144Window)return;const old=view,prior=v144Detach();if(old==='intake')v17InboundPartner=null;v132Drafts.delete(old);setView(v144EntryViews.has(prior.view)?'stock_overview':prior.view);v132Drafts.delete(old);}
+function v158EntryFinish(){if(!v144Window)return;const old=view,prior=v144Detach();if(old==='intake')v17InboundPartner=null;if(old==='operations'){v160MoveScope=null;v36Prefill='';}v132Drafts.delete(old);setView(v144EntryViews.has(prior.view)?'stock_overview':prior.view);v132Drafts.delete(old);}
 function v158Later(t){
  const refs=new Set([t.lotId,t.traceChildId,...(t.effects||[]).map(e=>e.lotId)].filter(Boolean));
  return (state.transactions||[]).some(x=>x.id!==t.id&&v110Live(x)&&(String(x.at||'')>=String(t.at||'')||!x.at||!t.at)&&(refs.has(x.lotId)||(x.effects||[]).some(e=>refs.has(e.lotId))||refs.has(x.traceSource?.rootLotId)));
@@ -7535,4 +7545,5 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
  #mainView .v25-lot-amount .v159-fill{min-height:42px!important}
 }
 </style>
+<style id="v160-scoped-movement">#v144EntryDialog #mainView .v160-scope-tag{font-size:11px;color:#6e6e73;white-space:normal;overflow-wrap:anywhere}#v144EntryDialog #mainView #v36Search[readonly]{background:#f5f5f7!important;color:#333!important;cursor:default}#v144EntryDialog #mainView .v145-lot-title{flex-wrap:wrap;min-width:0}#v144EntryDialog #mainView .v145-lot-title strong{overflow-wrap:anywhere}</style>
 </body></html>
