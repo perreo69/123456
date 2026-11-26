@@ -2229,7 +2229,7 @@ function v36Page(){
  const mobile=v132Mobile();
  $('mainView').innerHTML=`<section class="card v36-root v145-movement ${mobile?'v134-move':''}">
   <div class="v36-pane"><div class="v36-inputs v142-common">
-    <label>날짜 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="numeric" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="날짜 달력 선택"></span></label>
+    <label>날짜 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="text" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="날짜 달력 선택"></span></label>
     <label>이동구분<select id="v142MoveKind" aria-label="이동구분"><option value="move">해동</option><option value="refreeze">냉동</option><option value="field">현장</option></select></label>
     <div id="v116MoveFields" class="v142-production"><label>생산품목<input id="v116CommonName" list="v116Names" autocomplete="off" placeholder="완제품명·품목코드 검색" maxlength="150"></label><details id="v142RunDetails"><summary>기존 생산번호 연결 (선택)</summary><select id="v116ExistingRun" aria-label="기존 생산번호 연결">${v116RunOptions()}</select></details><datalist id="v116Names">${v116NameSuggestions()}</datalist></div>
     <label>전표 비고<input id="v36Note" placeholder="필요한 경우만 입력" autocomplete="off"></label>
@@ -2454,7 +2454,7 @@ function v37MakePage(){
  const own=v37OwnProducts();if(!own.some(p=>p.code===v37Make.product))v37Make={product:own[0]?.code||'',selected:{}};
  const p=v37FindSku(v37Make.product),recipe=state.v37Recipes?.[v37Make.product];
  v37Common('fg_make',`<section class="card v37-panel"><div class="v37-head"><div><h3>생산등록</h3><p>생산할 품목과 생산량을 정하고, 실제 사용한 재료 LOT의 수량을 입력합니다.</p></div><button type="button" class="v37-subtle-btn" id="v37ShowRecipe">배합표 확인 →</button></div>
- ${own.length?`<div class="v37-fields make"><label>생산 완제품<select id="v37MakeSku">${own.map(x=>`<option value="${esc(x.code)}" ${x.code===v37Make.product?'selected':''}>${esc(x.name)} (${esc(x.spec||x.code)})</option>`).join('')}</select></label><label>생산일 <span class="quick-date"><input id="v37MakeDate" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="생산일 달력"></span></label><label>완제품 소비기한 <span class="quick-date"><input id="v37MakeExpiry" type="text" data-quick-date inputmode="numeric" maxlength="10" placeholder="예: 281121"><input class="quick-date-calendar" type="date" aria-label="소비기한 달력"></span></label><label>생산 수량<div class="v37-inline"><input id="v37MakeQty" type="number" min="0.01" step="0.01" placeholder="0"><span>${esc(p.unit||'팩')}</span></div></label></div>
+ ${own.length?`<div class="v37-fields make"><label>생산 완제품<select id="v37MakeSku">${own.map(x=>`<option value="${esc(x.code)}" ${x.code===v37Make.product?'selected':''}>${esc(x.name)} (${esc(x.spec||x.code)})</option>`).join('')}</select></label><label>생산일 <span class="quick-date"><input id="v37MakeDate" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="생산일 달력"></span></label><label>완제품 소비기한 <span class="quick-date"><input id="v37MakeExpiry" type="text" data-quick-date inputmode="text" maxlength="10" placeholder="예: 281121"><input class="quick-date-calendar" type="date" aria-label="소비기한 달력"></span></label><label>생산 수량<div class="v37-inline"><input id="v37MakeQty" type="number" min="0.01" step="0.01" placeholder="0"><span>${esc(p.unit||'팩')}</span></div></label></div>
  <div class="v37-bridge"><span>${recipe?`저장된 배합표: ${fmt(recipe.yieldQty)}${esc(p.unit||'팩')} 기준 · 재료 ${recipe.lines.length}종`:'등록된 배합표 없음 · LOT별로 직접 수량을 입력할 수 있습니다.'}</span><button type="button" class="v37-subtle-btn" id="v37ApplyRecipe" ${recipe?'':'disabled'}>배합표 수량 불러오기</button></div>
  <div class="v37-fields two"><label>인건비 (원, 선택)<input id="v37MakeLabor" type="number" min="0" step="1" placeholder="미입력"></label><label>제조경비 (원, 선택)<input id="v37MakeOverhead" type="number" min="0" step="1" placeholder="미입력"></label></div>
  <div class="v37-search-row"><div><h4>실제 투입 LOT</h4><p>재료를 검색해 LOT별 사용량을 입력하세요. 단가는 입고 기록이 있으면 참고값을 사용하며 수정할 수 있습니다.</p></div><input type="search" id="v37MakeSearch" placeholder="원료육·소스·향신료·포장재·LOT 검색"></div>
@@ -2833,7 +2833,7 @@ function v154QuickRanges(){
  return [['all','전체 기간','',''],['today','오늘',t,t],['week','이번 주',shift(-m),shift(6-m)],['month','이번 달',iso(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1))),iso(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)))]];
 }
 function v154PeriodBar(id,from='',to=''){
- return '<div class="v154-periodbar" id="'+id+'Bar" role="group" aria-label="조회 기간"><div class="v154-fast">'+v154QuickRanges().map(([key,label,a,b])=>'<button type="button" data-v154-quick="'+key+'" aria-pressed="'+(from===a&&to===b)+'" class="'+(from===a&&to===b?'active':'')+'">'+label+'</button>').join('')+'</div><button type="button" class="v154-picker" id="'+id+'">기간선택</button><div class="v154-dates"><input type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="YYMMDD" aria-label="시작일" data-v154-from value="'+esc(from)+'"><span>~</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="10" placeholder="YYMMDD" aria-label="종료일" data-v154-to value="'+esc(to)+'"></div><span class="v154-status">'+(from||to?esc((from||'처음')+' ~ '+(to||'현재')):'전체 기간')+'</span><span class="v154-error" role="alert"></span></div>';
+ return '<div class="v154-periodbar" id="'+id+'Bar" role="group" aria-label="조회 기간"><div class="v154-fast">'+v154QuickRanges().map(([key,label,a,b])=>'<button type="button" data-v154-quick="'+key+'" aria-pressed="'+(from===a&&to===b)+'" class="'+(from===a&&to===b?'active':'')+'">'+label+'</button>').join('')+'</div><button type="button" class="v154-picker" id="'+id+'">기간선택</button><div class="v154-dates"><input type="text" inputmode="text" autocomplete="off" maxlength="10" placeholder="YYMMDD" aria-label="시작일" data-v154-from value="'+esc(from)+'"><span>~</span><input type="text" inputmode="text" autocomplete="off" maxlength="10" placeholder="YYMMDD" aria-label="종료일" data-v154-to value="'+esc(to)+'"></div><span class="v154-status">'+(from||to?esc((from||'처음')+' ~ '+(to||'현재')):'전체 기간')+'</span><span class="v154-error" role="alert"></span></div>';
 }
 function v154BindPeriod(id,from,to,apply){
  const bar=$(id+'Bar'),a=bar.querySelector('[data-v154-from]'),b=bar.querySelector('[data-v154-to]'),err=bar.querySelector('.v154-error');
@@ -2924,10 +2924,10 @@ function acDocsFiltered(docs,f){return docs.filter(d=>acDateOK(d.date,f)&&(!f.pa
 function acCommit(change){const before=structuredClone(state);try{change();if(!persist())throw Error('서버 저장 실패 또는 동시 변경 충돌입니다. 새로고침 후 다시 시도해 주세요.');return true;}catch(e){state=before;alert(e.message);return false;}}
 function acID(prefix){return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);}
 function acStatus(d){return d.review?'정산 확인 필요':d.canceled?'취소':d.unknown?'단가 미확정':d.balance===0?(d.kind==='purchase'?'지급 완료':'입금 완료'):d.settled>0?'부분 정산':(d.kind==='purchase'?'미지급':'미수금');}
-function acDateValid(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&normalizeIntakeDate(d)===d;}
+function acDateValid(d){return typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&normalizeIntakeDate(d)===d;}
 function acDialog(title,body,handler){
  const dlg=document.createElement('dialog');dlg.className='v37-modal ac-modal';dlg.innerHTML=`<form><h3>${esc(title)}</h3>${body}<div class="v37-error" data-ac-error role="alert"></div><div class="v37-buttons"><button type="button" data-ac-close>닫기</button><button class="primary" type="submit">저장</button></div></form>`;
- document.body.appendChild(dlg);dlg.querySelector('[data-ac-close]').onclick=()=>dlg.close();dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{if(handler(new FormData(e.currentTarget))){dlg.close();acPage(view);}}catch(err){dlg.querySelector('[data-ac-error]').textContent=err.message;}};dlg.showModal();return dlg;
+ document.body.appendChild(dlg);bindIntakeQuickDates(dlg);dlg.querySelector('[data-ac-close]').onclick=()=>dlg.close();dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{if(handler(new FormData(e.currentTarget))){dlg.close();acPage(view);}}catch(err){dlg.querySelector('[data-ac-error]').textContent=err.message;}};dlg.showModal();return dlg;
 }
 function acComplete(key){
  const d=acDocuments().find(x=>x.key===key);
@@ -2940,8 +2940,8 @@ function acComplete(key){
 function acSettle(key){
  const d=acDocuments().find(x=>x.key===key);if(!d||d.canceled||d.unknown||d.balance<=0||d.review)return toast('금액 또는 전표 상태를 먼저 확인해 주세요.');
  const label=d.kind==='purchase'?'지급':'수금';
- acDialog(label+' 등록',`<p>${esc(d.name)} · ${esc(d.id)}</p><p>남은 금액: <b>${acMoney(d.balance)}원</b></p><label>날짜<input name="date" type="date" required value="${today()}"></label><label>${label}액 (원)<input name="amount" type="number" min="0.01" step="0.01" max="${d.balance}" value="${d.balance}" required></label><label>방법<select name="method"><option>계좌이체</option><option>현금</option><option>카드</option><option>기타</option></select></label><label>비고<input name="note" maxlength="300"></label>`,f=>{
-  const live=acDocuments().find(x=>x.key===key),date=String(f.get('date')),amount=Number(f.get('amount'));
+ acDialog(label+' 등록',`<p>${esc(d.name)} · ${esc(d.id)}</p><p>남은 금액: <b>${acMoney(d.balance)}원</b></p><label>날짜<span class="quick-date"><input name="date" type="text" data-quick-date inputmode="text" maxlength="10" required value="${today()}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${today()}"></span></label><label>${label}액 (원)<input name="amount" type="number" min="0.01" step="0.01" max="${d.balance}" value="${d.balance}" required></label><label>방법<select name="method"><option>계좌이체</option><option>현금</option><option>카드</option><option>기타</option></select></label><label>비고<input name="note" maxlength="300"></label>`,f=>{
+  const live=acDocuments().find(x=>x.key===key),date=normalizeIntakeDate(f.get('date')),amount=Number(f.get('amount'));
   if(!live||live.canceled||live.unknown||live.review||!acDateValid(date)||date<live.date||date>today()||!Number.isFinite(amount)||amount<=0||acRound(amount)!==amount||amount>live.balance)throw Error('날짜 또는 정산 금액을 확인해 주세요.');
   return acCommit(()=>{(state.acPayments||(state.acPayments=[])).push({id:acID('PAY'),doc:key,kind:live.kind,date,amount,method:String(f.get('method')),note:String(f.get('note')||'').trim(),partner:live.partner,name:live.name,at:new Date().toISOString(),voided:false});});
  });
@@ -2953,8 +2953,8 @@ function acPaymentHistory(key){
 }
 function acExpenseEdit(id){
  const old=(state.acExpenses||[]).find(e=>e.id===id&&!e.voided);const cats=['운반비','택배비','소모품비','수도광열비','수선비','통신비','식대','기타'];
- acDialog(old?'경비 수정':'일반 경비 등록',`<label>날짜<input name="date" type="date" required value="${esc(old?.date||today())}"></label><label>경비 구분<select name="category">${cats.map(c=>`<option ${old?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>업체 / 지급처<input name="vendor" maxlength="100" value="${esc(old?.vendor||'')}"></label><label>내용<input name="description" required maxlength="200" value="${esc(old?.description||'')}"></label><label>금액 (원)<input name="amount" required type="number" min="0.01" max="1000000000000" step="0.01" value="${esc(old?.amount||'')}"></label><label>지급 방법<select name="method">${['계좌이체','현금','카드','기타'].map(m=>`<option ${old?.method===m?'selected':''}>${m}</option>`).join('')}</select></label><label>비고<input name="note" maxlength="300" value="${esc(old?.note||'')}"></label>`,f=>{
-  const date=String(f.get('date')),amount=Number(f.get('amount')),description=String(f.get('description')||'').trim();
+ acDialog(old?'경비 수정':'일반 경비 등록',`<label>날짜<span class="quick-date"><input name="date" type="text" data-quick-date inputmode="text" maxlength="10" required value="${esc(old?.date||today())}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${esc(old?.date||today())}"></span></label><label>경비 구분<select name="category">${cats.map(c=>`<option ${old?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>업체 / 지급처<input name="vendor" maxlength="100" value="${esc(old?.vendor||'')}"></label><label>내용<input name="description" required maxlength="200" value="${esc(old?.description||'')}"></label><label>금액 (원)<input name="amount" required type="number" min="0.01" max="1000000000000" step="0.01" value="${esc(old?.amount||'')}"></label><label>지급 방법<select name="method">${['계좌이체','현금','카드','기타'].map(m=>`<option ${old?.method===m?'selected':''}>${m}</option>`).join('')}</select></label><label>비고<input name="note" maxlength="300" value="${esc(old?.note||'')}"></label>`,f=>{
+  const date=normalizeIntakeDate(f.get('date')),amount=Number(f.get('amount')),description=String(f.get('description')||'').trim();
   if(!acDateValid(date)||date>today()||!description||!Number.isFinite(amount)||amount<=0||amount>1e12||acRound(amount)!==amount)throw Error('날짜, 내용 및 금액을 확인해 주세요.');
   const entry={id:old?.id||acID('EXP'),date,category:String(f.get('category')),vendor:String(f.get('vendor')||'').trim(),description,amount,method:String(f.get('method')),note:String(f.get('note')||'').trim(),at:old?.at||new Date().toISOString(),updatedAt:new Date().toISOString(),voided:false};
   return acCommit(()=>{state.acExpenses=state.acExpenses||[];if(old){const i=state.acExpenses.findIndex(x=>x.id===old.id&&!x.voided);if(i<0)throw Error('원본을 찾을 수 없습니다.');state.acExpenses[i]=entry;}else state.acExpenses.unshift(entry);});
@@ -3319,7 +3319,7 @@ function attachInventoryListeners(){
  $('inventoryBody').onclick=e=>{const sort=e.target.closest('[data-v80-sort],[data-v80-group-sort]');if(sort){v80ToggleSort(sort.dataset.v80Sort||sort.dataset.v80GroupSort,!!sort.dataset.v80GroupSort);return;}const info=!e.target.closest('button')&&e.target.closest('[data-v73-lot]'); if(info){const l=state.items.find(x=>x.id===(info.dataset.v72Info||info.dataset.v73Lot));if(l)v140LotDetail(l);return;}const pick=e.target.closest('[data-v72-select]');if(pick){const key=pick.dataset.v72Select;tableSort={key:'default',direction:'asc'};v72Selected=key;renderInventory();return;}const filter=e.target.closest('button[data-filter]');if(filter){e.preventDefault();e.stopPropagation();if(popupField===filter.dataset.filter&&$('columnFilterPopup'))dismissFilter();else openColumnFilter(filter.dataset.filter,filter);return;}const b=e.target.closest('button[data-work]');if(b){e.preventDefault();e.stopPropagation();showActionMenu(b,{productId:b.dataset.product||'',lotId:b.dataset.lot||'',from:selectedZone==='all'?'':selectedZone});return;}const r=e.target.closest('[data-toggle]');if(r){const key=r.dataset.toggle;expanded.has(key)?expanded.delete(key):expanded.add(key);renderInventory();}};
  $('inventoryBody').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-toggle],[data-v73-lot]')){e.preventDefault();e.target.click();}};
 }
-function field(label,name,opts={}){const required=opts.required?'<span class="req">*</span>':'';const id='f_'+name;let input;if(opts.options){input=`<select id="${id}" name="${name}" ${opts.required?'required':''}>${opts.options.map(([v,t])=>`<option value="${esc(v)}" ${name==='outboundKind'&&v===''?'disabled hidden':''} ${v===opts.value?'selected':''}>${esc(t)}</option>`).join('')}</select>`;}else if(opts.textarea){input=`<textarea id="${id}" name="${name}" placeholder="${esc(opts.placeholder||'')}">${esc(opts.value||'')}</textarea>`;}else if(opts.type==='date')input=`<span class="quick-date"><input id="${id}" name="${name}" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" value="${esc(opts.value||'')}" ${opts.required?'required':''}><input class="quick-date-calendar" type="date" value="${esc(opts.value||'')}" aria-label="${esc(label)} 달력 선택" title="달력에서 선택"></span>`;else input=`<input id="${id}" name="${name}" type="${opts.type||'text'}" ${opts.type==='number'?'min="0.01" step="0.01"':''} value="${esc(opts.value||'')}" ${opts.placeholder?`placeholder="${esc(opts.placeholder)}"`:''} ${opts.required?'required':''}>`;
+function field(label,name,opts={}){const required=opts.required?'<span class="req">*</span>':'';const id='f_'+name;let input;if(opts.options){input=`<select id="${id}" name="${name}" ${opts.required?'required':''}>${opts.options.map(([v,t])=>`<option value="${esc(v)}" ${name==='outboundKind'&&v===''?'disabled hidden':''} ${v===opts.value?'selected':''}>${esc(t)}</option>`).join('')}</select>`;}else if(opts.textarea){input=`<textarea id="${id}" name="${name}" placeholder="${esc(opts.placeholder||'')}">${esc(opts.value||'')}</textarea>`;}else if(opts.type==='date')input=`<span class="quick-date"><input id="${id}" name="${name}" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD" value="${esc(opts.value||'')}" ${opts.required?'required':''}><input class="quick-date-calendar" type="date" value="${esc(opts.value||'')}" aria-label="${esc(label)} 달력 선택" title="달력에서 선택"></span>`;else input=`<input id="${id}" name="${name}" type="${opts.type||'text'}" ${opts.type==='number'?'min="0.01" step="0.01"':''} value="${esc(opts.value||'')}" ${opts.placeholder?`placeholder="${esc(opts.placeholder)}"`:''} ${opts.required?'required':''}>`;
  return `<div class="form-field ${opts.full?'full':''}"><label for="${id}">${esc(label)}${required}</label>${input}${opts.help?`<div class="field-help">${esc(opts.help)}</div>`:''}</div>`;}
 const ACTIONS=[
  {key:'move',label:'해동',title:'해동',desc:'냉동고의 LOT를 선택해 냉장고로 이동합니다.',button:'해동 처리'},
@@ -3613,7 +3613,7 @@ function record(type,l,qty,effects,note='',purpose='',extra={}){
  const trace=source==='chilled'&&l.traceRunId?{traceRunId:l.traceRunId,productionTarget:v116RunName(l.traceRunId),traceSource:v116Snapshot(l)}:{};
  state.transactions.unshift({id:`T-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`,at:new Date().toISOString(),...trace,type,lotId:l.id,name:l.name,meatType:l.type,vendor:l.vendor,qty,source,destination,effects,note,purpose,...extra,undone:false});
 }
-function submitAction(e){e.preventDefault();for(const el of e.currentTarget.querySelectorAll('input[data-quick-date]')){const valid=normalizeIntakeDate(el.value);if(valid===null||(el.required&&!valid)){$('formError').textContent='날짜를 정확히 입력해 주세요. 예: 1121, 281121, 20281121';el.focus();return;}el.value=valid;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal)cal.value=valid;}const v45BeforeState=structuredClone(state),v45BeforeOut=v17LastOutId;const p=new FormData(e.currentTarget);const finished=modalMode;const err=finished==='receive'?receive(p):finished==='product'?saveProduct(p):moveOrShip(p);if(err){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent=err;$('formError').style.display='block';$('formError').scrollIntoView({block:'nearest'});toast('저장되지 않았습니다: '+err);return;}if(!persist()){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent='서버 저장을 확인하지 못했습니다. 새로고침 후 기록을 확인해 주세요.';toast('서버 저장 확인 실패');return;}closeAction();if(view==='history')renderHistory();else if(view==='backup')renderBackup();else if(view==='products'){if(finished==='product'&&$('productSearch'))$('productSearch').value='';renderProducts();}else if($('searchInput'))renderInventory();else setView(view);toast(finished==='product'?'제품 정보가 저장되었습니다.':finished==='receive'?'입고와 신규 LOT가 저장되었습니다.':'재고가 변경되고 이력이 저장되었습니다.');if((finished==='ship'||(finished==='outbound'&&p.get('outboundKind')==='company'))&&v17LastOutId)v17ShowSaved('out',v17LastOutId);}
+function submitAction(e){e.preventDefault();for(const el of e.currentTarget.querySelectorAll('input[data-quick-date]')){const valid=normalizeIntakeDate(el.value);if(valid===null||(el.required&&!valid)){$('formError').textContent='날짜를 정확히 입력해 주세요. 예: 28/11/21, 2028-11-21, 20281121';el.focus();return;}el.value=valid;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal)cal.value=valid;}const v45BeforeState=structuredClone(state),v45BeforeOut=v17LastOutId;const p=new FormData(e.currentTarget);const finished=modalMode;const err=finished==='receive'?receive(p):finished==='product'?saveProduct(p):moveOrShip(p);if(err){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent=err;$('formError').style.display='block';$('formError').scrollIntoView({block:'nearest'});toast('저장되지 않았습니다: '+err);return;}if(!persist()){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent='서버 저장을 확인하지 못했습니다. 새로고침 후 기록을 확인해 주세요.';toast('서버 저장 확인 실패');return;}closeAction();if(view==='history')renderHistory();else if(view==='backup')renderBackup();else if(view==='products'){if(finished==='product'&&$('productSearch'))$('productSearch').value='';renderProducts();}else if($('searchInput'))renderInventory();else setView(view);toast(finished==='product'?'제품 정보가 저장되었습니다.':finished==='receive'?'입고와 신규 LOT가 저장되었습니다.':'재고가 변경되고 이력이 저장되었습니다.');if((finished==='ship'||(finished==='outbound'&&p.get('outboundKind')==='company'))&&v17LastOutId)v17ShowSaved('out',v17LastOutId);}
 
 function v110Live(t){return !t.undone&&!['reverse','productionCanceled'].includes(t.type);}
 function v110HasPayment(id){return !!id&&(state.acPayments||[]).some(p=>!p.voided&&(p.doc==='purchase:'+id||p.doc==='sale:'+id));}
@@ -3898,7 +3898,7 @@ function normalizeIntakeDate(value){
  let y,mo,day,m;
  if((m=/^(\d{2})(\d{2})$/.exec(v))){
   y=Number(today().slice(0,4));mo=Number(m[1]);day=Number(m[2]);
- }else if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(v))){
+ }else if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(v))||(m=/^(\d{2})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(v))){
   y=2000+Number(m[1]);mo=Number(m[2]);day=Number(m[3]);
  }else if((m=/^(\d{4})(\d{2})(\d{2})$/.exec(v))||
          (m=/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/.exec(v))){
@@ -3922,7 +3922,7 @@ function bindIntakeQuickDates(root){
    const normalized=normalizeIntakeDate(inp.value);
    if(normalized===null){
     inp.setAttribute('aria-invalid','true');
-    inp.title='날짜를 4·6·8자리로 입력해 주세요 (예: 1121, 281121, 20281121)';
+    inp.title='날짜를 입력해 주세요 (예: 28/11/21, 2028-11-21, 20281121)';
     if(cal)cal.value='';
     return false;
    }
@@ -3935,7 +3935,7 @@ function bindIntakeQuickDates(root){
   inp.addEventListener('input',()=>{
    inp.removeAttribute('aria-invalid');inp.removeAttribute('title');
    if(/^\d{8}$/.test(inp.value))sync(true);
-   else if(/^\d{4}[-./]\d{2}[-./]\d{2}$/.test(inp.value))sync(true);
+   else if(/^(?:\d{2}|\d{4})[-./]\d{2}[-./]\d{2}$/.test(inp.value))sync(true);
   });
   inp.addEventListener('blur',()=>sync(true));
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sync(true);inp.blur();}});
@@ -4047,7 +4047,7 @@ function v97TransactionLayout(mode){
  const success=incoming&&intakeLastSaved?esc(intakeLastSaved):'';
  return `<section class="${cfg.root} card v97-transaction" data-transaction="${mode}">
  <div class="${cfg.common} v97-common">
- <label>날짜 <span class="quick-date"><input type="text" inputmode="numeric" data-quick-date id="${cfg.date}" value="${date}" placeholder="YYYYMMDD" maxlength="10" autocomplete="off" aria-label="날짜"><input type="date" class="quick-date-calendar" value="${date}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label>
+ <label>날짜 <span class="quick-date"><input type="text" inputmode="text" data-quick-date id="${cfg.date}" value="${date}" placeholder="YYYY-MM-DD" maxlength="10" autocomplete="off" aria-label="날짜"><input type="date" class="quick-date-calendar" value="${date}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label>
  ${incoming?'':`<label>출고구분<select id="v123Kind" aria-label="출고구분"><option value="" disabled hidden ${v123Kind===''?'selected':''}>선택</option>${v123Kinds.map(k=>`<option value="${k}" ${k===v123Kind?'selected':''}>${esc(v121Types[k])}</option>`).join('')}</select></label>`}
  <label class="${cfg.partnerLabel}">${incoming?'업체':'<span id="v123Label">업체</span>'} <span class="${cfg.partnerWrap} v97-partner"><input type="search" id="${cfg.partner}" placeholder="업체명·별칭·사업자번호 검색" autocomplete="off"><span id="${cfg.matches}" class="v17-partner-list hidden"></span></span><small id="${cfg.info}" class="v17-partner-detail"></small></label>
  <label>전표 비고 <input id="${cfg.note}" placeholder="필요한 경우만 입력" autocomplete="off"></label></div>
@@ -4104,7 +4104,7 @@ function intakeRowHtml(r,i){
    <label class="in-category"><span class="v50-mobile-label">구분</span><select class="in-cat" aria-label="${i+1}번 품목 구분">${catOptions}</select></label>
    <label class="in-item v50-in-item"><span class="v50-mobile-label">품목명</span><div class="in-find"><input class="in-search" type="search" autocomplete="off" value="${esc(r.name)}" placeholder="품목명·브랜드 검색" aria-label="${i+1}번 품목 검색"><div class="in-suggest hidden" role="listbox"></div></div></label>
    <label class="in-zone-label ${isMeat?'':'v146-zone-disabled'}"><span class="v50-mobile-label">창고</span><select class="in-zone" aria-label="${i+1}번 원료육 보관 창고" ${isMeat?'required':'disabled'}><option value="" ${!isMeat||!r.zone?'selected':''}>${isMeat?'창고 선택':'해당 없음'}</option><option value="frozen" ${isMeat&&r.zone==='frozen'?'selected':''}>냉동고</option><option value="chilled" ${isMeat&&r.zone==='chilled'?'selected':''}>냉장고</option></select></label>
-   <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
+   <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
    <label><span class="v50-mobile-label">수량</span><input class="in-qty" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="수량" aria-label="입고수량" value="${esc(r.qty)}"></label>
    <label><span class="v50-mobile-label">단위</span><select class="in-unit" aria-label="입고단위">${unitOptions}</select></label>
    <label class="v50-price-cell"><span class="v50-mobile-label">입고 단가</span><input class="in-price" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(r.price||'')}" placeholder="단가" aria-label="입고 단가"><span class="in-price-hint">${v48PriceHint(r)}</span></label>
@@ -4119,7 +4119,7 @@ function intakeRowHtml(r,i){
      <label>총 중량 (kg)<input class="in-weight" type="number" min="0" step="0.01" value="${esc(r.weight)}" placeholder="선택 입력" ${r.unit==='kg'?'disabled':''}></label>
      <label class="in-type-label ${isMeat?'':'hidden'}">육류<select class="in-type">${typeChoices.map(([k,l])=>`<option value="${esc(k)}" ${r.type===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
      <label class="in-location-label ${isMeat?'hidden':''}">보관 위치<input class="in-location" value="${esc(r.location)}" placeholder="선택 입력"></label>
-     <label class="in-date ${r.category==='finished_own'?'':'hidden'}">제조일 <span class="quick-date"><input class="in-received" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" value="${esc(r.received)}" placeholder="YYYYMMDD"><input class="quick-date-calendar" type="date" value="${esc(r.received)}" aria-label="제조일 달력"></span></label>
+     <label class="in-date ${r.category==='finished_own'?'':'hidden'}">제조일 <span class="quick-date"><input class="in-received" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" value="${esc(r.received)}" placeholder="YYYY-MM-DD"><input class="quick-date-calendar" type="date" value="${esc(r.received)}" aria-label="제조일 달력"></span></label>
      <label class="${r.category==='finished_own'?'':'hidden'}">생산번호 연결<select class="in-v116-run">${v116RunOptions(r.traceRunId||'',true)}</select></label><label class="${r.category==='finished_own'?'':'hidden'}">실제 제품 LOT / 제조번호<input class="in-v116-finished-lot" maxlength="100" value="${esc(r.traceFinishedLot||'')}" placeholder="제품에 표시된 번호 (선택)"></label><label>비고<input class="in-note" value="${esc(r.note)}" placeholder="선택 입력"></label>
     </div>
   </details>
@@ -5226,12 +5226,13 @@ function v33OpenLotEditor(lotId){
  <label class="full">입고 업체${isOwn?' (사내 자체생산)':''}<input id="v33Vendor" type="text" value="${esc(ownVendor)}" ${isOwn?'disabled':''} list="v33Vendors" placeholder="업체 검색 또는 입력"><datalist id="v33Vendors">${V17_PARTNERS.filter(x=>x.n&&x.no).map(x=>`<option value="${esc(v17Label(x))}"></option>`).join('')}</datalist></label>
  <label>브랜드<input id="v33Brand" type="text" value="${esc(l.brand||entry?.brand||'')}"></label>
  <label>원산지<input id="v33Origin" type="text" value="${esc(l.origin||entry?.origin||'')}"></label>
- <label>${isOwn?'제조일':'입고일'}<input id="v33Received" type="date" value="${esc(isOwn?(l.manufactured||entry?.manufactured||l.received):(l.received||entry?.received||batch?.date||''))}"></label>
- <label>소비기한<input id="v33Expiry" type="date" value="${esc(l.expiry||entry?.expiry||'')}"></label>
+ <label>${isOwn?'제조일':'입고일'}<span class="quick-date"><input id="v33Received" type="text" data-quick-date inputmode="text" maxlength="10" value="${esc(isOwn?(l.manufactured||entry?.manufactured||l.received):(l.received||entry?.received||batch?.date||''))}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${esc(isOwn?(l.manufactured||entry?.manufactured||l.received):(l.received||entry?.received||batch?.date||''))}"></span></label>
+ <label>소비기한<span class="quick-date"><input id="v33Expiry" type="text" data-quick-date inputmode="text" maxlength="10" value="${esc(l.expiry||entry?.expiry||'')}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${esc(l.expiry||entry?.expiry||'')}"></span></label>
  <label>기록된 입고수량 (${esc(unit)})<input id="v33Qty" type="number" min="0.001" step="any" value="${esc(initialQty)}" ${entry?'':'disabled'}></label>
  <label>입고 단가 (원/${esc(unit)})<input id="v33Price" type="number" min="0" step="any" value="${esc(l.price??entry?.price??'')}"></label>
  <label class="full">비고<input id="v33Note" value="${esc(l.note||'')}"></label>
  </div><p class="v33-edit-help">업체·브랜드·원산지·소비기한·단가를 수정할 수 있습니다. 수량 수정은 저장된 입고 전표에 연결되고 이후 출고·이동이 없는 경우에만 허용합니다. 명세서도 함께 갱신됩니다.</p><div class="v33-edit-error" id="v33EditError"></div>`;
+ bindIntakeQuickDates($('v33EditContent'));
  $('v33EditFooter').classList.remove('hidden');
  $('v33EditSave').onclick=v33SaveLotEdit;
  if(!d.open)d.showModal();
@@ -5240,7 +5241,8 @@ function v33SaveLotEdit(){
  const info=v33CurrentEdit;if(!info)return;
  const hit=v33Locate(info.id);if(!hit)return v33EditError('원본 LOT를 찾지 못했습니다.');
  const l=hit.record,batch=(state.receiptBatches||[]).find(x=>x.id===info.batchId),entry=batch?.entries?.find(x=>x.id===info.entryId);
- const vendor=$('v33Vendor').value.trim(),brand=$('v33Brand').value.trim(),origin=$('v33Origin').value.trim(),received=$('v33Received').value,expiry=$('v33Expiry').value,qty=Number($('v33Qty').value),price=Number($('v33Price').value),note=$('v33Note').value.trim();
+ const vendor=$('v33Vendor').value.trim(),brand=$('v33Brand').value.trim(),origin=$('v33Origin').value.trim(),received=normalizeIntakeDate($('v33Received').value),expiry=normalizeIntakeDate($('v33Expiry').value),qty=Number($('v33Qty').value),price=Number($('v33Price').value),note=$('v33Note').value.trim();
+ if(received===null||expiry===null)return v33EditError('날짜를 정확히 입력해 주세요.');
  const food=info.kind==='meat'||(l.category||'')!=='supplies';
  if(!info.isOwn&&!vendor)return v33EditError('입고 업체를 입력해 주세요.');
  if(info.kind==='meat'&&!origin)return v33EditError('원료육 원산지를 입력해 주세요.');
@@ -7317,5 +7319,12 @@ html body dialog.v88-calendar .v88-footer .v88-clear{color:#777!important;backgr
  html body dialog.v88-calendar .v88-footer{position:sticky;bottom:-12px;z-index:5;background:#fff;padding:8px 0!important}
  html body dialog.v88-calendar .v88-footer button{height:44px!important;min-height:44px!important}
 }
+</style>
+<style id="v155-date-input-formats">
+#v33EditContent .quick-date,.ac-modal .quick-date{display:flex;align-items:center;gap:4px;min-width:0}
+#v33EditContent .quick-date>input[data-quick-date],.ac-modal .quick-date>input[data-quick-date]{flex:1 1 auto;width:100%;min-width:0}
+#v33EditContent .quick-date>input.quick-date-calendar,.ac-modal .quick-date>input.quick-date-calendar{flex:0 0 34px;width:34px;min-width:34px;padding:0;cursor:pointer}
+#v33EditContent .quick-date-calendar::-webkit-datetime-edit,.ac-modal .quick-date-calendar::-webkit-datetime-edit{display:none}
+input[data-quick-date][aria-invalid="true"]{outline:1px solid #b42318!important}
 </style>
 </body></html>
