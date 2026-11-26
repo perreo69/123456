@@ -1521,7 +1521,7 @@ function v80SortLabel(key,label,group=false){
 function v80ToggleSort(key,group=false){
  const old=group?v80GroupSort:tableSort,next={key,direction:(old.key===key||(!group&&selectedZone!=='chilled'&&old.key==='default'&&key==='origin'))&&old.direction==='asc'?'desc':'asc'};
  if(group)v80GroupSort=next;else tableSort=next;
- dismissFilter();renderInventory();
+ dismissFilter();renderInventory();if(group){const panel=$('inventoryBody')?.querySelector('.v72split aside');if(panel)panel.scrollTop=0;}
 }
 function detailRows(g){
  const inner=meatLotSort(g.items).map(l=>{
@@ -3328,7 +3328,7 @@ function v153FlatStockPage(scope){
   $('v153Count').textContent='품목 '+new Set(shown.map(r=>r.category+'|'+r.name+'|'+r.spec)).size+'종 · LOT '+shown.length+'건';
   $('v153Total').textContent='표시 재고 '+([...totals].map(([u,n])=>fmt(n)+' '+u).join(' · ')||'0');
  }
- filter=v40CreateFilters(columns,candidates,value,draw);filter.restore(v171Filters.get(scopeKey));filter.onSnapshot=s=>v171Filters.set(scopeKey,s);if(grouped){$('v171GroupRows').onclick=e=>{const b=e.target.closest('[data-v171-pick]');if(!b)return;const g=groups[Number(b.dataset.v171Pick)];if(g){v171Picks.set(scopeKey,g.key);draw();}};$('v175GroupHead').onclick=e=>{const b=e.target.closest('[data-v175-group-sort]');if(!b)return;v175GroupOrders.set(scopeKey,v175ToggleGroupOrder(v175GroupOrders.get(scopeKey)||{key:'name',direction:'asc'},b.dataset.v175GroupSort));draw();};}v171Bind(view);
+ filter=v40CreateFilters(columns,candidates,value,draw);filter.restore(v171Filters.get(scopeKey));filter.onSnapshot=s=>v171Filters.set(scopeKey,s);if(grouped){$('v171GroupRows').onclick=e=>{const b=e.target.closest('[data-v171-pick]');if(!b)return;const g=groups[Number(b.dataset.v171Pick)];if(g){v171Picks.set(scopeKey,g.key);draw();}};$('v175GroupHead').querySelectorAll('[data-v175-group-sort]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();v175GroupOrders.set(scopeKey,v175ToggleGroupOrder(v175GroupOrders.get(scopeKey)||{key:'name',direction:'asc'},b.dataset.v175GroupSort));draw();$('v171GroupRows').scrollTop=0;});}v171Bind(view);
  $('v153Head').innerHTML=filter.header()+'<th class="col-action">작업</th>';filter.bind($('v153Head'));filter.updateButtons();
  $('categorySearch').oninput=draw;$('v153Zero').onchange=e=>{showZeroStock=e.target.checked;draw();};
  $('v153Reset').onclick=()=>{$('categorySearch').value='';v175GroupOrders.delete(scopeKey);filter.reset();};
@@ -8121,4 +8121,9 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView .v171-groups .v175-group-sort{display:inline-flex;align-items:center;padding:0!important;margin:0;border:0!important;box-shadow:none!important;background:transparent!important;color:inherit!important;font:inherit!important;cursor:pointer;white-space:nowrap}
 #mainView .v171-groups .v175-group-sort:hover{text-decoration:underline;text-underline-offset:3px}
 #mainView .v171-groups .v175-group-sort:focus-visible{outline:1px solid #777;outline-offset:2px}
+</style><style id="v176-group-sort-hit-area">
+#mainView .v171-groups .v75listhead,#mainView .v72split aside .v75listhead{display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:0!important;padding:0!important;min-height:34px;align-items:stretch;flex-shrink:0}
+#mainView .v75listhead :is([data-v175-group-sort],[data-v80-group-sort]){display:flex!important;align-items:center;justify-content:flex-start;width:100%;min-height:34px;min-width:0;padding:7px 10px!important;pointer-events:auto!important;cursor:pointer!important;text-decoration:none;position:relative}
+#mainView .v75listhead :is([data-v175-group-sort="qty"],[data-v80-group-sort="total"]){justify-content:flex-end;min-width:76px;text-align:right}
+#mainView .v75listhead :is([data-v175-group-sort],[data-v80-group-sort]):hover{background:rgba(0,0,0,.04)!important;text-decoration:underline;text-underline-offset:3px}
 </style></body></html>
