@@ -14,10 +14,10 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261126_72">
-<link rel="stylesheet" href="style.css?v=20261126_72">
+<link rel="stylesheet" href="style.legacy.css?v=20261126_73">
+<link rel="stylesheet" href="style.css?v=20261126_73">
 <!-- v58 — 폰(≤768px) 전용 화면. media 조건 때문에 PC 브라우저는 이 파일을 적용하지 않는다 -->
-<link rel="stylesheet" href="mobile.css?v=20261126_72" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
+<link rel="stylesheet" href="mobile.css?v=20261126_73" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -89,6 +89,8 @@
       <div>
         <h1>미르스타푸드<span class="prod">ERP</span></h1>
         <p id="baseLabel">불러오는 중…</p>
+        <!-- v63 — 서명(Built by LCP · AI-assisted development)을 사이드바 아래에서 «미르스타푸드 ERP» 바로 밑으로 옮겼다. PC 에서만 보인다 -->
+        <div class="brandsig" aria-hidden="true"><b>Built by LCP</b><span>AI-assisted development</span></div>
       </div>
     </div>
     <div class="top-actions">
@@ -216,16 +218,13 @@
     </nav>
 
     <!-- v42 — 서명은 nav 밖에 두어, 메뉴가 길어 안에서 스크롤돼도 늘 사이드바 아래에 붙어 있다 -->
+    <!-- v63 — 서명은 상단 «미르스타푸드 ERP» 밑으로 옮겼다. 여기에는 감춘 옛 메뉴만 남는다 -->
     <div class="sidefoot">
       <!-- v47 — 「생산·원가」·「단가 변동」은 일단 감춤(버튼·바인딩 그대로 · hidden 만 떼면 다시 살아난다) -->
       <span class="sflinks hidden" id="sideMore">
         <button type="button" data-legacy="prod">생산·원가</button>
         <button type="button" data-legacy="price">단가 변동</button>
       </span>
-      <div class="sfbrand">
-        <b>Built by LCP</b>
-        <span>AI-assisted development</span>
-      </div>
     </div>
   </aside>
 
@@ -1874,8 +1873,8 @@
   </datalist>
 </div>
 
-<script src="partners_data.js?v=20261126_72"></script>
-<script src="app.js?v=20261126_72"></script>
+<script src="partners_data.js?v=20261126_73"></script>
+<script src="app.js?v=20261126_73"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_138" data-erp-design="v135">
 
 </body>
