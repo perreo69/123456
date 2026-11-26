@@ -242,6 +242,25 @@ jobs:
                   assert bar.locator('[data-v154-from]').input_value()=='2020-01-01'
                   assert '해당 구분의 기록이 없습니다' in f.locator('.history-table tbody').inner_text()
                   bar.locator('[data-v154-quick=all]').click()
+                  samples=['26/11/26','2026/11/26','26-11-26','2026-11-26','261126','20261126']
+                  for sample in samples:
+                    assert frame.evaluate('(x)=>normalizeIntakeDate(x)',sample)=='2026-11-26'
+                    bar=f.locator('#v70PeriodBar')
+                    bar.locator('[data-v154-from]').fill(sample)
+                    bar.locator('[data-v154-to]').fill(sample)
+                    bar.locator('[data-v154-to]').press('Enter')
+                    assert bar.locator('[data-v154-from]').input_value()=='2026-11-26'
+                    bar.locator('[data-v154-quick=all]').click()
+                  for sample in ['26/02/29','2026-13-01','26/00/00']:
+                    assert frame.evaluate('(x)=>normalizeIntakeDate(x)',sample)==None
+                  frame.evaluate("window.__MEAT_ERP_TEST__.setView('intake')")
+                  for sample in samples:
+                    f.locator('#intakeDate').fill(sample)
+                    f.locator('#intakeDate').press('Tab')
+                    assert f.locator('#intakeDate').input_value()=='2026-11-26'
+                  f.locator('#intakeDate').fill(today)
+                  close_entry()
+                  print(name,'v155 date formats: PASS')
                   print(name,'v154 period controls and filter: PASS')
 
                   print(name,'intake 10 / thaw 4 / refreeze 1 / ship 2 / persisted 8 kg: PASS')
