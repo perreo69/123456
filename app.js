@@ -4418,11 +4418,15 @@ var LIVE = (function () {
     return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
   }
 
-  /* ================= v35 — 스마트 날짜 입력 =================
+  /* ================= v35 — 스마트 날짜 입력 ================= (v64: 구분자 입력 확장)
      모든 날짜 칸(type=date)을 type=text 로 바꿔 「1112」·「261125」·「20261125」를 그대로 치게 한다.
      · 칸을 클릭하면(=포커스) 이미 들어 있던 날짜가 전체 선택돼 바로 덮어쓴다.
-     · blur · Enter 에서 YYYY-MM-DD 로 맞추고, 값이 바뀌었으면 change 를 쏴 기존 필터·계산이 그대로 돈다. */
+     · blur · Enter 에서 YYYY-MM-DD 로 맞추고, 값이 바뀌었으면 change 를 쏴 기존 필터·계산이 그대로 돈다.
+     · v64 — 「26/11/26」·「2026/11/26」·「26-11-26」·「2026-11-26」·「26.6.5」 처럼 / · - · . 로 나눠 쳐도,
+       월·일이 한 자리여도 같은 규칙으로 받는다. 치는 도중에는 글자를 건드리지 않고 blur·Enter 에서만 맞춘다. */
   var SD_YEAR = (new Date()).getFullYear();
+  /* 날짜 칸은 «연도를 바꿔 가며» 켜 두기도 하므로 해가 바뀌면 기본 연도도 따라간다 */
+  function sdRefYear() { return (new Date()).getFullYear(); }
   var SD_PICKER = null;   /* 달력에서 고르기용 숨은 date 칸 */
 
   function sdPad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -4432,14 +4436,25 @@ var LIVE = (function () {
     if (dt.getFullYear() !== y || dt.getMonth() !== m - 1 || dt.getDate() !== d) return null;
     return y + '-' + sdPad2(m) + '-' + sdPad2(d);
   }
-  /* '1112' · '11-12' · '261125' · '26/11/25' · '2026-11-25' → 'YYYY-MM-DD' (알 수 없으면 null) */
+  /* '1112' · '11-12' · '261125' · '26/11/25' · '26-11-25' · '2026-11-25' · '2026/11/25' · '26.11.25'
+     · '26/6/5' · '2026-6-5'  →  'YYYY-MM-DD'  (달력에 없는 날짜면 null) */
   function parseSmartDate(raw, refYear) {
-    var s = String(raw == null ? '' : raw).replace(/\s+/g, '').replace(/[./]/g, '-');
+    var s = String(raw == null ? '' : raw);
+    if (!s.replace(/\s+/g, '')) return '';
+    s = s
+      .replace(/[\uff10-\uff19]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xfee0); }) /* １２３ → 123 */
+      .replace(/[\uff0f\uff0e\uff0d\u2010\u2011\u2012\u2013\u2014\u2015\u2212]/g, '-')            /* ／ ． － ‐ ‑ – — ― − → - */
+      .replace(/[.\/\\]/g, '-')                                                                   /* . / \ → - */
+      .replace(/\s+/g, '')
+      .replace(/^-+|-+$/g, '');                                                                    /* 끝에 남은 구분자 무시 */
     if (!s) return '';
-    var m, y0 = refYear || SD_YEAR;
+    var m, y0 = refYear || sdRefYear();
+    /* 연-월-일 : 네 자리 해(2026-11-26) 또는 두 자리 해(26-11-26) — 월·일은 한 자리도 된다 */
     if ((m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return sdBuild(+m[1], +m[2], +m[3]);
-    if ((m = s.match(/^(\d{2})-(\d{2})-(\d{2})$/))) return sdBuild(2000 + (+m[1]), +m[2], +m[3]);
+    if ((m = s.match(/^(\d{2})-(\d{1,2})-(\d{1,2})$/))) return sdBuild(2000 + (+m[1]), +m[2], +m[3]);
+    /* 월-일 : 해는 올해(11-12 · 6/5) */
     if ((m = s.match(/^(\d{1,2})-(\d{1,2})$/))) return sdBuild(y0, +m[1], +m[2]);
+    /* 숫자만 : 20261126 · 261126 · 1112 */
     if (/^\d{8}$/.test(s)) return sdBuild(+s.slice(0, 4), +s.slice(4, 6), +s.slice(6, 8));
     if (/^\d{6}$/.test(s)) return sdBuild(2000 + (+s.slice(0, 2)), +s.slice(2, 4), +s.slice(4, 6));
     if (/^\d{4}$/.test(s)) return sdBuild(y0, +s.slice(0, 2), +s.slice(2, 4));
@@ -4454,8 +4469,14 @@ var LIVE = (function () {
     el.setAttribute('data-sd-init', '1');
     el.setAttribute('data-sd', '1');
     if (sdIsDate(el)) el.setAttribute('type', 'text');
-    el.setAttribute('inputmode', 'numeric');
+    /* v64 — 손가락 기기에서는 «/» «-» «.» 를 칠 수 있게 글자 자판을 연다(숫자 전용 자판엔 그 키가 없다).
+       마우스·키보드 기기는 지금처럼 숫자 자판 안내를 둔다. */
+    var sdTouch = false;
+    try { sdTouch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); } catch (e) { }
+    el.setAttribute('inputmode', sdTouch ? 'text' : 'numeric');
     el.setAttribute('autocomplete', 'off');
+    el.setAttribute('autocapitalize', 'off');
+    el.setAttribute('autocorrect', 'off');
     el.spellcheck = false;
     var host = el.closest ? el.closest('.field') : null;
     /* 표 칸(입출고·회계 전표 줄)은 머리글이 이미 뜻을 말하므로 힌트 글씨를 넣지 않는다 */
@@ -4509,7 +4530,7 @@ var LIVE = (function () {
       el.value = prev;
       el.classList.add('sd-bad');
       setTimeout(function () { el.classList.remove('sd-bad'); }, 1400);
-      if (typeof toast === 'function') toast('날짜를 알아볼 수 없습니다 — 예: 1112 · 261125', 'err');
+      if (typeof toast === 'function') toast('날짜를 알 수 없습니다 — 예: 1112 · 261125 · 2026-11-26', 'err');
       /* 칸에 쳤던 글자는 행 상태에도 이미 들어갔을 수 있다 — 되돌린 값을 알려 준다 */
       try {
         el.dispatchEvent(new Event('input', { bubbles: true }));

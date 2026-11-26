@@ -131,6 +131,8 @@ input,select,textarea{font-size:16px!important}
 .rangebar .pr{flex:1 1 0;height:30px!important;font-size:12.5px!important}
 .rangebar .rng{flex:1 1 100%!important;gap:6px!important}
 .rangebar .rng input{flex:1 1 0;height:36px!important;border-radius:9px!important;font-size:14px!important;min-width:0}
+/* v64 — 폰은 글씨가 16px 이라 «2026-11-26» 열 자가 108px 칸에서 끝자리만큼 잘렸다. 기간 칸 두 개를 조금 넓힌다 */
+.utool .rng input.sd-field{width:126px!important}
 .rangebar .range-sum{flex:1 1 100%;margin:0!important;font-size:12px!important;white-space:normal!important}
 .rangebar .range-sum:empty{display:none}
 /* 기간 표시 버튼은 프리셋·날짜칸과 겹치므로 폰에서는 숨긷다 */
