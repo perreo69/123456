@@ -2158,6 +2158,7 @@ function v116ResolveRun(name,selected,date,cache){
 }
 function v159FieldRun(l,name,selected,date,cache){
  if(l.traceRunId){const run=v116FindRun(l.traceRunId);if(!run)throw Error('기존 생산번호를 찾을 수 없습니다.');if(selected&&selected!==run.id||name&&normName(name)!==normName(run.name))throw Error('기존 생산품목과 다른 원료육은 별도로 출고해 주세요.');return run.id;}
+ if(selected&&v116FindRun(selected)?.unassigned)throw Error('생산 이력에서 생산품목을 먼저 지정해 주세요.');
  if(name||selected)return v116ResolveRun(name,selected,date,cache);
  const key='__v159_unassigned__';if(!cache.has(key)){const id=v116NewRun('생산품목 미지정',date);const run=v116FindRun(id);run.unassigned=true;cache.set(key,id);}return cache.get(key);
 }
@@ -2261,7 +2262,7 @@ function v36Page(){
  bindIntakeQuickDates($('mainView'));
  $('v36Search').addEventListener('input',()=>{v132OnlyPicked=false;v36Draw();const scroll=$('v36Body').closest('.v36-table-wrap')||$('v36Body');scroll.scrollTop=0;});
  $('v36Search').addEventListener('keydown',e=>{if(!e.isComposing&&(e.key==='Enter'||e.key==='ArrowDown')){e.preventDefault();const first=$('v36Body').querySelector('[data-v36-field=qty]');first?.focus();first?.select();}});
- $('v36Body').addEventListener('keydown',e=>{if(!e.isComposing&&e.key==='Enter'&&e.target.matches('[data-v36-field=qty]')){e.preventDefault();$('v36Search').focus();$('v36Search').select();}});
+ $('v36Body').addEventListener('keydown',e=>{if(e.isComposing||!e.target.matches('[data-v36-field=qty]'))return;if(e.key==='Enter'){e.preventDefault();$('v36Search').focus();$('v36Search').select();}else if(e.key==='ArrowDown'||e.key==='ArrowUp'){const fields=[...$('v36Body').querySelectorAll('[data-v36-field=qty]')],i=fields.indexOf(e.target),next=fields[i+(e.key==='ArrowDown'?1:-1)];if(next){e.preventDefault();next.focus();next.select();}}});
  $('v116ExistingRun').onchange=()=>{const run=v116FindRun($('v116ExistingRun').value);if(run)$('v116CommonName').value=run.name;};
  $('v142MoveKind').onchange=()=>{
   const next=$('v142MoveKind').value;if(next===v36Mode)return;
@@ -2288,7 +2289,7 @@ function v36Draw(){
  $('v132MovePicked').textContent=v132OnlyPicked?'전체 LOT':'선택 LOT';$('v132MovePicked').setAttribute('aria-pressed',String(v132OnlyPicked));
  $('v142MoveKind').value=v36Mode;$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116MoveFields').closest('.v142-common').classList.toggle('v142-no-production',v36Mode==='refreeze');if($('v116ExistingRun').value)$('v142RunDetails').open=true;
  $('v36Help').innerHTML='<strong>재고 이동:</strong> 이동 수량만큼 출발 창고에서 차감하고 도착 창고에 더합니다. 원료육 총재고는 바뀌지 않습니다.';
- $('v36Save').textContent=v144Window?'이동 저장':'저장';$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116QtyHeading').textContent=v36Mode==='field'?'출고수량(kg)':'이동수량(kg)';$('v145Route').textContent=({move:'냉동고 → 냉장고',refreeze:'냉장고 → 냉동고',field:'냉동고·냉장고 → 생산현장'})[v36Mode];if(v36Mode==='field')$('v36Help').textContent='현장 출고는 선택한 냉동고·냉장고 재고를 차감합니다. 실제 사용 확인과 미사용 반납은 생산 이력에서 처리합니다. 완제품은 별도로 입고합니다.';
+ $('v36Save').textContent=v144Window?'이동 저장':'저장';$('v116MoveFields').hidden=v36Mode==='refreeze';$('v116QtyHeading').textContent=v36Mode==='field'?'출고수량(kg)':'이동수량(kg)';$('v145Route').textContent=({move:'냉동고 → 냉장고',refreeze:'냉장고 → 냉동고',field:'냉동고·냉장고 → 생산현장'})[v36Mode];if(v36Mode==='field')$('v36Help').textContent='현장 출고는 선택한 냉동고·냉장고 재고를 차감합니다. 생산품목은 생략할 수 있으며, 생산 이력에서 나중에 지정하고 실제 사용·반납을 확인할 수 있습니다.';
  $('v36Count').textContent=`표시 LOT ${visible.length}건 · 입력 가능한 전체 LOT ${eligible.length}건`;
  if($('v36Body').classList.contains('v134-lots')){$('v36Body').innerHTML=visible.length?visible.map(v134MovementRow).join(''):'<p class="v134-empty">해당 LOT가 없습니다.</p>';v36Summary();return;}
  $('v36Body').innerHTML=visible.length?visible.map(({l,zone,key,available})=>{
@@ -2315,7 +2316,7 @@ function v36Save(){
  if(!date){error.textContent='날짜를 확인해 주세요.';return;}
  const note=$('v36Note').value.trim();
  if(!picked.length){error.textContent='처리할 LOT의 수량을 입력해 주세요.';return;}
- if(v36Mode==='field'){const common=$('v116CommonName').value.trim(),selected=$('v116ExistingRun').value,linked=[...new Set(picked.map(e=>e.l.traceRunId).filter(Boolean))];if(linked.length>1||(selected&&linked.some(id=>id!==selected))||(common&&linked.some(id=>normName(v116RunName(id))!==normName(common)))){error.textContent='생산품목 또는 생산번호가 다른 LOT는 나누어 등록해 주세요.';return;}if(linked.length===1&&picked.some(e=>!e.l.traceRunId)&&!selected){error.textContent='기존 생산번호와 함께 출고하려면 해당 생산번호를 연결해 주세요.';return;}}
+ if(v36Mode==='field'){const common=$('v116CommonName').value.trim(),selected=$('v116ExistingRun').value,linked=[...new Set(picked.map(e=>e.l.traceRunId).filter(Boolean))];if((common||selected)&&(linked.length>1||(selected&&linked.some(id=>id!==selected))||(common&&linked.some(id=>normName(v116RunName(id))!==normName(common))))){error.textContent='생산품목 또는 생산번호가 다른 LOT는 나누어 등록해 주세요.';return;}if(common&&linked.length===1&&picked.some(e=>!e.l.traceRunId)&&!selected){error.textContent='기존 생산번호와 함께 출고하려면 해당 생산번호를 연결해 주세요.';return;}}
  for(const e of picked){
   if(!Number.isFinite(e.qty)||e.qty<=0||Math.abs(e.qty*100-Math.round(e.qty*100))>0.00001){error.textContent=`${e.l.id} 이동 수량은 0보다 큰 kg 단위(소수 둘째 자리까지)로 입력해 주세요.`;return;}
   if(cents(e.qty)>cents(e.l[e.zone])){error.textContent=`${e.l.id} ${ZONE[e.zone]} 재고 ${fmt(e.available)}kg를 초과했습니다.`;return;}
@@ -4574,7 +4575,7 @@ function v17BindStatementDialog(){
 const V18_CAT={meat:'원료육',finished_own:'완제품 · 생산제품',finished_buy:'완제품 · 매입상품',sauce:'부재료 · 소스',spice:'부재료 · 향신료',vegetable:'부재료 · 야채',ingredient_other:'부재료 · 기타',pending:'분류 확인',supplies:'부자재'};
 let v18Lines=[],v18RowSeq=0,v18Partner=null,v18LastBatch='',v123Kind='',v123Recipient='';
 const v123Kinds=['company','personal','disposal','parcel','other','field'];
-const v123Labels={company:'업체',personal:'성명',disposal:'폐기사유',parcel:'수령인',other:'출고내용',field:'생산품목'};
+const v123Labels={company:'업체',personal:'성명',disposal:'폐기사유',parcel:'수령인',other:'출고내용',field:'생산품목 (선택)'};
 const v123Commercial=k=>!k||k==='company';
 const v18Key=(r,idx)=>r.id?'extra:'+r.id:'seed:'+idx;
 const v18Round=n=>Math.round((Number(n)||0)*10000)/10000;
@@ -7504,10 +7505,12 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 </style>
 <style id="v158-history-edit">.v33-edit-foot .v158-delete{margin-right:auto!important;color:#a22!important;border-color:#d8b5b5!important}.v33-edit-foot .v158-delete:disabled{opacity:.45;cursor:not-allowed}.v158-history-dialog .v33-edit-grid textarea{width:100%;min-height:72px;resize:vertical}.v158-history-dialog .v33-edit-head [data-v158-close]{width:28px;height:28px;border-radius:50%;font-size:17px}.history-table [data-v158-edit]{min-width:44px}</style>
 <style id="v159-movement-workflow">
-#v144EntryDialog #mainView#mainView .v145-movement .v142-common,#v144EntryDialog #mainView#mainView .v145-movement .v142-common.v142-no-production{display:grid!important;grid-template-columns:180px 130px minmax(0,1fr) minmax(0,1fr)!important;gap:10px 14px!important;align-items:start!important}
-#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(3){grid-column:3/5}
-#v144EntryDialog #mainView .v145-movement .v142-production{grid-column:1/3;min-width:0}
-#v144EntryDialog #mainView .v145-movement .v159-raw-search{grid-column:3/5;min-width:0}
+#v144EntryDialog #mainView#mainView .v145-movement .v142-common,#v144EntryDialog #mainView#mainView .v145-movement .v142-common.v142-no-production{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;gap:10px 14px!important;align-items:start!important}
+#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(1){grid-column:1/3}
+#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(2){grid-column:3/5}
+#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(3){grid-column:5/13}
+#v144EntryDialog #mainView .v145-movement .v142-production{grid-column:1/7;min-width:0}
+#v144EntryDialog #mainView .v145-movement .v159-raw-search{grid-column:7/13;min-width:0}
 #v144EntryDialog #mainView .v145-movement .v142-no-production .v159-raw-search{grid-column:1/-1}
 #v144EntryDialog #mainView .v145-movement .v36-table-wrap{height:clamp(220px,46vh,480px)!important;max-height:none!important;min-height:0!important;overflow:auto!important;scrollbar-gutter:stable}
 #v144EntryDialog #mainView .v145-movement .v36-table{table-layout:fixed!important;width:100%!important}
@@ -7523,10 +7526,10 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 #mainView .v159-assign{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid #e5e5ea}
 #mainView .v159-assign label{display:flex;align-items:center;gap:8px;min-width:0}
 #mainView .v159-assign select{max-width:min(420px,65vw);min-width:120px;height:34px;border:1px solid #d1d1d6;border-radius:6px;background:#fff;padding:0 8px}
-@media(max-width:900px){#v144EntryDialog #mainView#mainView .v145-movement .v142-common,#v144EntryDialog #mainView#mainView .v145-movement .v142-common.v142-no-production{grid-template-columns:repeat(2,minmax(0,1fr))!important}#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(3){grid-column:1/-1}#v144EntryDialog #mainView .v145-movement .v142-production{grid-column:1}#v144EntryDialog #mainView .v145-movement .v159-raw-search{grid-column:2}}
+@media(max-width:900px){#v144EntryDialog #mainView#mainView .v145-movement .v142-common,#v144EntryDialog #mainView#mainView .v145-movement .v142-common.v142-no-production{grid-template-columns:repeat(2,minmax(0,1fr))!important}#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(1){grid-column:1}#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(2){grid-column:2}#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(3){grid-column:1/-1}#v144EntryDialog #mainView .v145-movement .v142-production{grid-column:1}#v144EntryDialog #mainView .v145-movement .v159-raw-search{grid-column:2}}
 @media(max-width:767px),(max-width:1023px) and (pointer:coarse){
  #v144EntryDialog #mainView#mainView .v145-movement .v142-common,#v144EntryDialog #mainView#mainView .v145-movement .v142-common.v142-no-production{grid-template-columns:minmax(0,1fr)!important;gap:0!important}
- #v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(3),#v144EntryDialog #mainView .v145-movement .v142-production,#v144EntryDialog #mainView .v145-movement .v159-raw-search{grid-column:1/-1}
+ #v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(1),#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(2),#v144EntryDialog #mainView .v145-movement .v142-common>label:nth-child(3),#v144EntryDialog #mainView .v145-movement .v142-production,#v144EntryDialog #mainView .v145-movement .v159-raw-search{grid-column:1/-1}
  #v144EntryDialog #mainView .v145-movement .v134-lots{height:clamp(180px,40dvh,420px);overflow-y:auto;scrollbar-gutter:stable}
  #v144EntryDialog #mainView .v145-movement .v36-count{min-width:0;text-align:left}
  #mainView .v25-lot-amount .v159-fill{min-height:42px!important}
