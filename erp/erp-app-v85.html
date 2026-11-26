@@ -2875,7 +2875,7 @@ function v70Calendar(options){
  }
  function draw(){
   const ps=presets(),buttons=(a,b)=>ps.slice(a,b).map((p,i)=>'<button type="button" data-preset="'+(a+i)+'" aria-pressed="'+(active===String(a+i))+'" class="'+(active===String(a+i)?'active':'')+'">'+p[0]+'</button>').join('');
-  dlg.innerHTML='<div class="v88-top" data-drag-handle><h2>기간 선택</h2><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>'+baseYear+'</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">'+pretty(from)+' ~ '+pretty(to)+'</strong><button class="v155-close" type="button" data-close aria-label="닫기">×</button></div><div class="v88-quick"><div class="v88-quick-seven">'+buttons(0,7)+'</div><div class="v88-quick-seven">'+buttons(7,14)+'</div><div class="v88-quick-months">'+buttons(14,26)+'</div></div><div class="v88-calendars">'+cal(left,'left')+'<span class="v88-separator">~</span>'+cal(right,'right')+'</div><p class="v155-note">왼쪽·오른쪽 달력은 각각 연도·월을 바꿀 수 있습니다. 시작일과 종료일을 차례로 클릭하세요.</p><div class="v88-footer"><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>';
+  dlg.innerHTML='<div class="v88-top" data-drag-handle><h2 tabindex="-1" autofocus>기간 선택</h2><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>'+baseYear+'</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">'+pretty(from)+' ~ '+pretty(to)+'</strong><button class="v155-close" type="button" data-close aria-label="닫기">×</button></div><div class="v88-quick"><div class="v88-quick-seven">'+buttons(0,7)+'</div><div class="v88-quick-seven">'+buttons(7,14)+'</div><div class="v88-quick-months">'+buttons(14,26)+'</div></div><div class="v88-calendars">'+cal(left,'left')+'<span class="v88-separator">~</span>'+cal(right,'right')+'</div><p class="v155-note">왼쪽·오른쪽 달력은 각각 연도·월을 바꿀 수 있습니다. 시작일과 종료일을 차례로 클릭하세요.</p><div class="v88-footer"><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>';
  }
  function apply(f,t){dlg.close();if(opts)opts.apply(f,t);else{v70From=f;v70To=t;renderHistory();}}
  dlg.onclick=e=>{
@@ -2892,7 +2892,7 @@ function v70Calendar(options){
  dlg.onchange=e=>{const el=e.target,side=el.dataset.year||el.dataset.month;if(!side)return;const d=side==='left'?left:right,yy=el.dataset.year?Number(el.value):d.getUTCFullYear(),mm=el.dataset.month?Number(el.value):d.getUTCMonth(),next=date(yy,mm,1);if(side==='left')left=next;else right=next;draw();};
  dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();
  const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight,r=dlg.getBoundingClientRect();
- Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:Math.max(8,(w-r.width)/2)+'px',top:Math.max(8,(h-r.height)/2)+'px'});
+ Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:Math.max(8,(w-r.width)/2)+'px',top:Math.max(8,Math.min(h-r.height-8,(h-r.height)/2+8))+'px'});
  const fit=()=>{if(!dlg.open)return;const r=dlg.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;dlg.style.left=Math.max(8,Math.min(r.left,w-r.width-8))+'px';dlg.style.top=Math.max(8,Math.min(r.top,h-r.height-8))+'px';};
  const observer=new ResizeObserver(fit);observer.observe(dlg);window.addEventListener('resize',fit);
  dlg.addEventListener('close',()=>{observer.disconnect();window.removeEventListener('resize',fit);},{once:true});
@@ -6324,7 +6324,7 @@ body.v129-nav-open{overflow:hidden}
 dialog:not(#v17StatementDialog){width:calc(100vw - 20px)!important;max-width:calc(100vw - 20px)!important;max-height:calc(100dvh - 20px)!important;overflow:auto;overscroll-behavior:contain}
 dialog:not(#v17StatementDialog) :is(input:not([type=checkbox]):not([type=radio]),select,textarea){font-size:16px!important;min-height:44px;min-width:0}
 dialog:not(#v17StatementDialog) button{min-height:40px}
-dialog.v70-calendar.v88-calendar{inset:10px auto auto 10px!important;margin:0!important;max-height:calc(100dvh - 20px)!important}
+dialog.v70-calendar.v88-calendar:not(.v155-calendar){inset:10px auto auto 10px!important;margin:0!important;max-height:calc(100dvh - 20px)!important}
 .v88-calendars{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
 .v88-calendars>.v88-separator{display:none}
 .v88-calendar .v88-days button{height:36px!important;min-height:36px;font-size:13px!important}
@@ -7283,7 +7283,7 @@ html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109Par
 dialog.v155-calendar.v88-calendar{box-sizing:border-box;width:min(1020px,calc(100vw - 32px))!important;max-width:none!important;max-height:calc(100dvh - 16px)!important;padding:16px 18px 14px!important;border:1px solid #e5e5e5!important;border-radius:16px!important;background:#fff!important;box-shadow:0 16px 44px #0003!important;overflow:auto;color:#202124;font-size:12px;scrollbar-gutter:auto}
 dialog.v155-calendar::backdrop{background:rgba(0,0,0,.18)!important;backdrop-filter:blur(5px)}
 dialog.v155-calendar .v88-top{display:flex;gap:10px;align-items:center;padding:0 0 10px!important;min-height:0!important;border:0!important;border-bottom:1px solid #e8e8e8!important;background:#fff!important}
-dialog.v155-calendar .v88-top h2{font-size:14px!important;font-weight:700;margin:0;white-space:nowrap}
+dialog.v155-calendar .v88-top h2{font-size:14px!important;font-weight:700;margin:0;white-space:nowrap;outline:none!important}
 dialog.v155-calendar .v88-base-label{font-size:11px;font-weight:400;color:#999;white-space:nowrap}
 dialog.v155-calendar .v88-base-year{height:30px;border:1px solid #c6d0df;border-radius:9px;background:#ebedf1}
 dialog.v155-calendar .v88-base-year button{background:transparent!important;border:0!important;color:#92979f!important;width:28px;height:28px;font-size:18px;box-shadow:none!important}
@@ -7328,7 +7328,7 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 #mainView .v102-accounting .v90-report-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,144px) 92px!important}
 #mainView .v102-accounting .v90-report-controls #acCSV{grid-column:4}
 @media(max-width:767px),(max-width:1023px) and (pointer:coarse){
- dialog.v155-calendar.v88-calendar{width:calc(100vw - 16px)!important;padding:12px!important;inset:auto!important;max-height:calc(100dvh - 16px)!important}
+ dialog.v155-calendar.v88-calendar{width:calc(100vw - 16px)!important;padding:12px!important;max-height:calc(100dvh - 16px)!important}
  dialog.v155-calendar .v88-top{flex-wrap:wrap;gap:6px}dialog.v155-calendar .v88-period{order:5;flex:1 1 100%;text-align:center;margin:0;font-size:11px}
  dialog.v155-calendar .v155-close{margin-left:auto!important}
  dialog.v155-calendar .v88-quick-seven{grid-template-columns:repeat(4,minmax(0,1fr))}dialog.v155-calendar .v88-quick-months{grid-template-columns:repeat(6,minmax(0,1fr))}
