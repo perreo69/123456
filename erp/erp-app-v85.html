@@ -3719,7 +3719,7 @@ function v158BindInputDialog(dlg){
  v158Guard(dlg,()=>v158AskClose(dlg));
  if(!dlg.dataset.v158Cancel){dlg.dataset.v158Cancel='1';dlg.addEventListener('cancel',e=>{e.preventDefault();v158AskClose(dlg);});}
 }
-function v158EntryFinish(){if(!v144Window)return;const old=view,prior=v144Detach();v132Drafts.delete(old);setView(v144EntryViews.has(prior.view)?'stock_overview':prior.view);v132Drafts.delete(old);}
+function v158EntryFinish(){if(!v144Window)return;const old=view,prior=v144Detach();if(old==='intake')v17InboundPartner=null;v132Drafts.delete(old);setView(v144EntryViews.has(prior.view)?'stock_overview':prior.view);v132Drafts.delete(old);}
 function v158Later(t){
  const refs=new Set([t.lotId,t.traceChildId,...(t.effects||[]).map(e=>e.lotId)].filter(Boolean));
  return (state.transactions||[]).some(x=>x.id!==t.id&&v110Live(x)&&(String(x.at||'')>=String(t.at||'')||!x.at||!t.at)&&(refs.has(x.lotId)||(x.effects||[]).some(e=>refs.has(e.lotId))||refs.has(x.traceSource?.rootLotId)));
@@ -3756,22 +3756,25 @@ function v158HistoryEdit(id){
  const single=!!sb&&sb.version===18&&sb.lines?.length===1&&sb.deltas?.length===1&&state.transactions.filter(x=>x.batchId===sb.id&&v110Live(x)).length===1;
  const effects=t.effects||[],simple=effects.length>0&&effects.every(e=>e.lotId===t.lotId&&['frozen','chilled'].includes(e.zone)&&Math.abs(Number(e.delta))===Number(t.qty));
  const canQty=!locked&&['ship','issue','move','refreeze'].includes(t.type)&&!v158Later(t)&&simple&&(!sb||single&&sb.deltas[0].src==='meat'&&sb.deltas[0].ref===t.lotId&&effects.length===1&&effects[0].delta===-Number(t.qty)&&sb.deltas[0].zone===effects[0].zone&&Number(sb.deltas[0].delta)===Number(t.qty));
+ const canDate=canQty&&(!sb||single);
  const canDelete=!locked&&(sb?sb.version===18&&!state.transactions.some(x=>x.batchId===sb.id&&v110Live(x)&&(x.traceRunId||x.traceChildId||['fieldIssue','fieldReturn'].includes(x.type))):['ship','issue','move','refreeze'].includes(t.type)&&simple&&!v158Later(t));
  const d=document.createElement('dialog');d.className='v33-edit-dialog v158-history-dialog';d.setAttribute('aria-label','작업 기록 수정');
- d.innerHTML='<div class="v33-edit-head" data-drag-handle><h2>작업 기록 수정</h2><button type="button" data-v158-close class="v150-dismiss" aria-label="닫기">×</button></div><div class="v33-edit-content"><div class="v33-edit-grid"><label class="full">품목명<input disabled value="'+esc(t.name)+'"></label><label>날짜<input disabled value="'+esc(v70Date(t))+'"></label><label>LOT<input disabled value="'+esc(t.lotId||'')+'"></label><label>수량 ('+esc(t.unit||'kg')+')<input data-v158-qty type="number" min="0.01" step="0.01" value="'+esc(t.qty)+'" '+(canQty?'':'disabled')+'></label><label>출고처 / 이동 경로<input disabled value="'+esc(t.recipient||[ZONE[t.source]||t.source,ZONE[t.destination]||t.destination].filter(Boolean).join(' → '))+'"></label><label class="full">비고<textarea data-v158-note '+(locked?'disabled':'')+'>'+esc(t.note||'')+'</textarea></label></div><p class="v33-edit-help">'+(locked?'정산·생산 연결 또는 원본 보호가 필요한 기록입니다. 이 화면에서는 조회만 가능합니다.':canQty?'수량 수정은 재고와 연결된 전표에 반영됩니다.': '후속 작업 또는 복합 전표가 연결되어 수량 수정은 제한됩니다. 비고만 수정할 수 있습니다.')+(sb&&!single?' 다품목 전표의 비고 수정은 선택한 작업 기록에만 적용됩니다.':'')+'</p><div class="v33-edit-error" role="alert"></div></div><div class="v33-edit-foot"><button type="button" class="v158-delete" data-v158-delete '+(canDelete?'':'disabled')+'>삭제</button><button type="button" data-v158-close>취소</button><button type="button" class="primary" data-v158-save '+(locked?'disabled':'')+'>저장</button></div>';
+ d.innerHTML='<div class="v33-edit-head" data-drag-handle><h2>작업 기록 수정</h2><button type="button" data-v158-close class="v150-dismiss" aria-label="닫기">×</button></div><div class="v33-edit-content"><div class="v33-edit-grid"><label class="full">품목명<input disabled value="'+esc(t.name)+'"></label><label>날짜<input data-v158-date type="text" inputmode="text" maxlength="10" value="'+esc(v70Date(t))+'" '+(canDate?'':'disabled')+'></label><label>LOT<input disabled value="'+esc(t.lotId||'')+'"></label><label>수량 ('+esc(t.unit||'kg')+')<input data-v158-qty type="number" min="0.01" step="0.01" value="'+esc(t.qty)+'" '+(canQty?'':'disabled')+'></label><label>출고처 / 이동 경로<input disabled value="'+esc(t.recipient||[ZONE[t.source]||t.source,ZONE[t.destination]||t.destination].filter(Boolean).join(' → '))+'"></label><label class="full">비고<textarea data-v158-note '+(locked?'disabled':'')+'>'+esc(t.note||'')+'</textarea></label></div><p class="v33-edit-help">'+(locked?'정산·생산 연결 또는 원본 보호가 필요한 기록입니다. 이 화면에서는 조회만 가능합니다.':canQty?'날짜·수량 수정은 재고와 연결된 전표에 반영됩니다.': '후속 작업 또는 복합 전표가 연결되어 수량 수정은 제한됩니다. 비고만 수정할 수 있습니다.')+(sb&&!single?' 다품목 전표의 비고 수정은 선택한 작업 기록에만 적용됩니다.':'')+'</p><div class="v33-edit-error" role="alert"></div></div><div class="v33-edit-foot"><button type="button" class="v158-delete" data-v158-delete '+(canDelete?'':'disabled')+'>삭제</button><button type="button" data-v158-close>취소</button><button type="button" class="primary" data-v158-save '+(locked?'disabled':'')+'>저장</button></div>';
  const original=JSON.stringify(t),originalBatch=JSON.stringify(sb||null);
  document.body.append(d);d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();v158BindInputDialog(d);
  const error=m=>{d.querySelector('.v33-edit-error').textContent=m;};
  d.querySelectorAll('[data-v158-close]').forEach(b=>b.onclick=()=>v158AskClose(d));
  d.querySelector('[data-v158-delete]').onclick=()=>{
   if(!canDelete||JSON.stringify(state.transactions.find(x=>x.id===id))!==original||JSON.stringify((state.shippingBatches||[]).find(x=>x.id===t.batchId)||null)!==originalBatch)return error('기록이 변경되었습니다. 다시 열어 주세요.');
-  if(sb){v18Cancel(sb.id);if((state.shippingBatches||[]).find(x=>x.id===sb.id)?.canceled)d.close();}
-  else{reverseTransaction(id);if(state.transactions.find(x=>x.id===id)?.undone)d.close();}
+  if(sb){if(state.transactions.some(x=>x.batchId===sb.id&&v110Live(x)&&(x.traceRunId||x.traceChildId||['fieldIssue','fieldReturn'].includes(x.type))))return error('생산 연결 기록이 있어 삭제할 수 없습니다.');v18Cancel(sb.id);if((state.shippingBatches||[]).find(x=>x.id===sb.id)?.canceled)d.close();}
+  else{if(v158Later(state.transactions.find(x=>x.id===id)))return error('후속 작업이 있어 삭제할 수 없습니다.');reverseTransaction(id);if(state.transactions.find(x=>x.id===id)?.undone)d.close();}
  };
  d.querySelector('[data-v158-save]').onclick=()=>{
   const live=state.transactions.find(x=>x.id===id&&v110Live(x)),batch=(state.shippingBatches||[]).find(x=>x.id===t.batchId);
   if(locked||!live||JSON.stringify(live)!==original||JSON.stringify(batch||null)!==originalBatch||v110HasPayment(t.batchId))return error('기록이 변경되었습니다. 다시 열어 주세요.');
-  const qty=canQty?Number(d.querySelector('[data-v158-qty]').value):Number(live.qty),note=d.querySelector('[data-v158-note]').value.trim(),old=Number(live.qty);
+  const qty=canQty?Number(d.querySelector('[data-v158-qty]').value):Number(live.qty),note=d.querySelector('[data-v158-note]').value.trim(),old=Number(live.qty),newDate=canDate?normalizeIntakeDate(d.querySelector('[data-v158-date]').value):v70Date(live);
+  if(!newDate)return error('날짜를 정확히 입력해 주세요.');
+  if(canDate&&newDate!==v70Date(live)){if(v158Later(live))return error('후속 작업이 있어 날짜를 변경할 수 없습니다.');const lot=state.items.find(l=>l.id===live.lotId);if(!lot||lot.received&&newDate<lot.received||lot.traceThawDate&&newDate<lot.traceThawDate)return error('입고일 또는 해동일 이전으로 변경할 수 없습니다.');}
   if(!Number.isFinite(qty)||qty<=0||Math.abs(qty*100-Math.round(qty*100))>0.00001)return error('수량은 0보다 큰 값으로 입력해 주세요 (소수 둘째 자리까지).');
   const before=structuredClone(state);
   try{
@@ -3781,7 +3784,7 @@ function v158HistoryEdit(id){
     for(const e of live.effects){const lot=state.items.find(l=>l.id===e.lotId),sign=Math.sign(e.delta);lot[e.zone]=amount(cents(lot[e.zone])+cents(sign*(qty-old)));e.delta=sign*qty;}
     live.qty=qty;if(batch){batch.lines[0].qty=qty;batch.lines[0].amount=qty*Number(batch.lines[0].price||0);batch.deltas[0].delta=qty;}
    }
-   live.note=note;if(batch&&single)batch.note=note;
+   live.note=note;if(canDate&&newDate!==v70Date(live)){live.operationDate=newDate;if(batch&&single)batch.date=newDate;}if(batch&&single)batch.note=note;
    if(!persist())throw Error('서버 저장 실패');
   }catch(e){state=before;return error(e.message);}
   d.close();renderHistory();v68Counts();toast('작업 기록을 수정했습니다.');
@@ -5351,7 +5354,7 @@ function v33OpenLotEditor(lotId){
  $('v33EditFooter').classList.remove('hidden');
  v154ConvertNativeDates(d);
  const tx=state.transactions.find(t=>t.lotId===lotId&&v110Live(t)&&['receive','receiveExtra'].includes(t.type));
- if(tx){const del=document.createElement('button');del.type='button';del.className='v158-delete';del.textContent='삭제';del.onclick=()=>{if(v158ReceiptDelete(tx)){d.close();setView(view);toast('입고 기록을 삭제했습니다.');}};$('v33EditFooter').prepend(del);}
+ if(tx){const del=document.createElement('button');del.type='button';del.className='v158-delete';del.textContent='삭제';del.onclick=()=>{if(JSON.stringify(v33Locate(lotId)?.record)!==v33CurrentEdit.original||JSON.stringify((state.receiptBatches||[]).find(x=>x.id===v33CurrentEdit.batchId)||null)!==v33CurrentEdit.originalBatch)return v33EditError('원본 기록이 변경되었습니다. 다시 열어 주세요.');if(v158ReceiptDelete(tx)){d.close();setView(view);toast('입고 기록을 삭제했습니다.');}};$('v33EditFooter').prepend(del);}
  const later=tx&&v158Later(tx);if(batch?.entries?.length>1||later)$('v33Vendor').disabled=true;
  if((batch?.entries?.length>1&&!isOwn)||later){$('v33Received').disabled=true;const picker=$('v33Received').closest('.quick-date')?.querySelector('.quick-date-calendar');if(picker)picker.disabled=true;}
  if(later){for(const id of ['v33Brand','v33Origin','v33Expiry','v33Qty','v33Price']){const el=$(id);el.disabled=true;const picker=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(picker)picker.disabled=true;}d.querySelector('.v33-edit-help').textContent='후속 거래가 연결된 입고는 비고만 수정할 수 있습니다.';}
@@ -5368,7 +5371,11 @@ function v33SaveLotEdit(){
  const vendor=$('v33Vendor').value.trim(),brand=$('v33Brand').value.trim(),origin=$('v33Origin').value.trim(),received=$('v33Received').value,expiry=$('v33Expiry').value,qty=Number($('v33Qty').value),price=Number($('v33Price').value),note=$('v33Note').value.trim();
  const food=info.kind==='meat'||(l.category||'')!=='supplies';
  const inboundTx=state.transactions.find(t=>t.lotId===l.id&&v110Live(t)&&['receive','receiveExtra'].includes(t.type));
- if(inboundTx&&v158Later(inboundTx)&&(!$('v33Vendor').disabled||!$('v33Qty').disabled))return v33EditError('후속 거래가 등록되었습니다. 다시 열어 주세요.');
+ if(inboundTx&&v158Later(inboundTx)){
+  if(!$('v33Vendor').disabled||!$('v33Qty').disabled)return v33EditError('후속 거래가 등록되었습니다. 다시 열어 주세요.');
+  const snap=structuredClone(state);try{l.note=note;inboundTx.note=note;if(batch?.entries?.length===1)batch.note=note;if(!persist())throw Error('서버 저장 실패');}catch(e){state=snap;return v33EditError(e.message);}
+  $('v33EditDialog').close();setView(view);toast('비고를 수정했습니다.');return;
+ }
  if(!received&&!$('v33Received').disabled)return v33EditError('날짜를 입력해 주세요.');
  if(!info.isOwn&&!vendor&&!$('v33Vendor').disabled)return v33EditError('입고 업체를 입력해 주세요.');
  if(info.kind==='meat'&&!origin&&!$('v33Origin').disabled)return v33EditError('원료육 원산지를 입력해 주세요.');
