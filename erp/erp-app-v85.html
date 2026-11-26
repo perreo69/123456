@@ -4042,7 +4042,7 @@ function normalizeIntakeDate(value){
 }
 function v154ConvertNativeDates(root){
  root.querySelectorAll('input[type="date"]:not(.quick-date-calendar)').forEach(native=>{
-  const wrap=document.createElement('span');wrap.className='quick-date';
+  const wrap=document.createElement('span');wrap.className='quick-date v164-converted-date';
   const input=document.createElement('input');input.type='text';input.setAttribute('data-quick-date','');input.inputMode='text';input.maxLength=10;input.autocomplete='off';input.value=native.value;input.placeholder='YYYY-MM-DD';input.required=native.required;input.disabled=native.disabled;
   if(native.id){input.id=native.id;native.removeAttribute('id');}
   if(native.name){input.name=native.name;native.removeAttribute('name');}
@@ -4092,7 +4092,7 @@ function bindIntakeQuickDates(root){
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sync(true);inp.blur();}});
   if(cal){
    cal.addEventListener('change',()=>{const previous=inp.value;inp.value=cal.value;sync(false);if(previous!==inp.value)inp.dispatchEvent(new Event('change',{bubbles:true}));});
-   if(cal.closest('#v144EntryDialog')){
+   if(cal.closest('#v144EntryDialog,.v164-converted-date')){
     const openPicker=e=>{if(cal.disabled||typeof cal.showPicker!=='function')return;try{cal.showPicker();e.preventDefault();}catch{}};
     cal.addEventListener('click',openPicker);
     cal.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')openPicker(e);});
@@ -7754,4 +7754,18 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 }
 </style>
 
+<style id="v164-converted-date-layout">
+dialog .quick-date.v164-converted-date{display:flex!important;position:relative!important;align-items:center!important;width:100%!important;min-width:0!important;gap:0!important;box-sizing:border-box}
+dialog .quick-date.v164-converted-date>input[data-quick-date]{flex:1 1 100%!important;width:100%!important;min-width:0!important;max-width:none!important;padding-right:34px!important;box-sizing:border-box!important}
+dialog .quick-date.v164-converted-date>input.quick-date-calendar{position:absolute!important;inset:0 0 0 auto!important;display:block!important;flex:none!important;box-sizing:border-box!important;width:32px!important;min-width:32px!important;max-width:32px!important;height:100%!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;outline:0;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23787880' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='4.8' width='13' height='12' rx='2'/%3E%3Cpath d='M6.5 3.2v3.2m7-3.2v3.2M3.5 8.5h13'/%3E%3C/svg%3E") center center/18px 18px no-repeat!important;color:transparent!important;-webkit-text-fill-color:transparent!important;font-size:0!important;cursor:pointer!important;z-index:1}
+dialog .quick-date.v164-converted-date>input.quick-date-calendar::-webkit-datetime-edit{display:none!important}
+dialog .quick-date.v164-converted-date>input.quick-date-calendar::-webkit-calendar-picker-indicator{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;box-sizing:border-box!important;margin:0!important;padding:0!important;opacity:0!important;cursor:pointer!important}
+dialog .quick-date.v164-converted-date>input.quick-date-calendar:focus-visible{outline:2px solid #007aff!important;outline-offset:-3px;border-radius:5px!important}
+dialog .quick-date.v164-converted-date>input.quick-date-calendar:disabled{opacity:.4!important;cursor:default!important}
+dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:default}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){
+ dialog .quick-date.v164-converted-date>input[data-quick-date]{padding-right:46px!important}
+ dialog .quick-date.v164-converted-date>input.quick-date-calendar{width:44px!important;min-width:44px!important;max-width:44px!important;background-size:20px 20px!important}
+}
+</style>
 </body></html>
