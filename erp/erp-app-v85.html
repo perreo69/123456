@@ -2183,17 +2183,18 @@ function v116DeletionBlocked(t,st=state){
  if(t.traceChildId&&all.some(x=>x.id!==t.id&&v110Live(x)&&(x.lotId===t.traceChildId||(x.effects||[]).some(e=>e.lotId===t.traceChildId))))return '분리 LOT에 후속 작업이 있어 삭제할 수 없습니다.';
  return '';
 }
-let v116Query='',v116Selected='';
+let v116Query='',v116Selected='',v154ProductionFrom='',v154ProductionTo='';
 function v116TracePage(){
  const all=v116Runs().slice().reverse(),tx=state.transactions||[],lots=state.items||[],outputs=state.extraLots||[];
  const find=r=>{const ts=tx.filter(t=>v110Live(t)&&t.traceRunId===r.id),out=outputs.filter(l=>l.traceRunId===r.id),raw=ts.flatMap(t=>[t.name,t.traceSource?.rootLotId,t.traceSource?.lotId,t.traceSource?.supplierLot,t.traceSource?.vendor,t.traceSource?.brand,t.traceSource?.expiry,t.traceSource?.received]);const shipments=(state.shippingBatches||[]).filter(b=>!b.canceled&&(b.lines||[]).some(l=>l.traceRunId===r.id||out.some(x=>x.id===l.lotId)));return matchesSearch(v116Query,[r.name,r.id,r.plannedDate,...raw,...out.flatMap(l=>[l.id,l.name,l.manufactured,l.expiry,l.traceFinishedLot]),...shipments.flatMap(b=>[b.partnerName,b.date,b.id])]);};
- const rows=all.filter(find),picked=rows.find(r=>r.id===v116Selected)||null;
+ const rows=all.filter(r=>(!v154ProductionFrom||r.plannedDate>=v154ProductionFrom)&&(!v154ProductionTo||r.plannedDate<=v154ProductionTo)&&find(r)),picked=rows.find(r=>r.id===v116Selected)||null;
  const html=rows.map(r=>{
   const field=v116FieldRows(r.id),out=v116Outputs(r.id),used=field.reduce((n,t)=>n+(v116Actual(t)??0),0),pending=field.some(t=>v116Actual(t)===null||v116Pending(t)>0);
   const chilled=lots.some(l=>l.traceRunId===r.id&&cents(l.chilled)>0);const status=!field.length?(chilled?'현장 출고 전':'준비 재고 없음'):pending?'사용 / 반납 확인 필요':chilled?'냉장 준비 재고 남음':out.length?'연결 완료':'완제품 미연결';
   return '<tr><td>'+esc(r.plannedDate)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.id)+'</td><td>'+fmt(amount(used))+' kg</td><td>'+out.length+'건</td><td>'+esc(status)+'</td><td><button type="button" class="mini-btn" data-v116-run="'+esc(r.id)+'">상세 보기</button></td></tr>';
  }).join('');
- $('mainView').innerHTML='<section class="card inventory-panel v116-trace"><div class="panel-top"><div><h2>생산 이력</h2><p class="page-desc">원료육 사용 목적과 실제 완제품 LOT의 연결을 조회합니다. 중량은 각각 독립적으로 관리됩니다.</p></div></div><div class="filters"><div class="search-field"><input id="v116Search" type="search" placeholder="생산품목 · 생산번호 · 원료육 · LOT · 거래처 검색" value="'+esc(v116Query)+'"></div><button class="btn btn-outline" id="v116Find" type="button">검색</button><span class="filter-count">'+rows.length+'건</span></div><div class="table-scroll"><table class="inventory-table"><thead><tr><th>지정일</th><th>생산품목</th><th>생산번호</th><th>확인된 사용량</th><th>완제품 LOT</th><th>상태</th><th>관리</th></tr></thead><tbody>'+(html||'<tr><td colspan="7">등록된 생산 이력이 없습니다. 해동 또는 현장 출고에서 생산품목을 지정해 주세요.</td></tr>')+'</tbody></table></div></section><section id="v116TraceDetail"></section>';
+ $('mainView').innerHTML='<section class="card inventory-panel v116-trace"><div class="panel-top"><div><h2>생산 이력</h2><p class="page-desc">원료육 사용 목적과 실제 완제품 LOT의 연결을 조회합니다. 중량은 각각 독립적으로 관리됩니다.</p></div></div><div class="filters">'+v154PeriodBar("v116Period",v154ProductionFrom,v154ProductionTo)+'<div class="search-field"><input id="v116Search" type="search" placeholder="생산품목 · 생산번호 · 원료육 · LOT · 거래처 검색" value="'+esc(v116Query)+'"></div><button class="btn btn-outline" id="v116Find" type="button">검색</button><span class="filter-count">'+rows.length+'건</span></div><div class="table-scroll"><table class="inventory-table"><thead><tr><th>지정일</th><th>생산품목</th><th>생산번호</th><th>확인된 사용량</th><th>완제품 LOT</th><th>상태</th><th>관리</th></tr></thead><tbody>'+(html||'<tr><td colspan="7">등록된 생산 이력이 없습니다. 해동 또는 현장 출고에서 생산품목을 지정해 주세요.</td></tr>')+'</tbody></table></div></section><section id="v116TraceDetail"></section>';
+ v154BindPeriod('v116Period',v154ProductionFrom,v154ProductionTo,(a,b)=>{v154ProductionFrom=a;v154ProductionTo=b;v116Selected='';v116TracePage();});
  $('v116Find').onclick=()=>{v116Query=$('v116Search').value;v116Selected='';v116TracePage();};$('v116Search').onkeydown=e=>{if(e.key==='Enter')$('v116Find').click();};
  $('mainView').querySelectorAll('[data-v116-run]').forEach(b=>b.onclick=()=>{v116Selected=b.dataset.v116Run;v116TracePage();});
  if(picked)v116TraceDetail(picked);
@@ -2228,7 +2229,7 @@ function v36Page(){
  const mobile=v132Mobile();
  $('mainView').innerHTML=`<section class="card v36-root v145-movement ${mobile?'v134-move':''}">
   <div class="v36-pane"><div class="v36-inputs v142-common">
-    <label>날짜 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="numeric" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="날짜 달력 선택"></span></label>
+    <label>날짜 <span class="quick-date"><input id="v36Date" type="text" data-quick-date autocomplete="off" maxlength="10" inputmode="text" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="날짜 달력 선택"></span></label>
     <label>이동구분<select id="v142MoveKind" aria-label="이동구분"><option value="move">해동</option><option value="refreeze">냉동</option><option value="field">현장</option></select></label>
     <div id="v116MoveFields" class="v142-production"><label>생산품목<input id="v116CommonName" list="v116Names" autocomplete="off" placeholder="완제품명·품목코드 검색" maxlength="150"></label><details id="v142RunDetails"><summary>기존 생산번호 연결 (선택)</summary><select id="v116ExistingRun" aria-label="기존 생산번호 연결">${v116RunOptions()}</select></details><datalist id="v116Names">${v116NameSuggestions()}</datalist></div>
     <label>전표 비고<input id="v36Note" placeholder="필요한 경우만 입력" autocomplete="off"></label>
@@ -2453,7 +2454,7 @@ function v37MakePage(){
  const own=v37OwnProducts();if(!own.some(p=>p.code===v37Make.product))v37Make={product:own[0]?.code||'',selected:{}};
  const p=v37FindSku(v37Make.product),recipe=state.v37Recipes?.[v37Make.product];
  v37Common('fg_make',`<section class="card v37-panel"><div class="v37-head"><div><h3>생산등록</h3><p>생산할 품목과 생산량을 정하고, 실제 사용한 재료 LOT의 수량을 입력합니다.</p></div><button type="button" class="v37-subtle-btn" id="v37ShowRecipe">배합표 확인 →</button></div>
- ${own.length?`<div class="v37-fields make"><label>생산 완제품<select id="v37MakeSku">${own.map(x=>`<option value="${esc(x.code)}" ${x.code===v37Make.product?'selected':''}>${esc(x.name)} (${esc(x.spec||x.code)})</option>`).join('')}</select></label><label>생산일 <span class="quick-date"><input id="v37MakeDate" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="생산일 달력"></span></label><label>완제품 소비기한 <span class="quick-date"><input id="v37MakeExpiry" type="text" data-quick-date inputmode="numeric" maxlength="10" placeholder="예: 281121"><input class="quick-date-calendar" type="date" aria-label="소비기한 달력"></span></label><label>생산 수량<div class="v37-inline"><input id="v37MakeQty" type="number" min="0.01" step="0.01" placeholder="0"><span>${esc(p.unit||'팩')}</span></div></label></div>
+ ${own.length?`<div class="v37-fields make"><label>생산 완제품<select id="v37MakeSku">${own.map(x=>`<option value="${esc(x.code)}" ${x.code===v37Make.product?'selected':''}>${esc(x.name)} (${esc(x.spec||x.code)})</option>`).join('')}</select></label><label>생산일 <span class="quick-date"><input id="v37MakeDate" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" value="${today()}"><input class="quick-date-calendar" type="date" value="${today()}" aria-label="생산일 달력"></span></label><label>완제품 소비기한 <span class="quick-date"><input id="v37MakeExpiry" type="text" data-quick-date inputmode="text" maxlength="10" placeholder="예: 281121"><input class="quick-date-calendar" type="date" aria-label="소비기한 달력"></span></label><label>생산 수량<div class="v37-inline"><input id="v37MakeQty" type="number" min="0.01" step="0.01" placeholder="0"><span>${esc(p.unit||'팩')}</span></div></label></div>
  <div class="v37-bridge"><span>${recipe?`저장된 배합표: ${fmt(recipe.yieldQty)}${esc(p.unit||'팩')} 기준 · 재료 ${recipe.lines.length}종`:'등록된 배합표 없음 · LOT별로 직접 수량을 입력할 수 있습니다.'}</span><button type="button" class="v37-subtle-btn" id="v37ApplyRecipe" ${recipe?'':'disabled'}>배합표 수량 불러오기</button></div>
  <div class="v37-fields two"><label>인건비 (원, 선택)<input id="v37MakeLabor" type="number" min="0" step="1" placeholder="미입력"></label><label>제조경비 (원, 선택)<input id="v37MakeOverhead" type="number" min="0" step="1" placeholder="미입력"></label></div>
  <div class="v37-search-row"><div><h4>실제 투입 LOT</h4><p>재료를 검색해 LOT별 사용량을 입력하세요. 단가는 입고 기록이 있으면 참고값을 사용하며 수정할 수 있습니다.</p></div><input type="search" id="v37MakeSearch" placeholder="원료육·소스·향신료·포장재·LOT 검색"></div>
@@ -2826,6 +2827,24 @@ function v70Date(t){const batch=[...(state.receiptBatches||[]),...(state.shippin
 function v70InRange(d){return (!v70From||d>=v70From)&&(!v70To||d<=v70To);}
 function v61HistoryRows(){return state.transactions.filter(t=>v110Live(t)&&(v61HistoryFilter==='all'||v61HistoryKind(t)===v61HistoryFilter)&&v70Match(v70Cat(t))&&v70InRange(v70Date(t))&&matchesSearch(v70Query,[t.name,t.brand,t.vendor,t.recipient,t.note,t.purpose,v121Types[t.outboundKind],t.lotId,t.productionTarget,t.traceRunId,t.traceFinishedLot,t.traceSource?.rootLotId,...state.items.filter(l=>l.id===t.lotId).flatMap(l=>[l.brand,l.vendor])]));}
 function v89PeriodLabel(from,to){return from||to?`<span class="v89-period-value" aria-label="선택 기간">${esc(from||'')} ~ ${esc(to||'')}</span>`:'';}
+
+function v154QuickRanges(){
+ const t=today(),d=new Date(t+'T12:00:00Z'),iso=x=>x.toISOString().slice(0,10),shift=n=>{const x=new Date(d);x.setUTCDate(x.getUTCDate()+n);return iso(x)},m=(d.getUTCDay()+6)%7;
+ return [['all','전체 기간','',''],['today','오늘',t,t],['week','이번 주',shift(-m),shift(6-m)],['month','이번 달',iso(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1))),iso(new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()+1,0)))]];
+}
+function v154PeriodBar(id,from='',to=''){
+ return '<div class="v154-periodbar" id="'+id+'Bar" role="group" aria-label="조회 기간"><div class="v154-fast">'+v154QuickRanges().map(([key,label,a,b])=>'<button type="button" data-v154-quick="'+key+'" aria-pressed="'+(from===a&&to===b)+'" class="'+(from===a&&to===b?'active':'')+'">'+label+'</button>').join('')+'</div><button type="button" class="v154-picker" id="'+id+'">기간선택</button><div class="v154-dates"><input type="text" inputmode="text" autocomplete="off" maxlength="10" placeholder="YYMMDD" aria-label="시작일" data-v154-from value="'+esc(from)+'"><span>~</span><input type="text" inputmode="text" autocomplete="off" maxlength="10" placeholder="YYMMDD" aria-label="종료일" data-v154-to value="'+esc(to)+'"></div><span class="v154-status">'+(from||to?esc((from||'처음')+' ~ '+(to||'현재')):'전체 기간')+'</span><span class="v154-error" role="alert"></span></div>';
+}
+function v154BindPeriod(id,from,to,apply){
+ const bar=$(id+'Bar'),a=bar.querySelector('[data-v154-from]'),b=bar.querySelector('[data-v154-to]'),err=bar.querySelector('.v154-error');
+ bar.querySelectorAll('[data-v154-quick]').forEach(btn=>btn.onclick=()=>{const q=v154QuickRanges().find(x=>x[0]===btn.dataset.v154Quick);if(q)apply(q[2],q[3]);});
+ const read=()=>{const f=normalizeIntakeDate(a.value),t=normalizeIntakeDate(b.value);if(f===null||t===null||(f&&t&&f>t)){err.textContent='날짜 또는 기간을 확인해 주세요.';return null;}err.textContent='';return [f,t]};
+ const commit=()=>{const q=read();if(q&&(q[0]!==from||q[1]!==to))apply(...q);};
+ for(const input of [a,b]){input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();commit();}});input.addEventListener('input',()=>{err.textContent='';});}
+ bar.addEventListener('focusout',e=>{if((e.target===a||e.target===b)&&!bar.contains(e.relatedTarget)&&e.relatedTarget){const q=read();if(q&&(q[0]!==from||q[1]!==to))setTimeout(()=>{if(bar.isConnected)apply(...q)},0);}});
+ $(id).onclick=e=>{const q=read();if(q)v70Calendar({anchor:e.currentTarget,from:q[0],to:q[1],apply});};
+}
+
 function v70Calendar(options){
  const opts=options&&typeof options.apply==='function'?options:null;
  const anchor=options?.anchor||document.activeElement;
@@ -2833,7 +2852,8 @@ function v70Calendar(options){
  let from=(opts?opts.from:v70From)||today(),to=(opts?opts.to:v70To)||today();
  const parse=d=>new Date(d+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),date=(y,m,d)=>new Date(Date.UTC(y,m,d,12)),now=parse(today()),todayYear=now.getUTCFullYear();
  let baseYear=parse(from).getUTCFullYear(),left=parse(from),right=parse(to),active='';
- const minYear=1900,maxYear=2100,limit=y=>Math.min(maxYear,Math.max(minYear,y));
+ const nextMonth=d=>date(d.getUTCFullYear(),d.getUTCMonth()+1,1),spread=()=>{left=parse(from);right=parse(to);if(left.getUTCFullYear()===right.getUTCFullYear()&&left.getUTCMonth()===right.getUTCMonth()&&!(left.getUTCFullYear()===2199&&left.getUTCMonth()===11))right=nextMonth(left);};spread();
+ const minYear=1900,maxYear=2199,limit=y=>Math.min(maxYear,Math.max(minYear,y));
  function presets(){
   const y=baseYear,m=now.getUTCMonth(),d=Math.min(now.getUTCDate(),date(y,m+1,0).getUTCDate()),ref=date(y,m,d),mon=d-(ref.getUTCDay()+6)%7;
   return [['오늘',ref,ref],['전일',date(y,m,d-1),date(y,m,d-1)],['주간',date(y,m,mon),date(y,m,mon+6)],['전주',date(y,m,mon-7),date(y,m,mon-1)],['당월',date(y,m,1),date(y,m+1,0)],['전월',date(y,m-1,1),date(y,m,0)],['올해',date(y,0,1),date(y,12,0)],['상반기',date(y,0,1),date(y,6,0)],['하반기',date(y,6,1),date(y,12,0)],...Array.from({length:4},(_,i)=>[`${i+1}/4분기`,date(y,i*3,1),date(y,i*3+3,0)]),['오늘까지',date(y,0,1),ref],...Array.from({length:12},(_,i)=>[`${i+1}월`,date(y,i,1),date(y,i+1,0)])];
@@ -2845,11 +2865,11 @@ function v70Calendar(options){
   const cellCount=7*Math.max(5,rowsFor(left),rowsFor(right));
   const years=Array.from({length:maxYear-minYear+1},(_,i)=>minYear+i).map(v=>`<option value="${v}" ${v===y?'selected':''}>${v}</option>`).join('');
   const months=Array.from({length:12},(_,i)=>`<option value="${i}" ${i===m?'selected':''}>${i+1}월</option>`).join('');
-  return `<section class="v88-cal" aria-label="${side==='left'?'시작일':'종료일'}"><div class="v88-cal-nav"><button type="button" class="v88-arrow" data-nav="${side}:-1" aria-label="이전 달"><span>‹</span></button><select data-year="${side}" aria-label="${side==='left'?'시작':'종료'} 연도">${years}</select><select data-month="${side}" aria-label="${side==='left'?'시작':'종료'} 월">${months}</select><button type="button" class="v88-arrow" data-nav="${side}:1" aria-label="다음 달"><span>›</span></button></div><div class="v88-days">${['일','월','화','수','목','금','토'].map(x=>`<b>${x}</b>`).join('')}${'<span></span>'.repeat(first)}${Array.from({length:n},(_,i)=>{const k=iso(date(y,m,i+1));return `<button type="button" data-day="${side}:${k}" aria-label="${k}" aria-pressed="${k===selected}" class="${k===selected?'chosen':''} ${k===today()?'current-day':''}">${i+1}</button>`}).join('')}${'<span></span>'.repeat(cellCount-first-n)}</div></section>`;
+  return `<section class="v88-cal" aria-label="${side==='left'?'시작일':'종료일'}"><div class="v88-cal-nav"><button type="button" class="v88-arrow" data-nav="${side}:-1" aria-label="이전 달"><span>‹</span></button><select data-year="${side}" aria-label="${side==='left'?'시작':'종료'} 연도">${years}</select><select data-month="${side}" aria-label="${side==='left'?'시작':'종료'} 월">${months}</select><button type="button" class="v88-arrow" data-nav="${side}:1" aria-label="다음 달"><span>›</span></button></div><div class="v88-days">${['일','월','화','수','목','금','토'].map(x=>`<b>${x}</b>`).join('')}${Array.from({length:cellCount},(_,i)=>{const day=date(y,m,i-first+1),k=iso(day),other=day.getUTCMonth()!==m;return `<button type="button" data-day="${side}:${k}" aria-label="${k}" aria-pressed="${k===selected}" class="${other?'v154-other-month':''} ${k===from||k===to?'chosen':''} ${k>from&&k<to?'between':''} ${k===today()?'current-day':''}">${day.getUTCDate()}</button>`}).join('')}</div></section>`;
  }
  function draw(){
-  const ps=presets(),buttons=(a,b)=>ps.slice(a,b).map((p,i)=>`<button type="button" data-preset="${a+i}" class="${active===String(a+i)?'active':''}">${p[0]}</button>`).join('');
-  dlg.innerHTML=`<div class="v88-top"><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>${baseYear}</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">${pretty(from)} ~ ${pretty(to)}</strong></div><div class="v88-quick"><div class="v88-quick-seven">${buttons(0,7)}</div><div class="v88-quick-seven">${buttons(7,14)}</div><div class="v88-quick-months">${buttons(14,26)}</div></div><div class="v88-calendars">${cal(left,'left')}<span class="v88-separator">~</span>${cal(right,'right')}</div><div class="v88-footer"><button type="button" data-clear class="v88-clear">기간 해제</button><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>`;
+  const ps=presets();if(active===''){const match=ps.findIndex(p=>iso(p[1])===from&&iso(p[2])===to);if(match>=0)active=String(match);}const buttons=(a,b)=>ps.slice(a,b).map((p,i)=>`<button type="button" data-preset="${a+i}" class="${active===String(a+i)?'active':''}">${p[0]}</button>`).join('');
+  dlg.innerHTML=`<div class="v88-top" data-drag-handle><strong class="v154-calendar-title">기간 선택</strong><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>${baseYear}</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">${pretty(from)} ~ ${pretty(to)}</strong><button type="button" data-close class="v154-calendar-close" aria-label="기간 선택 닫기"><svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span>닫기</span></button></div><div class="v88-quick"><div class="v88-quick-seven">${buttons(0,7)}</div><div class="v88-quick-seven">${buttons(7,14)}</div><div class="v88-quick-months">${buttons(14,26)}</div></div><div class="v88-calendars">${cal(left,'left')}<span class="v88-separator">~</span>${cal(right,'right')}</div><p class="v154-calendar-help">왼쪽, 오른쪽 달력을 각각 연도·월을 바꿀 수 있습니다. 시작일과 종료일을 차례로 클릭하세요.</p><div class="v88-footer"><button type="button" data-clear class="v88-clear">기간 해제</button><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>`;
  }
  function apply(f,t){dlg.close();if(opts)opts.apply(f,t);else{v70From=f;v70To=t;renderHistory();}}
  dlg.onclick=e=>{
@@ -2858,25 +2878,17 @@ function v70Calendar(options){
   if(b.hasAttribute('data-clear'))return apply('','');
   if(b.hasAttribute('data-apply'))return apply(from,to);
   if(b.dataset.base!==undefined){
-   const next=limit(baseYear+Number(b.dataset.base));if(next!==baseYear){baseYear=next;active='';const shift=k=>{const d=parse(k),m=d.getUTCMonth();return iso(date(next,m,Math.min(d.getUTCDate(),date(next,m+1,0).getUTCDate())));};from=shift(from);to=shift(to);if(from>to)to=from;left=parse(from);right=parse(to);}
-  }else if(b.dataset.preset!==undefined){const p=presets()[+b.dataset.preset];if(!p)return;active=b.dataset.preset;from=iso(p[1]);to=iso(p[2]);left=parse(from);right=parse(to);}
+   const next=limit(baseYear+Number(b.dataset.base));if(next!==baseYear){baseYear=next;active='';const shift=k=>{const d=parse(k),m=d.getUTCMonth();return iso(date(next,m,Math.min(d.getUTCDate(),date(next,m+1,0).getUTCDate())));};from=shift(from);to=shift(to);if(from>to)to=from;spread();}
+  }else if(b.dataset.preset!==undefined){const p=presets()[+b.dataset.preset];if(!p)return;active=b.dataset.preset;from=iso(p[1]);to=iso(p[2]);spread();}
   else if(b.dataset.nav){const [side,n]=b.dataset.nav.split(':'),d=side==='left'?left:right,next=date(d.getUTCFullYear(),d.getUTCMonth()+Number(n),1);if(next.getUTCFullYear()<minYear||next.getUTCFullYear()>maxYear)return;if(side==='left')left=next;else right=next;}
-  else if(b.dataset.day){const [side,k]=b.dataset.day.split(':');active='';if(side==='left'){from=k;if(to<from){to=from;right=parse(to);}}else{to=k;if(from>to){from=to;left=parse(from);}}}
+  else if(b.dataset.day){const [side,k]=b.dataset.day.split(':');if(!normalizeIntakeDate(k))return;active='';if(side==='left'){from=k;if(to<from){to=from;right=parse(to);}}else{to=k;if(from>to){from=to;left=parse(from);}}}
   draw();
  };
  dlg.onchange=e=>{const el=e.target,side=el.dataset.year||el.dataset.month;if(!side)return;const d=side==='left'?left:right,yy=el.dataset.year?Number(el.value):d.getUTCFullYear(),mm=el.dataset.month?Number(el.value):d.getUTCMonth(),next=date(yy,mm,1);if(side==='left')left=next;else right=next;draw();};
- // Anchor the initial position to the invoking period button, not the viewport center.
- function placeNearButton(){
-  if(!dlg.open||!anchor?.isConnected)return;
-  const a=anchor.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight,gap=8,edge=8;
-  const r=dlg.getBoundingClientRect();
-  const below=h-edge-a.bottom-gap,above=a.top-gap-edge;
-  const y=below>=r.height?a.bottom+gap:above>=r.height?a.top-gap-r.height:below>=above?a.bottom+gap:a.top-gap-r.height;
-  const clamp=(n,max)=>Math.max(edge,Math.min(Math.max(edge,max),n));
-  Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:clamp(a.left,w-r.width-edge)+'px',top:clamp(y,h-r.height-edge)+'px'});
- }
- dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();placeNearButton();
- // Keep manual drag positions, only clamp to viewport when month content changes.
+ dlg.setAttribute('aria-label','기간 선택');
+ dlg.addEventListener('close',()=>{dlg.remove();if(anchor?.isConnected)anchor.focus({preventScroll:true});});document.body.append(dlg);draw();dlg.showModal();
+ // Initial center, then preserve the existing draggable-window mechanism.
+ const center=()=>{const r=dlg.getBoundingClientRect();Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:Math.max(8,(document.documentElement.clientWidth-r.width)/2)+'px',top:Math.max(8,(document.documentElement.clientHeight-r.height)/2)+'px'});};center();
  const fit=()=>{if(!dlg.open)return;const r=dlg.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;dlg.style.left=Math.max(8,Math.min(r.left,w-r.width-8))+'px';dlg.style.top=Math.max(8,Math.min(r.top,h-r.height-8))+'px';};
  const observer=new ResizeObserver(fit);observer.observe(dlg);window.addEventListener('resize',fit);
  dlg.addEventListener('close',()=>{observer.disconnect();window.removeEventListener('resize',fit);},{once:true});
@@ -2912,10 +2924,10 @@ function acDocsFiltered(docs,f){return docs.filter(d=>acDateOK(d.date,f)&&(!f.pa
 function acCommit(change){const before=structuredClone(state);try{change();if(!persist())throw Error('서버 저장 실패 또는 동시 변경 충돌입니다. 새로고침 후 다시 시도해 주세요.');return true;}catch(e){state=before;alert(e.message);return false;}}
 function acID(prefix){return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,9);}
 function acStatus(d){return d.review?'정산 확인 필요':d.canceled?'취소':d.unknown?'단가 미확정':d.balance===0?(d.kind==='purchase'?'지급 완료':'입금 완료'):d.settled>0?'부분 정산':(d.kind==='purchase'?'미지급':'미수금');}
-function acDateValid(d){return /^\d{4}-\d{2}-\d{2}$/.test(d)&&normalizeIntakeDate(d)===d;}
+function acDateValid(d){return typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&normalizeIntakeDate(d)===d;}
 function acDialog(title,body,handler){
  const dlg=document.createElement('dialog');dlg.className='v37-modal ac-modal';dlg.innerHTML=`<form><h3>${esc(title)}</h3>${body}<div class="v37-error" data-ac-error role="alert"></div><div class="v37-buttons"><button type="button" data-ac-close>닫기</button><button class="primary" type="submit">저장</button></div></form>`;
- document.body.appendChild(dlg);dlg.querySelector('[data-ac-close]').onclick=()=>dlg.close();dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{if(handler(new FormData(e.currentTarget))){dlg.close();acPage(view);}}catch(err){dlg.querySelector('[data-ac-error]').textContent=err.message;}};dlg.showModal();return dlg;
+ document.body.appendChild(dlg);bindIntakeQuickDates(dlg);dlg.querySelector('[data-ac-close]').onclick=()=>dlg.close();dlg.addEventListener('close',()=>dlg.remove(),{once:true});dlg.querySelector('form').onsubmit=e=>{e.preventDefault();try{if(handler(new FormData(e.currentTarget))){dlg.close();acPage(view);}}catch(err){dlg.querySelector('[data-ac-error]').textContent=err.message;}};dlg.showModal();return dlg;
 }
 function acComplete(key){
  const d=acDocuments().find(x=>x.key===key);
@@ -2928,8 +2940,8 @@ function acComplete(key){
 function acSettle(key){
  const d=acDocuments().find(x=>x.key===key);if(!d||d.canceled||d.unknown||d.balance<=0||d.review)return toast('금액 또는 전표 상태를 먼저 확인해 주세요.');
  const label=d.kind==='purchase'?'지급':'수금';
- acDialog(label+' 등록',`<p>${esc(d.name)} · ${esc(d.id)}</p><p>남은 금액: <b>${acMoney(d.balance)}원</b></p><label>날짜<input name="date" type="date" required value="${today()}"></label><label>${label}액 (원)<input name="amount" type="number" min="0.01" step="0.01" max="${d.balance}" value="${d.balance}" required></label><label>방법<select name="method"><option>계좌이체</option><option>현금</option><option>카드</option><option>기타</option></select></label><label>비고<input name="note" maxlength="300"></label>`,f=>{
-  const live=acDocuments().find(x=>x.key===key),date=String(f.get('date')),amount=Number(f.get('amount'));
+ acDialog(label+' 등록',`<p>${esc(d.name)} · ${esc(d.id)}</p><p>남은 금액: <b>${acMoney(d.balance)}원</b></p><label>날짜<span class="quick-date"><input name="date" type="text" data-quick-date inputmode="text" maxlength="10" required value="${today()}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${today()}"></span></label><label>${label}액 (원)<input name="amount" type="number" min="0.01" step="0.01" max="${d.balance}" value="${d.balance}" required></label><label>방법<select name="method"><option>계좌이체</option><option>현금</option><option>카드</option><option>기타</option></select></label><label>비고<input name="note" maxlength="300"></label>`,f=>{
+  const live=acDocuments().find(x=>x.key===key),date=normalizeIntakeDate(f.get('date')),amount=Number(f.get('amount'));
   if(!live||live.canceled||live.unknown||live.review||!acDateValid(date)||date<live.date||date>today()||!Number.isFinite(amount)||amount<=0||acRound(amount)!==amount||amount>live.balance)throw Error('날짜 또는 정산 금액을 확인해 주세요.');
   return acCommit(()=>{(state.acPayments||(state.acPayments=[])).push({id:acID('PAY'),doc:key,kind:live.kind,date,amount,method:String(f.get('method')),note:String(f.get('note')||'').trim(),partner:live.partner,name:live.name,at:new Date().toISOString(),voided:false});});
  });
@@ -2941,8 +2953,8 @@ function acPaymentHistory(key){
 }
 function acExpenseEdit(id){
  const old=(state.acExpenses||[]).find(e=>e.id===id&&!e.voided);const cats=['운반비','택배비','소모품비','수도광열비','수선비','통신비','식대','기타'];
- acDialog(old?'경비 수정':'일반 경비 등록',`<label>날짜<input name="date" type="date" required value="${esc(old?.date||today())}"></label><label>경비 구분<select name="category">${cats.map(c=>`<option ${old?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>업체 / 지급처<input name="vendor" maxlength="100" value="${esc(old?.vendor||'')}"></label><label>내용<input name="description" required maxlength="200" value="${esc(old?.description||'')}"></label><label>금액 (원)<input name="amount" required type="number" min="0.01" max="1000000000000" step="0.01" value="${esc(old?.amount||'')}"></label><label>지급 방법<select name="method">${['계좌이체','현금','카드','기타'].map(m=>`<option ${old?.method===m?'selected':''}>${m}</option>`).join('')}</select></label><label>비고<input name="note" maxlength="300" value="${esc(old?.note||'')}"></label>`,f=>{
-  const date=String(f.get('date')),amount=Number(f.get('amount')),description=String(f.get('description')||'').trim();
+ acDialog(old?'경비 수정':'일반 경비 등록',`<label>날짜<span class="quick-date"><input name="date" type="text" data-quick-date inputmode="text" maxlength="10" required value="${esc(old?.date||today())}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${esc(old?.date||today())}"></span></label><label>경비 구분<select name="category">${cats.map(c=>`<option ${old?.category===c?'selected':''}>${c}</option>`).join('')}</select></label><label>업체 / 지급처<input name="vendor" maxlength="100" value="${esc(old?.vendor||'')}"></label><label>내용<input name="description" required maxlength="200" value="${esc(old?.description||'')}"></label><label>금액 (원)<input name="amount" required type="number" min="0.01" max="1000000000000" step="0.01" value="${esc(old?.amount||'')}"></label><label>지급 방법<select name="method">${['계좌이체','현금','카드','기타'].map(m=>`<option ${old?.method===m?'selected':''}>${m}</option>`).join('')}</select></label><label>비고<input name="note" maxlength="300" value="${esc(old?.note||'')}"></label>`,f=>{
+  const date=normalizeIntakeDate(f.get('date')),amount=Number(f.get('amount')),description=String(f.get('description')||'').trim();
   if(!acDateValid(date)||date>today()||!description||!Number.isFinite(amount)||amount<=0||amount>1e12||acRound(amount)!==amount)throw Error('날짜, 내용 및 금액을 확인해 주세요.');
   const entry={id:old?.id||acID('EXP'),date,category:String(f.get('category')),vendor:String(f.get('vendor')||'').trim(),description,amount,method:String(f.get('method')),note:String(f.get('note')||'').trim(),at:old?.at||new Date().toISOString(),updatedAt:new Date().toISOString(),voided:false};
   return acCommit(()=>{state.acExpenses=state.acExpenses||[];if(old){const i=state.acExpenses.findIndex(x=>x.id===old.id&&!x.voided);if(i<0)throw Error('원본을 찾을 수 없습니다.');state.acExpenses[i]=entry;}else state.acExpenses.unshift(entry);});
@@ -2986,10 +2998,10 @@ function acPage(next){
   const live=docs.filter(d=>!d.canceled);summary=metric(kind==='purchase'?'확정 매입 금액':'확정 매출 금액',live.reduce((n,d)=>n+d.amount,0))+metric(kind==='purchase'?'지급 합계':'수금 합계',live.reduce((n,d)=>n+d.settled,0))+metric(kind==='purchase'?'미지급 잔액':'미수 잔액',live.reduce((n,d)=>n+d.balance,0));
   intro=(kind==='purchase'?'외부 매입 입고':'거래처 출고')+' 전표가 자동 반영됩니다. 실제 '+(kind==='purchase'?'지급':'입금')+' 후 완료 버튼을 누르면 잔액이 0으로 변경됩니다. 단가 미확정 전표는 금액 확인 후 정산하세요. 자체생산·내부 이동은 제외합니다.';
  }
- $('mainView').innerHTML=`<section class="inventory-panel card ac-page${!expense&&!ledger?' v102-accounting':''}"><div class="panel-top ac-panel-heading"><div><h2>${next==='ac_purchase'?'매입 내역':next==='ac_sale'?'매출 내역':names[next]}</h2><p class="page-desc">${esc(intro)}</p></div>${next==='ac_purchase'?'<button type="button" class="btn btn-primary" id="acNewPurchase">+ 매입 입력</button>':next==='ac_sale'?'<button type="button" class="btn btn-primary" id="acNewSale">+ 매출 입력</button>':expense?'<button class="btn btn-primary" id="acNew">+ 경비 등록</button>':''}</div><div class="ac-metrics">${summary}</div><div class="filters ac-filters v90-report-filters"><span class="v87-filter-label">조회 조건</span><div class="v70-filter v90-report-controls"><div class="v102-period-group"><button class="btn btn-outline" id="acPeriod" type="button">기간설정</button>${v89PeriodLabel(f.from,f.to)}</div><input id="acQuery" type="search" placeholder="거래처 · 내용 검색" value="${esc(f.query)}">${expense?'':`<select id="acPartner"><option value="">전체 거래처</option>${[...partners].sort((a,b)=>a[1].localeCompare(b[1],'ko')).map(([k,n])=>`<option value="${esc(k)}" ${k===f.partner?'selected':''}>${esc(n)}</option>`).join('')}</select>`}${ledger?'':`<select id="acStatus"><option value="all">${settle?'미정산 / 확인 필요':'전체 상태'}</option>${expense?'<option value="open">유효</option>':'<option value="open">미정산</option><option value="closed">정산 완료</option>'}<option value="canceled">취소</option></select>`}<button class="btn btn-outline" id="acCSV">CSV 저장</button></div></div>${acTable(headers,rows)}<div class="table-footer">조회 ${rows.length.toLocaleString('ko-KR')}건 · 사내 관리용 장부 (세무 신고용 아님)</div></section>`;
+ $('mainView').innerHTML=`<section class="inventory-panel card ac-page${!expense&&!ledger?' v102-accounting':''}"><div class="panel-top ac-panel-heading"><div><h2>${next==='ac_purchase'?'매입 내역':next==='ac_sale'?'매출 내역':names[next]}</h2><p class="page-desc">${esc(intro)}</p></div>${next==='ac_purchase'?'<button type="button" class="btn btn-primary" id="acNewPurchase">+ 매입 입력</button>':next==='ac_sale'?'<button type="button" class="btn btn-primary" id="acNewSale">+ 매출 입력</button>':expense?'<button class="btn btn-primary" id="acNew">+ 경비 등록</button>':''}</div><div class="ac-metrics">${summary}</div><div class="filters ac-filters v90-report-filters"><span class="v87-filter-label">조회 조건</span><div class="v70-filter v90-report-controls"><div class="v102-period-group">${v154PeriodBar("acPeriod",f.from,f.to)}</div><input id="acQuery" type="search" placeholder="거래처 · 내용 검색" value="${esc(f.query)}">${expense?'':`<select id="acPartner"><option value="">전체 거래처</option>${[...partners].sort((a,b)=>a[1].localeCompare(b[1],'ko')).map(([k,n])=>`<option value="${esc(k)}" ${k===f.partner?'selected':''}>${esc(n)}</option>`).join('')}</select>`}${ledger?'':`<select id="acStatus"><option value="all">${settle?'미정산 / 확인 필요':'전체 상태'}</option>${expense?'<option value="open">유효</option>':'<option value="open">미정산</option><option value="closed">정산 완료</option>'}<option value="canceled">취소</option></select>`}<button class="btn btn-outline" id="acCSV">CSV 저장</button></div></div>${acTable(headers,rows)}<div class="table-footer">조회 ${rows.length.toLocaleString('ko-KR')}건 · 사내 관리용 장부 (세무 신고용 아님)</div></section>`;
  if($('acStatus'))$('acStatus').value=f.status;
  for(const [id,k] of [['acQuery','query'],['acPartner','partner'],['acStatus','status']])if($(id))$(id).onchange=()=>{const v=$(id).value;if(k==='from'&&f.to&&v>f.to||k==='to'&&f.from&&v<f.from){alert('기간을 확인해 주세요.');$(id).value=f[k];return;}f[k]=v;acPage(next);};
- $('acPeriod').onclick=e=>v70Calendar({anchor:e.currentTarget,from:f.from,to:f.to,apply:(from,to)=>{f.from=from;f.to=to;acPage(next);}});$('acCSV').onclick=()=>download(names[next]+'_'+today()+'.csv',csv([headers,...exportRows].map(r=>r.map(acExportCell))),'text/csv;charset=utf-8');
+ v154BindPeriod('acPeriod',f.from,f.to,(from,to)=>{f.from=from;f.to=to;acPage(next);});$('acCSV').onclick=()=>download(names[next]+'_'+today()+'.csv',csv([headers,...exportRows].map(r=>r.map(acExportCell))),'text/csv;charset=utf-8');
  if($('acNewPurchase'))$('acNewPurchase').onclick=()=>setView('intake','ac_purchase');
  if($('acNewSale'))$('acNewSale').onclick=()=>setView('ship','ac_sale');
  if($('acNew'))$('acNew').onclick=()=>acExpenseEdit();
@@ -3307,7 +3319,7 @@ function attachInventoryListeners(){
  $('inventoryBody').onclick=e=>{const sort=e.target.closest('[data-v80-sort],[data-v80-group-sort]');if(sort){v80ToggleSort(sort.dataset.v80Sort||sort.dataset.v80GroupSort,!!sort.dataset.v80GroupSort);return;}const info=!e.target.closest('button')&&e.target.closest('[data-v73-lot]'); if(info){const l=state.items.find(x=>x.id===(info.dataset.v72Info||info.dataset.v73Lot));if(l)v140LotDetail(l);return;}const pick=e.target.closest('[data-v72-select]');if(pick){const key=pick.dataset.v72Select;tableSort={key:'default',direction:'asc'};v72Selected=key;renderInventory();return;}const filter=e.target.closest('button[data-filter]');if(filter){e.preventDefault();e.stopPropagation();if(popupField===filter.dataset.filter&&$('columnFilterPopup'))dismissFilter();else openColumnFilter(filter.dataset.filter,filter);return;}const b=e.target.closest('button[data-work]');if(b){e.preventDefault();e.stopPropagation();showActionMenu(b,{productId:b.dataset.product||'',lotId:b.dataset.lot||'',from:selectedZone==='all'?'':selectedZone});return;}const r=e.target.closest('[data-toggle]');if(r){const key=r.dataset.toggle;expanded.has(key)?expanded.delete(key):expanded.add(key);renderInventory();}};
  $('inventoryBody').onkeydown=e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[data-toggle],[data-v73-lot]')){e.preventDefault();e.target.click();}};
 }
-function field(label,name,opts={}){const required=opts.required?'<span class="req">*</span>':'';const id='f_'+name;let input;if(opts.options){input=`<select id="${id}" name="${name}" ${opts.required?'required':''}>${opts.options.map(([v,t])=>`<option value="${esc(v)}" ${name==='outboundKind'&&v===''?'disabled hidden':''} ${v===opts.value?'selected':''}>${esc(t)}</option>`).join('')}</select>`;}else if(opts.textarea){input=`<textarea id="${id}" name="${name}" placeholder="${esc(opts.placeholder||'')}">${esc(opts.value||'')}</textarea>`;}else if(opts.type==='date')input=`<span class="quick-date"><input id="${id}" name="${name}" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" value="${esc(opts.value||'')}" ${opts.required?'required':''}><input class="quick-date-calendar" type="date" value="${esc(opts.value||'')}" aria-label="${esc(label)} 달력 선택" title="달력에서 선택"></span>`;else input=`<input id="${id}" name="${name}" type="${opts.type||'text'}" ${opts.type==='number'?'min="0.01" step="0.01"':''} value="${esc(opts.value||'')}" ${opts.placeholder?`placeholder="${esc(opts.placeholder)}"`:''} ${opts.required?'required':''}>`;
+function field(label,name,opts={}){const required=opts.required?'<span class="req">*</span>':'';const id='f_'+name;let input;if(opts.options){input=`<select id="${id}" name="${name}" ${opts.required?'required':''}>${opts.options.map(([v,t])=>`<option value="${esc(v)}" ${name==='outboundKind'&&v===''?'disabled hidden':''} ${v===opts.value?'selected':''}>${esc(t)}</option>`).join('')}</select>`;}else if(opts.textarea){input=`<textarea id="${id}" name="${name}" placeholder="${esc(opts.placeholder||'')}">${esc(opts.value||'')}</textarea>`;}else if(opts.type==='date')input=`<span class="quick-date"><input id="${id}" name="${name}" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD" value="${esc(opts.value||'')}" ${opts.required?'required':''}><input class="quick-date-calendar" type="date" value="${esc(opts.value||'')}" aria-label="${esc(label)} 달력 선택" title="달력에서 선택"></span>`;else input=`<input id="${id}" name="${name}" type="${opts.type||'text'}" ${opts.type==='number'?'min="0.01" step="0.01"':''} value="${esc(opts.value||'')}" ${opts.placeholder?`placeholder="${esc(opts.placeholder)}"`:''} ${opts.required?'required':''}>`;
  return `<div class="form-field ${opts.full?'full':''}"><label for="${id}">${esc(label)}${required}</label>${input}${opts.help?`<div class="field-help">${esc(opts.help)}</div>`:''}</div>`;}
 const ACTIONS=[
  {key:'move',label:'해동',title:'해동',desc:'냉동고의 LOT를 선택해 냉장고로 이동합니다.',button:'해동 처리'},
@@ -3601,7 +3613,7 @@ function record(type,l,qty,effects,note='',purpose='',extra={}){
  const trace=source==='chilled'&&l.traceRunId?{traceRunId:l.traceRunId,productionTarget:v116RunName(l.traceRunId),traceSource:v116Snapshot(l)}:{};
  state.transactions.unshift({id:`T-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`,at:new Date().toISOString(),...trace,type,lotId:l.id,name:l.name,meatType:l.type,vendor:l.vendor,qty,source,destination,effects,note,purpose,...extra,undone:false});
 }
-function submitAction(e){e.preventDefault();for(const el of e.currentTarget.querySelectorAll('input[data-quick-date]')){const valid=normalizeIntakeDate(el.value);if(valid===null||(el.required&&!valid)){$('formError').textContent='날짜를 정확히 입력해 주세요. 예: 1121, 281121, 20281121';el.focus();return;}el.value=valid;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal)cal.value=valid;}const v45BeforeState=structuredClone(state),v45BeforeOut=v17LastOutId;const p=new FormData(e.currentTarget);const finished=modalMode;const err=finished==='receive'?receive(p):finished==='product'?saveProduct(p):moveOrShip(p);if(err){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent=err;$('formError').style.display='block';$('formError').scrollIntoView({block:'nearest'});toast('저장되지 않았습니다: '+err);return;}if(!persist()){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent='서버 저장을 확인하지 못했습니다. 새로고침 후 기록을 확인해 주세요.';toast('서버 저장 확인 실패');return;}closeAction();if(view==='history')renderHistory();else if(view==='backup')renderBackup();else if(view==='products'){if(finished==='product'&&$('productSearch'))$('productSearch').value='';renderProducts();}else if($('searchInput'))renderInventory();else setView(view);toast(finished==='product'?'제품 정보가 저장되었습니다.':finished==='receive'?'입고와 신규 LOT가 저장되었습니다.':'재고가 변경되고 이력이 저장되었습니다.');if((finished==='ship'||(finished==='outbound'&&p.get('outboundKind')==='company'))&&v17LastOutId)v17ShowSaved('out',v17LastOutId);}
+function submitAction(e){e.preventDefault();for(const el of e.currentTarget.querySelectorAll('input[data-quick-date]')){const valid=normalizeIntakeDate(el.value);if(valid===null||(el.required&&!valid)){$('formError').textContent='날짜를 정확히 입력해 주세요. 예: 28/11/21, 2028-11-21, 20281121';el.focus();return;}el.value=valid;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal)cal.value=valid;}const v45BeforeState=structuredClone(state),v45BeforeOut=v17LastOutId;const p=new FormData(e.currentTarget);const finished=modalMode;const err=finished==='receive'?receive(p):finished==='product'?saveProduct(p):moveOrShip(p);if(err){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent=err;$('formError').style.display='block';$('formError').scrollIntoView({block:'nearest'});toast('저장되지 않았습니다: '+err);return;}if(!persist()){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent='서버 저장을 확인하지 못했습니다. 새로고침 후 기록을 확인해 주세요.';toast('서버 저장 확인 실패');return;}closeAction();if(view==='history')renderHistory();else if(view==='backup')renderBackup();else if(view==='products'){if(finished==='product'&&$('productSearch'))$('productSearch').value='';renderProducts();}else if($('searchInput'))renderInventory();else setView(view);toast(finished==='product'?'제품 정보가 저장되었습니다.':finished==='receive'?'입고와 신규 LOT가 저장되었습니다.':'재고가 변경되고 이력이 저장되었습니다.');if((finished==='ship'||(finished==='outbound'&&p.get('outboundKind')==='company'))&&v17LastOutId)v17ShowSaved('out',v17LastOutId);}
 
 function v110Live(t){return !t.undone&&!['reverse','productionCanceled'].includes(t.type);}
 function v110HasPayment(id){return !!id&&(state.acPayments||[]).some(p=>!p.voided&&(p.doc==='purchase:'+id||p.doc==='sale:'+id));}
@@ -3654,13 +3666,13 @@ function v110DeletedPage(){
  const time=r=>r.at&&!isNaN(Date.parse(r.at))?new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(r.at)):'미기록';
  const summary=r=>r.action==='삭제'?((r.originals||[]).map(t=>[t.name,t.qty!=null?String(t.qty)+' '+(t.unit||'kg'):'',t.vendor||t.recipient,t.note].filter(Boolean).join(' · ')).join(' / ')||r.marker?.note||'삭제 · 원본 상세 미기록'):(r.changes||[]).map(c=>(v136Labels[c.field]||c.field)+': '+v136Val(c.field,c.before)+' → '+v136Val(c.field,c.after)).join(' · ')||'변경 항목 미기록';
  const filtered=rows.filter(r=>(f.action==='all'||f.action===r.action)&&(f.type==='all'||f.type===r.type)&&(!f.from||date(r)>=f.from)&&(!f.to||date(r)<=f.to)&&matchesSearch(f.query,[r.action,r.type,r.name,r.by,r.reason,r.id,r.targetId,summary(r),...r.originals.flatMap(t=>[t.name,t.vendor,t.recipient,t.lotId,t.note,t.brand,t.origin,t.doc])]));
- $('mainView').innerHTML='<section class="card v110-deleted"><div class="filters"><div class="v61-tab-group" role="group" aria-label="변경 유형">'+[['all','전체'],['수정','수정'],['삭제','삭제']].map(([v,l])=>'<button type="button" class="v61-tab '+(f.action===v?'active':'')+'" data-v136-action="'+v+'" aria-pressed="'+(f.action===v)+'">'+l+'</button>').join('')+'</div><select id="v110Type" class="product-status-select" aria-label="업무 구분">'+[['all','전체 구분'],...['입고','출고','해동','재냉동','입출고','품목 등록','거래처 등록','생산','정산','경비','기타','기타 출고','현장 출고','현장 반납'].map(x=>[x,x])].map(([v,l])=>'<option value="'+esc(v)+'" '+(v===f.type?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select><button type="button" class="btn btn-outline" id="v110Period">기간설정</button>'+v89PeriodLabel(f.from,f.to)+'<div class="search-field"><input id="v110Search" type="search" placeholder="품목·작업자·변경 내용 검색" value="'+esc(f.query)+'"></div><button type="button" class="btn btn-outline" id="v110Find">검색</button><button type="button" class="btn btn-outline" id="v110Reset">초기화</button><span class="filter-count">'+fmt(filtered.length)+'건</span></div><div class="table-scroll"><table class="inventory-table v110-table"><thead><tr><th>변경 일시</th><th>구분</th><th>대상</th><th>변경 내용</th><th>작업자</th><th>상세 정보</th></tr></thead><tbody>'+ (filtered.map((r,i)=>'<tr><td>'+esc(time(r))+'</td><td>'+esc(r.action+' / '+r.type)+'</td><td>'+esc(r.name)+'</td><td class="v136-summary">'+esc(summary(r))+'</td><td>'+esc(r.by||(r.userId?'계정 ID: '+r.userId:'미기록'))+'</td><td><button type="button" class="btn btn-outline v139-detail" data-v110-detail="'+i+'">상세 보기</button></td></tr>').join('')||'<tr><td colspan="6">변경 이력이 없습니다.</td></tr>')+'</tbody></table></div><div class="table-footer"><span>조회 '+fmt(filtered.length)+'건 / 전체 '+fmt(rows.length)+'건</span><span>조회 전용</span></div></section><dialog class="v147-info-dialog" id="v110Dialog" aria-labelledby="v147AuditTitle"><header class="v147-titlebar" data-drag-handle><h2 id="v147AuditTitle">변경 상세 정보</h2><button class="v147-close v150-dismiss" type="button" id="v110Close" aria-label="닫기"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">닫기</span></button></header><div class="v147-body" id="v110Detail"></div></dialog>';
+ $('mainView').innerHTML='<section class="card v110-deleted"><div class="filters"><div class="v61-tab-group" role="group" aria-label="변경 유형">'+[['all','전체'],['수정','수정'],['삭제','삭제']].map(([v,l])=>'<button type="button" class="v61-tab '+(f.action===v?'active':'')+'" data-v136-action="'+v+'" aria-pressed="'+(f.action===v)+'">'+l+'</button>').join('')+'</div><select id="v110Type" class="product-status-select" aria-label="업무 구분">'+[['all','전체 구분'],...['입고','출고','해동','재냉동','입출고','품목 등록','거래처 등록','생산','정산','경비','기타','기타 출고','현장 출고','현장 반납'].map(x=>[x,x])].map(([v,l])=>'<option value="'+esc(v)+'" '+(v===f.type?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select>'+v154PeriodBar("v110Period",f.from,f.to)+'<div class="search-field"><input id="v110Search" type="search" placeholder="품목·작업자·변경 내용 검색" value="'+esc(f.query)+'"></div><button type="button" class="btn btn-outline" id="v110Find">검색</button><button type="button" class="btn btn-outline" id="v110Reset">초기화</button><span class="filter-count">'+fmt(filtered.length)+'건</span></div><div class="table-scroll"><table class="inventory-table v110-table"><thead><tr><th>변경 일시</th><th>구분</th><th>대상</th><th>변경 내용</th><th>작업자</th><th>상세 정보</th></tr></thead><tbody>'+ (filtered.map((r,i)=>'<tr><td>'+esc(time(r))+'</td><td>'+esc(r.action+' / '+r.type)+'</td><td>'+esc(r.name)+'</td><td class="v136-summary">'+esc(summary(r))+'</td><td>'+esc(r.by||(r.userId?'계정 ID: '+r.userId:'미기록'))+'</td><td><button type="button" class="btn btn-outline v139-detail" data-v110-detail="'+i+'">상세 보기</button></td></tr>').join('')||'<tr><td colspan="6">변경 이력이 없습니다.</td></tr>')+'</tbody></table></div><div class="table-footer"><span>조회 '+fmt(filtered.length)+'건 / 전체 '+fmt(rows.length)+'건</span><span>조회 전용</span></div></section><dialog class="v147-info-dialog" id="v110Dialog" aria-labelledby="v147AuditTitle"><header class="v147-titlebar" data-drag-handle><h2 id="v147AuditTitle">변경 상세 정보</h2><button class="v147-close v150-dismiss" type="button" id="v110Close" aria-label="닫기"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">닫기</span></button></header><div class="v147-body" id="v110Detail"></div></dialog>';
  $('mainView').querySelectorAll('[data-v136-action]').forEach(b=>b.onclick=()=>{f.action=b.dataset.v136Action;v110DeletedPage();});
  $('v110Type').onchange=()=>{f.type=$('v110Type').value;v110DeletedPage();};
  $('v110Find').onclick=()=>{f.query=$('v110Search').value;v110DeletedPage();};
  $('v110Search').onkeydown=e=>{if(e.key==='Enter')$('v110Find').click();};
  $('v110Reset').onclick=()=>{v110Filter={query:'',type:'all',action:'all',from:'',to:''};v110DeletedPage();};
- $('v110Period').onclick=e=>v70Calendar({anchor:e.currentTarget,from:f.from,to:f.to,apply:(a,b)=>{f.from=a;f.to=b;v110DeletedPage();}});
+ v154BindPeriod('v110Period',f.from,f.to,(a,b)=>{f.from=a;f.to=b;v110DeletedPage();});
  $('mainView').querySelectorAll('[data-v110-detail]').forEach(b=>b.onclick=()=>{
   const r=filtered[Number(b.dataset.v110Detail)];if(!r)return;
   const fields=[['변경 일시',time(r)],['구분',r.action+' / '+r.type],['대상',r.name],['작업자',r.by||(r.userId?'계정 ID: '+r.userId:'미기록')],['사유',r.reason||'—'],['LOT / 참조',r.targetId]];
@@ -3693,10 +3705,10 @@ function renderHistory(){
   return `<tr><td>${esc(v70Date(t))}</td><td><span class="history-type ${cls}">${title}</span>${t.undone?'<div class="subtle">취소됨</div>':''}</td><td>${(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?`<span class="meat-pill">${esc(INTAKE_LABELS[t.category]||V18_CAT[t.category]||t.category||'완제품')}</span>`:typeBadge(t.meatType)} <strong class="product-name">${esc(t.name)}</strong><div class="subtle">${esc(t.lotId)}</div></td><td>${esc(route)}</td><td class="numeric"><strong>${fmt(t.qty)}${unit}</strong></td><td>${esc(detail||'—')}</td><td class="numeric">${t.type!=='reverse'&&t.type!=='receiveExtra'&&t.type!=='shipExtra'&&t.type!=='productionReceipt'&&t.type!=='productionExtra'&&!t.undone&&!(state.shippingBatches||[]).some(x=>x.version===18&&x.id===t.batchId)?`<button class="undo-btn" data-undo="${esc(t.id)}">삭제</button>`:'—'}</td></tr>`;
  }).join('');
  const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
- $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v89PeriodLabel(v70From,v70To)}<input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">삭제</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>삭제 기록은 삭제 내역에서 확인할 수 있습니다.</span></div></section>`;
+ $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건">${v154PeriodBar("v70Period",v70From,v70To)}<div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">삭제</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>삭제 기록은 삭제 내역에서 확인할 수 있습니다.</span></div></section>`;
  // Incoming/outgoing saved paperwork is shown only in matching tabs; no separate movement document.
  v17DrawHistoryDocuments(v61HistoryFilter);v18AddHistoryCancel();
- $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
+ $('downloadHistory').onclick=exportHistoryCsv; v154BindPeriod('v70Period',v70From,v70To,(a,b)=>{v70From=a;v70To=b;renderHistory();}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
  document.querySelectorAll('[data-undo]').forEach(b=>b.onclick=()=>reverseTransaction(b.dataset.undo));
 }
@@ -3886,7 +3898,7 @@ function normalizeIntakeDate(value){
  let y,mo,day,m;
  if((m=/^(\d{2})(\d{2})$/.exec(v))){
   y=Number(today().slice(0,4));mo=Number(m[1]);day=Number(m[2]);
- }else if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(v))){
+ }else if((m=/^(\d{2})(\d{2})(\d{2})$/.exec(v))||(m=/^(\d{2})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(v))){
   y=2000+Number(m[1]);mo=Number(m[2]);day=Number(m[3]);
  }else if((m=/^(\d{4})(\d{2})(\d{2})$/.exec(v))||
          (m=/^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/.exec(v))){
@@ -3910,7 +3922,7 @@ function bindIntakeQuickDates(root){
    const normalized=normalizeIntakeDate(inp.value);
    if(normalized===null){
     inp.setAttribute('aria-invalid','true');
-    inp.title='날짜를 4·6·8자리로 입력해 주세요 (예: 1121, 281121, 20281121)';
+    inp.title='날짜를 입력해 주세요 (예: 28/11/21, 2028-11-21, 20281121)';
     if(cal)cal.value='';
     return false;
    }
@@ -3923,7 +3935,7 @@ function bindIntakeQuickDates(root){
   inp.addEventListener('input',()=>{
    inp.removeAttribute('aria-invalid');inp.removeAttribute('title');
    if(/^\d{8}$/.test(inp.value))sync(true);
-   else if(/^\d{4}[-./]\d{2}[-./]\d{2}$/.test(inp.value))sync(true);
+   else if(/^(?:\d{2}|\d{4})[-./]\d{2}[-./]\d{2}$/.test(inp.value))sync(true);
   });
   inp.addEventListener('blur',()=>sync(true));
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sync(true);inp.blur();}});
@@ -4035,7 +4047,7 @@ function v97TransactionLayout(mode){
  const success=incoming&&intakeLastSaved?esc(intakeLastSaved):'';
  return `<section class="${cfg.root} card v97-transaction" data-transaction="${mode}">
  <div class="${cfg.common} v97-common">
- <label>날짜 <span class="quick-date"><input type="text" inputmode="numeric" data-quick-date id="${cfg.date}" value="${date}" placeholder="YYYYMMDD" maxlength="10" autocomplete="off" aria-label="날짜"><input type="date" class="quick-date-calendar" value="${date}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label>
+ <label>날짜 <span class="quick-date"><input type="text" inputmode="text" data-quick-date id="${cfg.date}" value="${date}" placeholder="YYYY-MM-DD" maxlength="10" autocomplete="off" aria-label="날짜"><input type="date" class="quick-date-calendar" value="${date}" aria-label="날짜 달력 선택" title="달력에서 선택"></span></label>
  ${incoming?'':`<label>출고구분<select id="v123Kind" aria-label="출고구분"><option value="" disabled hidden ${v123Kind===''?'selected':''}>선택</option>${v123Kinds.map(k=>`<option value="${k}" ${k===v123Kind?'selected':''}>${esc(v121Types[k])}</option>`).join('')}</select></label>`}
  <label class="${cfg.partnerLabel}">${incoming?'업체':'<span id="v123Label">업체</span>'} <span class="${cfg.partnerWrap} v97-partner"><input type="search" id="${cfg.partner}" placeholder="업체명·별칭·사업자번호 검색" autocomplete="off"><span id="${cfg.matches}" class="v17-partner-list hidden"></span></span><small id="${cfg.info}" class="v17-partner-detail"></small></label>
  <label>전표 비고 <input id="${cfg.note}" placeholder="필요한 경우만 입력" autocomplete="off"></label></div>
@@ -4092,7 +4104,7 @@ function intakeRowHtml(r,i){
    <label class="in-category"><span class="v50-mobile-label">구분</span><select class="in-cat" aria-label="${i+1}번 품목 구분">${catOptions}</select></label>
    <label class="in-item v50-in-item"><span class="v50-mobile-label">품목명</span><div class="in-find"><input class="in-search" type="search" autocomplete="off" value="${esc(r.name)}" placeholder="품목명·브랜드 검색" aria-label="${i+1}번 품목 검색"><div class="in-suggest hidden" role="listbox"></div></div></label>
    <label class="in-zone-label ${isMeat?'':'v146-zone-disabled'}"><span class="v50-mobile-label">창고</span><select class="in-zone" aria-label="${i+1}번 원료육 보관 창고" ${isMeat?'required':'disabled'}><option value="" ${!isMeat||!r.zone?'selected':''}>${isMeat?'창고 선택':'해당 없음'}</option><option value="frozen" ${isMeat&&r.zone==='frozen'?'selected':''}>냉동고</option><option value="chilled" ${isMeat&&r.zone==='chilled'?'selected':''}>냉장고</option></select></label>
-   <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" placeholder="YYYYMMDD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
+   <label><span class="v50-mobile-label">소비기한</span><span class="quick-date"><input class="in-expiry" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" placeholder="YYYY-MM-DD" aria-label="소비기한" value="${esc(r.expiry)}"><input class="quick-date-calendar" type="date" value="${esc(r.expiry)}" aria-label="소비기한 달력" title="달력에서 선택"></span></label>
    <label><span class="v50-mobile-label">수량</span><input class="in-qty" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="수량" aria-label="입고수량" value="${esc(r.qty)}"></label>
    <label><span class="v50-mobile-label">단위</span><select class="in-unit" aria-label="입고단위">${unitOptions}</select></label>
    <label class="v50-price-cell"><span class="v50-mobile-label">입고 단가</span><input class="in-price" type="number" min="0" step="0.01" inputmode="decimal" value="${esc(r.price||'')}" placeholder="단가" aria-label="입고 단가"><span class="in-price-hint">${v48PriceHint(r)}</span></label>
@@ -4107,7 +4119,7 @@ function intakeRowHtml(r,i){
      <label>총 중량 (kg)<input class="in-weight" type="number" min="0" step="0.01" value="${esc(r.weight)}" placeholder="선택 입력" ${r.unit==='kg'?'disabled':''}></label>
      <label class="in-type-label ${isMeat?'':'hidden'}">육류<select class="in-type">${typeChoices.map(([k,l])=>`<option value="${esc(k)}" ${r.type===k?'selected':''}>${esc(l)}</option>`).join('')}</select></label>
      <label class="in-location-label ${isMeat?'hidden':''}">보관 위치<input class="in-location" value="${esc(r.location)}" placeholder="선택 입력"></label>
-     <label class="in-date ${r.category==='finished_own'?'':'hidden'}">제조일 <span class="quick-date"><input class="in-received" type="text" data-quick-date inputmode="numeric" maxlength="10" autocomplete="off" value="${esc(r.received)}" placeholder="YYYYMMDD"><input class="quick-date-calendar" type="date" value="${esc(r.received)}" aria-label="제조일 달력"></span></label>
+     <label class="in-date ${r.category==='finished_own'?'':'hidden'}">제조일 <span class="quick-date"><input class="in-received" type="text" data-quick-date inputmode="text" maxlength="10" autocomplete="off" value="${esc(r.received)}" placeholder="YYYY-MM-DD"><input class="quick-date-calendar" type="date" value="${esc(r.received)}" aria-label="제조일 달력"></span></label>
      <label class="${r.category==='finished_own'?'':'hidden'}">생산번호 연결<select class="in-v116-run">${v116RunOptions(r.traceRunId||'',true)}</select></label><label class="${r.category==='finished_own'?'':'hidden'}">실제 제품 LOT / 제조번호<input class="in-v116-finished-lot" maxlength="100" value="${esc(r.traceFinishedLot||'')}" placeholder="제품에 표시된 번호 (선택)"></label><label>비고<input class="in-note" value="${esc(r.note)}" placeholder="선택 입력"></label>
     </div>
   </details>
@@ -5214,12 +5226,13 @@ function v33OpenLotEditor(lotId){
  <label class="full">입고 업체${isOwn?' (사내 자체생산)':''}<input id="v33Vendor" type="text" value="${esc(ownVendor)}" ${isOwn?'disabled':''} list="v33Vendors" placeholder="업체 검색 또는 입력"><datalist id="v33Vendors">${V17_PARTNERS.filter(x=>x.n&&x.no).map(x=>`<option value="${esc(v17Label(x))}"></option>`).join('')}</datalist></label>
  <label>브랜드<input id="v33Brand" type="text" value="${esc(l.brand||entry?.brand||'')}"></label>
  <label>원산지<input id="v33Origin" type="text" value="${esc(l.origin||entry?.origin||'')}"></label>
- <label>${isOwn?'제조일':'입고일'}<input id="v33Received" type="date" value="${esc(isOwn?(l.manufactured||entry?.manufactured||l.received):(l.received||entry?.received||batch?.date||''))}"></label>
- <label>소비기한<input id="v33Expiry" type="date" value="${esc(l.expiry||entry?.expiry||'')}"></label>
+ <label>${isOwn?'제조일':'입고일'}<span class="quick-date"><input id="v33Received" type="text" data-quick-date inputmode="text" maxlength="10" value="${esc(isOwn?(l.manufactured||entry?.manufactured||l.received):(l.received||entry?.received||batch?.date||''))}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${esc(isOwn?(l.manufactured||entry?.manufactured||l.received):(l.received||entry?.received||batch?.date||''))}"></span></label>
+ <label>소비기한<span class="quick-date"><input id="v33Expiry" type="text" data-quick-date inputmode="text" maxlength="10" value="${esc(l.expiry||entry?.expiry||'')}"><input type="date" class="quick-date-calendar" aria-label="날짜 달력 선택" value="${esc(l.expiry||entry?.expiry||'')}"></span></label>
  <label>기록된 입고수량 (${esc(unit)})<input id="v33Qty" type="number" min="0.001" step="any" value="${esc(initialQty)}" ${entry?'':'disabled'}></label>
  <label>입고 단가 (원/${esc(unit)})<input id="v33Price" type="number" min="0" step="any" value="${esc(l.price??entry?.price??'')}"></label>
  <label class="full">비고<input id="v33Note" value="${esc(l.note||'')}"></label>
  </div><p class="v33-edit-help">업체·브랜드·원산지·소비기한·단가를 수정할 수 있습니다. 수량 수정은 저장된 입고 전표에 연결되고 이후 출고·이동이 없는 경우에만 허용합니다. 명세서도 함께 갱신됩니다.</p><div class="v33-edit-error" id="v33EditError"></div>`;
+ bindIntakeQuickDates($('v33EditContent'));
  $('v33EditFooter').classList.remove('hidden');
  $('v33EditSave').onclick=v33SaveLotEdit;
  if(!d.open)d.showModal();
@@ -5228,7 +5241,8 @@ function v33SaveLotEdit(){
  const info=v33CurrentEdit;if(!info)return;
  const hit=v33Locate(info.id);if(!hit)return v33EditError('원본 LOT를 찾지 못했습니다.');
  const l=hit.record,batch=(state.receiptBatches||[]).find(x=>x.id===info.batchId),entry=batch?.entries?.find(x=>x.id===info.entryId);
- const vendor=$('v33Vendor').value.trim(),brand=$('v33Brand').value.trim(),origin=$('v33Origin').value.trim(),received=$('v33Received').value,expiry=$('v33Expiry').value,qty=Number($('v33Qty').value),price=Number($('v33Price').value),note=$('v33Note').value.trim();
+ const vendor=$('v33Vendor').value.trim(),brand=$('v33Brand').value.trim(),origin=$('v33Origin').value.trim(),received=normalizeIntakeDate($('v33Received').value),expiry=normalizeIntakeDate($('v33Expiry').value),qty=Number($('v33Qty').value),price=Number($('v33Price').value),note=$('v33Note').value.trim();
+ if(received===null||expiry===null)return v33EditError('날짜를 정확히 입력해 주세요.');
  const food=info.kind==='meat'||(l.category||'')!=='supplies';
  if(!info.isOwn&&!vendor)return v33EditError('입고 업체를 입력해 주세요.');
  if(info.kind==='meat'&&!origin)return v33EditError('원료육 원산지를 입력해 주세요.');
@@ -7230,5 +7244,87 @@ html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109Par
  #mainView .v153-table .v153-work button{min-height:44px;min-width:76px}
  #mainView .v153-table td.empty{display:block;padding:20px!important}
 }
+</style>
+<style id="v154-period-reference">
+#mainView .v154-periodbar{display:flex!important;flex:1 1 100%;width:100%;max-width:100%;min-width:0;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 5px}
+#mainView .v154-fast{display:flex;align-items:center;gap:2px;flex:0 1 auto;max-width:100%}
+#mainView .v154-periodbar button{border:1px solid transparent!important;box-shadow:none!important;background:transparent!important;color:#616169!important;min-width:0!important;width:auto!important;min-height:32px!important;height:32px!important;padding:0 12px!important;font-size:13px!important;font-weight:500!important;border-radius:6px!important;white-space:nowrap}
+#mainView .v154-fast button.active{background:#e9e9ee!important;color:#252529!important;font-weight:650!important}
+#mainView .v154-periodbar .v154-picker{border-color:#d4d4da!important;background:#fff!important;color:#303035!important;font-weight:600!important}
+#mainView .v154-dates{display:flex;align-items:center;gap:6px;min-width:0}
+#mainView .v154-dates input{box-sizing:border-box!important;width:110px!important;flex:0 1 110px!important;min-width:0!important;height:32px!important;min-height:32px!important;padding:0 9px!important;font-variant-numeric:tabular-nums;font-size:13px!important;border:1px solid #d8d8dc!important;border-radius:6px!important;background:#fff!important;text-align:center}
+#mainView .v154-status{font-size:12px;color:#777;white-space:nowrap}
+#mainView .v154-error{font-size:12px;color:#b42318}
+#mainView .v154-error:empty{display:none}
+#mainView .v102-accounting .v90-report-controls{display:flex!important;flex-wrap:wrap!important}
+#mainView .v102-accounting .v102-period-group{display:block!important;flex:1 1 100%;width:100%}
+#mainView .v102-accounting .v90-report-controls>#acQuery{flex:1 1 160px;width:auto!important}
+#mainView .v102-accounting .v90-report-controls>select{flex:0 1 150px;width:auto!important}
+#mainView .v102-accounting .v90-report-controls>#acCSV{flex:0 0 auto;width:auto!important}
+html body dialog.v70-calendar.v88-calendar{width:min(1000px,calc(100vw - 32px))!important;max-width:none!important;max-height:calc(100dvh - 24px)!important;padding:18px 20px 14px!important;border:1px solid #dedee3!important;border-radius:16px!important;background:#fff!important;color:#252529!important;box-shadow:0 18px 70px #0003!important;overflow:auto;inset:auto;margin:0}
+html body dialog.v88-calendar::backdrop{background:rgba(25,28,35,.32);backdrop-filter:blur(2px)}
+html body dialog.v88-calendar .v88-top{display:flex;align-items:center;gap:9px;min-height:44px;padding:0 0 12px!important;border:0!important;border-bottom:1px solid #e7e7eb!important;background:#fff!important;flex-wrap:wrap}
+.v154-calendar-title{font-size:16px;font-weight:700;white-space:nowrap}
+html body dialog.v88-calendar .v88-base-label{font-size:12px;font-weight:500;color:#777}
+html body dialog.v88-calendar .v88-base-year{background:#f2f2f5;border:1px solid #e0e0e5;border-radius:8px}
+html body dialog.v88-calendar .v88-base-year button{width:28px;height:30px;background:transparent!important;border:0!important;color:#707078!important;font-size:20px}
+html body dialog.v88-calendar .v88-base-year span{min-width:58px;padding:5px 9px;font-size:14px;font-weight:650}
+html body dialog.v88-calendar .v88-period{margin-left:auto;color:#176ac3;font-size:13px;font-weight:600;white-space:nowrap;flex-basis:auto}
+html body dialog.v88-calendar .v154-calendar-close{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;padding:0!important;border:0!important;border-radius:50%!important;background:#ececf0!important;color:#67676d!important}
+.v154-calendar-close span{display:none}
+html body dialog.v88-calendar .v88-quick{margin:12px 0 16px;gap:5px}
+html body dialog.v88-calendar .v88-quick-seven,html body dialog.v88-calendar .v88-quick-months{gap:5px}
+html body dialog.v88-calendar .v88-quick button{height:32px!important;min-height:32px!important;border:1px solid #dedee3!important;border-radius:6px!important;background:#fff!important;color:#333!important;box-shadow:none!important;font-size:12px!important;font-weight:500!important}
+html body dialog.v88-calendar .v88-quick button.active{background:#0878dc!important;border-color:#0878dc!important;color:#fff!important;font-weight:600!important}
+html body dialog.v88-calendar .v88-calendars{display:grid!important;grid-template-columns:minmax(0,1fr) 34px minmax(0,1fr)!important;gap:5px}
+html body dialog.v88-calendar .v88-cal{border:1px solid #e5e5e9;border-radius:9px;padding:8px;min-width:0}
+html body dialog.v88-calendar .v88-cal-nav{display:grid;grid-template-columns:26px minmax(72px,.45fr) minmax(0,1fr) 26px;gap:6px;background:transparent!important;border:0!important;padding:0 0 8px}
+html body dialog.v88-calendar .v88-cal-nav select{width:100%;height:31px!important;min-height:31px!important;border:1px solid #dedee3!important;border-radius:6px!important;background:#fff!important;padding:2px 5px!important;font-size:13px!important;font-weight:550!important}
+html body dialog.v88-calendar .v88-arrow{border:1px solid #e4e4e9!important;background:#fafafa!important;border-radius:6px!important;height:30px!important}
+html body dialog.v88-calendar .v88-arrow span{background:none;color:#666;font-size:20px;font-weight:400}
+html body dialog.v88-calendar .v88-days{gap:2px;padding:2px 0}
+html body dialog.v88-calendar .v88-days b{height:27px;color:#777;font-size:11px;font-weight:500}
+html body dialog.v88-calendar .v88-days b:nth-child(1){color:#bf5252}
+html body dialog.v88-calendar .v88-days b:nth-child(7){color:#3777b9}
+html body dialog.v88-calendar .v88-days button{height:31px!important;min-height:31px!important;display:grid;place-items:center;padding:0!important;border:1px solid transparent!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;color:#303035!important;font-size:13px!important;font-weight:400!important;text-align:center}
+html body dialog.v88-calendar .v88-days button.v154-other-month{color:#aaa!important}
+html body dialog.v88-calendar .v88-days button.between{background:#e9f3ff!important;color:#176ac3!important;border-radius:2px!important}
+html body dialog.v88-calendar .v88-days button.current-day{color:#1264bc!important;font-weight:650!important}
+html body dialog.v88-calendar .v88-days button.chosen{background:#edf6ff!important;border-color:#1678d4!important;color:#1264bc!important;font-weight:600!important}
+html body dialog.v88-calendar .v88-days button:hover{background:#f0f4fa!important}
+.v154-calendar-help{margin:8px 0 0;color:#777;font-size:11px;line-height:1.5}
+html body dialog.v88-calendar .v88-footer{margin-top:16px;padding:0!important;border:0!important;justify-content:flex-end;min-height:42px}
+html body dialog.v88-calendar .v88-footer button{height:36px!important;min-height:36px!important;border:1px solid #dedee3!important;background:#fff!important;border-radius:8px!important;color:#353539!important;font-size:13px!important;box-shadow:none!important}
+html body dialog.v88-calendar .v88-footer .v88-apply{min-width:94px;background:#0878dc!important;color:#fff!important;border-color:#0878dc!important}
+html body dialog.v88-calendar .v88-footer .v88-clear{color:#777!important;background:transparent!important;border:0!important}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+ #mainView .v154-periodbar{gap:6px}
+ #mainView .v154-fast{flex:1 1 100%}
+ #mainView .v154-fast button{flex:1;min-height:44px!important;height:44px!important;padding:0 7px!important}
+ #mainView .v154-periodbar .v154-picker,#mainView .v154-dates input{min-height:44px!important;height:44px!important}
+ #mainView .v154-dates{flex:1 1 180px}#mainView .v154-dates input{flex:1;width:0!important}
+ #mainView .v154-status{display:none}
+ html body dialog.v70-calendar.v88-calendar{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;padding:12px!important;border-radius:18px!important;inset:auto!important}
+ html body dialog.v88-calendar .v88-top{position:sticky;top:0;z-index:5;gap:6px;touch-action:pan-y!important}
+ html body dialog.v88-calendar .v154-calendar-close{order:0;margin-left:auto;width:auto;min-width:44px;height:44px;flex:0 0 auto;background:transparent!important;color:#0878dc!important;font-size:15px}
+ .v154-calendar-close svg{display:none}.v154-calendar-close span{display:inline}
+ html body dialog.v88-calendar .v88-period{order:1;flex:1 1 100%;margin-left:0;white-space:normal}
+ html body dialog.v88-calendar .v88-quick-seven{grid-template-columns:repeat(4,minmax(0,1fr))}
+ html body dialog.v88-calendar .v88-quick-months{grid-template-columns:repeat(6,minmax(0,1fr))}
+ html body dialog.v88-calendar .v88-quick button{min-height:40px!important;height:40px!important}
+ html body dialog.v88-calendar .v88-calendars{grid-template-columns:minmax(0,1fr)!important;gap:10px}
+ html body dialog.v88-calendar .v88-separator{display:none}
+ html body dialog.v88-calendar .v88-days button{height:44px!important;min-height:44px!important}
+ html body dialog.v88-calendar .v88-cal-nav select,html body dialog.v88-calendar .v88-arrow{min-height:44px!important;height:44px!important}
+ html body dialog.v88-calendar .v88-footer{position:sticky;bottom:-12px;z-index:5;background:#fff;padding:8px 0!important}
+ html body dialog.v88-calendar .v88-footer button{height:44px!important;min-height:44px!important}
+}
+</style>
+<style id="v155-date-input-formats">
+#v33EditContent .quick-date,.ac-modal .quick-date{display:flex;align-items:center;gap:4px;min-width:0}
+#v33EditContent .quick-date>input[data-quick-date],.ac-modal .quick-date>input[data-quick-date]{flex:1 1 auto;width:100%;min-width:0}
+#v33EditContent .quick-date>input.quick-date-calendar,.ac-modal .quick-date>input.quick-date-calendar{flex:0 0 34px;width:34px;min-width:34px;padding:0;cursor:pointer}
+#v33EditContent .quick-date-calendar::-webkit-datetime-edit,.ac-modal .quick-date-calendar::-webkit-datetime-edit{display:none}
+input[data-quick-date][aria-invalid="true"]{outline:1px solid #b42318!important}
 </style>
 </body></html>
