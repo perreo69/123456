@@ -2845,58 +2845,54 @@ function v154BindPeriod(id,apply){
  if(!group)return;
  group.onclick=e=>{const b=e.target.closest('[data-v154-period]');if(!b)return;const range=v154Range(b.dataset.v154Period);if(range)apply(...range);};
 }
-function v89PeriodLabel(from,to){return from||to?`<span class="v89-period-value" aria-label="선택 기간">${esc(from||'')} ~ ${esc(to||'')}</span>`:'';}
+function v89PeriodLabel(from,to){return `<span class="v89-period-value" aria-label="선택 기간">${from||to?esc(from||'')+' ~ '+esc(to||''):''}</span>`;}
 function v70Calendar(options){
  const opts=options&&typeof options.apply==='function'?options:null;
- const anchor=options?.anchor||document.activeElement;
- const dlg=document.createElement('dialog');dlg.className='v70-calendar v88-calendar';
+ const dlg=document.createElement('dialog');dlg.className='v70-calendar v88-calendar v155-calendar';dlg.setAttribute('aria-label','기간 선택');
  let from=(opts?opts.from:v70From)||today(),to=(opts?opts.to:v70To)||today();
- const parse=d=>new Date(d+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),date=(y,m,d)=>new Date(Date.UTC(y,m,d,12)),now=parse(today()),todayYear=now.getUTCFullYear();
- let baseYear=parse(from).getUTCFullYear(),left=parse(from),right=parse(to),active='';
+ const parse=d=>new Date(d+'T12:00:00Z'),iso=d=>d.toISOString().slice(0,10),date=(y,m,d)=>new Date(Date.UTC(y,m,d,12)),now=parse(today());
  const minYear=1900,maxYear=2100,limit=y=>Math.min(maxYear,Math.max(minYear,y));
+ const month=d=>date(d.getUTCFullYear(),d.getUTCMonth(),1),nextMonth=d=>date(d.getUTCFullYear(),d.getUTCMonth()+1,1);
+ let baseYear=parse(from).getUTCFullYear(),left=month(parse(from)),right=month(parse(to)),active='',pickingEnd=false;
+ function align(){left=month(parse(from));right=month(parse(to));if(+left===+right&&nextMonth(left).getUTCFullYear()<=maxYear)right=nextMonth(left);}
+ align();
  function presets(){
   const y=baseYear,m=now.getUTCMonth(),d=Math.min(now.getUTCDate(),date(y,m+1,0).getUTCDate()),ref=date(y,m,d),mon=d-(ref.getUTCDay()+6)%7;
-  return [['오늘',ref,ref],['전일',date(y,m,d-1),date(y,m,d-1)],['이번 주',date(y,m,mon),date(y,m,mon+6)],['전주',date(y,m,mon-7),date(y,m,mon-1)],['이번 달',date(y,m,1),date(y,m+1,0)],['전월',date(y,m-1,1),date(y,m,0)],['올해',date(y,0,1),date(y,12,0)],['상반기',date(y,0,1),date(y,6,0)],['하반기',date(y,6,1),date(y,12,0)],...Array.from({length:4},(_,i)=>[`${i+1}/4분기`,date(y,i*3,1),date(y,i*3+3,0)]),['오늘까지',date(y,0,1),ref],...Array.from({length:12},(_,i)=>[`${i+1}월`,date(y,i,1),date(y,i+1,0)])];
+  return [['오늘',ref,ref],['전일',date(y,m,d-1),date(y,m,d-1)],['주간',date(y,m,mon),date(y,m,mon+6)],['전주',date(y,m,mon-7),date(y,m,mon-1)],['당월',date(y,m,1),date(y,m+1,0)],['전월',date(y,m-1,1),date(y,m,0)],['올해',date(y,0,1),date(y,12,0)],['상반기',date(y,0,1),date(y,6,0)],['하반기',date(y,6,1),date(y,12,0)],...Array.from({length:4},(_,i)=>[(i+1)+'/4분기',date(y,i*3,1),date(y,i*3+3,0)]),['오늘까지',date(y,0,1),ref],...Array.from({length:12},(_,i)=>[(i+1)+'월',date(y,i,1),date(y,i+1,0)])];
  }
- const pretty=k=>{const d=parse(k);return `${d.getUTCFullYear()}년 ${d.getUTCMonth()+1}월 ${d.getUTCDate()}일`;};
+ active=String(presets().findIndex(p=>iso(p[1])===from&&iso(p[2])===to));
+ const pretty=k=>{const d=parse(k);return d.getUTCFullYear()+'년 '+(d.getUTCMonth()+1)+'월 '+d.getUTCDate()+'일';};
+ const rowsFor=d=>Math.ceil((date(d.getUTCFullYear(),d.getUTCMonth(),1).getUTCDay()+date(d.getUTCFullYear(),d.getUTCMonth()+1,0).getUTCDate())/7);
  function cal(d,side){
-  const y=d.getUTCFullYear(),m=d.getUTCMonth(),first=date(y,m,1).getUTCDay(),n=date(y,m+1,0).getUTCDate(),selected=side==='left'?from:to;
-  const rowsFor=x=>Math.ceil((date(x.getUTCFullYear(),x.getUTCMonth(),1).getUTCDay()+date(x.getUTCFullYear(),x.getUTCMonth()+1,0).getUTCDate())/7);
-  const cellCount=7*Math.max(5,rowsFor(left),rowsFor(right));
-  const years=Array.from({length:maxYear-minYear+1},(_,i)=>minYear+i).map(v=>`<option value="${v}" ${v===y?'selected':''}>${v}</option>`).join('');
-  const months=Array.from({length:12},(_,i)=>`<option value="${i}" ${i===m?'selected':''}>${i+1}월</option>`).join('');
-  return `<section class="v88-cal" aria-label="${side==='left'?'시작일':'종료일'}"><div class="v88-cal-nav"><button type="button" class="v88-arrow" data-nav="${side}:-1" aria-label="이전 달"><span>‹</span></button><select data-year="${side}" aria-label="${side==='left'?'시작':'종료'} 연도">${years}</select><select data-month="${side}" aria-label="${side==='left'?'시작':'종료'} 월">${months}</select><button type="button" class="v88-arrow" data-nav="${side}:1" aria-label="다음 달"><span>›</span></button></div><div class="v88-days">${['일','월','화','수','목','금','토'].map(x=>`<b>${x}</b>`).join('')}${'<span></span>'.repeat(first)}${Array.from({length:n},(_,i)=>{const k=iso(date(y,m,i+1));return `<button type="button" data-day="${side}:${k}" aria-label="${k}" aria-pressed="${k===selected}" class="${k===selected?'chosen':''} ${k>=from&&k<=to?'v154-inrange':''} ${k===today()?'current-day':''}">${i+1}</button>`}).join('')}${'<span></span>'.repeat(cellCount-first-n)}</div></section>`;
+  const y=d.getUTCFullYear(),m=d.getUTCMonth(),first=date(y,m,1).getUTCDay(),count=7*Math.max(5,rowsFor(left),rowsFor(right));
+  const years=Array.from({length:maxYear-minYear+1},(_,i)=>minYear+i).map(v=>'<option value="'+v+'" '+(v===y?'selected':'')+'>'+v+'</option>').join('');
+  const months=Array.from({length:12},(_,i)=>'<option value="'+i+'" '+(i===m?'selected':'')+'>'+(i+1)+'월</option>').join('');
+  const days=Array.from({length:count},(_,i)=>{
+   const dt=date(y,m,i-first+1),k=iso(dt),outside=dt.getUTCMonth()!==m,chosen=!outside&&(k===from||k===to);
+   return '<button type="button" data-day="'+side+':'+k+'" aria-label="'+k+'" aria-pressed="'+chosen+'" class="'+(chosen?'chosen ':'')+(!outside&&k>from&&k<to?'v154-inrange ':'')+(outside?'v155-adjacent ':'')+(k===today()?'current-day':'')+'">'+dt.getUTCDate()+'</button>';
+  }).join('');
+  return '<section class="v88-cal" aria-label="'+(side==='left'?'시작일':'종료일')+'"><div class="v88-cal-nav"><button type="button" class="v88-arrow" data-nav="'+side+':-1" aria-label="이전 달"><span>◀</span></button><select data-year="'+side+'" aria-label="'+(side==='left'?'시작':'종료')+' 연도">'+years+'</select><select data-month="'+side+'" aria-label="'+(side==='left'?'시작':'종료')+' 월">'+months+'</select><button type="button" class="v88-arrow" data-nav="'+side+':1" aria-label="다음 달"><span>▶</span></button></div><div class="v88-days">'+['일','월','화','수','목','금','토'].map(x=>'<b>'+x+'</b>').join('')+days+'</div></section>';
  }
  function draw(){
-  const ps=presets(),buttons=(a,b)=>ps.slice(a,b).map((p,i)=>`<button type="button" data-preset="${a+i}" class="${active===String(a+i)?'active':''}">${p[0]}</button>`).join('');
-  dlg.innerHTML=`<div class="v88-top"><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>${baseYear}</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">${pretty(from)} ~ ${pretty(to)}</strong></div><div class="v88-quick"><div class="v88-quick-seven">${buttons(0,7)}</div><div class="v88-quick-seven">${buttons(7,14)}</div><div class="v88-quick-months">${buttons(14,26)}</div></div><div class="v88-calendars">${cal(left,'left')}<span class="v88-separator">~</span>${cal(right,'right')}</div><div class="v88-footer"><button type="button" data-clear class="v88-clear">기간 해제</button><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>`;
+  const ps=presets(),buttons=(a,b)=>ps.slice(a,b).map((p,i)=>'<button type="button" data-preset="'+(a+i)+'" aria-pressed="'+(active===String(a+i))+'" class="'+(active===String(a+i)?'active':'')+'">'+p[0]+'</button>').join('');
+  dlg.innerHTML='<div class="v88-top" data-drag-handle><h2>기간 선택</h2><span class="v88-base-label">기준연도</span><div class="v88-base-year"><button type="button" data-base="-1" aria-label="이전 기준연도">‹</button><span>'+baseYear+'</span><button type="button" data-base="1" aria-label="다음 기준연도">›</button></div><strong class="v88-period" aria-live="polite">'+pretty(from)+' ~ '+pretty(to)+'</strong><button class="v155-close" type="button" data-close aria-label="닫기">×</button></div><div class="v88-quick"><div class="v88-quick-seven">'+buttons(0,7)+'</div><div class="v88-quick-seven">'+buttons(7,14)+'</div><div class="v88-quick-months">'+buttons(14,26)+'</div></div><div class="v88-calendars">'+cal(left,'left')+'<span class="v88-separator">~</span>'+cal(right,'right')+'</div><p class="v155-note">왼쪽·오른쪽 달력은 각각 연도·월을 바꿀 수 있습니다. 시작일과 종료일을 차례로 클릭하세요.</p><div class="v88-footer"><div><button type="button" data-apply class="v88-apply">적용</button><button type="button" data-close>취소</button></div></div>';
  }
  function apply(f,t){dlg.close();if(opts)opts.apply(f,t);else{v70From=f;v70To=t;renderHistory();}}
  dlg.onclick=e=>{
   const b=e.target.closest('button');if(!b)return;
   if(b.hasAttribute('data-close'))return dlg.close();
-  if(b.hasAttribute('data-clear'))return apply('','');
   if(b.hasAttribute('data-apply'))return apply(from,to);
   if(b.dataset.base!==undefined){
-   const next=limit(baseYear+Number(b.dataset.base));if(next!==baseYear){baseYear=next;active='';const shift=k=>{const d=parse(k),m=d.getUTCMonth();return iso(date(next,m,Math.min(d.getUTCDate(),date(next,m+1,0).getUTCDate())));};from=shift(from);to=shift(to);if(from>to)to=from;left=parse(from);right=parse(to);}
-  }else if(b.dataset.preset!==undefined){const p=presets()[+b.dataset.preset];if(!p)return;active=b.dataset.preset;from=iso(p[1]);to=iso(p[2]);left=parse(from);right=parse(to);}
+   const next=limit(baseYear+Number(b.dataset.base));if(next!==baseYear){baseYear=next;active='';pickingEnd=false;const shift=k=>{const d=parse(k),m=d.getUTCMonth();return iso(date(next,m,Math.min(d.getUTCDate(),date(next,m+1,0).getUTCDate())));};from=shift(from);to=shift(to);if(from>to)to=from;align();}
+  }else if(b.dataset.preset!==undefined){const p=presets()[+b.dataset.preset];if(!p)return;active=b.dataset.preset;from=iso(p[1]);to=iso(p[2]);pickingEnd=false;align();}
   else if(b.dataset.nav){const [side,n]=b.dataset.nav.split(':'),d=side==='left'?left:right,next=date(d.getUTCFullYear(),d.getUTCMonth()+Number(n),1);if(next.getUTCFullYear()<minYear||next.getUTCFullYear()>maxYear)return;if(side==='left')left=next;else right=next;}
-  else if(b.dataset.day){const [side,k]=b.dataset.day.split(':');active='';if(side==='left'){from=k;if(to<from){to=from;right=parse(to);}}else{to=k;if(from>to){from=to;left=parse(from);}}}
+  else if(b.dataset.day){const [side,k]=b.dataset.day.split(':');if(parse(k).getUTCFullYear()<minYear||parse(k).getUTCFullYear()>maxYear)return;active='';if(!pickingEnd){from=k;to=k;pickingEnd=true;}else{if(k<from){to=from;from=k;}else to=k;pickingEnd=false;}if(b.classList.contains('v155-adjacent')){if(side==='left')left=month(parse(k));else right=month(parse(k));}}
   draw();
  };
  dlg.onchange=e=>{const el=e.target,side=el.dataset.year||el.dataset.month;if(!side)return;const d=side==='left'?left:right,yy=el.dataset.year?Number(el.value):d.getUTCFullYear(),mm=el.dataset.month?Number(el.value):d.getUTCMonth(),next=date(yy,mm,1);if(side==='left')left=next;else right=next;draw();};
- // Anchor the initial position to the invoking period button, not the viewport center.
- function placeNearButton(){
-  if(!dlg.open||!anchor?.isConnected)return;
-  const a=anchor.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight,gap=8,edge=8;
-  const r=dlg.getBoundingClientRect();
-  const below=h-edge-a.bottom-gap,above=a.top-gap-edge;
-  const y=below>=r.height?a.bottom+gap:above>=r.height?a.top-gap-r.height:below>=above?a.bottom+gap:a.top-gap-r.height;
-  const clamp=(n,max)=>Math.max(edge,Math.min(Math.max(edge,max),n));
-  Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:clamp(a.left,w-r.width-edge)+'px',top:clamp(y,h-r.height-edge)+'px'});
- }
- dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();placeNearButton();
- // Keep manual drag positions, only clamp to viewport when month content changes.
+ dlg.addEventListener('close',()=>dlg.remove());document.body.append(dlg);draw();dlg.showModal();
+ const w=document.documentElement.clientWidth,h=document.documentElement.clientHeight,r=dlg.getBoundingClientRect();
+ Object.assign(dlg.style,{position:'fixed',inset:'auto',margin:'0',left:Math.max(8,(w-r.width)/2)+'px',top:Math.max(8,(h-r.height)/2)+'px'});
  const fit=()=>{if(!dlg.open)return;const r=dlg.getBoundingClientRect(),w=document.documentElement.clientWidth,h=document.documentElement.clientHeight;dlg.style.left=Math.max(8,Math.min(r.left,w-r.width-8))+'px';dlg.style.top=Math.max(8,Math.min(r.top,h-r.height-8))+'px';};
  const observer=new ResizeObserver(fit);observer.observe(dlg);window.addEventListener('resize',fit);
  dlg.addEventListener('close',()=>{observer.disconnect();window.removeEventListener('resize',fit);},{once:true});
@@ -7281,6 +7277,68 @@ html body :is(#sidebar,#v144EntryDialog,#v132StockDetail,#v140LotDialog,#v109Par
  .v154-quick{flex:1 1 100%;gap:4px}
  .v154-quick .v154-period-btn{flex:1 1 auto;min-height:36px;padding:0 5px!important}
  #mainView .v102-accounting .v90-report-controls{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+</style>
+<style id="v155-reference-calendar-stable-columns">
+dialog.v155-calendar.v88-calendar{box-sizing:border-box;width:min(1020px,calc(100vw - 32px))!important;max-width:none!important;max-height:calc(100dvh - 16px)!important;padding:16px 18px 14px!important;border:1px solid #e5e5e5!important;border-radius:16px!important;background:#fff!important;box-shadow:0 16px 44px #0003!important;overflow:auto;color:#202124;font-size:12px;scrollbar-gutter:auto}
+dialog.v155-calendar::backdrop{background:rgba(0,0,0,.18)!important;backdrop-filter:blur(5px)}
+dialog.v155-calendar .v88-top{display:flex;gap:10px;align-items:center;padding:0 0 10px!important;min-height:0!important;border:0!important;border-bottom:1px solid #e8e8e8!important;background:#fff!important}
+dialog.v155-calendar .v88-top h2{font-size:14px!important;font-weight:700;margin:0;white-space:nowrap}
+dialog.v155-calendar .v88-base-label{font-size:11px;font-weight:400;color:#999;white-space:nowrap}
+dialog.v155-calendar .v88-base-year{height:30px;border:1px solid #c6d0df;border-radius:9px;background:#ebedf1}
+dialog.v155-calendar .v88-base-year button{background:transparent!important;border:0!important;color:#92979f!important;width:28px;height:28px;font-size:18px;box-shadow:none!important}
+dialog.v155-calendar .v88-base-year span{font-size:13px;font-weight:600;padding:0 4px;min-width:46px}
+dialog.v155-calendar .v88-period{margin-left:auto;border-radius:20px;background:#e2efff;color:#006de5;padding:5px 10px;font-size:12px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+dialog.v155-calendar .v155-close{width:28px;height:28px;min-width:28px;background:#efefef!important;border:0!important;border-radius:50%!important;color:#909095!important;font-size:16px;line-height:1;padding:0!important;box-shadow:none!important}
+dialog.v155-calendar .v88-quick{margin:12px 0 7px;gap:7px}
+dialog.v155-calendar .v88-quick-seven,dialog.v155-calendar .v88-quick-months{gap:5px;border-top:1px solid #dedede;border-bottom:1px solid #dedede}
+dialog.v155-calendar .v88-quick button{height:30px!important;min-height:30px!important;padding:0 3px!important;font-size:12px!important;border:1px solid #e0e0e0!important;border-radius:7px!important;background:#fff!important;color:#454549!important;box-shadow:none!important;font-weight:400!important}
+dialog.v155-calendar .v88-quick button.active{background:#007aff!important;border-color:#007aff!important;color:#fff!important;font-weight:600!important}
+dialog.v155-calendar .v88-calendars{display:grid!important;grid-template-columns:minmax(0,1fr) 36px minmax(0,1fr)!important;align-items:stretch;gap:0!important}
+dialog.v155-calendar .v88-cal{box-sizing:border-box;min-width:0;border:1px solid #e5e5e5;border-radius:11px;padding:10px}
+dialog.v155-calendar .v88-cal-nav{display:grid;grid-template-columns:26px 78px minmax(0,1fr) 26px;gap:8px;padding:0!important;background:transparent!important;border:0!important}
+dialog.v155-calendar .v88-cal-nav select{height:28px!important;min-height:28px!important;width:100%;min-width:0;border:1px solid #dedede!important;border-radius:7px!important;background:#fff!important;color:#252528!important;font-size:12px!important;padding:0 8px!important;box-shadow:none!important}
+dialog.v155-calendar .v88-arrow{width:26px;height:26px!important;background:#fff!important;border:1px solid #e0e0e0!important;border-radius:7px!important;box-shadow:none!important}
+dialog.v155-calendar .v88-arrow span{background:transparent!important;color:#929298!important;font-size:10px;font-weight:400}
+dialog.v155-calendar .v88-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px 3px;padding:8px 0 0}
+dialog.v155-calendar .v88-days b{font-size:11px;font-weight:400;color:#a0a0a5;height:24px}
+dialog.v155-calendar .v88-days b:first-child{color:#ff3040}dialog.v155-calendar .v88-days b:nth-child(7){color:#007aff}
+dialog.v155-calendar .v88-days button{height:30px!important;min-height:30px!important;width:100%;padding:0!important;text-align:center!important;border:1px solid transparent!important;border-radius:7px!important;background:#fff!important;color:#25252a!important;font-size:12px!important;font-weight:400!important;box-shadow:none!important}
+dialog.v155-calendar .v88-days button.v155-adjacent{color:#35353a!important}
+dialog.v155-calendar .v88-days button.v154-inrange:not(.chosen){background:#e8f2ff!important;color:#006de5!important}
+dialog.v155-calendar .v88-days button.current-day:not(.chosen){color:#007aff!important}
+dialog.v155-calendar .v88-days button.chosen,dialog.v155-calendar .v88-days button.chosen:hover{background:#fff!important;border-color:#007aff!important;color:#006de5!important;font-weight:600!important;box-shadow:inset 0 0 0 .5px #007aff!important}
+dialog.v155-calendar .v88-days button:hover:not(.chosen){background:#f0f6ff!important}
+dialog.v155-calendar .v88-separator{display:block;color:#bcbcc1;font-size:12px}
+dialog.v155-calendar .v155-note{font-size:11px;color:#a5a5aa;margin:10px 0 14px;line-height:1.4}
+dialog.v155-calendar .v88-footer{display:flex;justify-content:flex-end;border-top:1px solid #e8e8e8;margin:0;padding:14px 0 0}
+dialog.v155-calendar .v88-footer>div{gap:8px}
+dialog.v155-calendar .v88-footer button{height:36px!important;min-height:36px!important;min-width:50px;padding:0 12px!important;border:1px solid #dedede!important;border-radius:8px!important;background:#fff!important;color:#28282d!important;font-size:12px!important;box-shadow:none!important}
+dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!important;border-color:#007aff!important;color:#fff!important;font-weight:600!important}
+#mainView .v89-period-value{display:inline-block;box-sizing:border-box;flex:0 0 178px;width:178px;min-width:178px!important;max-width:178px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+#mainView .v154-quick{display:grid;grid-template-columns:repeat(4,72px);flex:0 0 auto;gap:4px}
+#mainView .v154-quick .v154-period-btn{width:72px!important;min-width:72px!important;max-width:72px!important;text-align:center}
+#mainView :is(.v87-history-results,.v110-deleted,.v116-trace,.ac-page) .table-scroll{scrollbar-gutter:stable;min-width:0}
+#mainView :is(.v87-history-results .history-table,.v110-deleted .v110-table,.v116-trace .inventory-table,.ac-page .ac-table):not(.v129-card-table){table-layout:fixed!important;width:100%!important}
+#mainView :is(.v87-history-results .history-table,.v110-deleted .v110-table,.v116-trace .inventory-table):not(.v129-card-table){min-width:780px!important}
+#mainView :is(.v87-history-results,.v110-deleted,.v116-trace) table:not(.v129-card-table) td{min-width:0!important;white-space:normal;overflow-wrap:anywhere}
+#mainView .history-table th:nth-child(1){width:17%}#mainView .history-table th:nth-child(2){width:9%}#mainView .history-table th:nth-child(3){width:23%}#mainView .history-table th:nth-child(4){width:19%}#mainView .history-table th:nth-child(5){width:12%}#mainView .history-table th:nth-child(6){width:13%}#mainView .history-table th:nth-child(7){width:7%}
+#mainView .v110-table th:nth-child(1){width:18%}#mainView .v110-table th:nth-child(2){width:10%}#mainView .v110-table th:nth-child(3){width:18%}#mainView .v110-table th:nth-child(4){width:30%}#mainView .v110-table th:nth-child(5){width:13%}#mainView .v110-table th:nth-child(6){width:11%}
+#mainView .v116-trace table th:nth-child(1){width:13%}#mainView .v116-trace table th:nth-child(2){width:22%}#mainView .v116-trace table th:nth-child(3){width:18%}#mainView .v116-trace table th:nth-child(4){width:13%}#mainView .v116-trace table th:nth-child(5){width:10%}#mainView .v116-trace table th:nth-child(6){width:14%}#mainView .v116-trace table th:nth-child(7){width:10%}
+#mainView .v102-accounting .v90-report-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,144px) 92px!important}
+#mainView .v102-accounting .v90-report-controls #acCSV{grid-column:4}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){
+ dialog.v155-calendar.v88-calendar{width:calc(100vw - 16px)!important;padding:12px!important;inset:auto!important;max-height:calc(100dvh - 16px)!important}
+ dialog.v155-calendar .v88-top{flex-wrap:wrap;gap:6px}dialog.v155-calendar .v88-period{order:5;flex:1 1 100%;text-align:center;margin:0;font-size:11px}
+ dialog.v155-calendar .v155-close{margin-left:auto!important}
+ dialog.v155-calendar .v88-quick-seven{grid-template-columns:repeat(4,minmax(0,1fr))}dialog.v155-calendar .v88-quick-months{grid-template-columns:repeat(6,minmax(0,1fr))}
+ dialog.v155-calendar .v88-calendars{grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+ dialog.v155-calendar .v88-separator{display:none}dialog.v155-calendar .v88-days button{height:30px!important;min-height:30px!important}
+ #mainView .v154-quick{width:100%;grid-template-columns:repeat(4,minmax(0,1fr));flex:1 1 100%}
+ #mainView .v154-quick .v154-period-btn{width:100%!important;min-width:0!important;max-width:none!important}
+ #mainView .v89-period-value{flex:0 0 100%;width:100%;max-width:100%;min-width:0!important;min-height:14px}
+ #mainView .v102-accounting .v90-report-controls{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ #mainView .v102-accounting .v90-report-controls #acCSV{grid-column:auto}
 }
 </style>
 </body></html>
