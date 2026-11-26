@@ -3025,6 +3025,11 @@ function acExpenseEdit(id){
 }
 function acExportCell(x){return typeof x==='string'&&/^[\s]*[=+\-@\t\r]/.test(x)?"'"+x:x;}
 function acTable(headers,rows){return `<div class="table-scroll ac-scroll"><table class="inventory-table ac-table"><thead><tr>${headers.map(h=>`<th data-v161-col="${esc(h)}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${headers.length}" class="empty">등록된 내역이 없습니다.</td></tr>`}</tbody></table></div>`;}
+function v169AccountingActions(d,kind,line=false){
+ const why=d.canceled?'취소된 전표':d.unknown?'단가 미확정':d.review?'정산 확인 필요':!(d.balance>0)?'정산 완료':line?'전표별 조회에서 정산할 수 있습니다.':'';
+ const key=esc(d.key),disabled=why?' disabled title="'+esc(why)+'"':'';
+ return `<td class="v102-actions v169-ac-actions"><div><button type="button" class="mini-btn" data-ac-doc="${key}">명세서</button><button type="button" class="mini-btn" data-ac-payments="${key}">정산 내역</button><button type="button" class="mini-btn" data-ac-complete="${key}"${disabled}>${kind==='purchase'?'지급 완료':'입금 완료'}</button><button type="button" class="mini-btn" data-ac-settle="${key}"${disabled}>부분 정산</button></div></td>`;
+}
 function acPage(next){
  const f=acState(next),all=acDocuments(),names=acNames(),expense=next==='ac_expense',ledger=next==='ac_ledger',settle=next==='ac_payable'||next==='ac_receivable',kind=next==='ac_purchase'||next==='ac_payable'?'purchase':'sale';
  const isTrade=next==='ac_purchase'||next==='ac_sale';
@@ -3059,7 +3064,7 @@ function acPage(next){
   if(settle&&f.status==='all')docs=docs.filter(d=>(!d.canceled&&(d.balance>0||d.unknown))||d.review);
   if(f.status==='open')docs=docs.filter(d=>!d.canceled&&(d.balance>0||d.unknown));else if(f.status==='closed')docs=docs.filter(d=>!d.canceled&&!d.unknown&&!d.review&&d.balance===0);else if(f.status==='canceled')docs=docs.filter(d=>d.canceled);
   headers=['날짜','거래처','전표번호','품목','금액(원)',kind==='purchase'?'지급(원)':'수금(원)',kind==='purchase'?'미지급(원)':'미수(원)','상태','관리'];
-  rows=docs.map(d=>`<tr>${td(d.date)}${td(d.name)}${td(d.id)}${td(d.lines.map(l=>l.name).slice(0,2).join(' · ')+(d.lines.length>2?' 외 '+(d.lines.length-2)+'건':''))}${td(d.canceled?'—':acMoney(d.amount)+(d.unknown?' + 미확정':''),'numeric')}${num(d.settled)}${td(d.canceled?'—':acMoney(d.balance)+(d.unknown?' + 미확정':''),'numeric')}${td(acStatus(d))}<td class="v102-actions"><div><button class="mini-btn" data-ac-doc="${esc(d.key)}">명세서</button> <button class="mini-btn" data-ac-payments="${esc(d.key)}">정산 내역</button>${!d.canceled&&!d.unknown&&!d.review&&d.balance>0?` <button class="mini-btn" data-ac-complete="${esc(d.key)}">${kind==='purchase'?'지급 완료':'입금 완료'}</button> <button class="mini-btn" data-ac-settle="${esc(d.key)}">부분 정산</button>`:''}</div></td></tr>`);
+  rows=docs.map(d=>`<tr>${td(d.date)}${td(d.name)}${td(d.id)}${td(d.lines.map(l=>l.name).slice(0,2).join(' · ')+(d.lines.length>2?' 외 '+(d.lines.length-2)+'건':''))}${td(d.canceled?'—':acMoney(d.amount)+(d.unknown?' + 미확정':''),'numeric')}${num(d.settled)}${td(d.canceled?'—':acMoney(d.balance)+(d.unknown?' + 미확정':''),'numeric')}${td(acStatus(d))}${v169AccountingActions(d,kind)}</tr>`);
   exportRows=docs.map(d=>[d.date,d.name,d.id,d.lines.map(l=>l.name).join(' / '),d.canceled?'':d.amount,d.settled,d.canceled?'':d.balance,acStatus(d),'']);
   if(isTrade&&f.mode==='line'){
    headers=['날짜','거래처','품목','규격','수량','단위','단가(원)','금액(원)','전표번호','상태','관리'];
@@ -3068,7 +3073,7 @@ function acPage(next){
     const price=Number(l.price),known=Number.isFinite(price)&&price>0;
     const q=Number(l.qty)||0,amount=known?acRound(q*price):null;
     const unit=l.unit||'kg';
-    rows.push(`<tr>${td(d.date)}${td(d.name)}${td(l.name)}${td(l.spec||'—')}${td(fmt(q),'numeric')}${td(unit)}${known?num(price):td('미확정','numeric')}${d.canceled?td('—','numeric'):known?num(amount):td('미확정','numeric')}${td(d.id)}${td(acStatus(d))}<td><button type="button" class="mini-btn" data-ac-doc="${esc(d.key)}">명세서</button></td></tr>`);
+    rows.push(`<tr>${td(d.date)}${td(d.name)}${td(l.name)}${td(l.spec||'—')}${td(fmt(q),'numeric')}${td(unit)}${known?num(price):td('미확정','numeric')}${d.canceled?td('—','numeric'):known?num(amount):td('미확정','numeric')}${td(d.id)}${td(acStatus(d))}${v169AccountingActions(d,kind,true)}</tr>`);
     exportRows.push([d.date,d.name,l.name,l.spec||'',q,unit,known?price:'',d.canceled||!known?'':amount,d.id,acStatus(d),'']);
    }
   }
@@ -3090,7 +3095,7 @@ function acPage(next){
  if($('acNewPurchase'))$('acNewPurchase').onclick=()=>setView('intake','ac_purchase');
  if($('acNewSale'))$('acNewSale').onclick=()=>setView('ship','ac_sale');
  if($('acNew'))$('acNew').onclick=()=>acExpenseEdit();
- $('mainView').onclick=e=>{const b=e.target.closest('button');if(!b||!b.closest('.ac-page'))return;const ds=b.dataset;
+ $('mainView').onclick=e=>{const b=e.target.closest('button');if(!b||b.disabled||!b.closest('.ac-page'))return;const ds=b.dataset;
   if(ds.acDoc){const d=all.find(x=>x.key===ds.acDoc);if(d)v17ShowSaved(d.kind==='purchase'?'in':'out',d.id);}
   else if(ds.acComplete)acComplete(ds.acComplete);else if(ds.acSettle)acSettle(ds.acSettle);else if(ds.acPayments)acPaymentHistory(ds.acPayments);else if(ds.acEdit)acExpenseEdit(ds.acEdit);
   else if(ds.acVoidExp&&confirm('이 경비 기록을 취소하시겠습니까?')){if(acCommit(()=>{const x=state.acExpenses.find(v=>v.id===ds.acVoidExp&&!v.voided);if(!x)throw Error('기록이 없습니다.');x.voided=true;x.voidedAt=new Date().toISOString();}))acPage(next);}
@@ -7889,7 +7894,7 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .ac-page .ac-table:has(th[data-v161-col="단가(원)"]){min-width:1160px!important}
 #mainView#mainView .ac-page .ac-table th[data-v161-col="단위"]{width:55px!important}
 #mainView#mainView .ac-page .ac-table th[data-v161-col="수량"]{width:90px!important;text-align:right}
-#mainView#mainView .ac-page .ac-table:has(th[data-v161-col="단가(원)"]) th[data-v161-col="관리"]{width:90px!important}
+#mainView#mainView .ac-page .ac-table:has(th[data-v161-col="단가(원)"]) th[data-v161-col="관리"]{width:168px!important}
 #mainView#mainView .ac-page .ac-table:has(th[data-v161-col="단가(원)"]) th[data-v161-col="규격"]{width:105px!important}
 #mainView#mainView .ac-page .v90-report-controls{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important}
 #mainView#mainView .ac-page .v90-report-controls .v102-period-group{flex:1 0 100%!important;width:100%!important}
@@ -7947,5 +7952,16 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
  #mainView .panel-top:has(.v168-master-actions)>div:first-child{flex:1 1 100%;min-width:0}
  #mainView .v168-master-actions{flex:1 1 100%;justify-content:flex-end;min-width:0}
  #mainView .v168-master-actions button{min-height:44px;white-space:nowrap}
+}
+</style><style id="v169-accounting-actions">
+#mainView#mainView .v102-accounting .ac-table th[data-v161-col="관리"]{width:168px!important;min-width:168px!important;max-width:168px!important;text-align:center!important}
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions{width:168px!important;min-width:168px!important;max-width:168px!important;padding:7px 8px!important;vertical-align:middle!important;text-align:center!important;box-sizing:border-box}
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions>div{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;grid-template-rows:repeat(2,30px);width:100%;gap:4px!important;align-items:stretch!important;justify-items:stretch!important}
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions button.mini-btn{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;min-width:0!important;max-width:none!important;height:30px!important;min-height:30px!important;max-height:30px!important;box-sizing:border-box;margin:0!important;padding:0 3px!important;border:1px solid #c1c1c7!important;border-radius:5px!important;background:#fff!important;color:#28282c!important;box-shadow:none!important;font-size:12px!important;font-weight:500!important;line-height:1.3!important;white-space:nowrap!important}
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions button.mini-btn:hover:not(:disabled){background:#f1f1f4!important;border-color:#a7a7ad!important}
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions button.mini-btn:disabled{background:#f4f4f5!important;border-color:#dedee1!important;color:#a2a2a8!important;opacity:1!important;cursor:default!important;pointer-events:auto}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions>div{grid-template-rows:repeat(2,44px)}
+#mainView#mainView .v102-accounting .ac-table td.v169-ac-actions button.mini-btn{height:44px!important;min-height:44px!important;max-height:44px!important}
 }
 </style></body></html>
