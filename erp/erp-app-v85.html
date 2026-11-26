@@ -2207,7 +2207,7 @@ function v116TracePage(){
   const chilled=lots.some(l=>l.traceRunId===r.id&&cents(l.chilled)>0);const status=r.unassigned?'생산품목 미지정':!field.length?(chilled?'현장 출고 전':'준비 재고 없음'):pending?'사용 / 반납 확인 필요':chilled?'냉장 준비 재고 남음':out.length?'연결 완료':'완제품 미연결';
   return '<tr><td>'+esc(r.plannedDate)+'</td><td>'+esc(r.name)+'</td><td>'+esc(r.id)+'</td><td>'+fmt(amount(used))+' kg</td><td>'+out.length+'건</td><td>'+esc(status)+'</td><td><button type="button" class="mini-btn" data-v116-run="'+esc(r.id)+'">상세 보기</button></td></tr>';
  }).join('');
- $('mainView').innerHTML='<section class="card inventory-panel v116-trace"><div class="panel-top"><div><h2>생산 이력</h2><p class="page-desc">원료육 사용 목적과 실제 완제품 LOT의 연결을 조회합니다. 중량은 각각 독립적으로 관리됩니다.</p></div></div><div class="filters"><button type="button" class="btn btn-outline" id="v154TracePeriod">기간설정</button>'+v154PeriodButtons(v154TraceFrom,v154TraceTo)+v89PeriodLabel(v154TraceFrom,v154TraceTo)+'<div class="search-field"><input id="v116Search" type="search" placeholder="생산품목 · 생산번호 · 원료육 · LOT · 거래처 검색" value="'+esc(v116Query)+'"></div><button class="btn btn-outline" id="v116Find" type="button">검색</button><span class="filter-count">'+rows.length+'건</span></div><div class="table-scroll"><table class="inventory-table"><thead><tr><th>지정일</th><th>생산품목</th><th>생산번호</th><th>확인된 사용량</th><th>완제품 LOT</th><th>상태</th><th>관리</th></tr></thead><tbody>'+(html||'<tr><td colspan="7">등록된 생산 이력이 없습니다. 해동 또는 현장 출고에서 생산품목을 지정해 주세요.</td></tr>')+'</tbody></table></div></section><section id="v116TraceDetail"></section>';
+ $('mainView').innerHTML='<section class="card inventory-panel v116-trace"><div class="panel-top"><div><h2>생산 이력</h2><p class="page-desc">원료육 사용 목적과 실제 완제품 LOT의 연결을 조회합니다. 중량은 각각 독립적으로 관리됩니다.</p></div></div><div class="filters"><button type="button" class="btn btn-outline" id="v154TracePeriod">기간설정</button>'+v154PeriodButtons(v154TraceFrom,v154TraceTo)+v89PeriodLabel(v154TraceFrom,v154TraceTo)+'<div class="v161-search-group"><div class="search-field"><input id="v116Search" type="search" placeholder="생산품목 · 생산번호 · 원료육 · LOT · 거래처 검색" value="'+esc(v116Query)+'"></div><button class="btn btn-outline" id="v116Find" type="button">검색</button></div><span class="filter-count">'+rows.length+'건</span></div><div class="table-scroll"><table class="inventory-table"><thead><tr><th>지정일</th><th>생산품목</th><th>생산번호</th><th>확인된 사용량</th><th>완제품 LOT</th><th>상태</th><th>관리</th></tr></thead><tbody>'+(html||'<tr><td colspan="7">등록된 생산 이력이 없습니다. 해동 또는 현장 출고에서 생산품목을 지정해 주세요.</td></tr>')+'</tbody></table></div></section><section id="v116TraceDetail"></section>';
  const applyPeriod=(a,b)=>{v154TraceFrom=a;v154TraceTo=b;v116Selected='';v116TracePage();};$('v154TracePeriod').onclick=e=>v70Calendar({anchor:e.currentTarget,from:v154TraceFrom,to:v154TraceTo,apply:applyPeriod});v154BindPeriod('v154TracePeriod',applyPeriod);
  $('v116Find').onclick=()=>{v116Query=$('v116Search').value;v116Selected='';v116TracePage();};$('v116Search').onkeydown=e=>{if(e.key==='Enter')$('v116Find').click();};
  $('mainView').querySelectorAll('[data-v116-run]').forEach(b=>b.onclick=()=>{v116Selected=b.dataset.v116Run;v116TracePage();});
@@ -2993,7 +2993,7 @@ function acExpenseEdit(id){
  });
 }
 function acExportCell(x){return typeof x==='string'&&/^[\s]*[=+\-@\t\r]/.test(x)?"'"+x:x;}
-function acTable(headers,rows){return `<div class="table-scroll ac-scroll"><table class="inventory-table ac-table"><thead><tr>${headers.map(h=>`<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${headers.length}" class="empty">등록된 내역이 없습니다.</td></tr>`}</tbody></table></div>`;}
+function acTable(headers,rows){return `<div class="table-scroll ac-scroll"><table class="inventory-table ac-table"><thead><tr>${headers.map(h=>`<th data-v161-col="${esc(h)}">${esc(h)}</th>`).join('')}</tr></thead><tbody>${rows.join('')||`<tr><td colspan="${headers.length}" class="empty">등록된 내역이 없습니다.</td></tr>`}</tbody></table></div>`;}
 function acPage(next){
  const f=acState(next),all=acDocuments(),names=acNames(),expense=next==='ac_expense',ledger=next==='ac_ledger',settle=next==='ac_payable'||next==='ac_receivable',kind=next==='ac_purchase'||next==='ac_payable'?'purchase':'sale';
  const selected=acDocsFiltered(all,f);
@@ -3698,7 +3698,7 @@ function v110DeletedPage(){
  const time=r=>r.at&&!isNaN(Date.parse(r.at))?new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date(r.at)):'미기록';
  const summary=r=>r.action==='삭제'?((r.originals||[]).map(t=>[t.name,t.qty!=null?String(t.qty)+' '+(t.unit||'kg'):'',t.vendor||t.recipient,t.note].filter(Boolean).join(' · ')).join(' / ')||r.marker?.note||'삭제 · 원본 상세 미기록'):(r.changes||[]).map(c=>(v136Labels[c.field]||c.field)+': '+v136Val(c.field,c.before)+' → '+v136Val(c.field,c.after)).join(' · ')||'변경 항목 미기록';
  const filtered=rows.filter(r=>(f.action==='all'||f.action===r.action)&&(f.type==='all'||f.type===r.type)&&(!f.from||date(r)>=f.from)&&(!f.to||date(r)<=f.to)&&matchesSearch(f.query,[r.action,r.type,r.name,r.by,r.reason,r.id,r.targetId,summary(r),...r.originals.flatMap(t=>[t.name,t.vendor,t.recipient,t.lotId,t.note,t.brand,t.origin,t.doc])]));
- $('mainView').innerHTML='<section class="card v110-deleted"><div class="filters"><div class="v61-tab-group" role="group" aria-label="변경 유형">'+[['all','전체'],['수정','수정'],['삭제','삭제']].map(([v,l])=>'<button type="button" class="v61-tab '+(f.action===v?'active':'')+'" data-v136-action="'+v+'" aria-pressed="'+(f.action===v)+'">'+l+'</button>').join('')+'</div><select id="v110Type" class="product-status-select" aria-label="업무 구분">'+[['all','전체 구분'],...['입고','출고','해동','재냉동','입출고','품목 등록','거래처 등록','생산','정산','경비','기타','기타 출고','현장 출고','현장 반납'].map(x=>[x,x])].map(([v,l])=>'<option value="'+esc(v)+'" '+(v===f.type?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select><button type="button" class="btn btn-outline" id="v110Period">기간설정</button>'+v154PeriodButtons(f.from,f.to)+v89PeriodLabel(f.from,f.to)+'<div class="search-field"><input id="v110Search" type="search" placeholder="품목·작업자·변경 내용 검색" value="'+esc(f.query)+'"></div><button type="button" class="btn btn-outline" id="v110Find">검색</button><button type="button" class="btn btn-outline" id="v110Reset">초기화</button><span class="filter-count">'+fmt(filtered.length)+'건</span></div><div class="table-scroll"><table class="inventory-table v110-table"><thead><tr><th>변경 일시</th><th>구분</th><th>대상</th><th>변경 내용</th><th>작업자</th><th>상세 정보</th></tr></thead><tbody>'+ (filtered.map((r,i)=>'<tr><td>'+esc(time(r))+'</td><td>'+esc(r.action+' / '+r.type)+'</td><td>'+esc(r.name)+'</td><td class="v136-summary">'+esc(summary(r))+'</td><td>'+esc(r.by||(r.userId?'계정 ID: '+r.userId:'미기록'))+'</td><td><button type="button" class="btn btn-outline v139-detail" data-v110-detail="'+i+'">상세 보기</button></td></tr>').join('')||'<tr><td colspan="6">변경 이력이 없습니다.</td></tr>')+'</tbody></table></div><div class="table-footer"><span>조회 '+fmt(filtered.length)+'건 / 전체 '+fmt(rows.length)+'건</span><span>조회 전용</span></div></section><dialog class="v147-info-dialog" id="v110Dialog" aria-labelledby="v147AuditTitle"><header class="v147-titlebar" data-drag-handle><h2 id="v147AuditTitle">변경 상세 정보</h2><button class="v147-close v150-dismiss" type="button" id="v110Close" aria-label="닫기"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">닫기</span></button></header><div class="v147-body" id="v110Detail"></div></dialog>';
+ $('mainView').innerHTML='<section class="card v110-deleted"><div class="filters"><div class="v61-tab-group" role="group" aria-label="변경 유형">'+[['all','전체'],['수정','수정'],['삭제','삭제']].map(([v,l])=>'<button type="button" class="v61-tab '+(f.action===v?'active':'')+'" data-v136-action="'+v+'" aria-pressed="'+(f.action===v)+'">'+l+'</button>').join('')+'</div><select id="v110Type" class="product-status-select" aria-label="업무 구분">'+[['all','전체 구분'],...['입고','출고','해동','재냉동','입출고','품목 등록','거래처 등록','생산','정산','경비','기타','기타 출고','현장 출고','현장 반납'].map(x=>[x,x])].map(([v,l])=>'<option value="'+esc(v)+'" '+(v===f.type?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select><button type="button" class="btn btn-outline" id="v110Period">기간설정</button>'+v154PeriodButtons(f.from,f.to)+v89PeriodLabel(f.from,f.to)+'<div class="v161-search-group"><div class="search-field"><input id="v110Search" type="search" placeholder="품목·작업자·변경 내용 검색" value="'+esc(f.query)+'"></div><button type="button" class="btn btn-outline" id="v110Find">검색</button></div><button type="button" class="btn btn-outline" id="v110Reset">초기화</button><span class="filter-count">'+fmt(filtered.length)+'건</span></div><div class="table-scroll"><table class="inventory-table v110-table"><thead><tr><th>변경 일시</th><th>구분</th><th>대상</th><th>변경 내용</th><th>작업자</th><th>상세 정보</th></tr></thead><tbody>'+ (filtered.map((r,i)=>'<tr><td>'+esc(time(r))+'</td><td>'+esc(r.action+' / '+r.type)+'</td><td>'+esc(r.name)+'</td><td class="v136-summary">'+esc(summary(r))+'</td><td>'+esc(r.by||(r.userId?'계정 ID: '+r.userId:'미기록'))+'</td><td><button type="button" class="btn btn-outline v139-detail" data-v110-detail="'+i+'">상세 보기</button></td></tr>').join('')||'<tr><td colspan="6">변경 이력이 없습니다.</td></tr>')+'</tbody></table></div><div class="table-footer"><span>조회 '+fmt(filtered.length)+'건 / 전체 '+fmt(rows.length)+'건</span><span>조회 전용</span></div></section><dialog class="v147-info-dialog" id="v110Dialog" aria-labelledby="v147AuditTitle"><header class="v147-titlebar" data-drag-handle><h2 id="v147AuditTitle">변경 상세 정보</h2><button class="v147-close v150-dismiss" type="button" id="v110Close" aria-label="닫기"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">닫기</span></button></header><div class="v147-body" id="v110Detail"></div></dialog>';
  $('mainView').querySelectorAll('[data-v136-action]').forEach(b=>b.onclick=()=>{f.action=b.dataset.v136Action;v110DeletedPage();});
  $('v110Type').onchange=()=>{f.type=$('v110Type').value;v110DeletedPage();};
  $('v110Find').onclick=()=>{f.query=$('v110Search').value;v110DeletedPage();};
@@ -3839,7 +3839,7 @@ function renderHistory(){
   return `<tr><td>${esc(v70Date(t))}</td><td><span class="history-type ${cls}">${title}</span>${t.undone?'<div class="subtle">취소됨</div>':''}</td><td>${(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?`<span class="meat-pill">${esc(INTAKE_LABELS[t.category]||V18_CAT[t.category]||t.category||'완제품')}</span>`:typeBadge(t.meatType)} <strong class="product-name">${esc(t.name)}</strong><div class="subtle">${esc(t.lotId)}</div></td><td>${esc(route)}</td><td class="numeric"><strong>${fmt(t.qty)}${unit}</strong></td><td>${esc(detail||'—')}</td><td class="numeric">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</td></tr>`;
  }).join('');
  const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
- $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
+ $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
  // Saved paperwork remains available directly from its matching history row.
  $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget});v154BindPeriod('v70Period',(a,b)=>{v70From=a;v70To=b;renderHistory();}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
@@ -7541,4 +7541,124 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 }
 </style>
 <style id="v160-scoped-movement">#v144EntryDialog #mainView .v160-scope-tag{font-size:11px;color:#6e6e73;white-space:normal;overflow-wrap:anywhere}#v144EntryDialog #mainView #v36Search[readonly]{background:#f5f5f7!important;color:#333!important;cursor:default}#v144EntryDialog #mainView .v145-lot-title{flex-wrap:wrap;min-width:0}#v144EntryDialog #mainView .v145-lot-title strong{overflow-wrap:anywhere}</style>
+
+<style id="v161-efficient-workspace">
+/* Width and alignment only. Existing mobile cards, document print, and entry behavior are preserved. */
+#mainView .v161-search-group{display:flex;align-items:center;gap:6px;min-width:0;max-width:100%}
+#mainView .v161-search-group>.search-field{min-width:0!important;max-width:none!important;flex:1 1 auto!important}
+#mainView .v161-search-group input{width:100%!important;min-width:0!important;max-width:none!important;flex:1 1 auto!important}
+#mainView .v161-search-group>button{flex:0 0 auto;white-space:nowrap}
+#mainView .v89-period-value:empty{display:none!important}
+@media screen and (min-width:768px) and (pointer:fine){
+ /* Standalone lists: same left starting point, sensible search width, counts to the right. */
+ #mainView#mainView :is(.inventory-panel,.v110-deleted)>.filters{gap:8px!important;align-items:center!important;min-width:0}
+ #mainView#mainView .inventory-panel>.filters>.search-field{flex:0 1 360px!important;width:360px!important;min-width:200px!important;max-width:420px!important}
+ #mainView#mainView .inventory-panel>.filters>.search-field>input{width:100%!important;min-width:0!important}
+ #mainView#mainView :is(.inventory-panel,.v110-deleted)>.filters>.filter-count{margin-left:auto!important;flex:0 0 auto!important;white-space:nowrap}
+ /* Period controls stay together; search and its action are a right-aligned group. */
+ #mainView#mainView .v87-history-filters .v70-filter{display:flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important;justify-content:flex-start!important}
+ #mainView#mainView .v87-history-filters .v161-search-group{flex:0 1 340px;min-width:200px;margin-left:auto!important}
+ #mainView#mainView :is(.v110-deleted,.v116-trace)>.filters>.v161-search-group{flex:0 1 340px;min-width:200px;margin-left:auto!important}
+ #mainView#mainView :is(.v110-deleted,.v116-trace)>.filters>.filter-count{margin-left:0!important}
+ #mainView#mainView .v89-period-value:not(:empty){flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;white-space:nowrap}
+ #mainView#mainView .v102-accounting .v90-report-controls{display:flex!important;flex-wrap:wrap!important;gap:6px!important;align-items:center!important;justify-content:flex-start!important}
+ #mainView#mainView .v102-accounting .v102-period-group{display:flex!important;flex:0 0 auto!important;width:auto!important;max-width:100%!important;gap:6px!important;flex-wrap:wrap}
+ #mainView#mainView .v102-accounting .v102-period-group>#acPeriod{flex:0 0 86px!important;width:86px!important}
+ #mainView#mainView .v102-accounting .v102-period-group>.v154-quick{flex:0 0 292px!important;width:292px!important;max-width:100%!important}
+ #mainView#mainView .v102-accounting .v90-report-controls>#acQuery{flex:1 1 240px!important;width:auto!important;min-width:180px!important;max-width:400px!important;margin-left:auto!important}
+ #mainView#mainView .v102-accounting .v90-report-controls>#acStatus{flex:0 0 116px!important;width:116px!important}
+ #mainView#mainView .v102-accounting .v90-report-controls>#acCSV{flex:0 0 90px!important;width:90px!important}
+ /* Explicit short columns; remaining width belongs to names and long descriptions. */
+ #mainView#mainView :is(.history-table,.v110-table,.product-table,.v109-partner-table,.v61-all-table,.v153-table,.ac-table):not(.v129-card-table){table-layout:fixed!important;width:100%!important}
+ #mainView#mainView :is(.history-table,.v110-table,.product-table,.v109-partner-table,.v61-all-table,.v153-table,.ac-table):not(.v129-card-table)>tbody>tr>td{min-width:0!important;max-width:none!important;white-space:normal;overflow-wrap:anywhere;vertical-align:middle}
+ #mainView#mainView .history-table{min-width:920px!important}
+ #mainView#mainView .history-table th:nth-child(1){width:112px!important}
+ #mainView#mainView .history-table th:nth-child(2){width:88px!important}
+ #mainView#mainView .history-table th:nth-child(3){width:23%!important}
+ #mainView#mainView .history-table th:nth-child(4){width:17%!important}
+ #mainView#mainView .history-table th:nth-child(5){width:110px!important}
+ #mainView#mainView .history-table th:nth-child(6){width:auto!important}
+ #mainView#mainView .history-table th:nth-child(7){width:132px!important}
+ #mainView#mainView .history-table td:nth-child(1),#mainView#mainView .history-table td:nth-child(5){white-space:nowrap!important;overflow-wrap:normal!important}
+ #mainView#mainView .history-table td:nth-child(7){white-space:normal!important;text-align:right}
+ #mainView#mainView .history-table td:nth-child(7) button{white-space:nowrap;min-width:0;margin:2px 0 2px 3px;padding:4px 7px!important}
+ #mainView#mainView .history-table td{padding:8px 10px!important;line-height:1.45!important;height:auto!important}
+ #mainView#mainView .v110-table{min-width:780px!important}
+ #mainView#mainView .v110-table th:nth-child(1){width:150px!important}
+ #mainView#mainView .v110-table th:nth-child(2){width:100px!important}
+ #mainView#mainView .v110-table th:nth-child(3){width:20%!important}
+ #mainView#mainView .v110-table th:nth-child(4){width:auto!important}
+ #mainView#mainView .v110-table th:nth-child(5){width:112px!important}
+ #mainView#mainView .v110-table th:nth-child(6){width:100px!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table{min-width:800px!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(1){width:108px!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(2){width:auto!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(3){width:23%!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(4){width:114px!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(5){width:90px!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(6){width:16%!important}
+ #mainView#mainView .v116-trace>.table-scroll>.inventory-table th:nth-child(7){width:100px!important}
+ #mainView#mainView .product-table{min-width:900px!important}
+ #mainView#mainView .product-table th:nth-child(1){width:110px!important}
+ #mainView#mainView .product-table th:nth-child(2){width:108px!important}
+ #mainView#mainView .product-table th:nth-child(3){width:auto!important}
+ #mainView#mainView .product-table th:nth-child(4){width:13%!important}
+ #mainView#mainView .product-table th:nth-child(5){width:58px!important}
+ #mainView#mainView .product-table th:nth-child(6){width:17%!important}
+ #mainView#mainView .product-table th:nth-child(7){width:88px!important}
+ #mainView#mainView .product-table th:nth-child(8){width:150px!important}
+ #mainView#mainView .v109-partner-table{min-width:960px!important}
+ #mainView#mainView .v109-partner-table th:nth-child(1),#mainView#mainView .v109-partner-table th:nth-child(2){width:16%!important}
+ #mainView#mainView .v109-partner-table th:nth-child(3){width:124px!important}
+ #mainView#mainView .v109-partner-table th:nth-child(4){width:90px!important}
+ #mainView#mainView .v109-partner-table th:nth-child(5){width:126px!important}
+ #mainView#mainView .v109-partner-table th:nth-child(6){width:auto!important}
+ #mainView#mainView .v109-partner-table th:nth-child(7){width:78px!important}
+ #mainView#mainView .v109-partner-table th:nth-child(8){width:100px!important}
+ #mainView#mainView .v61-all-table{min-width:680px!important}
+ #mainView#mainView .v61-all-table th:nth-child(1){width:108px!important}
+ #mainView#mainView .v61-all-table th:nth-child(2){width:auto!important}
+ #mainView#mainView .v61-all-table th:nth-child(3){width:16%!important}
+ #mainView#mainView .v61-all-table th:nth-child(4){width:17%!important}
+ #mainView#mainView .v61-all-table th:nth-child(5){width:116px!important}
+ #mainView#mainView .v61-all-table th:nth-child(6){width:76px!important}
+ /* Dynamic stock columns: semantic selectors work across every stock category. */
+ #mainView#mainView .v153-table{min-width:780px!important}
+ #mainView#mainView .v153-table:has(th:nth-child(9)){min-width:900px!important}
+ #mainView#mainView .v153-table:has(th:nth-child(11)){min-width:1080px!important}
+ #mainView#mainView .v153-table th{width:auto!important}
+ #mainView#mainView .v153-table th:has([data-v40-filter="category"]),#mainView#mainView .v153-table th:has([data-v40-filter="origin"]){width:86px!important}
+ #mainView#mainView .v153-table th:has(:is([data-v40-filter="received"],[data-v40-filter="expiry"],[data-v40-filter="movement"])){width:112px!important}
+ #mainView#mainView .v153-table th:has(:is([data-v40-filter="qty"],[data-v40-filter="kg"],[data-v40-filter="frozen"],[data-v40-filter="chilled"])){width:108px!important}
+ #mainView#mainView .v153-table th.col-action{width:90px!important}
+ #mainView#mainView .v153-table th:has([data-v40-filter="name"]){width:24%!important}
+ #mainView#mainView .v153-table td.numeric{white-space:nowrap!important}
+ #mainView#mainView .v153-table :is(th,td){padding:8px!important}
+ /* Frozen LOT detail retains its own compact scroll area. */
+ #mainView#mainView .v74frozen .v99-lot-table{min-width:790px!important}
+ #mainView#mainView .v75all .v99-lot-table{min-width:980px!important}
+ #mainView#mainView .v99-lot-table .v99-origin{width:78px!important}
+ #mainView#mainView .v99-lot-table :is(.v99-vendor,.v99-brand,.v99-lot){width:auto!important}
+ #mainView#mainView .v99-lot-table :is(.v99-received,.v99-expiry){width:100px!important}
+ #mainView#mainView .v99-lot-table :is(.v99-qty,.v99-qty-wide){width:100px!important}
+ #mainView#mainView .v99-lot-table .v99-action{width:82px!important}
+ /* Accounting by semantic header, including hidden legacy report variants. */
+ #mainView#mainView .ac-page .ac-table{min-width:960px!important}
+ #mainView#mainView .ac-page .ac-table th{width:auto!important}
+ #mainView#mainView .ac-page .ac-table th[data-v161-col="날짜"]{width:106px!important}
+ #mainView#mainView .ac-page .ac-table th[data-v161-col="전표번호"]{width:146px!important}
+ #mainView#mainView .ac-page .ac-table th[data-v161-col$="(원)"]{width:110px!important;text-align:right}
+ #mainView#mainView .ac-page .ac-table th[data-v161-col="상태"]{width:90px!important}
+ #mainView#mainView .ac-page .ac-table th[data-v161-col="관리"]{width:156px!important}
+ #mainView#mainView .ac-page .ac-table td.numeric{white-space:nowrap!important;overflow-wrap:normal!important}
+ #mainView#mainView .ac-page .ac-table td.v102-actions>div{gap:4px!important;justify-content:center}
+ #mainView#mainView .ac-page .ac-table td.v102-actions button{flex:0 0 70px!important}
+ #mainView#mainView :is(.product-table,.v109-partner-table,.v61-all-table,.v110-table,.ac-table)>tbody>tr>td{padding:8px 10px!important;height:auto!important;line-height:1.45!important}
+}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){
+ #mainView .v161-search-group{flex:1 1 100%;width:100%;margin:0!important}
+ #mainView .v87-history-filters .v161-search-group input{flex:1 1 0!important;width:100%!important}
+}
+</style>
+
 </body></html>
