@@ -3508,7 +3508,6 @@ function v121Moves(opts={},st=state){
 }
 function v121Outbound(opts={},st=state){
  const zones=v121Zones(opts,st),choices=[];
- if(zones.includes('chilled'))choices.push({key:'field',label:v121Types.field,from:'chilled'});
  if(zones.length){for(const kind of ['parcel','company','personal','disposal','other'])choices.push({key:kind,label:v121Types[kind],from:zones.length===1?zones[0]:''});}
  return choices;
 }
@@ -3619,7 +3618,7 @@ function qtyPreview(){
 }
 
 function v122OutboundOptions(from){
- return [['','선택'],...(['frozen','chilled'].includes(from)?[['field','현장']]:[]),...['parcel','company','personal','disposal','other'].map(k=>[k,v121Types[k]])];
+ return [['','선택'],...v123Kinds.map(k=>[k,v121Types[k]])];
 }
 function v122OutboundFields(kind){
  const recipient=kind==='company'?field('업체','recipient',{required:true,full:true,placeholder:'거래처 검색 후 선택'}):['parcel','personal'].includes(kind)?field(kind==='parcel'?'수령인':'받는 사람','recipient',{required:true,full:true,placeholder:'이름 입력'}):'';
@@ -4720,7 +4719,7 @@ function v17BindStatementDialog(){
 // v18 · 통합 출고. All work happens inside the existing v17 application closure.
 const V18_CAT={meat:'원료육',finished_own:'완제품 · 생산제품',finished_buy:'완제품 · 매입상품',sauce:'부재료 · 소스',spice:'부재료 · 향신료',vegetable:'부재료 · 야채',ingredient_other:'부재료 · 기타',pending:'분류 확인',supplies:'부자재'};
 let v18Lines=[],v18RowSeq=0,v18Partner=null,v18LastBatch='',v123Kind='',v123Recipient='';
-const v123Kinds=['company','personal','disposal','parcel','other','field'];
+const v123Kinds=['company','personal','disposal','parcel','other'];
 const v123Labels={company:'업체',personal:'성명',disposal:'폐기사유',parcel:'수령인',other:'출고내용',field:'생산품목 (선택)'};
 const v123Commercial=k=>!k||k==='company';
 const v18Key=(r,idx)=>r.id?'extra:'+r.id:'seed:'+idx;
