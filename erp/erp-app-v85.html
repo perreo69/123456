@@ -7636,6 +7636,23 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
  #mainView#mainView .v153-table th:has([data-v40-filter="name"]){width:20%!important}
  #mainView#mainView .v153-table td.numeric{white-space:nowrap!important}
  #mainView#mainView .v153-table :is(th,td){padding:8px!important}
+ /* Chilled desktop uses the legacy stock table; apply the same short-column policy. */
+ #mainView#mainView .v75chilled>.table-scroll>.stock-table{table-layout:fixed!important;min-width:860px!important;width:100%!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(1){width:21%!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(2){width:84px!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(3){width:18%!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(4),#mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(6){width:110px!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(5){width:auto!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(7){width:104px!important}
+ #mainView#mainView .v75chilled .stock-table>thead>tr>th:nth-child(8){width:86px!important}
+ #mainView#mainView .v75chilled .stock-table>tbody>tr>td{min-width:0!important;max-width:none!important;white-space:normal;overflow-wrap:anywhere;padding:8px!important}
+ #mainView#mainView .v75chilled .stock-table>tbody>tr>td:is(:nth-child(4),:nth-child(6),:nth-child(7),:nth-child(8)){white-space:nowrap!important;overflow-wrap:normal}
+ /* Production detail tables have different schemas; size each from its own content. */
+ #mainView #v116TraceDetail .table-scroll{overflow-x:auto;min-width:0}
+ #mainView #v116TraceDetail .inventory-table{table-layout:auto!important;width:100%!important}
+ #mainView #v116TraceDetail .inventory-table th{width:auto!important;white-space:nowrap}
+ #mainView #v116TraceDetail .inventory-table td{white-space:normal;overflow-wrap:normal;min-width:0;padding:8px!important}
+ #mainView #v116TraceDetail .inventory-table:has(th:nth-child(12)){min-width:1500px!important}
  /* Frozen LOT detail retains its own compact scroll area. */
  #mainView#mainView .v74frozen .v99-lot-table{min-width:790px!important}
  #mainView#mainView .v75all .v99-lot-table{min-width:980px!important}
