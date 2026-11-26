@@ -7709,4 +7709,49 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 }
 </style>
 
+
+<style id="v163-desktop-stock-detail">
+/* v132 detail was designed only inside mobile media queries. Give the same
+   dialog complete desktop layout, without changing stock or action logic. */
+@media screen and (min-width:768px) and (pointer:fine){
+ dialog#v132StockDetail.v147-info-dialog{
+   width:min(520px,calc(100vw - 40px))!important;max-width:calc(100vw - 40px)!important;
+   max-height:calc(100dvh - 40px)!important;border-radius:14px!important;
+   background:#f5f5f7!important;overflow:auto!important;
+ }
+ dialog#v132StockDetail .v132-detail-head{
+   position:sticky;top:0;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;
+   gap:16px;padding:20px 22px 15px;box-sizing:border-box;cursor:move;background:#f5f5f7!important;
+ }
+ dialog#v132StockDetail .v132-detail-head>div{min-width:0;flex:1 1 auto}
+ dialog#v132StockDetail .v132-detail-head small{display:block;font-size:12px;color:#54545c;line-height:1.4;margin-bottom:5px}
+ dialog#v132StockDetail .v132-detail-head h2{font-size:21px!important;font-weight:650;line-height:1.35;letter-spacing:-.3px;margin:0;overflow-wrap:anywhere;color:#1d1d1f}
+ dialog#v132StockDetail .v132-detail-head>div>span{display:block;font-size:13px;color:#55555d;line-height:1.4;margin-top:5px;overflow-wrap:anywhere}
+ dialog#v132StockDetail .v132-detail-head>div>span:empty{display:none}
+ dialog#v132StockDetail .v132-detail-head [data-v132-close]{flex:0 0 28px;align-self:flex-start;margin:0!important}
+ dialog#v132StockDetail .v132-detail-total{
+   display:flex;align-items:center;justify-content:space-between;gap:14px;
+   margin:0 20px 12px;padding:14px 16px;background:#fff!important;box-sizing:border-box;
+ }
+ dialog#v132StockDetail .v132-detail-total>span{font-size:13px;color:#505057;line-height:1.5;min-width:0}
+ dialog#v132StockDetail .v132-detail-total>strong{font-size:24px;line-height:1.3;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;color:#1d1d1f}
+ dialog#v132StockDetail .v132-detail-list{margin:0 20px 20px;padding:0 16px;background:#fff!important;box-sizing:border-box}
+ dialog#v132StockDetail .v132-detail-list>article{padding:14px 0;border-bottom:1px solid #e5e5ea;min-width:0}
+ dialog#v132StockDetail .v132-detail-list>article:last-child{border-bottom:0}
+ dialog#v132StockDetail .v132-lot-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+ dialog#v132StockDetail .v132-lot-head>div{min-width:0}
+ dialog#v132StockDetail .v132-lot-head small{display:block;font-size:12px;color:#54545c;line-height:1.45;margin:0 0 3px;overflow-wrap:anywhere}
+ dialog#v132StockDetail .v132-lot-head strong{display:block;font-size:14px;line-height:1.4;font-weight:600;overflow-wrap:anywhere}
+ dialog#v132StockDetail .v132-lot-head strong.v132-expired{color:#a92532}
+ dialog#v132StockDetail .v132-lot-head b{font-size:18px;line-height:1.4;font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums}
+ dialog#v132StockDetail article p{font-size:13px;line-height:1.5;color:#404047;margin:8px 0 3px;overflow-wrap:anywhere}
+ dialog#v132StockDetail article p:empty{display:none}
+ dialog#v132StockDetail article>small{display:block;font-size:12px;line-height:1.5;color:#55555d;margin-top:8px;overflow-wrap:anywhere}
+ dialog#v132StockDetail .v132-lot-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+ dialog#v132StockDetail .v132-lot-actions button{min-width:76px;min-height:34px;font-size:13px!important;font-weight:500!important;line-height:1.4;padding:6px 14px;border:1px solid #c7c7cd!important;border-radius:6px!important;background:#fff!important;color:#25252a!important;box-shadow:none!important;cursor:pointer}
+ dialog#v132StockDetail .v132-lot-actions button:hover{background:#eeeef2!important;border-color:#aaaab0!important}
+ dialog#v132StockDetail .v132-lot-actions button:focus-visible{outline:2px solid #4779ac;outline-offset:2px}
+}
+</style>
+
 </body></html>
