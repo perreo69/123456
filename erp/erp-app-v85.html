@@ -3269,8 +3269,8 @@ function v167StockDetail(v,g,zero){
 }
 function v133StockPage(v){
  const root=$('mainView'),saved=v132StockSearch.get(v),q=saved?.query||'',sort=v133StockSort.get(v)||'name';
- const detail=v171Mode(v)==='list',zero=v171Zero.get(v)===true;
- root.innerHTML='<section class="v133-stock v167-stock"><div class="v133-stock-tools"><div class="v133-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg><input id="v133StockSearch" type="search" autocomplete="off" aria-label="재고 검색" placeholder="품목 · 브랜드 · 업체 · LOT 검색" value="'+esc(q)+'"></div>'+v171SwitchMarkup(v)+'</div>'+('<div class="v167-options"><span>'+(detail?'LOT별 조회':'품목별 조회')+'</span><label><input id="v167Zero" type="checkbox" '+(zero?'checked':'')+'>재고 0 표시</label><button type="button" id="v167Reset">초기화</button></div>')+'<div class="v133-stock-caption"><span id="v133StockCount" aria-live="polite"></span><select id="v133StockOrder" aria-label="재고 정렬"><option value="name">품목명순</option><option value="expiry">소비기한순</option></select></div><div id="v133StockRows" class="v133-stock-rows"></div></section>';
+ const detail=true,zero=v171Zero.get(v)===true;
+ root.innerHTML='<section class="v133-stock v167-stock"><div class="v133-stock-tools"><div class="v133-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg><input id="v133StockSearch" type="search" autocomplete="off" aria-label="재고 검색" placeholder="품목 · 브랜드 · 업체 · LOT 검색" value="'+esc(q)+'"></div></div>'+('<div class="v167-options"><span>'+(detail?'LOT별 조회':'품목별 조회')+'</span><label><input id="v167Zero" type="checkbox" '+(zero?'checked':'')+'>재고 0 표시</label><button type="button" id="v167Reset">초기화</button></div>')+'<div class="v133-stock-caption"><span id="v133StockCount" aria-live="polite"></span><select id="v133StockOrder" aria-label="재고 정렬"><option value="name">품목명순</option><option value="expiry">소비기한순</option></select></div><div id="v133StockRows" class="v133-stock-rows"></div></section>';
  const input=$('v133StockSearch'),rows=$('v133StockRows'),order=$('v133StockOrder');order.value=sort;
  let result=[];
  const draw=()=>{
@@ -3286,7 +3286,7 @@ function v133StockPage(v){
  };
  input.addEventListener('input',draw);order.onchange=()=>{v133StockSort.set(v,order.value);draw();};
  rows.onclick=e=>{const b=e.target.closest('[data-v133-index]');if(!b)return;const g=result[Number(b.dataset.v133Index)];if(g)v167StockDetail(v,g,v171Zero.get(v)===true);};
- $('v167Zero').onchange=e=>{v171Zero.set(v,e.target.checked);draw();};$('v167Reset').onclick=()=>{input.value='';order.value='name';v133StockSort.set(v,'name');v171Zero.set(v,false);$('v167Zero').checked=false;draw();};v171Bind(v);
+ $('v167Zero').onchange=e=>{v171Zero.set(v,e.target.checked);draw();};$('v167Reset').onclick=()=>{input.value='';order.value='name';v133StockSort.set(v,'name');v171Zero.set(v,false);$('v167Zero').checked=false;draw();};
  draw();
 }
 
