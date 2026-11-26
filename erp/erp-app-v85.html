@@ -1486,7 +1486,7 @@ function filterValues(key){
  else values=groups.map(g=>colRaw(g,key));
  return [...new Set(values)].sort((a,b)=>a.localeCompare(b,'ko',{numeric:true}));
 }
-function meatFilterButton(c){return `<div class="th-wrap"><span>${esc(c.label)}</span><button type="button" class="excel-filter-btn ${columnFilters.has(c.key)?'applied':''}" data-filter="${c.key}" aria-label="${esc(c.label)} 정렬 및 필터" title="${esc(c.label)} 정렬 및 필터" aria-haspopup="dialog"><span class="v78-filter-chevron" aria-hidden="true">⌄</span></button></div>`;}
+function meatFilterButton(c){return `<div class="th-wrap"><span>${esc(c.label)}</span><button type="button" class="excel-filter-btn ${columnFilters.has(c.key)?'applied':''}" data-filter="${c.key}" aria-label="${esc(c.label)} 정렬 및 필터" title="${esc(c.label)} 정렬 및 필터" aria-haspopup="dialog"><svg class="v174-filter-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></g></svg></button></div>`;}
 function columnHeader(){return `<tr><th class="col-expand"><button class="expand-all" id="expandAll" type="button" title="모두 펼치기 / 접기">▸</button></th>${COLUMNS.filter(c=>!c.detail).map(c=>`<th class="${c.kind==='number'?'numeric':''}">${meatFilterButton(c)}</th>`).join('')}<th class="col-action">작업</th></tr>`;}
 function meatLotDetailHeader(){return `<tr>${COLUMNS.filter(c=>c.detail).map(c=>`<th class="${c.kind==='number'?'numeric':''}">${meatFilterButton(c)}</th>`).join('')}<th>작업</th></tr>`;}
 function formatCell(value){return esc(value||'—');}
@@ -1875,8 +1875,10 @@ function v40CreateFilters(columns,getCandidates,getValue,onChange){
    snapshot(){return {selected:[...selected].map(([k,v])=>[k,[...v]]),order:{...order}};},
    close(){document.getElementById('v40ColumnPopup')?.remove();opened='';},
    reset(){selected.clear();order={key:'name',direction:'asc'};self.close();self.updateButtons();self.onSnapshot?.(self.snapshot());onChange();},
-   updateButtons(){document.querySelectorAll('[data-v40-filter]').forEach(b=>b.classList.toggle('applied',selected.has(b.dataset.v40Filter)));},
-   header(){return columns.map(c=>`<th class="${c.kind==='number'?'numeric':''}"><div class="th-wrap"><span>${esc(c.label)}</span><button type="button" class="excel-filter-btn" data-v40-filter="${esc(c.key)}" title="${esc(c.label)} 정렬 및 필터" aria-label="${esc(c.label)} 정렬 및 필터" aria-haspopup="dialog"><span class="v78-filter-chevron" aria-hidden="true">⌄</span></button></div></th>`).join('');},
+   updateButtons(){document.querySelectorAll('[data-v40-filter]').forEach(b=>b.classList.toggle('applied',selected.has(b.dataset.v40Filter)));self.updateSort();},
+   updateSort(){document.querySelectorAll('[data-v40-sort]').forEach(b=>{const key=b.dataset.v40Sort,active=order.key===key,col=columns.find(c=>c.key===key);if(!col)return;const th=b.closest('th');if(th){if(active)th.setAttribute('aria-sort',order.direction==='asc'?'ascending':'descending');else th.removeAttribute('aria-sort');}b.setAttribute('aria-label',col.label+' '+(active&&order.direction==='asc'?'내림차순':'오름차순')+' 정렬');});},
+   toggleSort(key){if(!columns.some(c=>c.key===key))return;order={key,direction:order.key===key&&order.direction==='asc'?'desc':'asc'};self.close();self.updateSort();self.onSnapshot?.(self.snapshot());onChange();},
+   header(){return columns.map(c=>`<th class="${c.kind==='number'?'numeric':''}"><div class="th-wrap"><button type="button" class="v80-sort-label v174-sort-label" data-v40-sort="${esc(c.key)}" title="클릭하여 정렬 방향 변경">${esc(c.label)}</button><button type="button" class="excel-filter-btn" data-v40-filter="${esc(c.key)}" title="${esc(c.label)} 정렬 및 필터" aria-label="${esc(c.label)} 정렬 및 필터" aria-haspopup="dialog"><svg class="v174-filter-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></g></svg></button></div></th>`).join('');},
    apply(list){
      const kept=list.filter(g=>[...selected].every(([key,values])=>values.has(String(getValue(g,key)??''))));
      const c=columns.find(c=>c.key===order.key)||columns[0];
@@ -1884,13 +1886,14 @@ function v40CreateFilters(columns,getCandidates,getValue,onChange){
        const av=getValue(a,order.key),bv=getValue(b,order.key);
        let diff;
        if(c.kind==='number')diff=(Number(av)||0)-(Number(bv)||0);
-       else diff=order.key==='name'?v82NameCompare(av,bv):String(av??'').localeCompare(String(bv??''),'ko',{numeric:true});
+       else diff=['name','origin','vendor','brand','category','spec','location','target'].includes(order.key)?v82NameCompare(av,bv):String(av??'').localeCompare(String(bv??''),'ko',{numeric:true});
        return (diff||v82NameCompare(getValue(a,'name'),getValue(b,'name')))*(order.direction==='asc'?1:-1);
      });
      return kept;
    },
    bind(head){
-     head.onclick=e=>{
+     self.updateSort();head.onclick=e=>{
+       const sort=e.target.closest('[data-v40-sort]');if(sort){e.preventDefault();e.stopPropagation();self.toggleSort(sort.dataset.v40Sort);return;}
        const b=e.target.closest('[data-v40-filter]');if(!b)return;
        e.preventDefault();e.stopPropagation();
        if(opened===b.dataset.v40Filter){self.close();return;}
@@ -1917,7 +1920,7 @@ function v40CreateFilters(columns,getCandidates,getValue,onChange){
        options.querySelectorAll('[data-v40-index]').forEach(input=>input.onchange=e=>{const v=current[Number(input.dataset.v40Index)];e.target.checked?staged.add(v):staged.delete(v);options.querySelector('[data-v40-all]').checked=current.length>0&&current.every(x=>staged.has(x));});
      };
      search.oninput=redraw;
-     pop.querySelectorAll('[data-v40-order]').forEach(btn=>btn.onclick=()=>{order={key,direction:btn.dataset.v40Order};self.close();self.onSnapshot?.(self.snapshot());onChange();});
+     pop.querySelectorAll('[data-v40-order]').forEach(btn=>btn.onclick=()=>{order={key,direction:btn.dataset.v40Order};self.close();self.updateSort();self.onSnapshot?.(self.snapshot());onChange();});
      pop.querySelector('[data-v40-cancel]').onclick=()=>self.close();
      pop.querySelector('[data-v40-apply]').onclick=()=>{
        if(values.every(v=>staged.has(v)))selected.delete(key);else selected.set(key,new Set(staged));
@@ -1986,7 +1989,7 @@ function finishedOwnSpecPage(){
 
   $('mainView').innerHTML=`<section class="inventory-panel card fg20">
     <div class="filters fg20-filter"><div class="search-field"><input id="fg20Search" type="search" placeholder="전체 검색: 품목명 · 규격 · 입수 · 품목코드 · 제조일 · LOT"></div>${v22ZeroCheckbox('v22ZeroOwn')}<button type="button" class="reset-filters" id="fg40Reset">필터 초기화</button><span id="fg20Count" class="filter-count"></span></div>
-    <div class="table-scroll"><table class="inventory-table" style="min-width:960px"><thead><tr id="fg40Head">${ownColumns.map(c=>`<th class="${c.kind==='number'?'numeric':''}"><div class="th-wrap"><span>${esc(c.label)}</span><button type="button" class="excel-filter-btn" data-v40-filter="${esc(c.key)}" title="${esc(c.label)} 정렬 및 필터" aria-label="${esc(c.label)} 정렬 및 필터"><span class="v78-filter-chevron" aria-hidden="true">⌄</span></button></div></th>`).join('')}<th class="col-action">작업</th></tr></thead><tbody id="fg20Body"></tbody></table></div>
+    <div class="table-scroll"><table class="inventory-table" style="min-width:960px"><thead><tr id="fg40Head">${ownColumns.map(c=>`<th class="${c.kind==='number'?'numeric':''}"><div class="th-wrap"><button type="button" class="v80-sort-label v174-sort-label" data-v40-sort="${esc(c.key)}" title="클릭하여 정렬 방향 변경">${esc(c.label)}</button><button type="button" class="excel-filter-btn" data-v40-filter="${esc(c.key)}" title="${esc(c.label)} 정렬 및 필터" aria-label="${esc(c.label)} 정렬 및 필터"><svg class="v174-filter-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></g></svg></button></div></th>`).join('')}<th class="col-action">작업</th></tr></thead><tbody id="fg20Body"></tbody></table></div>
     <div class="fg20-help">품목명은 같아도 규격·입수·품목코드가 다르면 별도 품목으로 관리합니다. 행을 누르면 제조일·소비기한별 LOT가 표시됩니다.</div>
    </section>
    <section class="fg20 fg20-reference"><h3>품목 목록에서 확인된 규격 예시</h3>
@@ -2048,7 +2051,7 @@ function externalCategoryPage(category){if(category==='finished_own')return fini
  $('mainView').innerHTML=`<section class="inventory-panel card other-category">
   <div class="filters"><div class="search-field"><input id="categorySearch" type="search" placeholder="전체 검색: 품목명·규격·보관방법·위치·소비기한 등"></div>${v22ZeroCheckbox('v22ZeroExtra')}
   <button type="button" class="reset-filters" id="v40ExtraReset">필터 초기화</button><span class="filter-count" id="categoryCount"></span><span class="source-note">${all.length?'엑셀 기초재고 + 신규 입고':'등록된 재고 없음'}</span></div>
-  <div class="table-scroll"><table class="inventory-table" style="min-width:${multi?'980':'880'}px"><thead><tr id="v40ExtraHead">${extraColumns.map(c=>`<th class="${c.kind==='number'?'numeric':''}"><div class="th-wrap"><span>${esc(c.label)}</span><button type="button" class="excel-filter-btn" data-v40-filter="${esc(c.key)}" title="${esc(c.label)} 정렬 및 필터" aria-label="${esc(c.label)} 정렬 및 필터"><span class="v78-filter-chevron" aria-hidden="true">⌄</span></button></div></th>`).join('')}<th class="col-action">작업</th></tr></thead><tbody id="categoryRows"></tbody></table></div>
+  <div class="table-scroll"><table class="inventory-table" style="min-width:${multi?'980':'880'}px"><thead><tr id="v40ExtraHead">${extraColumns.map(c=>`<th class="${c.kind==='number'?'numeric':''}"><div class="th-wrap"><button type="button" class="v80-sort-label v174-sort-label" data-v40-sort="${esc(c.key)}" title="클릭하여 정렬 방향 변경">${esc(c.label)}</button><button type="button" class="excel-filter-btn" data-v40-filter="${esc(c.key)}" title="${esc(c.label)} 정렬 및 필터" aria-label="${esc(c.label)} 정렬 및 필터"><svg class="v174-filter-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><g stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></g></svg></button></div></th>`).join('')}<th class="col-action">작업</th></tr></thead><tbody id="categoryRows"></tbody></table></div>
   <div class="table-footer"><span>품목 클릭 시 LOT 상세 확인 · 검색 결과는 자동 펼침</span><span>통합 입고등록 내역이 재고에 반영됩니다.</span></div>
   </section>`;
  extraExpanded.clear();extraLastQuery=null;
@@ -8098,4 +8101,12 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #sidebar.sidebar .v68-card .v172-parent-row{grid-template-columns:minmax(0,1fr) 44px;gap:0}
 #sidebar.sidebar .v68-card .v172-parent-row>.v172-parent-toggle{min-height:46px!important}
 }
+</style><style id="v174-header-sort">
+#mainView .excel-filter-btn{color:#8e8e93!important;display:inline-flex!important;align-items:center;justify-content:center}
+#mainView .excel-filter-btn .v174-filter-chevron{display:block;width:14px;height:14px;flex:none;pointer-events:none}
+#mainView .excel-filter-btn:hover,#mainView .excel-filter-btn.applied{color:#343438!important}
+#mainView .v174-sort-label{display:inline-flex;align-items:center;flex:1 1 auto;min-width:0;align-self:stretch;padding:0!important;margin:0;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:inherit!important;font:inherit!important;text-align:left;white-space:nowrap;cursor:pointer}
+#mainView .v174-sort-label:hover{text-decoration:underline;text-underline-offset:3px}
+#mainView .v174-sort-label:focus-visible{outline:1px solid #777;outline-offset:2px}
+#mainView th.numeric .v174-sort-label{justify-content:flex-end}
 </style></body></html>
