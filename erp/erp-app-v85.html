@@ -1315,6 +1315,12 @@ function persist(){
   const actor=window.parent.erpAuditActor?.();
   const now=new Date().toISOString();
   const additions=v136Changes(previous,state,actor,now);
+  const previousTx=new Map((previous.transactions||[]).map(t=>[t.id,t]));
+  for(const t of state.transactions||[]){
+   const old=previousTx.get(t.id);
+   if(!old){if(actor?.name)t.v177Actor=String(actor.name);if(actor?.id)t.v177ActorId=String(actor.id);}
+   else if(Number(old.qty)!==Number(t.qty)||JSON.stringify(old.effects||[])!==JSON.stringify(t.effects||[])){delete t.v177Balance;}
+  }
   for(const [key,flag] of [['transactions','undone'],['shippingBatches','canceled'],['productionBatches','canceled'],['acPayments','voided'],['acExpenses','voided']]){
    const old=new Map((previous[key]||[]).map(x=>[x.id,x]));
    for(const x of state[key]||[]){const p=old.get(x.id),gone=key.endsWith('Batches')?(x.canceled||x.cancelled):x[flag],was=key.endsWith('Batches')?(p?.canceled||p?.cancelled):p?.[flag];if(p&&gone&&!was){x.deleteMeta={at:now,...(x.deleteMeta||{}),by:x.deleteMeta?.by||actor?.name||'',userId:x.deleteMeta?.userId||actor?.id||''};}}
@@ -2609,7 +2615,7 @@ function v37Consume(l,qty,batchId,cost){
  const next={...b,qty:v18Round(b.qty-delta.qty),packs:v18Round(b.packs-delta.packs),kg:v18Round(b.kg-delta.kg),boxes:v18Round(b.boxes-delta.boxes)};
  if(l.src==='seed'){state.extraSeedBalances=state.extraSeedBalances||{};state.extraSeedBalances[l.key]=next;}
  else Object.assign(live,next);
- state.transactions.unshift({id:v16Id(),at:new Date().toISOString(),type:'productionExtra',lotId:l.lotId,name:l.name,category:l.category,qty,unit:l.unit,effects:[],note:'생산 재료 투입',batchId,productionId:batchId,unitCost:cost,undone:false});
+ state.transactions.unshift({id:v16Id(),at:new Date().toISOString(),type:'productionExtra',lotId:l.lotId,name:l.name,category:l.category,qty,unit:l.unit,v177Balance:v177ExtraBalance(next.qty,l.unit),effects:[],note:'생산 재료 투입',batchId,productionId:batchId,unitCost:cost,undone:false});
  return {src:l.src,ref:l.ref,key:l.key,delta,qty};
 }
 function v37SaveProduction(){
@@ -2644,7 +2650,7 @@ function v37SaveProduction(){
   state.extraLots.push(lot);
   if(!state.extraProducts.some(p=>p.category==='finished_own'&&normName(p.name)===normName(product.name)&&normName(p.spec)===normName(product.spec)))state.extraProducts.push({category:'finished_own',name:product.name,spec:product.spec,unit:product.unit});
   state.productionBatches.unshift({id:batchId,date,expiry,sku:product.code,name:product.name,spec:product.spec,unit:product.unit,output,outputLotId:lotId,labor,overhead,materials:picked.map(x=>({key:x.key,lotId:x.lot.lotId,name:x.lot.name,category:x.lot.category,qty:x.qty,unit:x.lot.unit,price:x.unitCost,cost:x.unitCost===null?null:v18Round(x.qty*x.unitCost)})),deltas,materialCostKnown:unknown?null:v18Round(materialKnown),totalCost,unitCost:totalCost===null?null:v18Round(totalCost/output),planId:v38ActivePlanId||null,note:remark,canceled:false,createdAt:new Date().toISOString()});
-  state.transactions.unshift({id:v16Id(),at:new Date().toISOString(),type:'productionReceipt',lotId,name:product.name,category:'finished_own',qty:output,unit:product.unit,effects:[],batchId,productionId:batchId,undone:false});
+  state.transactions.unshift({id:v16Id(),at:new Date().toISOString(),type:'productionReceipt',lotId,name:product.name,category:'finished_own',qty:output,unit:product.unit,v177Balance:v177ExtraBalance(output,product.unit),effects:[],batchId,productionId:batchId,undone:false});
   if(!persist())throw Error('서버 저장 확인 실패');
  }catch(e){state=backup;return err('생산등록 실패: '+e.message);}
  v37Make={product:product.code,selected:{}};setView('fg_records');toast('생산실적을 저장하고 원재료 차감 및 완제품 입고를 반영했습니다.');
@@ -2891,7 +2897,7 @@ function v70Cat(t){return t.category||state.items.find(l=>l.id===t.lotId)?.categ
 function v70Match(c){return v70Category==='all'||c===v70Category||(v70Category==='finished'&&['finished_own','finished_buy'].includes(c))||(v70Category==='ingredients'&&['sauce','spice','vegetable','pending','ingredient_other'].includes(c));}
 function v70Date(t){const batch=[...(state.receiptBatches||[]),...(state.shippingBatches||[])].find(b=>b.id===t.batchId);return batch?.date||t.operationDate||t.date||(t.at?new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(t.at)):'');}
 function v70InRange(d){return (!v70From||d>=v70From)&&(!v70To||d<=v70To);}
-function v61HistoryRows(){return state.transactions.filter(t=>v110Live(t)&&(v61HistoryFilter==='all'||v61HistoryKind(t)===v61HistoryFilter)&&v70Match(v70Cat(t))&&v70InRange(v70Date(t))&&matchesSearch(v70Query,[t.name,t.brand,t.vendor,t.recipient,t.note,t.purpose,v121Types[t.outboundKind],t.lotId,t.productionTarget,t.traceRunId,t.traceFinishedLot,t.traceSource?.rootLotId,...state.items.filter(l=>l.id===t.lotId).flatMap(l=>[l.brand,l.vendor])]));}
+function v61HistoryRows(){return state.transactions.filter(t=>v110Live(t)&&v177KindMatch(t,v61HistoryFilter)&&v70Match(v70Cat(t))&&v70InRange(v70Date(t))&&matchesSearch(v70Query,[t.name,t.brand,t.vendor,t.recipient,t.note,t.purpose,v121Types[t.outboundKind],t.lotId,t.productionTarget,t.traceRunId,t.traceFinishedLot,t.traceSource?.rootLotId,...state.items.filter(l=>l.id===t.lotId).flatMap(l=>[l.brand,l.vendor])]));}
 function v154Range(kind,day=today()){
  const d=new Date(day+'T12:00:00Z'),y=d.getUTCFullYear(),m=d.getUTCMonth(),n=d.getUTCDate();
  const iso=(a,b,e)=>new Date(Date.UTC(a,b,e,12)).toISOString().slice(0,10);
@@ -3780,11 +3786,17 @@ function moveOrShip(p){
  }
  return '';
 }
+function v177MeatBalance(effects){
+ const ids=[...new Set((effects||[]).map(e=>e.lotId))],out=[];
+ for(const id of ids){const l=state.items.find(x=>x.id===id);if(!l||!Number.isFinite(Number(l.frozen))||!Number.isFinite(Number(l.chilled)))return null;out.push({id,frozen:Number(l.frozen),chilled:Number(l.chilled),unit:'kg'});}
+ return out.length?{kind:'meat',lots:out}:null;
+}
+function v177ExtraBalance(qty,unit){return Number.isFinite(Number(qty))&&Number(qty)>=0?{kind:'extra',qty:Number(qty),unit:unit||''}:null;}
 function record(type,l,qty,effects,note='',purpose='',extra={}){
  const source=effects.find(e=>e.delta<0)?.zone||effects[0]?.zone||'';
  const destination=(type==='move'?'chilled':type==='refreeze'?'frozen':type==='ship'?'external':type==='issue'?'other':'');
  const trace=source==='chilled'&&l.traceRunId?{traceRunId:l.traceRunId,productionTarget:v116RunName(l.traceRunId),traceSource:v116Snapshot(l)}:{};
- state.transactions.unshift({id:`T-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`,at:new Date().toISOString(),...trace,type,lotId:l.id,name:l.name,meatType:l.type,vendor:l.vendor,qty,source,destination,effects,note,purpose,...extra,undone:false});
+ state.transactions.unshift({id:`T-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`,at:new Date().toISOString(),...trace,type,lotId:l.id,name:l.name,meatType:l.type,vendor:l.vendor,qty,source,destination,effects,note,purpose,...extra,v177Balance:v177MeatBalance(effects),undone:false});
 }
 function submitAction(e){e.preventDefault();for(const el of e.currentTarget.querySelectorAll('input[data-quick-date]')){const valid=normalizeIntakeDate(el.value);if(valid===null||(el.required&&!valid)){$('formError').textContent='날짜를 정확히 입력해 주세요. 예: 1121, 281121, 20281121';el.focus();return;}el.value=valid;const cal=el.closest('.quick-date')?.querySelector('.quick-date-calendar');if(cal)cal.value=valid;}const v45BeforeState=structuredClone(state),v45BeforeOut=v17LastOutId;const p=new FormData(e.currentTarget);const finished=modalMode;const err=finished==='receive'?receive(p):finished==='product'?saveProduct(p):moveOrShip(p);if(err){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent=err;$('formError').style.display='block';$('formError').scrollIntoView({block:'nearest'});toast('저장되지 않았습니다: '+err);return;}if(!persist()){state=v45BeforeState;v17LastOutId=v45BeforeOut;$('formError').textContent='서버 저장을 확인하지 못했습니다. 새로고침 후 기록을 확인해 주세요.';toast('서버 저장 확인 실패');return;}closeAction();if(view==='history')renderHistory();else if(view==='backup')renderBackup();else if(view==='products'){if(finished==='product'&&$('productSearch'))$('productSearch').value='';renderProducts();}else if($('searchInput'))renderInventory();else setView(view);toast(finished==='product'?'제품 정보가 저장되었습니다.':finished==='receive'?'입고와 신규 LOT가 저장되었습니다.':'재고가 변경되고 이력이 저장되었습니다.');if((finished==='ship'||(finished==='outbound'&&p.get('outboundKind')==='company'))&&v17LastOutId)v17ShowSaved('out',v17LastOutId);}
 
@@ -3962,28 +3974,72 @@ function v158HistoryEdit(id){
  };
 }
 
+let v177HistoryOrder={key:'date',direction:'desc'},v177ShowMoney=false;
+function v177KindMatch(t,k){if(k==='all')return true;if(k==='field')return t.type==='fieldIssue'||t.outboundKind==='field'||t.type==='production'||t.type==='productionExtra';if(k==='thaw')return t.type==='move';if(k==='refreeze')return t.type==='refreeze';if(k==='return')return t.type==='fieldReturn';if(k==='out')return v61HistoryKind(t)==='out'&&!v177KindMatch(t,'field');return v61HistoryKind(t)===k;}
+function v177Unique(list,predicate){const a=(list||[]).filter(predicate);return a.length===1?a[0]:null;}
+function v177Number(n){return n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))?Number(n):null;}
+function v177BalanceText(t,unit,receipt){
+ const b=t.v177Balance;
+ if(b?.kind==='extra'&&v177Number(b.qty)!==null)return {text:fmt(b.qty)+' '+(b.unit||unit),value:Number(b.qty)};
+ if(b?.kind==='meat'&&Array.isArray(b.lots)&&b.lots.length&&b.lots.every(l=>v177Number(l.frozen)!==null&&v177Number(l.chilled)!==null)){
+  if(['move','refreeze'].includes(t.type)){
+   const parts=(t.effects||[]).map(e=>{const l=b.lots.find(x=>x.id===e.lotId);return l&&['frozen','chilled'].includes(e.zone)?(ZONE[e.zone]||e.zone)+' '+fmt(l[e.zone])+' kg':'';}).filter(Boolean);
+   return {text:parts.join(' / ')||'—',value:null};
+  }
+  const l=b.lots.find(l=>l.id===t.lotId);if(l){const q=n2(Number(l.frozen)+Number(l.chilled));return {text:fmt(q)+' kg',value:q};}
+ }
+ // Existing receipt records can establish initial LOT stock, but only when the unique saved receipt line agrees.
+ if(['receive','receiveExtra'].includes(t.type)&&receipt&&v177Number(t.qty)!==null&&Number(receipt.qty)===Number(t.qty)&&(t.type==='receiveExtra'||((t.effects||[]).length===1&&t.effects[0].lotId===t.lotId&&Number(t.effects[0].delta)===Number(t.qty))))return {text:fmt(t.qty)+' '+unit,value:Number(t.qty)};
+ return {text:'—',value:null};
+}
+function v177HistoryData(t){
+ const rb=(state.receiptBatches||[]).find(b=>b.id===t.batchId),sb=(state.shippingBatches||[]).find(b=>b.id===t.batchId),pb=(state.productionBatches||[]).find(b=>b.id===t.batchId);
+ const receipt=v177Unique(rb?.entries,x=>x.id===t.lotId),ship=v177Unique(sb?.lines,x=>x.lotId===t.lotId&&Number(x.qty)===Number(t.qty));
+ const cat=v70Cat(t),category=cat==='meat'?'원료육':(V18_CAT[cat]||INTAKE_LABELS[cat]||cat||'미분류');
+ const kind=v61HistoryKind(t),unit=t.unit||receipt?.unit||ship?.unit||'kg',q=v177Number(t.qty);
+ const types={receive:'입고',receiveExtra:'입고',productionReceipt:'생산 입고',move:'해동',refreeze:'재냉동',ship:'출고',shipExtra:'출고',issue:'기타 출고',fieldIssue:'현장 출고',fieldReturn:'현장 반납',production:'생산 투입',productionExtra:'생산 투입'};
+ const type=t.outboundKind&&v121Types[t.outboundKind]?v121Types[t.outboundKind]+' 출고':types[t.type]||'조정';
+ const zone=x=>ZONE[x]||(x==='production'?'생산현장':x==='external'?'외부':x==='other'?'기타':x||'');
+ const route=kind==='move'?[zone(t.source),zone(t.destination)].filter(Boolean).join(' → '):'';
+ const party=kind==='in'?(t.vendor||receipt?.vendor||rb?.vendor||''):kind==='out'?(t.recipient||sb?.partnerName||''):route;
+ const target=t.productionTarget||pb?.name||'';
+ const priceRaw=kind==='in'?(receipt?.price??(t.type==='productionReceipt'?pb?.unitCost:null)):kind==='out'?(ship?.price??t.unitCost??null):null;
+ const price=v177Number(priceRaw),validPrice=price!==null&&price>0?price:null;
+ const balance=v177BalanceText(t,unit,receipt);
+ const actor=t.v177Actor||'';
+ const note=[t.note,t.purpose,t.traceRunId?'생산번호 '+t.traceRunId:''].filter(Boolean).join(' · ');
+ const doc=rb&&v110BatchVisible(rb.id,rb)?{type:'in',id:rb.id}:sb&&v123Commercial(sb.outboundKind)&&v110BatchVisible(sb.id,sb)?{type:'out',id:sb.id}:null;
+ return {id:t.id,date:v70Date(t),at:t.at||'',category,type,name:t.name||'',lot:t.lotId||'',party:[party,target].filter((x,i,a)=>x&&a.indexOf(x)===i).join(' · '),unit,inQty:kind==='in'?q:null,outQty:kind==='out'?q:null,moveQty:kind==='move'?q:null,balance:balance.text,balanceValue:balance.value,price:validPrice,amount:validPrice!==null&&q!==null?Math.round(validPrice*q*100)/100:null,actor,note,doc};
+}
+function v177HistorySort(rows,order=v177HistoryOrder){
+ const {key,direction}=order,sign=direction==='asc'?1:-1;
+ return rows.slice().sort((a,b)=>{
+  const k=key==='balance'?'balanceValue':key,x=a[k],y=b[k];
+  const xn=x===null||x===undefined||x==='',yn=y===null||y===undefined||y==='';
+  if(xn!==yn)return xn?1:-1;
+  const d=typeof x==='number'&&typeof y==='number'?x-y:String(x??'').localeCompare(String(y??''),'ko',{numeric:true});
+  return d*sign||String(b.at).localeCompare(String(a.at));
+ });
+}
+function v177Columns(){return [['date','날짜',104],['category','분류',91],['type','거래 구분',94],['name','품목명',190],['lot','LOT',145],['party','업체 · 생산품목 / 경로',170],['unit','단위',54],['inQty','입고',80],['outQty','출고',80],['moveQty','이동',80],['balance','잔여재고',142],...(v177ShowMoney?[['price','단가(원)',90],['amount','금액(원)',106]]:[]),['actor','작업자',84],['action','작업',116]];}
 function renderHistory(){
- const tx=v61HistoryRows();
- const visibleDocs=new Map();
- for(const b of (state.receiptBatches||[]))if(v110BatchVisible(b.id,b))visibleDocs.set(b.id,{type:'in',label:'명세서'});
- for(const b of (state.shippingBatches||[]))if(v123Commercial(b.outboundKind)&&v110BatchVisible(b.id,b))visibleDocs.set(b.id,{type:'out',label:'명세서'});
- const items=tx.map(t=>{
-  const doc=visibleDocs.get(t.batchId);
-  const docButton=doc?` <button type="button" class="undo-btn" data-history-doc-type="${doc.type}" data-history-doc-id="${esc(t.batchId)}">${doc.label}</button>`:'';
-  const types={receiveExtra:['입고','receive'],receive:['입고','receive'],productionReceipt:['생산 입고','receive'],move:['해동','move'],refreeze:['재냉동','move'],ship:['출고','ship'],shipExtra:['출고','ship'],issue:['기타 출고','ship'],fieldIssue:['현장 출고','ship'],fieldReturn:['현장 반납','move'],production:['생산 투입','ship'],productionExtra:['생산 투입','ship'],reverse:['취소','reverse'],productionCanceled:['생산 취소','reverse']};
-  const [baseTitle,cls]=types[t.type]||['조정','adjust'];const title=t.outboundKind&&v121Types[t.outboundKind]?v121Types[t.outboundKind]+' 출고':baseTitle;
-  const from=t.source?(t.source==='production'?'생산현장':ZONE[t.source]||'외부'):'—';
-  const to=t.type==='receive'?'입고':t.destination==='external'?t.recipient||'외부 업체':t.destination==='other'?'기타':t.destination==='production'?'생산현장':(ZONE[t.destination]||'기타');
-  const route=t.type==='receiveExtra'?(INTAKE_LABELS[t.category]||'입고')+' · 입고':t.type==='shipExtra'?(V18_CAT[t.category]||'부재료')+' · 외부 출고':t.type==='reverse'?'취소 내역':(t.type==='production'||t.type==='issue'||t.type==='ship'||t.type==='move'||t.type==='refreeze'||t.type==='fieldIssue'||t.type==='fieldReturn'?`${from} → ${to}`:ZONE[t.source]||'—');
-  const detail=[t.purpose,t.productionTarget?`생산품목: ${t.productionTarget}`:'',t.traceRunId?`생산번호: ${t.traceRunId}`:'',t.type==='production'?(t.unitCost>0?`투입 원가 ${fmt(t.qty*t.unitCost)}원 (기준 ${fmt(t.unitCost)}원/kg)`:'원가 미입력'):'',t.recipient?`${['parcel','personal'].includes(t.outboundKind)?'수령인':'받는 업체'}: ${t.recipient}`:'',t.note].filter(Boolean).join(' · ');
-  const unit=(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?' '+esc(t.unit||''):' kg';
-  return `<tr><td>${esc(v70Date(t))}</td><td><span class="history-type ${cls}">${title}</span>${t.undone?'<div class="subtle">취소됨</div>':''}</td><td>${(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?`<span class="meat-pill">${esc(INTAKE_LABELS[t.category]||V18_CAT[t.category]||t.category||'완제품')}</span>`:typeBadge(t.meatType)} <strong class="product-name">${esc(t.name)}</strong><div class="subtle">${esc(t.lotId)}</div></td><td>${esc(route)}</td><td class="numeric"><strong>${fmt(t.qty)}${unit}</strong></td><td>${esc(detail||'—')}</td><td class="numeric">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</td></tr>`;
+ const tx=v61HistoryRows(),rows=v177HistorySort(tx.map(v177HistoryData)),cols=v177Columns(),numeric=new Set(['inQty','outQty','moveQty','balance','price','amount']);
+ const cells=r=>cols.map(([k,label])=>{
+  if(k==='action')return '<td class="numeric v177-action"><button type="button" class="undo-btn" data-v158-edit="'+esc(r.id)+'">작업</button>'+(r.doc?' <button type="button" class="undo-btn" data-history-doc-type="'+r.doc.type+'" data-history-doc-id="'+esc(r.doc.id)+'">명세서</button>':'')+'</td>';
+  const v=r[k],value=v===null||v===undefined||v===''?'—':typeof v==='number'?fmt(v):v;
+  return '<td class="'+(numeric.has(k)?'numeric ':'')+'v177-'+k+'"'+(k==='name'&&r.note?' title="'+esc(r.note)+'"':'')+(k==='balance'&&v==='—'?' title="거래 당시 잔여재고 미확인"':'')+(k==='actor'&&!v?' title="기존 기록의 작업자 미확인"':'')+'>'+ (k==='name'?'<strong>'+esc(value)+'</strong>':esc(value))+'</td>';
  }).join('');
- const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
- $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
- // Saved paperwork remains available directly from its matching history row.
- $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget});v154BindPeriod('v70Period',(a,b)=>{v70From=a;v70To=b;renderHistory();}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
+ const opts=[['all','전체'],['in','입고'],['out','출고'],['thaw','해동'],['refreeze','재냉동'],['field','현장'],['return','현장 반납']];
+ const base=state.transactions.filter(t=>v110Live(t)&&v70InRange(v70Date(t)));
+ const categories=v61StockKinds.map(([key,label])=>{const n=base.filter(t=>{const c=v70Cat(t);return key==='all'||c===key||(key==='finished'&&['finished_own','finished_buy'].includes(c))||(key==='ingredients'&&['sauce','spice','vegetable','pending','ingredient_other'].includes(c))}).length;return '<button type="button" class="v61-tab '+(v70Category===key?'active':'')+'" data-v70-cat="'+esc(key)+'" aria-pressed="'+(v70Category===key)+'">'+esc(label)+' <small>'+fmt(n)+'</small></button>';}).join('');
+ const filters=opts.map(([key,label])=>'<button type="button" class="v61-tab '+(v61HistoryFilter===key?'active':'')+'" data-v61-history="'+key+'" aria-pressed="'+(v61HistoryFilter===key)+'">'+label+'</button>').join('');
+ $('mainView').innerHTML='<section class="card v61-history-header v87-history-filters v177-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>'+v154PeriodButtons(v70From,v70To)+v89PeriodLabel(v70From,v70To)+'<div class="v161-search-group"><input id="v70Search" type="search" aria-label="입출고 내역 검색" placeholder="품목 · LOT · 업체 검색" value="'+esc(v70Query)+'"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group">'+categories+'</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group">'+filters+'</div></div></section><section class="card history-panel v87-history-results v177-history-results"><div class="hist-toolbar"><span class="v87-result-count">총 <strong>'+fmt(rows.length)+'</strong>건</span><label class="v177-money"><input type="checkbox" id="v177Money" '+(v177ShowMoney?'checked':'')+'> 단가 · 금액 표시</label><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table v177-history-table" style="--v177-width:'+cols.reduce((n,c)=>n+c[2],0)+'px"><colgroup>'+cols.map(c=>'<col style="width:'+c[2]+'px">').join('')+'</colgroup><thead><tr>'+cols.map(([k,label])=>'<th class="'+(numeric.has(k)?'numeric':'')+'" '+(v177HistoryOrder.key===k?'aria-sort="'+(v177HistoryOrder.direction==='asc'?'ascending':'descending')+'"':'')+'>'+(k==='action'?label:'<button type="button" class="v80-sort-label v177-history-sort" data-v177-sort="'+k+'" title="클릭하여 정렬 방향 변경">'+label+'</button>')+'</th>').join('')+'</tr></thead><tbody>'+(rows.length?rows.map(r=>'<tr>'+cells(r)+'</tr>').join(''):'<tr><td class="empty" colspan="'+cols.length+'">해당 기록이 없습니다.</td></tr>')+'</tbody></table></div><div class="table-footer"><span>잔여재고: 거래 직후 LOT 기준 · 해동/재냉동은 창고별 · — 미확인/해당 없음</span><span>수정·삭제 기록은 변경 이력에서 확인</span></div></section>';
+ $('downloadHistory').onclick=exportHistoryCsv;$('v177Money').onchange=e=>{v177ShowMoney=e.target.checked;if(!v177ShowMoney&&['price','amount'].includes(v177HistoryOrder.key))v177HistoryOrder={key:'date',direction:'desc'};renderHistory();};
+ $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget});v154BindPeriod('v70Period',(a,b)=>{v70From=a;v70To=b;renderHistory();});
+ document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();});
+ $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();};$('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
+ document.querySelectorAll('[data-v177-sort]').forEach(b=>b.onclick=()=>{const key=b.dataset.v177Sort;v177HistoryOrder={key,direction:v177HistoryOrder.key===key&&v177HistoryOrder.direction==='asc'?'desc':'asc'};renderHistory();});
  document.querySelectorAll('[data-v158-edit]').forEach(b=>b.onclick=()=>v158HistoryEdit(b.dataset.v158Edit));
  document.querySelectorAll('[data-history-doc-id]').forEach(b=>b.onclick=()=>v17ShowSaved(b.dataset.historyDocType,b.dataset.historyDocId));
 }
@@ -3992,7 +4048,7 @@ function renderBackup(){$('mainView').innerHTML=`<div class="summary-hero"><h2>�
 function download(name,content,mime){const blob=new Blob([content],{type:mime});const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);}
 function csv(rows){return '\ufeff'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');}
 function exportStockCsv(){const head=['기록번호','육류','품목명','원산지','업체명','브랜드','입고일','소비기한','냉동고(kg)','냉장고(kg)','전체 재고(kg)','원본 위치','비고'];const out=state.items.filter(l=>stock(l)>0).map(l=>[l.id,l.type,l.name,l.origin,l.vendor,l.brand,l.received,l.expiry,l.frozen,l.chilled,amount(stock(l)),l.source,l.note]);download('원료육_재고_'+today()+'.csv',csv([head,...out]),'text/csv;charset=utf-8');toast('재고 CSV를 저장했습니다.');}
-function exportHistoryCsv(){const head=['작업일','구분','LOT','육류','품목명','수량','단위','출발','도착','받는 업체','용도','비고','취소여부','참조거래'];const o=v61HistoryRows().map(t=>[v70Date(t),t.type,t.lotId,t.meatType,t.name,t.qty,t.unit||'kg',ZONE[t.source]||'',ZONE[t.destination]||t.destination||'',t.recipient||'',t.purpose,t.note,t.undone?'취소됨':'',t.ref||'']);download('입출고이동내역_'+today()+'.csv',csv([head,...o]),'text/csv;charset=utf-8');}
+function exportHistoryCsv(){const cols=v177Columns().filter(c=>c[0]!=='action'),rows=v177HistorySort(v61HistoryRows().map(v177HistoryData));download('입출고이동내역_'+today()+'.csv',csv([cols.map(c=>c[1]).concat('비고'),...rows.map(r=>cols.map(c=>r[c[0]]??'').concat(r.note))]),'text/csv;charset=utf-8');}
 function exportBackup(){download('원료육_ERP_백업_'+today()+'.json',JSON.stringify(state,null,2),'application/json;charset=utf-8');toast('백업 파일을 저장했습니다.');}
 async function importBackup(e){const f=e.target.files[0];e.target.value='';if(!f)return;try {const raw=JSON.parse(await f.text());if(!raw||raw.version!==2||!Array.isArray(raw.items)||!Array.isArray(raw.transactions)||raw.items.length>50000||raw.transactions.length>100000)throw Error('지원되지 않는 형식입니다.');const ids=new Set();for(const l of raw.items){if(!l||typeof l.id!=='string'||ids.has(l.id)||typeof l.name!=='string'||!Number.isFinite(l.frozen)||!Number.isFinite(l.chilled)||l.frozen<0||l.chilled<0||!Number.isFinite(cents(l.frozen)+cents(l.chilled)))throw Error('재고 데이터 형식이 올바르지 않습니다.');ids.add(l.id);}for(const t of raw.transactions){if(!t||typeof t.id!=='string'||!Array.isArray(t.effects)||t.effects.some(e=>!ids.has(e.lotId)||!['frozen','chilled'].includes(e.zone)||!Number.isFinite(e.delta)))throw Error('입출고 내역 형식이 올바르지 않습니다.');}if(!confirm('현재 브라우저의 재고와 작업 이력을 백업 파일로 덮어쓰시겠습니까?'))return;state=raw;initProductMaster();expanded.clear();renderBackup();toast('백업 데이터를 복원했습니다.');}catch(err){toast('복원 실패: '+err.message);}}
 // v16 -- unified multi-category inbound registration, kept independent of Pickle's ERP.
@@ -4584,7 +4640,7 @@ function saveIntake(){
     const lots={id,row:id,traceRunId:r.traceRunId||'',traceFinishedLot:r.traceFinishedLot||'',category:cat,name:canonicalName(r.name),rawName:r.name,spec:r.spec,method:'',location:r.location,received:receiptDate,manufactured:cat==='finished_own'?r.received:'',expiry:r.expiry,price:r.price,qty:r.qty,unit:r.unit,packs:r.unit==='kg'?0:r.qty,kg:r.weight,boxes:r.unit==='박스'?r.qty:0,vendor:r.vendor,brand:r.brand,origin:r.origin,type:r.type,note:r.note||note,receiptId:batchId};
     state.extraLots.push(lots);
     if(!state.extraProducts.some(p=>p.category===cat&&normName(p.name)===normName(r.name)&&normName(p.spec)===normName(r.spec)))state.extraProducts.push({category:cat,name:canonicalName(r.name),spec:r.spec,brand:r.brand,vendor:r.vendor,origin:r.origin,unit:r.unit});
-    state.transactions.unshift({id:v16Id(),at:new Date().toISOString(),type:'receiveExtra',traceRunId:r.traceRunId||'',traceFinishedLot:r.traceFinishedLot||'',productionTarget:v116RunName(r.traceRunId),lotId:id,name:r.name,category:cat,meatType:'',vendor:r.vendor,qty:r.qty,unit:r.unit,source:'',destination:'',effects:[],note:r.note||note,batchId,undone:false});
+    state.transactions.unshift({id:v16Id(),at:new Date().toISOString(),type:'receiveExtra',v177Balance:v177ExtraBalance(r.qty,r.unit),traceRunId:r.traceRunId||'',traceFinishedLot:r.traceFinishedLot||'',productionTarget:v116RunName(r.traceRunId),lotId:id,name:r.name,category:cat,meatType:'',vendor:r.vendor,qty:r.qty,unit:r.unit,source:'',destination:'',effects:[],note:r.note||note,batchId,undone:false});
    }
    groupFor(r).entries.push({traceRunId:r.traceRunId||'',traceFinishedLot:r.traceFinishedLot||'',weightKg:cat==='meat'?r.qty:r.weight,category:cat,name:r.name,spec:r.spec||'',qty:r.qty,unit:r.unit,received:r.received,manufactured:cat==='finished_own'?r.received:'',expiry:r.expiry,price:r.price||0,vendor:r.vendor,brand:r.brand,origin:r.origin,type:r.type,id});
   }
@@ -5124,7 +5180,7 @@ function v18Deduct(entry){
  const next={qty:v18Round(balance.qty-delta.qty),packs:v18Round(balance.packs-delta.packs),kg:v18Round(balance.kg-delta.kg),boxes:v18Round(balance.boxes-delta.boxes),unit:balance.unit};
  if(entry.src==='seed'){state.extraSeedBalances=state.extraSeedBalances||{};state.extraSeedBalances[entry.key]=next;}
  else Object.assign(r,next);
- state.transactions.unshift({id:'T-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),at:new Date().toISOString(),type:'shipExtra',traceRunId:entry.traceRunId||'',traceFinishedLot:entry.traceFinishedLot||'',productionTarget:entry.productionTarget||'',lotId:entry.lotId,name:entry.name,category:entry.category,qty:entry.qty,unit:entry.unit,source:entry.location,destination:'external',effects:[],note:[['disposal','other'].includes(entry.kind)?entry.recipient:'',entry.note,entry.remark].filter(Boolean).join(' · '),purpose:v121Types[entry.kind]+' 출고',outboundKind:entry.kind,operationDate:entry.date,recipient:['disposal','other'].includes(entry.kind)?'':entry.recipient||'',recipientPartner:entry.partnerRecord||null,batchId:v18LastBatch,undone:false});
+ state.transactions.unshift({id:'T-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6),at:new Date().toISOString(),type:'shipExtra',v177Balance:v177ExtraBalance(next.qty,balance.unit),traceRunId:entry.traceRunId||'',traceFinishedLot:entry.traceFinishedLot||'',productionTarget:entry.productionTarget||'',lotId:entry.lotId,name:entry.name,category:entry.category,qty:entry.qty,unit:entry.unit,source:entry.location,destination:'external',effects:[],note:[['disposal','other'].includes(entry.kind)?entry.recipient:'',entry.note,entry.remark].filter(Boolean).join(' · '),purpose:v121Types[entry.kind]+' 출고',outboundKind:entry.kind,operationDate:entry.date,recipient:['disposal','other'].includes(entry.kind)?'':entry.recipient||'',recipientPartner:entry.partnerRecord||null,batchId:v18LastBatch,undone:false});
  return {src:entry.src,ref:entry.ref,key:entry.key,delta};
 }
 function v18Save(){
@@ -8126,4 +8182,25 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView .v75listhead :is([data-v175-group-sort],[data-v80-group-sort]){display:flex!important;align-items:center;justify-content:flex-start;width:100%;min-height:34px;min-width:0;padding:7px 10px!important;pointer-events:auto!important;cursor:pointer!important;text-decoration:none;position:relative}
 #mainView .v75listhead :is([data-v175-group-sort="qty"],[data-v80-group-sort="total"]){justify-content:flex-end;min-width:76px;text-align:right}
 #mainView .v75listhead :is([data-v175-group-sort],[data-v80-group-sort]):hover{background:rgba(0,0,0,.04)!important;text-decoration:underline;text-underline-offset:3px}
+</style><style id="v177-history-report">
+#mainView#mainView .v177-history-filters{padding:9px 12px!important;gap:5px!important;margin-bottom:8px!important}
+#mainView#mainView .v177-history-filters .v87-history-row{display:flex!important;align-items:center;gap:8px;flex-wrap:wrap}
+#mainView .v177-history-filters .v87-filter-label{flex:0 0 60px}
+#mainView .v177-history-filters .v70-filter{flex:1;min-width:0;margin:0!important}
+#mainView .v177-history-filters .v61-tab-group{gap:3px;flex-wrap:wrap}
+#mainView .v177-history-filters .v61-tab{padding:4px 9px!important;min-height:28px!important}
+#mainView .v177-history-filters .v61-tab.active{background:#dedee2!important;border-color:#c8c8cd!important;color:#26262a!important;box-shadow:none!important}
+#mainView .v177-history-filters .v61-tab small{font-size:10px;font-weight:400}
+#mainView .v177-history-results .hist-toolbar{display:flex;align-items:center;gap:12px;padding:7px 12px!important}
+#mainView .v177-history-results .v177-money{display:flex;gap:5px;align-items:center;font-size:12px;white-space:nowrap;margin-left:auto}
+#mainView .v177-history-results #downloadHistory{margin-left:0!important}
+#mainView#mainView .v177-history-results .v177-history-table:not(.v129-card-table){min-width:var(--v177-width)!important;table-layout:fixed!important}
+#mainView .v177-history-table th{padding:8px 7px!important}
+#mainView .v177-history-table th .v177-history-sort{display:flex;align-items:center;width:100%;padding:0!important;color:inherit!important;font:inherit!important;white-space:nowrap;text-align:left}
+#mainView .v177-history-table th.numeric .v177-history-sort{justify-content:flex-end}
+#mainView .v177-history-table th .v177-history-sort:hover{text-decoration:underline}
+#mainView#mainView .v177-history-table:not(.v129-card-table) td{padding:7px 8px!important;font-size:12px!important;line-height:1.4!important;overflow-wrap:anywhere}
+#mainView .v177-history-table td.v177-date,#mainView .v177-history-table td.v177-unit,#mainView .v177-history-table td.v177-inQty,#mainView .v177-history-table td.v177-outQty,#mainView .v177-history-table td.v177-moveQty{white-space:nowrap!important}
+#mainView .v177-history-table td.v177-action button{padding:4px 6px!important;font-size:11px!important}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){#mainView .v177-history-filters .v87-filter-label{flex:1 1 100%}#mainView .v177-history-results .hist-toolbar{flex-wrap:wrap}#mainView .v177-history-results .v177-money{margin-left:0}}
 </style></body></html>
