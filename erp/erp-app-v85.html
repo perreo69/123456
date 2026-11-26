@@ -3825,7 +3825,7 @@ function renderHistory(){
  const tx=v61HistoryRows();
  const visibleDocs=new Map();
  for(const b of (state.receiptBatches||[]))if(v110BatchVisible(b.id,b))visibleDocs.set(b.id,{type:'in',label:'명세서'});
- for(const b of (state.shippingBatches||[]))if(v110BatchVisible(b.id,b))visibleDocs.set(b.id,{type:'out',label:v123Commercial(b.outboundKind)?'명세서':'출고 기록'});
+ for(const b of (state.shippingBatches||[]))if(v123Commercial(b.outboundKind)&&v110BatchVisible(b.id,b))visibleDocs.set(b.id,{type:'out',label:'명세서'});
  const items=tx.map(t=>{
   const doc=visibleDocs.get(t.batchId);
   const docButton=doc?` <button type="button" class="undo-btn" data-history-doc-type="${doc.type}" data-history-doc-id="${esc(t.batchId)}">${doc.label}</button>`:'';
@@ -4999,8 +4999,8 @@ function v18Save(){
  }catch(e){state=previous;v18LastBatch='';const el=$('v18Error');el.textContent='출고 처리에 실패했습니다. '+e.message;el.classList.remove('hidden');return;}
  const commercial=v123Commercial(data.kind);
  if(commercial)v17LastOutId=batchId;
- v18Lines=[v18NewLine()];v123Kind='';v123Recipient='';v18Partner=null;$('v123Kind').value='';v123BindRecipient(true);v18Draw();const s=$('v18Success');s.classList.remove('hidden');s.innerHTML=`<b>${esc(batchId)}</b> · ${data.entries.length}개 LOT ${esc(v121Types[data.kind])} 출고가 저장됐습니다. <button class="intake-btn" type="button" id="v18SavedDoc">${commercial?'명세서 보기':'출고 기록 보기'}</button>`;
- $('v18SavedDoc').onclick=()=>v18ShowSavedPaper(batchId);
+ v18Lines=[v18NewLine()];v123Kind='';v123Recipient='';v18Partner=null;$('v123Kind').value='';v123BindRecipient(true);v18Draw();const s=$('v18Success');s.classList.remove('hidden');s.innerHTML=`<b>${esc(batchId)}</b> · ${data.entries.length}개 LOT ${esc(v121Types[data.kind])} 출고가 저장됐습니다.${commercial?' <button class="intake-btn" type="button" id="v18SavedDoc">명세서 보기</button>':''}`;
+ if($('v18SavedDoc'))$('v18SavedDoc').onclick=()=>v18ShowSavedPaper(batchId);
  v68Counts();toast(commercial?'출고와 거래명세서가 저장됐습니다.':'출고내역이 저장되고 재고가 차감됐습니다.');v158EntryFinish();
 }
 function v18Cancel(batchId){
@@ -7677,6 +7677,35 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
 @media(max-width:767px),(max-width:1023px) and (pointer:coarse){
  #mainView .v161-search-group{flex:1 1 100%;width:100%;margin:0!important}
  #mainView .v87-history-filters .v161-search-group input{flex:1 1 0!important;width:100%!important}
+}
+</style>
+
+
+<style id="v162-readable-workspace">
+/* Keep the established hierarchy while correcting tiny, low-contrast operational text. */
+#mainView#mainView :is(.inventory-table,.v72inner,.v37-table,.v36-table) :is(td,th) .subtle,
+#mainView#mainView :is(.inventory-table,.v72inner) td :is(.muted,.lot-ref){color:#55555c!important;font-size:12px!important;line-height:1.45}
+#mainView#mainView :is(.filter-count,.source-note,.table-footer,.page-desc,.v87-history-order,.v87-result-count,.v87-filter-label){color:#505057!important;font-size:12px!important;line-height:1.45}
+#mainView#mainView :is(.inventory-table,.v72inner) td :is(.product-name,.v153-name){color:#242428!important;font-weight:600!important}
+#mainView#mainView :is(.inventory-table,.v72inner) td :is(.meat-pill,.history-type){color:#343438!important;font-size:12px!important;font-weight:500!important;line-height:1.4}
+#mainView#mainView .history-table .history-type{display:inline-block;max-width:100%;white-space:normal;padding:3px 5px!important;box-sizing:border-box}
+#mainView#mainView .history-table td:nth-child(3)>.subtle{margin-top:3px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+#mainView#mainView .history-table td:nth-child(6){color:#303036!important;line-height:1.55!important;overflow-wrap:anywhere}
+#mainView#mainView :is(.inventory-table,.v72inner,.v37-table,.v36-table) :is(.mini-btn,.action-btn,.undo-btn):not(:disabled){color:#2e2e33!important;font-weight:500!important}
+#mainView#mainView .history-table button.undo-btn:not(:disabled){background:#fff!important;border:1px solid #c1c1c7!important;border-radius:5px!important;box-shadow:none!important;font-size:12px!important;line-height:1.3!important;min-height:30px!important;padding:4px 7px!important;white-space:nowrap!important}
+#mainView#mainView .history-table button.undo-btn:hover:not(:disabled){background:#f0f0f3!important;border-color:#9999a1!important}
+#mainView#mainView :is(.inventory-table,.v72inner,.v37-table,.v36-table) :is(.mini-btn,.action-btn,.undo-btn):focus-visible{outline:2px solid #4779ac!important;outline-offset:2px}
+@media screen and (min-width:768px) and (pointer:fine){
+ #mainView#mainView :is(.inventory-table,.v72inner,.v37-table,.v36-table):not(.v129-card-table)>tbody>tr>td{font-size:13px!important;line-height:1.5}
+ #mainView#mainView :is(.inventory-table,.v72inner,.v37-table,.v36-table):not(.v129-card-table)>thead>tr>th{font-size:12px!important;font-weight:600!important;color:#343438!important}
+ #mainView#mainView :is(.inventory-table,.v72inner) td .product-name{font-size:13px!important}
+ #mainView#mainView :is(.inventory-table,.v72inner,.v37-table,.v36-table) :is(.mini-btn,.action-btn){font-size:12px!important;min-height:30px!important;padding:4px 7px!important}
+ #mainView#mainView .ac-page .ac-table td.v102-actions button{font-size:12px!important;min-height:30px!important;height:auto!important;line-height:1.3!important}
+ #mainView#mainView :is(.filters,.v87-history-filters,.v90-report-controls) :is(input,select,button):not(.excel-filter-btn){font-size:13px!important}
+ #mainView#mainView :is(.filters,.v87-history-filters,.v90-report-controls) input::placeholder{color:#626269!important;opacity:1!important}
+}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){
+ #mainView#mainView .history-table button.undo-btn:not(:disabled){min-height:40px!important;font-size:13px!important}
 }
 </style>
 
