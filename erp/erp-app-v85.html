@@ -1214,7 +1214,7 @@ input,select,textarea,button{accent-color:#555555}
 </header>
 <div class="main-content">
 <section class="heading-section">
-<div><h1 id="pageTitle">원료육 통합 재고</h1><p class="page-desc" id="pageDesc"></p></div>
+<div><div class="page-title-line"><h1 id="pageTitle">원료육 통합 재고</h1><span id="viewCount" class="page-count" aria-live="polite" hidden></span></div><p class="page-desc" id="pageDesc"></p></div>
 <div class="top-actions"></div>
 </section>
 <div id="mainView"><p>재고 정보를 불러오는 중입니다.</p></div>
@@ -1241,6 +1241,11 @@ const KEY='mirrstar-raw-meat-erp-independent-v18';const LEGACY_KEY='mirrstar-raw
 const INIT=(window.__MEAT_ERP_SEED__||[]).map(x=>({...x}));
 const ZONE={frozen:'냉동고',chilled:'냉장고'};
 const $=id=>document.getElementById(id);
+function setViewCount(text=''){
+ const count=$('viewCount');
+ count.textContent=text;
+ count.hidden=!text;
+}
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Number(n||0).toLocaleString('ko-KR',{minimumFractionDigits:0,maximumFractionDigits:2});
 const kg=n=>`${fmt(n)} kg`;
@@ -1569,7 +1574,7 @@ function v72Render(groups){
 
  else {const g=groups.find(g=>g.key===v72Selected)||groups[0];v72Selected=g?.key||'';root.innerHTML=g?`<tr><td class="v72splitcell"><div class="v72split"><aside><div class="v75listhead">${v80SortLabel('name','품목명',true)}${v80SortLabel('total','중량(kg)',true)}</div>${groups.map(x=>`<button type="button" class="v72pick ${x.key===g.key?'active':''}" aria-pressed="${x.key===g.key}" data-v72-select="${esc(x.key)}"><strong>${esc(x.name)}</strong><span>${fmt(amount(all?x.all:x.frozen))}</span></button>`).join('')}</aside><div class="v72detail"><div class="v75detailhead"><h3>${esc(g.name)} <small>${esc(meatTypeLabel(g.type))} · LOT ${g.items.length}건</small></h3><div class="v75metrics">${(all?[['중량(kg)',g.all],['냉동고(kg)',g.frozen],['냉장고(kg)',g.chilled]]:[['중량(kg)',g.frozen]]).map(([label,value])=>`<div><span>${label}</span><strong>${fmt(amount(value))}</strong></div>`).join('')}</div></div><div class="v75tablewrap"><table class="v72inner v99-lot-table">${splitColumns}<thead>${lotHead}</thead><tbody>${meatLotSort(g.items).map(l=>lotRow(l,g)).join('')}</tbody></table></div></div></div></td></tr>`:'';if(root.querySelector('aside'))root.querySelector('aside').scrollTop=previousScroll;}
  if(!groups.length)root.innerHTML=`<tr><td colspan="${chilled?8:1}" class="empty">일치하는 재고가 없습니다.</td></tr>`;
- const n=groups.reduce((a,g)=>a+g.items.length,0),q=groups.reduce((a,g)=>a+g.all,0);$('filteredCount').textContent=`품목 ${groups.length}종 · LOT ${n}건 · ${fmt(amount(q))} kg`;$('tableFooterLeft').textContent='표시 재고 '+fmt(amount(q))+' kg';
+ const n=groups.reduce((a,g)=>a+g.items.length,0),q=groups.reduce((a,g)=>a+g.all,0);setViewCount(`품목 ${groups.length}종 · LOT ${n}건`);$('tableFooterLeft').textContent='표시 재고 '+fmt(amount(q))+' kg';
 }
 
 function officialBrand(v){
@@ -1856,7 +1861,7 @@ function makeQuickProduct(){
  const sel=$('f_productId');sel.innerHTML=productSelectOptions().map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('');sel.value=r.product.id;wrap.classList.add('hidden');$('f_quickProductName').value='';$('quickProductError').textContent='';toast('제품을 등록하고 선택했습니다.');
 }
 
-function sectionHtml(){return `<section class="inventory-panel card v72stock ${selectedZone!=='chilled'?'v74frozen':''} ${selectedZone==='chilled'?'v75chilled':''} ${selectedZone==='all'?'v75all':''}"><div class="filters"><div class="search-field"><input id="searchInput" placeholder="전체 검색: 품목·브랜드·원산지·업체·LOT 등" aria-label="재고 검색"></div>${v22ZeroCheckbox('v22ZeroMeat')}<button type="button" class="reset-filters" id="resetFilters">필터 초기화</button><span class="filter-count" id="filteredCount"></span></div><div class="table-scroll"><table class="inventory-table stock-table stock-table-v41"><thead id="inventoryHead"></thead><tbody id="inventoryBody"></tbody></table></div><div class="table-footer"><span id="tableFooterLeft"></span><span>작업 ▾에서 작업 선택 · 여러 LOT 동시 처리 가능</span></div></section>`;}
+function sectionHtml(){return `<section class="inventory-panel card v72stock ${selectedZone!=='chilled'?'v74frozen':''} ${selectedZone==='chilled'?'v75chilled':''} ${selectedZone==='all'?'v75all':''}"><div class="filters"><div class="search-field"><input id="searchInput" placeholder="전체 검색: 품목·브랜드·원산지·업체·LOT 등" aria-label="재고 검색"></div>${v22ZeroCheckbox('v22ZeroMeat')}<button type="button" class="reset-filters" id="resetFilters">필터 초기화</button></div><div class="table-scroll"><table class="inventory-table stock-table stock-table-v41"><thead id="inventoryHead"></thead><tbody id="inventoryBody"></tbody></table></div><div class="table-footer"><span id="tableFooterLeft"></span><span>작업 ▾에서 작업 선택 · 여러 LOT 동시 처리 가능</span></div></section>`;}
 const EXTRA_CATEGORIES={
  finished_all:'완제품 전체',finished_own:'완제품 · 생산제품',finished_buy:'완제품 · 매입상품',
  ingredients_all:'부재료 전체',sauce:'소스',spice:'향신료',vegetable:'야채',supplies:'부자재'
@@ -2874,9 +2879,26 @@ function v61AllStock(){
 }
 function v61StockPage(){
  v153FlatStockPage(({meat:'dashboard',finished:'finished_all',ingredients:'ingredients_all',all:'stock_overview'})[v61StockKind]||v61StockKind);
- const tabs=`<section class="card v61-stock-header"><div class="v61-stock-header-title"><strong>재고현황</strong><span>전체 조회 또는 품목 분류 선택</span></div><div class="v61-tab-group" role="group" aria-label="재고 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v61StockKind===key?'active':''}" data-v61-stock="${key}" aria-pressed="${v61StockKind===key}">${label}</button>`).join('')}</div></section>`;
- $('mainView').insertAdjacentHTML('afterbegin',tabs);officialStockNotice();
- $('mainView').querySelectorAll('[data-v61-stock]').forEach(b=>b.onclick=()=>{v171Capture(view);v61StockKind=b.dataset.v61Stock;showZeroStock=false;columnFilters.clear();tableSort={key:'default',direction:'asc'};v80GroupSort={key:'name',direction:'asc'};dismissFilter();v61StockPage()});
+ const filters=$('categorySearch').closest('.filters');
+ const tabs=`<div class="v61-tab-group stock-category-tabs" role="group" aria-label="재고 분류">
+  ${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v61StockKind===key?'active':''}" data-v61-stock="${key}" aria-pressed="${v61StockKind===key}">${label}</button>`).join('')}
+ </div>`;
+ filters.insertAdjacentHTML('afterbegin',tabs);
+ v171Bind(view);
+ officialStockNotice();
+ filters.querySelectorAll('[data-v61-stock]').forEach(button=>button.onclick=()=>{
+  const category=button.dataset.v61Stock;
+  if(category===v61StockKind)return;
+  v171Capture(view);
+  v61StockKind=category;
+  showZeroStock=false;
+  columnFilters.clear();
+  tableSort={key:'default',direction:'asc'};
+  v80GroupSort={key:'name',direction:'asc'};
+  dismissFilter();
+  v61StockPage();
+  $('mainView').querySelector('[data-v61-stock="'+category+'"]')?.focus({preventScroll:true});
+ });
 }
 // v61: History classifications are display-only. Move records never change the total stock.
 let v61HistoryFilter='all';
@@ -3087,7 +3109,7 @@ function acPage(next){
   const live=docs.filter(d=>!d.canceled);summary=metric(kind==='purchase'?'확정 매입 금액':'확정 매출 금액',live.reduce((n,d)=>n+d.amount,0))+metric(kind==='purchase'?'지급 합계':'수금 합계',live.reduce((n,d)=>n+d.settled,0))+metric(kind==='purchase'?'미지급 잔액':'미수 잔액',live.reduce((n,d)=>n+d.balance,0));
   intro=(kind==='purchase'?'외부 매입 입고':'거래처 출고')+' 전표가 자동 반영됩니다. 실제 '+(kind==='purchase'?'지급':'입금')+' 후 완료 버튼을 누르면 잔액이 0으로 변경됩니다. 단가 미확정 전표는 금액 확인 후 정산하세요. 자체생산·내부 이동은 제외합니다.';
  }
- $('mainView').innerHTML=`<section class="inventory-panel card ac-page${!expense&&!ledger?' v102-accounting':''}"><div class="panel-top ac-panel-heading"><div><h2>${next==='ac_purchase'?'매입 내역':next==='ac_sale'?'매출 내역':names[next]}</h2><p class="page-desc">${esc(intro)}</p></div>${next==='ac_purchase'?'<button type="button" class="btn btn-primary" id="acNewPurchase">+ 매입 입력</button>':next==='ac_sale'?'<button type="button" class="btn btn-primary" id="acNewSale">+ 매출 입력</button>':expense?'<button class="btn btn-primary" id="acNew">+ 경비 등록</button>':''}</div><div class="ac-metrics">${summary}</div><div class="filters ac-filters v90-report-filters"><span class="v87-filter-label">조회 조건</span><div class="v70-filter v90-report-controls"><div class="v102-period-group"><button class="btn btn-outline" id="acPeriod" type="button">기간설정</button>${v154PeriodButtons(f.from,f.to)}${v89PeriodLabel(f.from,f.to)}</div>${isTrade?`<select id="acPartner" aria-label="거래처 선택"><option value="">전체 거래처</option>${partnerOptions}</select>`:''}<div class="v165-ac-search"><input id="acQuery" type="search" aria-label="거래처 · 품목 · 전표번호 검색" placeholder="거래처 · 품목 · 전표번호 검색" value="${esc(f.query)}"><button type="button" class="btn btn-outline" id="acFind">조회</button></div>${ledger?'':`<select id="acStatus" aria-label="정산 상태"><option value="all">${settle?'미정산 / 확인 필요':'전체 상태'}</option>${expense?'<option value="open">유효</option>':'<option value="open">미정산</option><option value="closed">정산 완료</option>'}<option value="canceled">취소</option></select>`}${isTrade?`<div class="v165-ac-mode" role="group" aria-label="조회 방식"><button type="button" class="v61-tab ${f.mode==='doc'?'active':''}" data-ac-mode="doc" aria-pressed="${f.mode==='doc'}">전표별</button><button type="button" class="v61-tab ${f.mode==='line'?'active':''}" data-ac-mode="line" aria-pressed="${f.mode==='line'}">품목별</button></div><button type="button" class="btn btn-outline" id="acReset">초기화</button>`:''}<button class="btn btn-outline" id="acCSV">CSV 저장</button></div></div>${acTable(headers,rows)}<div class="table-footer">조회 ${rows.length.toLocaleString('ko-KR')}건 · 사내 관리용 장부 (세무 신고용 아님)</div></section>`;
+ $('mainView').innerHTML=`<section class="inventory-panel card ac-page${!expense&&!ledger?' v102-accounting':''}"><div class="panel-top ac-panel-heading"><p class="page-desc">${esc(intro)}</p>${next==='ac_purchase'?'<button type="button" class="btn btn-primary" id="acNewPurchase">+ 매입 입력</button>':next==='ac_sale'?'<button type="button" class="btn btn-primary" id="acNewSale">+ 매출 입력</button>':expense?'<button class="btn btn-primary" id="acNew">+ 경비 등록</button>':''}</div><div class="ac-metrics">${summary}</div><div class="filters ac-filters v90-report-filters"><span class="v87-filter-label">조회 조건</span><div class="v70-filter v90-report-controls"><div class="v102-period-group"><button class="btn btn-outline" id="acPeriod" type="button">기간설정</button>${v154PeriodButtons(f.from,f.to)}${v89PeriodLabel(f.from,f.to)}</div>${isTrade?`<select id="acPartner" aria-label="거래처 선택"><option value="">전체 거래처</option>${partnerOptions}</select>`:''}<div class="v165-ac-search"><input id="acQuery" type="search" aria-label="거래처 · 품목 · 전표번호 검색" placeholder="거래처 · 품목 · 전표번호 검색" value="${esc(f.query)}"><button type="button" class="btn btn-outline" id="acFind">조회</button></div>${ledger?'':`<select id="acStatus" aria-label="정산 상태"><option value="all">${settle?'미정산 / 확인 필요':'전체 상태'}</option>${expense?'<option value="open">유효</option>':'<option value="open">미정산</option><option value="closed">정산 완료</option>'}<option value="canceled">취소</option></select>`}${isTrade?`<div class="v165-ac-mode" role="group" aria-label="조회 방식"><button type="button" class="v61-tab ${f.mode==='doc'?'active':''}" data-ac-mode="doc" aria-pressed="${f.mode==='doc'}">전표별</button><button type="button" class="v61-tab ${f.mode==='line'?'active':''}" data-ac-mode="line" aria-pressed="${f.mode==='line'}">품목별</button></div><button type="button" class="btn btn-outline" id="acReset">초기화</button>`:''}<button class="btn btn-outline" id="acCSV">CSV 저장</button></div></div>${acTable(headers,rows)}<div class="table-footer">조회 ${rows.length.toLocaleString('ko-KR')}건 · 사내 관리용 장부 (세무 신고용 아님)</div></section>`;
  if($('acStatus'))$('acStatus').value=f.status;
  if($('acPartner'))$('acPartner').value=f.partner;
  const capture=()=>{f.query=$('acQuery').value.trim();if($('acPartner'))f.partner=$('acPartner').value;if($('acStatus'))f.status=$('acStatus').value;};
@@ -3270,13 +3292,14 @@ function v167StockDetail(v,g,zero){
 function v133StockPage(v){
  const root=$('mainView'),saved=v132StockSearch.get(v),q=saved?.query||'',sort=v133StockSort.get(v)||'name';
  const detail=v171Mode(v)==='list',zero=v171Zero.get(v)===true;
- root.innerHTML='<section class="v133-stock v167-stock"><div class="v133-stock-tools"><div class="v133-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg><input id="v133StockSearch" type="search" autocomplete="off" aria-label="재고 검색" placeholder="품목 · 브랜드 · 업체 · LOT 검색" value="'+esc(q)+'"></div>'+v171SwitchMarkup(v)+'</div>'+('<div class="v167-options"><span>'+(detail?'LOT별 조회':'품목별 조회')+'</span><label><input id="v167Zero" type="checkbox" '+(zero?'checked':'')+'>재고 0 표시</label><button type="button" id="v167Reset">초기화</button></div>')+'<div class="v133-stock-caption"><span id="v133StockCount" aria-live="polite"></span><select id="v133StockOrder" aria-label="재고 정렬"><option value="name">품목명순</option><option value="expiry">소비기한순</option></select></div><div id="v133StockRows" class="v133-stock-rows"></div></section>';
+ root.innerHTML='<section class="v133-stock v167-stock"><div class="v133-stock-tools"><div class="v133-search-wrap"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg><input id="v133StockSearch" type="search" autocomplete="off" aria-label="재고 검색" placeholder="품목명 또는 LOT 검색" value="'+esc(q)+'"></div>'+v171SwitchMarkup(v)+'</div>'+('<div class="v167-options"><select id="v133StockOrder" aria-label="재고 정렬"><option value="name">품목명순</option><option value="expiry">소비기한순</option></select><label><input id="v167Zero" type="checkbox" '+(zero?'checked':'')+'>재고 0 표시</label><button type="button" id="v167Reset">초기화</button></div>')+'<div id="v133StockRows" class="v133-stock-rows"></div></section>';
  const input=$('v133StockSearch'),rows=$('v133StockRows'),order=$('v133StockOrder');order.value=sort;
  let result=[];
  const draw=()=>{
   result=v167Rows(v167MobileLots(v,v171Zero.get(v)===true),input.value,order.value,detail);
   const count=new Set(result.map(g=>JSON.stringify([g.product,g.unit]))).size;
-  $('v133StockCount').textContent=count+'개 품목'+(detail?' · LOT '+new Set(result.flatMap(g=>g.lots.map(l=>l.lotId||l.key))).size+'건':input.value.trim()?' · 검색 재고':' · 현재 재고');
+  const lotCount=new Set(result.flatMap(g=>g.lots.map(l=>l.lotId||l.key))).size;
+  setViewCount('품목 '+fmt(count)+'종 · LOT '+fmt(lotCount)+'건');
   rows.innerHTML=result.length?result.map((g,i)=>{
    const l=g.lots[0],meta=[g.spec,g.brands[0]||EXTRA_TYPE_NAMES[g.category]||v61StockCategory(g.category),g.brands.length>1?'외 '+(g.brands.length-1)+'종':'',detail?l.location:''].filter(Boolean).join(' · ');
    const date=g.expiry?'<span class="'+(g.expiry<today()?'v133-expired':'')+'">기한 '+esc(g.expiry.slice(2).replace(/-/g,'.'))+'</span>':'';
@@ -3317,7 +3340,7 @@ function v153FlatStockPage(scope){
  meat?[col('name','품목명'),col('origin','원산지'),col('vendor','업체'),col('brand','브랜드'),...(frozen?[col('lotRef','LOT'),col('received','입고일')]:[]),col('expiry','소비기한'),...(!frozen?[col('frozen','냉동고(kg)','number'),col('chilled','냉장고(kg)','number')]:[]),col('qty','중량(kg)','number')]:
  [...(all||EXTRA_GROUPS[scope]?[col('category','구분')]:[]),col('name','품목명'),col('spec','규격'),...(all?[col('origin','원산지'),col('brand','브랜드')]:[]),col('location','보관 위치'),...(!supplies?[col('received',finished&&scope==='finished_own'?'제조일':finished?'제조·입고일':'입고·제조일'),col('expiry','소비기한')]:[]),col('qty','재고 수량','number'),...(!supplies&&!all?[col('kg','중량(kg)','number')]:[])];
  const saved=v132StockSearch.get(view)?.query||'';
- root.innerHTML='<section class="card inventory-panel v153-flat-panel"><div class="filters"><div class="search-field"><input id="categorySearch" type="search" placeholder="전체 검색: 품목·브랜드·업체·LOT 등" aria-label="재고 검색" value="'+esc(saved)+'"></div>'+v22ZeroCheckbox('v153Zero')+'<button type="button" class="reset-filters" id="v153Reset">필터 초기화</button><span id="v153Count" class="filter-count"></span>'+v171SwitchMarkup(view)+'</div><div class="v171-layout'+(grouped?' v171-grouped':'')+'">'+(grouped?'<aside class="v171-groups"><div class="v75listhead" id="v175GroupHead"><button type="button" class="v80-sort-label v175-group-sort" data-v175-group-sort="name" title="품목명 정렬">품목명</button><button type="button" class="v80-sort-label v175-group-sort" data-v175-group-sort="qty" title="재고 수량 정렬">재고</button></div><div id="v171GroupRows"></div></aside>':'')+'<div class="v171-detail">'+(grouped?'<div id="v171GroupTitle" class="v171-group-title"></div>':'')+'<div class="table-scroll v153-scroll"><table class="inventory-table v153-table"><thead><tr id="v153Head"></tr></thead><tbody id="v153Rows"></tbody></table></div></div></div><div class="table-footer"><span id="v153Total"></span><span>작업 메뉴에서 LOT별 처리</span></div></section>';
+ root.innerHTML='<section class="card inventory-panel v153-flat-panel"><div class="filters"><div class="search-field"><input id="categorySearch" type="search" placeholder="품목·브랜드·업체·LOT 검색" aria-label="재고 검색" value="'+esc(saved)+'"></div>'+v22ZeroCheckbox('v153Zero')+'<button type="button" class="reset-filters" id="v153Reset">필터 초기화</button>'+v171SwitchMarkup(view)+'</div><div class="v171-layout'+(grouped?' v171-grouped':'')+'">'+(grouped?'<aside class="v171-groups"><div class="v75listhead" id="v175GroupHead"><button type="button" class="v80-sort-label v175-group-sort" data-v175-group-sort="name" title="품목명 정렬">품목명</button><button type="button" class="v80-sort-label v175-group-sort" data-v175-group-sort="qty" title="재고 수량 정렬">재고</button></div><div id="v171GroupRows"></div></aside>':'')+'<div class="v171-detail">'+(grouped?'<div id="v171GroupTitle" class="v171-group-title"></div>':'')+'<div class="table-scroll v153-scroll"><table class="inventory-table v153-table"><thead><tr id="v153Head"></tr></thead><tbody id="v153Rows"></tbody></table></div></div></div><div class="table-footer"><span id="v153Total"></span></div></section>';
  const value=(r,k)=>r[k]??'',candidates=()=>v153StockRows(scope).filter(r=>matchesSearch($('categorySearch').value,[r.name,r.category,r.spec,r.origin,r.vendor,r.brand,r.location,r.received,r.expiry,r.lotRef,r.target,r.unit]));
  let filter,shown=[],groups=[];const scopeKey=view+'|'+scope;
  function draw(){
@@ -3325,7 +3348,9 @@ function v153FlatStockPage(scope){
   if(grouped){const groupOrder=v175GroupOrders.get(scopeKey)||{key:'name',direction:'asc'};groups=v175SortGroups(v171GroupRows(matched),groupOrder);const g=groups.find(x=>x.key===v171Picks.get(scopeKey))||groups[0];if(g)v171Picks.set(scopeKey,g.key);shown=filter.sortRows(g?.rows||[]);$('v175GroupHead').querySelectorAll('[data-v175-group-sort]').forEach(b=>b.setAttribute('aria-label',b.textContent+' '+(groupOrder.key===b.dataset.v175GroupSort&&groupOrder.direction==='asc'?'내림차순':'오름차순')+' 정렬'));const panel=$('v171GroupRows'),scroll=panel.scrollTop;panel.innerHTML=groups.map((x,i)=>'<button type="button" class="v72pick '+(x===g?'active':'')+'" data-v171-pick="'+i+'" aria-pressed="'+(x===g)+'"><strong>'+esc(x.name)+(x.spec?' <small>'+esc(x.spec)+'</small>':'')+'</strong><span>'+fmt(x.qty)+' '+esc(x.unit)+'</span></button>').join('')||'<p class="empty">재고 없음</p>';panel.scrollTop=scroll;$('v171GroupTitle').innerHTML=g?'<strong>'+esc(g.name)+'</strong><span>'+g.rows.length+' LOT · '+fmt(g.qty)+' '+esc(g.unit)+'</span>':'<span>조회되는 재고가 없습니다.</span>';}
   const cell=(r,c)=>{const val=value(r,c.key);let content=c.key==='expiry'?(val?expiryMarkup(val):'—'):['received','movement'].includes(c.key)?esc(val?sourceDate(val):'—'):c.kind==='number'?esc(fmt(val)+(c.key==='qty'&&!meat&&!chilled?' '+r.unit:'')):esc(val||'—');return '<td class="'+(c.kind==='number'?'numeric ':'')+(c.key==='name'?'v153-name':c.key==='qty'?'v153-qty':'')+'" data-v153-label="'+esc(c.label)+'">'+content+'</td>';};
   $('v153Rows').innerHTML=shown.length?shown.map((r,i)=>{const key=r.category+'|'+r.name+'|'+r.spec;if(!bands.has(key))bands.set(key,bands.size%2);totals.set(r.unit,(totals.get(r.unit)||0)+r.qty);return '<tr class="v76-band-'+bands.get(key)+'" data-v153-row="'+i+'" tabindex="0" aria-label="'+esc(r.name+' LOT 상세')+'">'+columns.map(c=>cell(r,c)).join('')+'<td class="v153-work"><button type="button" class="action-btn" data-v153-work="'+i+'" aria-haspopup="menu" aria-expanded="false">작업 ▾</button></td></tr>';}).join(''):'<tr><td colspan="'+(columns.length+1)+'" class="empty">조회되는 재고가 없습니다.</td></tr>';
-  $('v153Count').textContent='품목 '+new Set(shown.map(r=>r.category+'|'+r.name+'|'+r.spec)).size+'종 · LOT '+shown.length+'건';
+  const matchingLots=grouped?matched:shown;
+  const productCount=new Set(matchingLots.map(r=>r.category+'|'+r.name+'|'+r.spec)).size;
+  setViewCount('품목 '+fmt(productCount)+'종 · LOT '+fmt(matchingLots.length)+'건');
   $('v153Total').textContent='표시 재고 '+([...totals].map(([u,n])=>fmt(n)+' '+u).join(' · ')||'0');
  }
  filter=v40CreateFilters(columns,candidates,value,draw);filter.restore(v171Filters.get(scopeKey));filter.onSnapshot=s=>v171Filters.set(scopeKey,s);if(grouped){$('v171GroupRows').onclick=e=>{const b=e.target.closest('[data-v171-pick]');if(!b)return;const g=groups[Number(b.dataset.v171Pick)];if(g){v171Picks.set(scopeKey,g.key);draw();}};$('v175GroupHead').querySelectorAll('[data-v175-group-sort]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();v175GroupOrders.set(scopeKey,v175ToggleGroupOrder(v175GroupOrders.get(scopeKey)||{key:'name',direction:'asc'},b.dataset.v175GroupSort));draw();$('v171GroupRows').scrollTop=0;});}v171Bind(view);
@@ -3377,7 +3402,7 @@ function v144Prepare(next,origin){
  parent.insertBefore(back,root);
  const dlg=document.createElement('dialog');dlg.id='v144EntryDialog';dlg.setAttribute('aria-labelledby','v144EntryTitle');
  dlg.innerHTML='<header class="v144-titlebar" data-drag-handle><div><h2 id="v144EntryTitle"></h2><p id="v144EntrySub"></p></div><button type="button" id="v144Close" class="v148-close v150-dismiss" aria-label="취소" autofocus><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">취소</span></button></header>';
- const prior={view:origin||view,opener:document.activeElement,head:Object.fromEntries(['breadcrumbSection','breadcrumbCurrent','pageTitle','pageDesc'].map(id=>[id,$(id).textContent])),actions:document.querySelector('.heading-section .top-actions')?.innerHTML||'',scroll:document.scrollingElement?.scrollTop||0};
+ const prior={view:origin||view,opener:document.activeElement,head:Object.fromEntries(['breadcrumbSection','breadcrumbCurrent','pageTitle','pageDesc'].map(id=>[id,$(id).textContent])),count:$('viewCount').textContent,actions:document.querySelector('.heading-section .top-actions')?.innerHTML||'',scroll:document.scrollingElement?.scrollTop||0};
  v144Window={dlg,parent,root,back,prior};document.body.append(dlg);dlg.append(root);
  dlg.querySelector('#v144Close').onclick=v144Cancel;
  dlg.addEventListener('cancel',e=>{e.preventDefault();v144Cancel();});
@@ -3389,6 +3414,7 @@ function v144Show(next,origin){
  $('v144EntryTitle').textContent=origin==='ac_purchase'?'매입 입력':origin==='ac_sale'?'매출 입력':names[next];
  $('v144EntrySub').textContent=({intake:'업체와 날짜를 지정한 뒤 품목별 입고 정보를 입력하세요.',ship:'출고구분과 품목을 지정한 뒤 LOT별 수량을 입력하세요.',operations:'해동 · 냉동 · 현장 작업을 한 번에 등록하세요.'})[next];
  Object.entries(w.prior.head).forEach(([id,value])=>$(id).textContent=value);
+ setViewCount(w.prior.count);
  const ta=document.querySelector('.heading-section .top-actions');if(ta)ta.innerHTML=w.prior.actions;
  if(!w.dlg.open)w.dlg.showModal();
  if(next==='operations'&&v160MoveScope){$('v144EntryTitle').textContent=v160MoveScope.name+' · 이동 등록';$('v144EntrySub').textContent=(v160MoveScope.zone==='frozen'?'냉동고':'냉장고')+' 재고 · '+(v160MoveScope.lotId?'선택한 LOT만 표시합니다.':'선택한 품목의 LOT만 표시합니다.');}
@@ -3423,12 +3449,32 @@ function setView(next,accountingOrigin=''){
  if(view==='fg_make'&&next!=='fg_make')v38ActivePlanId=null;
  if(next!==view){showZeroStock=false;expanded.clear();lastInventoryQuery=null;columnFilters.clear();tableSort={key:'default',direction:'asc'};v80GroupSort={key:'name',direction:'asc'};dismissFilter();}
  view=next;
+ setViewCount();
  const names={...acNames(),ops_home:'운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 · 전체 재고',frozen:'원료육 · 냉동고',chilled:'원료육 · 냉장고',products:'품목 관리',partners:'거래처 관리',deleted:'변경 이력',production_trace:'생산 이력',history:'입출고내역',backup:'데이터 관리',...EXTRA_CATEGORIES};
- const headline={...acNames(),ops_home:'통합 운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 전체 재고',frozen:'냉동고 재고',chilled:'냉장고 재고',products:'품목 관리',partners:'거래처 관리',deleted:'변경 이력',production_trace:'생산 이력',history:'입출고내역',backup:'데이터 관리',...Object.fromEntries(Object.entries(EXTRA_CATEGORIES).map(([k,v])=>[k,v+' 재고']))};
+ const headline={...acNames(),ac_purchase:'매입 내역',ac_sale:'매출 내역',ops_home:'통합 운영 현황',ops_plan:'생산계획',ops_trace:'LOT 추적',ops_audit:'기록 점검',fg_catalog:'완제품 품목 구분',fg_recipe:'생산 배합표',fg_make:'생산등록',fg_records:'생산이력',fg_margin:'원가 · 매출 분석',operations:'이동입력',ship:'출고입력',intake:'입고입력',stock_overview:'재고현황',dashboard:'원료육 전체 재고',frozen:'냉동고 재고',chilled:'냉장고 재고',products:'품목 관리',partners:'거래처 관리',deleted:'변경 이력',production_trace:'생산 이력',history:'입출고내역',backup:'데이터 관리',...Object.fromEntries(Object.entries(EXTRA_CATEGORIES).map(([k,v])=>[k,v+' 재고']))};
  document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('selected',b.dataset.view===next));
  document.querySelectorAll('[data-quick-action]').forEach(b=>b.classList.toggle('selected',next==='intake'&&b.dataset.quickAction==='receive'));
  const topActions=document.querySelector('.heading-section .top-actions');
- if(topActions){topActions.replaceChildren();if((next==='intake'&&accountingOrigin==='ac_purchase')||(next==='ship'&&accountingOrigin==='ac_sale')){const back=document.createElement('button');back.type='button';back.className='btn btn-outline';back.textContent=next==='intake'?'← 매입 내역':'← 매출 내역';back.onclick=()=>setView(accountingOrigin);topActions.appendChild(back);}}
+ if(topActions){
+  topActions.replaceChildren();
+  if((next==='intake'&&accountingOrigin==='ac_purchase')||(next==='ship'&&accountingOrigin==='ac_sale')){
+   const back=document.createElement('button');
+   back.type='button';
+   back.className='btn btn-outline';
+   back.textContent=next==='intake'?'← 매입 내역':'← 매출 내역';
+   back.onclick=()=>setView(accountingOrigin);
+   topActions.appendChild(back);
+  }else if(next==='stock_overview'||next==='history'){
+   const exportingHistory=next==='history';
+   const exportButton=document.createElement('button');
+   exportButton.type='button';
+   exportButton.id=exportingHistory?'downloadHistory':'downloadMeatWorkbook';
+   exportButton.className='btn btn-outline';
+   exportButton.textContent=exportingHistory?'CSV 저장':'원료육 엑셀';
+   exportButton.onclick=exportingHistory?exportHistoryCsv:officialStockDownload;
+   topActions.appendChild(exportButton);
+  }
+ }
  $('breadcrumbSection').textContent=acNames()[next]||accountingOrigin?'회계':['intake','ship','operations','history'].includes(next)?'입출고':['production_trace','deleted'].includes(next)?'기록':['products','partners'].includes(next)?'기본정보':next==='backup'?'데이터 관리':'재고';
  $('breadcrumbCurrent').textContent=accountingOrigin==='ac_purchase'&&next==='intake'?'매입 입력':accountingOrigin==='ac_sale'&&next==='ship'?'매출 입력':names[next];$('pageTitle').textContent=accountingOrigin==='ac_purchase'&&next==='intake'?'매입 입력':accountingOrigin==='ac_sale'&&next==='ship'?'매출 입력':headline[next];
  $('pageDesc').textContent=acNames()[next]?'입출고 연동 · 사내 거래 및 정산 관리':v37Views.includes(next)?'품목 구분부터 생산실적·원가·매출까지 연결하는 생산관리 화면입니다.':next==='operations'?'해동과 재냉동을 기록합니다. 냉동고와 냉장고 사이의 이동으로 전체 재고량은 변하지 않습니다.':next==='ship'?'LOT를 선택해 해당 줄에서 출고수량을 입력합니다.':next==='intake'?'입고일·업체는 한 번만 입력하고 여러 품목을 일괄 등록합니다.':EXTRA_CATEGORIES[next]?'품목별 재고를 확인하고 LOT별 소비기한과 보관정보를 조회합니다.':next==='stock_overview'?'전체 재고를 보거나 원료육·완제품·부재료·부자재만 선택해 조회합니다.':next==='history'?'입고·출고·해동·재냉동 기록을 한 화면에서 확인합니다.':next==='products'?'원료육·완제품·소스·향신료·야채·부자재의 상품코드를 등록·관리합니다.':next==='partners'?'등록된 거래처 기본정보를 검색하고 조회합니다.':next==='production_trace'?'생산품목별 원료육 사용 및 완제품 LOT를 추적합니다.':next==='deleted'?'수정·삭제된 업무 기록과 변경 전후 정보를 조회합니다.':next==='backup'?'재고 데이터를 백업하거나 복원하고 초기 상태를 관리합니다.':next==='chilled'?'냉동고에서 이동한 LOT와 냉장고 재고를 관리합니다.':next==='frozen'?'품목별 냉동고 재고와 입고 LOT를 확인하세요.':'품목별 재고를 확인하고 LOT로 입출고를 처리하세요.';
@@ -3980,9 +4026,10 @@ function renderHistory(){
   return `<tr><td>${esc(v70Date(t))}</td><td><span class="history-type ${cls}">${title}</span>${t.undone?'<div class="subtle">취소됨</div>':''}</td><td>${(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?`<span class="meat-pill">${esc(INTAKE_LABELS[t.category]||V18_CAT[t.category]||t.category||'완제품')}</span>`:typeBadge(t.meatType)} <strong class="product-name">${esc(t.name)}</strong><div class="subtle">${esc(t.lotId)}</div></td><td>${esc(route)}</td><td class="numeric"><strong>${fmt(t.qty)}${unit}</strong></td><td>${esc(detail||'—')}</td><td class="numeric">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</td></tr>`;
  }).join('');
  const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
- $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
+ $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목 / LOT</th><th>이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="7">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
+ setViewCount('조회 '+fmt(tx.length)+'건');
  // Saved paperwork remains available directly from its matching history row.
- $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget});v154BindPeriod('v70Period',(a,b)=>{v70From=a;v70To=b;renderHistory();}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
+ $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget});v154BindPeriod('v70Period',(a,b)=>{v70From=a;v70To=b;renderHistory();}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
  document.querySelectorAll('[data-v158-edit]').forEach(b=>b.onclick=()=>v158HistoryEdit(b.dataset.v158Edit));
  document.querySelectorAll('[data-history-doc-id]').forEach(b=>b.onclick=()=>v17ShowSaved(b.dataset.historyDocType,b.dataset.historyDocId));
@@ -7794,7 +7841,7 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
  #mainView#mainView .history-table th:nth-child(4){width:17%!important}
  #mainView#mainView .history-table th:nth-child(5){width:110px!important}
  #mainView#mainView .history-table th:nth-child(6){width:auto!important}
- #mainView#mainView .history-table th:nth-child(7){width:132px!important}
+ #mainView#mainView .history-table th:nth-child(7){width:116px!important}
  #mainView#mainView .history-table td:nth-child(1),#mainView#mainView .history-table td:nth-child(5){white-space:nowrap!important;overflow-wrap:normal!important}
  #mainView#mainView .history-table td:nth-child(7){white-space:normal!important;text-align:right}
  #mainView#mainView .history-table td:nth-child(7) button{white-space:nowrap;min-width:0;margin:2px 0 2px 3px;padding:4px 7px!important}
@@ -7846,9 +7893,9 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
  #mainView#mainView .v153-table:has(th:nth-child(11)){min-width:1260px!important}
  #mainView#mainView .v153-table th{width:auto!important}
  #mainView#mainView .v153-table th:has([data-v40-filter="category"]),#mainView#mainView .v153-table th:has([data-v40-filter="origin"]){width:86px!important}
- #mainView#mainView .v153-table th:has(:is([data-v40-filter="received"],[data-v40-filter="expiry"],[data-v40-filter="movement"])){width:112px!important}
- #mainView#mainView .v153-table th:has(:is([data-v40-filter="qty"],[data-v40-filter="kg"],[data-v40-filter="frozen"],[data-v40-filter="chilled"])){width:108px!important}
- #mainView#mainView .v153-table th.col-action{width:90px!important}
+ #mainView#mainView .v153-table th:has(:is([data-v40-filter="received"],[data-v40-filter="expiry"],[data-v40-filter="movement"])){width:100px!important}
+ #mainView#mainView .v153-table th:has(:is([data-v40-filter="qty"],[data-v40-filter="kg"],[data-v40-filter="frozen"],[data-v40-filter="chilled"])){width:98px!important}
+ #mainView#mainView .v153-table th.col-action{width:74px!important}
  #mainView#mainView .v153-table th:has([data-v40-filter="name"]){width:20%!important}
  #mainView#mainView .v153-table td.numeric{white-space:nowrap!important}
  #mainView#mainView .v153-table :is(th,td){padding:8px!important}
@@ -7873,10 +7920,12 @@ dialog.v155-calendar .v88-footer .v88-apply{min-width:96px;background:#007aff!im
  #mainView#mainView .v74frozen .v99-lot-table{min-width:790px!important}
  #mainView#mainView .v75all .v99-lot-table{min-width:980px!important}
  #mainView#mainView .v99-lot-table .v99-origin{width:78px!important}
- #mainView#mainView .v99-lot-table :is(.v99-vendor,.v99-brand,.v99-lot){width:auto!important}
+ #mainView#mainView .v99-lot-table .v99-vendor{width:auto!important}
+ #mainView#mainView .v99-lot-table .v99-brand{width:112px!important}
+ #mainView#mainView .v99-lot-table .v99-lot{width:144px!important}
  #mainView#mainView .v99-lot-table :is(.v99-received,.v99-expiry){width:100px!important}
  #mainView#mainView .v99-lot-table :is(.v99-qty,.v99-qty-wide){width:100px!important}
- #mainView#mainView .v99-lot-table .v99-action{width:82px!important}
+ #mainView#mainView .v99-lot-table .v99-action{width:74px!important}
  /* Accounting by semantic header, including hidden legacy report variants. */
  #mainView#mainView .ac-page .ac-table{min-width:1120px!important}
  #mainView#mainView .ac-page .ac-table th{width:auto!important}
@@ -8126,4 +8175,71 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView .v75listhead :is([data-v175-group-sort],[data-v80-group-sort]){display:flex!important;align-items:center;justify-content:flex-start;width:100%;min-height:34px;min-width:0;padding:7px 10px!important;pointer-events:auto!important;cursor:pointer!important;text-decoration:none;position:relative}
 #mainView .v75listhead :is([data-v175-group-sort="qty"],[data-v80-group-sort="total"]){justify-content:flex-end;min-width:76px;text-align:right}
 #mainView .v75listhead :is([data-v175-group-sort],[data-v80-group-sort]):hover{background:rgba(0,0,0,.04)!important;text-decoration:underline;text-underline-offset:3px}
-</style></body></html>
+</style>
+<style id="compact-workspace">
+.page-title-line{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 12px;min-width:0}
+.page-count{color:#606068;font-size:12px;font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.page-count[hidden]{display:none}
+.main-content:has(:is(.v153-flat-panel,.v72stock,.v167-stock,.v87-history-filters,.v102-accounting)) .heading-section{
+ align-items:center!important;gap:8px!important;margin:0 0 8px!important
+}
+.main-content:has(:is(.v153-flat-panel,.v72stock,.v167-stock,.v87-history-filters,.v102-accounting)) .heading-section h1{
+ margin:0!important;font-size:21px!important;line-height:1.28!important;letter-spacing:-.5px
+}
+.heading-section:has(#viewCount:not([hidden])) .page-desc,
+.main-content:has(.v102-accounting) .heading-section .page-desc{display:none}
+.heading-section:has(#viewCount:not([hidden])) .top-actions:empty{display:none}
+.heading-section:has(#viewCount:not([hidden])) .top-actions .btn{white-space:nowrap}
+#mainView .stock-category-tabs{gap:3px;flex:0 0 auto;align-items:center}
+#mainView .stock-category-tabs .v61-tab{min-width:0;min-height:32px;padding:5px 9px!important}
+#mainView :is(.stock-category-tabs,.v87-history-filters) .v61-tab.active{
+ color:#0758b5!important;background:#e9f2ff!important;border-color:#b9d5fa!important;
+ box-shadow:none!important;font-weight:650!important
+}
+#mainView#mainView .v171-switch button[aria-pressed=true]{color:#0758b5!important;background:#e9f2ff!important}
+#mainView .v87-history-filters{margin-bottom:8px!important;padding:8px 10px!important;gap:6px}
+#mainView .v87-history-filters .v87-history-row{gap:6px 8px}
+#mainView .v102-accounting .ac-panel-heading{min-height:0!important;padding:8px 12px!important}
+#mainView .v102-accounting .ac-panel-heading .page-desc{margin:0;min-width:0}
+#mainView .v167-stock .v167-options select{min-height:40px;max-width:100%}
+#mainView .v133-stock-row .v133-stock-qty{text-align:right;font-variant-numeric:tabular-nums}
+
+@media(min-width:768px) and (pointer:fine){
+ #mainView#mainView :is(.v153-flat-panel,.v72stock)>.filters{
+  gap:6px!important;padding:6px 8px!important;min-height:0!important
+ }
+ #mainView#mainView .v153-flat-panel>.filters:has(.stock-category-tabs)>.search-field{
+  flex:1 1 155px!important;min-width:135px!important;max-width:none!important
+ }
+ #mainView#mainView :is(.v153-table,.v99-lot-table,.history-table):not(.v129-card-table)>thead>tr>th{
+  padding:5px 8px!important;height:34px!important
+ }
+ #mainView#mainView :is(.v153-table,.v99-lot-table,.history-table):not(.v129-card-table)>tbody>tr>td:not(.empty){
+  padding:5px 8px!important;height:auto!important
+ }
+ #mainView#mainView :is(.v153-table,.v99-lot-table) :is(th,td).numeric{text-align:right}
+ #mainView#mainView .v153-table .th-wrap{gap:3px}
+ #mainView#mainView :is(.v153-table,.v99-lot-table,.history-table) :is(th,td){border-bottom-color:#e4e4e9!important}
+}
+@media(min-width:1280px) and (pointer:fine){
+ #mainView .v87-history-filters{grid-template-columns:max-content minmax(0,1fr);column-gap:16px}
+ #mainView .v87-history-row:last-child{grid-column:1/-1}
+}
+@media(max-width:767px),(max-width:1023px) and (pointer:coarse){
+ .main-content:has(:is(.v167-stock,.v87-history-filters,.v102-accounting)) .heading-section{
+  flex-direction:row!important;justify-content:space-between!important
+ }
+ .heading-section:has(#viewCount:not([hidden])) .top-actions{flex:0 0 auto;width:auto}
+ .heading-section:has(#viewCount:not([hidden])) .top-actions .btn{min-height:40px;padding:4px 9px}
+ body:has(#mainView>.v167-stock) #v130StockShortcuts{
+  padding:2px 3px;margin-bottom:6px;overflow-x:auto
+ }
+ body:has(#mainView>.v167-stock) #v130StockShortcuts button{
+  flex:0 0 auto;min-height:40px;padding:5px 10px
+ }
+ body:has(#mainView>.v167-stock) #v130StockShortcuts button[aria-current=page]{color:#0758b5}
+ #mainView .v87-history-row>.v61-tab-group{padding:2px!important}
+ #mainView .v87-history-row .v61-tab{min-height:40px!important;max-height:none!important}
+}
+</style>
+</body></html>
