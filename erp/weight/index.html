@@ -74,8 +74,8 @@ function dateISO(y,m,d){
  return t.toISOString().slice(0,10);
 }
 function dateCandidates(raw){
- let s=String(raw).normalize('NFKC').trim().replace(/[。!?]+$/,'');
- const explicit=s.match(/^(.+?)년\s*(.+?)월\s*(.+?)일$/);
+ let s=String(raw).normalize('NFKC').trim().replace(/[。.!?]+$/,'').replace(/^(?:제조일(?:자)?|제조 날짜|생산일(?:자)?)\s*(?:은|는|이|가|[:：])?\s*/,'').replace(/\s*(?:입니다|이에요|예요|이요|요)$/,'').trim();
+ const explicit=s.match(/^(.+?)년\s*(.+?)월\s*(.+?)(?:\s*일)?$/);
  if(explicit){const iso=dateISO(...explicit.slice(1).map(dateNum));return iso?[{order:'YMD',iso}]:[]}
  let p=s.split(/\s*[-./]\s*|\s+/);if(p.length===1&&/^\d{8}$/.test(s))p=[s.slice(0,4),s.slice(4,6),s.slice(6)];
  if(p.length!==3||p.some(x=>!/^\d{1,4}$/.test(x)))return [];
@@ -86,10 +86,11 @@ function dateCandidates(raw){
  }return out;
 }
 function parseDuration(raw){
- const s=String(raw).normalize('NFKC').trim().replace(/[。!?]+$/,'').replace(/^(제조일로부터|제조일 기준|제조일 포함)\s*/,'').replace(/\s*(까지|동안|이내)$/,'').trim();
- const m=s.match(/^([0-9공영일이삼사오육륙칠팔구십백천\s]+?)\s*(개월|달|월|년|주|일)$/);if(!m)return null;
- const n=dateNum(m[1]);if(!Number.isInteger(n)||n<1||n>10000)return null;
- const unit=({개월:'month',달:'month',월:'month',년:'year',주:'week',일:'day'})[m[2]];
+ const s=String(raw).normalize('NFKC').trim().replace(/[。.!?]+$/,'').replace(/^(?:제조일로부터|제조일 기준|제조일 포함|소비기한|유통기한|기간)\s*(?:은|는|이|가|[:：])?\s*/,'').replace(/\s*(?:입니다|이에요|예요|이요|요)$/,'').replace(/(?:\s*(?:뒤|후|이후|까지|동안|이내|되는\s*날|지나서))+\s*$/,'').trim();
+ const m=s.match(/^([0-9공영일이삼사오육륙칠팔구십백천한두세네다섯여섯일곱여덟아홉열\s]+?)\s*(개\s*월|달|월|년|주|일)$/);if(!m)return null;
+ const word=m[1].replace(/\s/g,''),native={한:1,두:2,세:3,네:4,다섯:5,여섯:6,일곱:7,여덟:8,아홉:9,열:10};
+ const n=Object.prototype.hasOwnProperty.call(native,word)?native[word]:dateNum(word);if(!Number.isInteger(n)||n<1||n>10000)return null;
+ const unit=({개월:'month',달:'month',월:'month',년:'year',주:'week',일:'day'})[m[2].replace(/\s/g,'')];
  if((unit==='month'&&n>1200)||(unit==='year'&&n>100))return null;return {n,unit};
 }
 function expiryAdd(iso,n,unit,inclusive=false){
@@ -121,13 +122,13 @@ function expStop(msg='음성 입력 종료'){
 async function expKeep(){try{if(navigator.wakeLock&&expRunning){const w=await navigator.wakeLock.request('screen');if(expRunning)expWake=w;else w.release().catch(()=>{})}}catch{}}
 function expLaunch(){
  if(!expRunning)return;const r=new Speech();expSpeech=r;r.lang='ko-KR';r.continuous=false;r.interimResults=false;r.maxAlternatives=3;let accepted=false;
- r.onstart=()=>{if(r===expSpeech)expMessage(expStage==='date'?'제조일을 말씀하세요. 예: 2026년 11월 27일':'기간을 말씀하세요. 예: 24개월 또는 45일')};
+ r.onstart=()=>{if(r===expSpeech)expMessage(expStage==='date'?'제조일을 말씀하세요. 예: 26년 11월 20':'기간을 말씀하세요. 예: 24개월 뒤, 45일 후까지')};
  r.onresult=e=>{if(r!==expSpeech||!expRunning||accepted)return;
  for(let i=e.resultIndex;i<e.results.length;i++){if(!e.results[i].isFinal)continue;accepted=true;const alternatives=Array.from(e.results[i]).map(x=>x.transcript.trim());const raw=alternatives[0]||'';
  if(/^(끝|종료|그만|취소|완료)[.!?]?$/.test(raw)){expStop('음성 입력 종료');return}
  if(expStage==='date'){
  const parsed=alternatives.map(x=>dateCandidates(x));const first=parsed[0]||[];
- if(first.length!==1||parsed.some(a=>a.length===1&&a[0].iso!==first[0].iso)){expMessage('날짜 불확실: '+raw+' · 년, 월, 일을 붙여 다시 말씀하세요.',true);beep('error');return}
+ if(first.length!==1||parsed.some(a=>a.length===1&&a[0].iso!==first[0].iso)){expMessage('날짜 불확실: '+raw+' · 년과 월을 붙여 날짜를 다시 말씀하세요.',true);beep('error');return}
  E('manufactured').value=first[0].iso;E('durationN').value='';expStage='period';expRender();expMessage('제조일 '+first[0].iso+' 확인 · 기간을 말씀하세요.');beep();return
  }
  const parsed=alternatives.map(parseDuration),first=parsed[0];
