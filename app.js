@@ -4424,8 +4424,7 @@ var LIVE = (function () {
      · blur · Enter 에서 YYYY-MM-DD 로 맞추고, 값이 바뀌었으면 change 를 쏴 기존 필터·계산이 그대로 돈다.
      · v64 — 「26/11/26」·「2026/11/26」·「26-11-26」·「2026-11-26」·「26.6.5」 처럼 / · - · . 로 나눠 쳐도,
        월·일이 한 자리여도 같은 규칙으로 받는다. 치는 도중에는 글자를 건드리지 않고 blur·Enter 에서만 맞춘다. */
-  var SD_YEAR = (new Date()).getFullYear();
-  /* 날짜 칸은 «연도를 바꿔 가며» 켜 두기도 하므로 해가 바뀌면 기본 연도도 따라간다 */
+  /* 해가 바뀌어도(창을 오래 켜 둬도) 기본 연도가 따라가게 매번 지금 해를 쓴다 */
   function sdRefYear() { return (new Date()).getFullYear(); }
   var SD_PICKER = null;   /* 달력에서 고르기용 숨은 date 칸 */
 
