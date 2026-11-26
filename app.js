@@ -9779,6 +9779,8 @@ var LIVE = (function () {
     return { key: ios.seq, kind: g === 'meat' ? 'meat' : 'fp', g: g, flag: '매입', name: '', code: '',
       unit: g === 'meat' ? 'kg' : '개',
       wh: g === 'meat' ? (ios.wh === 'C' ? 'C' : 'F') : 'A', lotNo: '', lotId: null, expiry: '', mfg: '',
+      /* v62 — 원산지 · 브랜드(원료육 입고에서만 쓴다. lots.origin / lots.brand 로 저장) */
+      origin: '', brand: '',
       qty: '', price: '' };
   }
   function iosResetRows(n) {
@@ -9907,6 +9909,29 @@ var LIVE = (function () {
     var mLot = iosPickMeatLot(r);
     return '<span class="vlotro">' + esc(mLot ? (mLot.e || '—') : '—') + '</span>' +
       '<span class="vlotstock">' + (mLot ? '재고 ' + fmtQty((r.wh || ios.wh) === 'C' ? mLot.cq : mLot.fq) + 'kg' : '로트를 고르세요') + '</span>';
+  }
+  /* ==========================================================================
+     v62 — 원산지 · 브랜드 칸 (PC 표 2칸 + 폰 카드 2열)
+       · 원료육 줄에서만 쓴다. 완제품·소스·부자재 줄은 «—» (입력칸이 아예 안 보인다).
+       · 입고: 지금까지 쓴 원산지(lots.origin)·브랜드(lots.brand)를 v59/v60 통일 실시간
+         검색 드롭다운으로 제안하고, 목록에 없는 값도 그대로 친다.
+       · 출고: 그 줄에서 고른 로트의 원산지·브랜드를 읽기 전용으로 보여 준다.
+     ========================================================================== */
+  function iosObVal(r, which) {
+    if (!r || r.kind !== 'meat') return '';
+    return iosTrim(which === 'brand' ? r.brand : r.origin);
+  }
+  function iosObCellHtml(r, which) {
+    var isBrand = which === 'brand';
+    if (!r || r.kind !== 'meat') return '<span class="vlotro muted">—</span>';
+    if (iosIsIn()) {
+      return '<input type="text" data-f="' + which + '" value="' + esc(iosObVal(r, which)) + '"' +
+        ' placeholder="' + (isBrand ? '예: 스위프트' : '예: 호주') + '" title="' + (isBrand ? '브랜드' : '원산지') + '"' +
+        ' autocomplete="off" list="' + (isBrand ? 'dlBrands' : 'dlOrigins') + '">';
+    }
+    var L = iosPickMeatLot(r);
+    var v = L ? (isBrand ? L.b : L.o) : '';
+    return '<span class="vlotro' + (v ? '' : ' muted') + '">' + esc(v || '—') + '</span>';
   }
   function iosNameCellHtml(r) {
     var ph = r.kind === 'fp' ? '예: 떡갈비 / W00100016' : '예: 등갈비';
@@ -10048,6 +10073,14 @@ var LIVE = (function () {
     }
     rows.push('<label class="mf"><span>소비기한</span><input type="text" data-sd="1" data-f="expiry" value="' + esc(r.expiry) + '" placeholder="20270131"></label>');
     h.push('<div class="mfields">' + rows.join('') + '</div>');
+    /* v62 — 원산지 | 브랜드 : 소비기한 바로 아래 2열(.mfields 규격 그대로 44px · 16px) */
+    if (r.kind === 'meat') {
+      h.push('<div class="mfields mob">' +
+        '<label class="mf"><span>원산지</span><input type="text" data-f="origin" value="' + esc(iosObVal(r, 'origin')) + '"' +
+        ' placeholder="예: 호주" autocomplete="off" list="dlOrigins"></label>' +
+        '<label class="mf"><span>브랜드</span><input type="text" data-f="brand" value="' + esc(iosObVal(r, 'brand')) + '"' +
+        ' placeholder="예: 스위프트" autocomplete="off" list="dlBrands"></label></div>');
+    }
     if (r.kind === 'meat') h.push('<p class="mtip">이름 · 업체 · 입고일 · 소비기한이 같으면 한 로트로 묶입니다.</p>');
     return h.join('');
   }
@@ -10155,6 +10188,8 @@ var LIVE = (function () {
       (s53 ? ' class="st-' + s53.level + '" title="엑셀 ' + r.srcLine + '행 · ' + esc(s53.msg) + '"' : '') + '>' +
       '<td class="c">' + iosKindCellHtml(r) + '</td>' +
       '<td>' + iosNameCellHtml(r) + '</td>' +
+      '<td data-cell="ob1">' + iosObCellHtml(r, 'origin') + '</td>' +
+      '<td data-cell="ob2">' + iosObCellHtml(r, 'brand') + '</td>' +
       '<td data-cell="wh">' + iosWhCellHtml(r) + '</td>' +
       '<td data-cell="lot">' + iosLotCellHtml(r) + '</td>' +
       '<td data-cell="mfg">' + iosMfgCellHtml(r) + '</td>' +
@@ -10209,6 +10244,8 @@ var LIVE = (function () {
     return {
       kind: [r.kind, iosGroupOf(r), r.flag].join('|'),
       wh: [r.kind, r.wh].join('|'),
+      /* v62 — 원산지·브랜드 칸: 입고에서는 구분이 바뀔 때만, 출고에서는 고른 로트가 바뀔 때 다시 그린다 */
+      ob: [r.kind, iosIsIn() ? 1 : 0, iosIsIn() ? '' : [r.wh, r.lotId, iosTrim(r.name)].join('~')].join('|'),
       lot: [r.kind, r.wh, r.name, r.lotId, r.lotNo, iosIsIn() ? 1 : 0].join('|'),
       mfg: [r.kind, r.g, r.wh, r.lotId, r.mfg, iosIsIn() ? 1 : 0].join('|'),
       exp: [r.kind, r.wh, r.name, r.lotId, r.expiry, iosIsIn() ? 1 : 0].join('|'),
@@ -10232,6 +10269,10 @@ var LIVE = (function () {
     if (old.kind !== now.kind && tr.children[0]) tr.children[0].innerHTML = iosKindCellHtml(r);
     var cc = tr.querySelector('[data-cell="code"]');
     if (cc) cc.textContent = iosCodeOf(r) || '코드 자동';
+    if (old.ob !== now.ob) {
+      wc = tr.querySelector('[data-cell="ob1"]'); if (wc) wc.innerHTML = iosObCellHtml(r, 'origin');
+      wc = tr.querySelector('[data-cell="ob2"]'); if (wc) wc.innerHTML = iosObCellHtml(r, 'brand');
+    }
     if (old.wh !== now.wh) { wc = tr.querySelector('[data-cell="wh"]'); if (wc) wc.innerHTML = iosWhCellHtml(r); }
     if (old.lot !== now.lot) { wc = tr.querySelector('[data-cell="lot"]'); if (wc) wc.innerHTML = iosLotCellHtml(r); }
     if (old.mfg !== now.mfg) { wc = tr.querySelector('[data-cell="mfg"]'); if (wc) wc.innerHTML = iosMfgCellHtml(r); }
@@ -10462,6 +10503,9 @@ var LIVE = (function () {
     var b = $('ioSheetSave');
     b.disabled = true; b.textContent = '저장 중…';
     var ok = 0, fail = noName, errs = [], whWarn = '';
+    /* v62 — 입력한 원산지·브랜드가 기존 로트에 못 들어간 경우(서버가 이미 값이 있는 로트의
+       값을 덮지 않음)를 모아 두었다가 저장 뒤에 한 번만 알린다. */
+    var obWant = [], obNote = '';
     var isIn = iosIsIn();
     /* v53 — 여러 줄을 한 번에 넣을 때 「3/12 저장 중」 처럼 진행을 보여준다 */
     var total = lines.length + noName, done = 0;
@@ -10530,11 +10574,21 @@ var LIVE = (function () {
         }
         var mwh = rw.wh === 'C' ? 'C' : 'F';
         if (iosIsIn()) {
+          /* v62 — 원료육 입고는 원산지·브랜드를 함께 보낸다(tx_apply 의 p_origin · p_brand).
+             새 로트면 그 값으로 만들고, 이미 값이 있는 로트면 서버가 그 값을 지키고 새 값으로 덮지 않는다. */
+          var mO = iosObVal(rw, 'origin'), mB = iosObVal(rw, 'brand');
           return SB.db.apply({
             date: rowDate, type: 'in', wh: mwh, name: iosTrim(rw.name), vendor: rowPartner,
             in_date: rowDate, exp_date: rw.expiry || null, kg: ln.qty,
-            price: Number(rw.price || 0), note: note
-          }).then(function (row) { linkOfRow('meat', row, false); return row; });
+            price: Number(rw.price || 0), note: note,
+            origin: mO, brand: mB
+          }).then(function (row) {
+            linkOfRow('meat', row, false);
+            if ((mO || mB) && row && row.lot_id) {
+              obWant.push({ lot: Number(row.lot_id), n: iosTrim(rw.name), o: mO, b: mB });
+            }
+            return row;
+          });
         }
         var lot = iosPickMeatLot(rw);
         if (!lot) throw new Error((ln.i + 1) + '번째 줄: ' + iosWhName(mwh) + '에 출고할 ' + iosTrim(rw.name) + ' 재고가 없습니다.');
@@ -10566,6 +10620,9 @@ var LIVE = (function () {
       cur.hLimit = 250; cur.fgLimit = 300;
       return iosReflectVouchers(linksFree, linksTax).then(function () {
         return reload({ silent: true }).then(function () {
+          /* v62 — 원산지·브랜드가 기존 로트 값과 달라 그대로 둔 줄을 알린다(모르고 지나치지 않게) */
+          obNote = iosObKeptNote(obWant);
+          if (obNote) toast(obNote, 'warn', 8000);
           /* v33 — 저장하면 팝업은 닫히고, 뒷배경 「입출고 내역」 표에 방금 넣은 줄이 바로 보인다 */
           if (fail) {
             /* v53 — 일부만 실패하면 성공한 줄은 걷어내고 «남은 줄»만 보여 준다.
@@ -10584,6 +10641,29 @@ var LIVE = (function () {
         });
       });
     });
+  }
+  /* v62 — 저장한 뒤 «적은 원산지·브랜드가 로트에 그대로 들어갔는지» 확인한다.
+     · 새로 만들어진 로트는 적은 값 그대로.
+     · 이미 값이 있는 로트는 서버 함수가 그 값을 지키므로, 적은 값과 다를 때만 한 줄로 알린다. */
+  function iosObKeptNote(want) {
+    if (!want || !want.length) return '';
+    var out = [], seen = {}, i, j, w, L;
+    for (i = 0; i < want.length; i++) {
+      w = want[i];
+      L = null;
+      for (j = 0; j < st.lots.length; j++) if (Number(st.lots[j].dbid) === w.lot) { L = st.lots[j]; break; }
+      if (!L) continue;
+      var diff = [];
+      if (w.o && (L.o || '') !== w.o) diff.push('원산지 ' + (L.o || '없음'));
+      if (w.b && (L.b || '') !== w.b) diff.push('브랜드 ' + (L.b || '없음'));
+      if (!diff.length) continue;
+      var key = w.n + '|' + diff.join(',');
+      if (seen[key]) continue;
+      seen[key] = 1;
+      out.push(w.n + ' → ' + diff.join(' · '));
+    }
+    if (!out.length) return '';
+    return '이미 값이 있던 로트라 ' + out.slice(0, 2).join(', ') + ' 그대로 두었습니다. 바꾸려면 그 로트의 [작업] → 수정에서 고치세요.';
   }
   /* v40 — 통합 입출고 저장 뒤 매입·매출 전표 자동 반영 (원료육 = 면세, 완제품·부자재 = 과세).
      실패해도 재고 저장은 그대로 두고, 매입·매출 내역의 [⚡ 미반영 가져오기]로 보완할 수 있게만 알린다. */
@@ -10641,6 +10721,8 @@ var LIVE = (function () {
       else if (f === 'lot') { r.lotNo = el.value; }
       else if (f === 'mfg') { r.mfg = el.value; }
       else if (f === 'expiry') { r.expiry = el.value; }
+      else if (f === 'origin') { r.origin = el.value; }
+      else if (f === 'brand') { r.brand = el.value; }
     });
     body.addEventListener('change', function (ev) {
       var el = ev.target;
@@ -11084,6 +11166,9 @@ var LIVE = (function () {
       row.price = price > 0 ? String(price) : (p && p.inp ? String(p.inp) : '');
       row.lotNo = iosTrim(cell(rw, 'lot'));
       row.vendor = iosTrim(cell(rw, 'vendor'));
+      /* v62 — 엑셀의 원산지 · 브랜드 열도 그대로 받아 둔다(저장은 원료육 줄에서만) */
+      row.origin = iosTrim(cell(rw, 'origin'));
+      row.brand = iosTrim(cell(rw, 'brand'));
       row.date = v53Date(cell(rw, 'date'));
       row.srcLine = line;
       made.push(row);

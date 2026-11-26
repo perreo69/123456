@@ -14,10 +14,10 @@
 <meta name="apple-mobile-web-app-title" content="미르스타푸드 ERP">
 <meta name="application-name" content="미르스타푸드 ERP">
 <meta name="format-detection" content="telephone=no">
-<link rel="stylesheet" href="style.legacy.css?v=20261126_70">
-<link rel="stylesheet" href="style.css?v=20261126_70">
+<link rel="stylesheet" href="style.legacy.css?v=20261126_71">
+<link rel="stylesheet" href="style.css?v=20261126_71">
 <!-- v58 — 폰(≤768px) 전용 화면. media 조건 때문에 PC 브라우저는 이 파일을 적용하지 않는다 -->
-<link rel="stylesheet" href="mobile.css?v=20261126_70" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
+<link rel="stylesheet" href="mobile.css?v=20261126_71" media="(max-width: 768px), (max-width: 900px) and (pointer: coarse)">
 
 <style id="compact-sidebar">
 #v8Nav .nitem .cnt{font-size:11px;font-weight:500;color:rgba(60,60,67,.62);font-variant-numeric:tabular-nums;text-align:right}
@@ -1020,7 +1020,7 @@
         <label class="field fnote"><span>비고</span><input id="ioSheetNote" placeholder="예: 11월 입고분"></label>
       </div>
 
-      <p class="minfo"><span class="dot"></span>원료육 줄은 <b>냉동고 · 냉장고</b>, 그 외 품목은 <b>냉동 · 냉장 · 실온</b>을 고릅니다. 완제품 줄은 <b>자체 / 매입</b>과 <b>제조일</b>도 함께 적습니다.
+      <p class="minfo"><span class="dot"></span>원료육 줄은 <b>냉동고 · 냉장고</b>와 <b>원산지 · 브랜드</b>를 적고, 그 외 품목은 <b>냉동 · 냉장 · 실온</b>을 고릅니다. 완제품 줄은 <b>자체 / 매입</b>과 <b>제조일</b>도 함께 적습니다.
         <span class="sp"></span><span class="way" id="ioSheetWay">품목 0줄 · 수량합 0</span></p>
 
       <div class="vsheet" id="ioSheetWrap">
@@ -1045,17 +1045,18 @@
         <div class="vsheet-scroll">
           <table class="vsheet-table iosheet" id="ioSheetTable">
             <colgroup>
-              <col style="width:124px"><col style="width:250px"><col style="width:104px"><col style="width:116px">
-              <col style="width:88px"><col style="width:112px"><col style="width:88px"><col style="width:92px"><col style="width:36px">
+              <col style="width:108px"><col style="width:176px"><col style="width:74px"><col style="width:98px">
+              <col style="width:98px"><col style="width:100px"><col style="width:74px"><col style="width:104px">
+              <col style="width:86px"><col style="width:82px"><col style="width:90px"><col style="width:34px">
             </colgroup>
             <thead><tr>
-              <th>구분</th><th>품목코드 / 품목명</th><th>창고</th><th>로트번호</th><th>제조일</th><th>소비기한</th>
+              <th>구분</th><th>품목코드 / 품목명</th><th>원산지</th><th>브랜드</th><th>창고</th><th>로트번호</th><th>제조일</th><th>소비기한</th>
               <th class="num">수량(단위)</th><th class="num">단가</th><th class="num">금액</th><th aria-label="줄 삭제"></th>
             </tr></thead>
             <tbody id="ioSheetBody"></tbody>
             <tfoot>
               <tr class="vsum">
-                <td colspan="6" class="c">합계</td>
+                <td colspan="8" class="c">합계</td>
                 <td class="r" id="ioSheetSumQty">0</td>
                 <td></td>
                 <td class="r b" id="ioSheetSumAmt">0</td>
@@ -1873,8 +1874,8 @@
   </datalist>
 </div>
 
-<script src="partners_data.js?v=20261126_70"></script>
-<script src="app.js?v=20261126_70"></script>
+<script src="partners_data.js?v=20261126_71"></script>
+<script src="app.js?v=20261126_71"></script>
 <link rel="stylesheet" href="design-system.css?v=20261125_138" data-erp-design="v135">
 
 </body>

@@ -647,6 +647,8 @@ input::placeholder,textarea::placeholder{color:rgba(60,60,67,.36);font-weight:40
 /* 입력 팝업의 폭 — 내용에 맞는 세 가지 크기 */
 .modal-card.wide{max-width:760px}
 .modal-card.sheetcard{max-width:1080px}
+/* v62 — 입출고 팝업만 조금 넓힌다(원산지·브랜드 두 칸이 늘어 표가 옆으로 밀리지 않게). 전표(sheetcard)는 그대로 1080px */
+#ioSheetModal .modal-card.sheetcard{max-width:1180px}
 .modal-card.sheetcard .vsheet-table{min-width:900px}
 .minfo{
   display:block;position:relative;
