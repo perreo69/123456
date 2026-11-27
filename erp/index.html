@@ -57,7 +57,7 @@ dialog{border:0;border-radius:18px;box-shadow:0 10px 36px #0002}
 <dialog id="inviteDialog"><h2>직원 가입 링크</h2><p>카카오톡으로 해당 직원에게만 보내세요. 가입 1회에 한해 유효하며 48시간 후 만료됩니다.</p><div id="inviteOutput"></div><div class="actions"><button id="copyInvite">복사</button><button id="closeInvite">닫기</button></div></dialog>
 <script>
 'use strict';
-const URL_BASE='https://waxjmsadrjqwjogfonyv.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndheGptc2Fkcmpxd2pvZ2Zvbnl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxODg3MjcsImV4cCI6MjExMDc2NDcyN30.OQkNANKHl5TrGYfuIuoHoHA71AtDoBggBvMbAloRL5I',APP='erp-app-v85.html',DOMAIN='@mirrstarfood-erp.example.com';
+const URL_BASE='https://waxjmsadrjqwjogfonyv.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndheGptc2Fkcmpxd2pvZ2Zvbnl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxODg3MjcsImV4cCI6MjExMDc2NDcyN30.OQkNANKHl5TrGYfuIuoHoHA71AtDoBggBvMbAloRL5I',APP='../erp-next/operating.html',DOMAIN='@mirrstarfood-erp.example.com';
 const $=id=>document.getElementById(id),gate=$('gate'),shell=$('shell'),frame=$('app'),status=$('status'),msg=$('message');
 if(!window.supabase?.createClient){msg.textContent='인증 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 후 새로고침해 주세요. (AUTH-SDK)';}
 // Authentication only: never persist plaintext passwords.
@@ -76,8 +76,8 @@ function setRememberAuth(value){rememberAuth=Boolean(value);authSet('sessionStor
 $('toggleLoginPw').onclick=()=>{const visible=$('pw').type==='password';$('pw').type=visible?'text':'password';$('toggleLoginPw').setAttribute('aria-label',visible?'비밀번호 숨기기':'비밀번호 표시');$('toggleLoginPw').setAttribute('aria-pressed',String(visible));$('loginEyeSlash').style.display=visible?'':'none'};
 $('loginHelp').onclick=()=>{msg.textContent='비밀번호를 잊으셨다면 관리자에게 문의해 주세요. 로그인 후 내 정보에서 비밀번호를 변경할 수 있습니다.'};
 const db=window.supabase?.createClient(URL_BASE,KEY,{auth:{storage:authStorage,storageKey:authStorageKey,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
-let session=null,revision=0,lastJSON='',registration=false,channel=null,pollTimer=null,polling=false,blocked=false,loading=false,epoch=0;
-window.erpSeed=null;window.erpInitialState=null;
+let session=null,revision=0,personalRevision=0,companyBody={},personalBody={},lastCompany='',lastPersonal='',registration=false,channel=null,pollTimer=null,polling=false,blocked=false,loading=false,epoch=0;
+const copy=x=>JSON.parse(JSON.stringify(x));const personalKeys=new Set(['__prefs','__workTasks','__workNotices']);const combine=()=>({...copy(companyBody),...copy(personalBody)});
 function loginEmail(input){
  const u=input.trim().toLowerCase();
  if(/^[a-z0-9][a-z0-9._-]{2,31}$/.test(u))return u+DOMAIN;
@@ -90,19 +90,19 @@ function notice(t){status.textContent=t;}
 const joinParam=new URLSearchParams(location.hash.slice(1)).get('join')||'';let joinCode=/^[a-f0-9]{64}$/i.test(joinParam)?joinParam.toLowerCase():'';
 function mode(register){register=Boolean(register);registration=register;$('inviteField').hidden=!register;$('registerName').required=register;$('invite').value=register?joinCode:'';$('confirmPw').required=register;$('pw').autocomplete=register?'new-password':'current-password';$('pw').placeholder=register?'8자 이상':'비밀번호 입력';$('submit').textContent=register?'계정 생성':'로그인';$('switchMode').textContent=register?'로그인으로 돌아가기':'계정 생성';msg.textContent='';}
 $('switchMode').hidden=false;$('switchMode').onclick=()=>mode(!registration);if(joinCode)mode(true);
-async function closeERP(){epoch++;clearInterval(pollTimer);pollTimer=null;if(channel){const ch=channel;channel=null;db.removeChannel(ch);}frame.src='about:blank';window.erpSeed=null;window.erpInitialState=null;lastJSON='';blocked=false;session=null;shell.hidden=true;gate.hidden=false;}
+async function closeERP(){epoch++;clearInterval(pollTimer);pollTimer=null;if(channel){const ch=channel;channel=null;db.removeChannel(ch)}frame.src='about:blank';companyBody={};personalBody={};revision=personalRevision=0;lastCompany=lastPersonal='';blocked=false;session=null;staffName='';staffAdmin=false;frame.inert=false;shell.classList.remove('save-blocked');shell.hidden=true;gate.hidden=false;}
 db?.auth.onAuthStateChange((event,s)=>{session=s;if(event==='SIGNED_OUT')closeERP();});
 async function openERP(){
  if(loading)return;loading=true;const ticket=++epoch;blocked=true;msg.textContent='계정 권한 및 데이터 확인 중...';
  try{
   const {data:{session:s}}=await db.auth.getSession();if(!s)throw Error('로그인해 주세요.');
-  const {data:staff,error:staffErr}=await db.from('erp_staff').select('is_admin,display_name').eq('user_id',s.user.id).maybeSingle();if(staffErr||!staff)throw Error('직원 계정 정보를 확인할 수 없습니다. 계정 정보를 확인해 주세요.');
-  const [seed,st]=await Promise.all([db.from('erp_company_seed').select('payload').eq('id',1).single(),db.from('erp_company_state').select('revision,body').eq('id',1).single()]);
-  if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
-  if(ticket!==epoch)return;session=s;window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;revision=Number(st.data.revision);lastJSON=st.data.body?JSON.stringify(st.data.body):'';blocked=false;
+  const {data:staff,error:staffErr}=await db.from('erp_staff').select('is_admin,display_name').eq('user_id',s.user.id).maybeSingle();if(staffErr||!staff)throw Error('직원 계정 정보를 확인할 수 없습니다.');
+  const [st,personal]=await Promise.all([db.from('erp_next_company_state').select('revision,body').eq('id',1).single(),db.from('erp_next_personal_state').select('revision,body').eq('user_id',s.user.id).maybeSingle()]);
+  if(st.error||personal.error||!st.data?.body)throw Error('신규 ERP 공동 데이터 연결 실패');
+  if(ticket!==epoch)return;
+  session=s;companyBody=st.data.body;personalBody=personal.data?.body||{};revision=Number(st.data.revision);personalRevision=Number(personal.data?.revision||0);lastCompany=JSON.stringify(companyBody);lastPersonal=JSON.stringify(personalBody);blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=200&t='+Date.now();notice('연결됨 · 서버 저장');
-  if(!channel){channel=db.channel('mirrstar-erp-state-v85').on('postgres_changes',{event:'UPDATE',schema:'public',table:'erp_company_state',filter:'id=eq.1'},()=>{void sync();}).subscribe();}
+  gate.hidden=true;shell.hidden=false;shell.classList.remove('save-blocked');frame.inert=false;frame.style.pointerEvents='';frame.src=APP+'?v=20261128-live1&t='+Date.now();notice('연결됨 · 서버 저장');
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
 }
@@ -120,27 +120,39 @@ $('login').onsubmit=async e=>{
   if(!db)throw Error('인증 모듈 연결 실패 (AUTH-SDK)');setRememberAuth($('rememberLogin').checked);const result=await db.auth.signInWithPassword({email,password});if(result.error)throw Error('아이디 또는 비밀번호를 확인해 주세요.');session=result.data.session;$('pw').value='';await openERP();
  }catch(err){msg.textContent=err.message;}finally{$('pw').value='';$('submit').disabled=false;$('switchMode').disabled=false;}
 };
-window.erpAuditActor=()=>{const u=session?.user;if(!u)return null;const email=u.email||'';const login=email.endsWith(DOMAIN)?email.slice(0,-DOMAIN.length):email;return {id:u.id,name:String(staffName||'').trim()||login||u.id};};
-window.erpSave=function(state){
- if(blocked||!session?.access_token){alert('저장할 수 없습니다. 먼저 서버 연결을 복구해 주세요.');return false;}
- const snapshot=JSON.stringify(state);if(snapshot===lastJSON)return true;
+function currentActor(){const u=session?.user;if(!u)return null;const email=u.email||'';const login=email.endsWith(DOMAIN)?email.slice(0,-DOMAIN.length):email;return {id:u.id,name:String(staffName||'').trim()||login||u.id,admin:staffAdmin};}
+function splitState(state){const company={},personal={};for(const [k,v] of Object.entries(state)){(personalKeys.has(k)?personal:company)[k]=v}return {company,personal}}
+function blockSave(){blocked=true;shell.classList.add('save-blocked');frame.style.pointerEvents='none';frame.inert=true;notice('저장 확인 실패 · 새로고침 필요');alert('서버 저장을 확인하지 못했습니다. 다른 직원의 변경이나 연결 오류일 수 있습니다. 상단 새로고침 후 실제 기록을 확인하세요.');}
+function saveNext(state){
+ if(blocked||!session?.access_token||shell.hidden)return false;
+ const {company,personal}=splitState(state),cs=JSON.stringify(company),ps=JSON.stringify(personal),cc=cs!==lastCompany,pc=ps!==lastPersonal;
+ if(!cc&&!pc)return true;
  try{
-  const xhr=new XMLHttpRequest();xhr.open('PATCH',URL_BASE+'/rest/v1/erp_company_state?id=eq.1&revision=eq.'+revision+'&select=revision',false);
-  xhr.setRequestHeader('apikey',KEY);xhr.setRequestHeader('Authorization','Bearer '+session.access_token);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('Prefer','return=representation');
-  xhr.send(JSON.stringify({revision:revision+1,body:state}));
-  if(xhr.status!==200)throw Error('서버 응답 '+xhr.status);
-  const data=JSON.parse(xhr.responseText);if(data.length!==1||Number(data[0].revision)!==revision+1)throw Error('다른 직원이 먼저 저장했습니다.');
-  revision=Number(data[0].revision);lastJSON=snapshot;window.erpInitialState=JSON.parse(snapshot);notice('저장 완료 · '+new Date().toLocaleTimeString('ko-KR'));return true;
- }catch(err){blocked=true;frame.style.pointerEvents='none';notice('저장 확인 실패 · 새로고침 필요');alert('서버 저장을 확인하지 못했습니다. 다른 직원의 변경이나 연결 오류일 수 있습니다. 새로고침 후 실제 재고와 기록을 확인하세요. 중복 입력에 주의하세요.');return false;}
-};
+  const xhr=new XMLHttpRequest();xhr.open('POST',URL_BASE+'/rest/v1/rpc/erp_next_save',false);
+  xhr.setRequestHeader('apikey',KEY);xhr.setRequestHeader('Authorization','Bearer '+session.access_token);xhr.setRequestHeader('Content-Type','application/json');
+  xhr.send(JSON.stringify({p_revision:revision,p_personal_revision:personalRevision,p_company:cc?company:null,p_personal:pc?personal:null}));
+  if(xhr.status!==200)throw Error('server '+xhr.status);
+  const result=JSON.parse(xhr.responseText);
+  if((cc&&Number(result.company_revision)!==revision+1)||(pc&&Number(result.personal_revision)!==personalRevision+1))throw Error('revision mismatch');
+  if(cc){revision=Number(result.company_revision);lastCompany=cs;companyBody=copy(company)}
+  if(pc){personalRevision=Number(result.personal_revision);lastPersonal=ps;personalBody=copy(personal)}
+  notice('저장 완료 · '+new Date().toLocaleTimeString('ko-KR'));return true;
+ }catch(e){blockSave();return false}
+}
+window.erpNextHost={ready:()=>Boolean(session?.user&&!blocked&&!shell.hidden),initial:()=>combine(),actor:currentActor,save:saveNext,account:()=>$('changePw').click(),refresh:()=>$('refresh').click(),logout:()=>$('logout').click()};
 async function sync(){
- if(!session||loading||polling||blocked||shell.hidden)return;polling=true;const ticket=epoch;
+ if(!session||loading||polling||blocked||shell.hidden)return;polling=true;const ticket=epoch,uid=session.user.id;
  try{
-  const {data:r,error}=await db.from('erp_company_state').select('revision').eq('id',1).single();
-  if(error||!r)throw Error('서버 연결 확인 필요');if(ticket!==epoch||Number(r.revision)<=revision)return;
-  const {data:full,error:e}=await db.from('erp_company_state').select('revision,body').eq('id',1).single();if(e||!full)throw Error('동기화 실패');if(ticket!==epoch||Number(full.revision)<=revision)return;
-  if(frame.contentWindow?.erpApplyRemote?.(full.body)){revision=Number(full.revision);lastJSON=JSON.stringify(full.body);window.erpInitialState=full.body;notice('다른 직원의 변경사항 반영 완료');}
-  else notice('다른 직원의 변경사항 있음 · 현재 입력을 마친 뒤 새로고침');
+  const [cr,pr]=await Promise.all([db.from('erp_next_company_state').select('revision').eq('id',1).single(),db.from('erp_next_personal_state').select('revision').eq('user_id',uid).maybeSingle()]);
+  if(cr.error||pr.error||!cr.data)throw Error('server read');if(ticket!==epoch)return;
+  if(Number(cr.data.revision)<=revision&&Number(pr.data?.revision||0)<=personalRevision)return;
+  const [c,p]=await Promise.all([db.from('erp_next_company_state').select('revision,body').eq('id',1).single(),db.from('erp_next_personal_state').select('revision,body').eq('user_id',uid).maybeSingle()]);
+  if(c.error||p.error||!c.data||ticket!==epoch||blocked)return;
+  const nr=Number(c.data.revision),np=Number(p.data?.revision||0);
+  if(nr<revision||np<personalRevision||(nr===revision&&np===personalRevision))return;
+  const nc=nr>revision?c.data.body:companyBody,npp=np>personalRevision?p.data?.body||{}:personalBody;
+  if(frame.contentWindow?.erpApplyRemote?.({...copy(nc),...copy(npp)})){revision=nr;personalRevision=np;companyBody=nc;personalBody=npp;lastCompany=JSON.stringify(nc);lastPersonal=JSON.stringify(npp);notice('변경사항 반영 완료')}
+  else notice('다른 변경사항 있음 · 입력 완료 후 반영');
  }catch(e){notice('연결 확인 필요 · 저장 시 서버 검증');}finally{polling=false;}
 }
 $('refresh').onclick=()=>{
@@ -296,4 +308,4 @@ html body #gate .next-login-link-divider{color:#d1d6df}
 html body #gate #message{margin:8px 0 0!important;min-height:0!important;font-size:13px!important;color:#56616e!important}
 html body #gate #message:empty{display:none!important}
 @media(max-width:600px){html body #gate .panel{padding:26px 23px!important;width:min(360px,100%)!important}html body #gate input:not([type=checkbox]){font-size:16px!important}}
-</style></body></html>
+</style><style id="next-operating-shell">html body #shell:not(.save-blocked) #bar{display:none!important}html body #shell{height:100dvh;overflow:hidden}html body #shell iframe{display:block;flex:1;width:100%;height:100%;min-height:0;border:0}</style></body></html>
