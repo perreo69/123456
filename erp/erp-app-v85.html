@@ -8593,4 +8593,21 @@ button.action-btn::before,button.action-btn::after{content:none!important;displa
 #mainView>.v190-master-panel>.table-scroll{max-height:none}
 #v190PartnerEdit .v190-partner-fields{grid-template-columns:1fr}
 }
+</style><style id="v191-master-filter-text">
+/* Prevent clipping caused by inherited vertical padding in fixed-height selects. */
+@media screen{
+#mainView#mainView#mainView>.v190-master-panel>.filters :is(#v109PartnerStatus,#productStatus,#v66ProductCategory){
+ box-sizing:border-box!important;height:32px!important;min-height:32px!important;max-height:none!important;
+ padding:0 12px!important;line-height:normal!important;
+ font-size:14px!important;font-weight:400!important;color:var(--erp-ui-ink,#222)!important;
+ appearance:auto!important;background-color:#fff!important;background-image:none!important;
+ flex:0 0 auto!important;width:auto!important;min-width:116px!important;max-width:100%!important;
+ text-overflow:clip!important;white-space:nowrap!important;
+}
+}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+#mainView#mainView#mainView>.v190-master-panel>.filters :is(#v109PartnerStatus,#productStatus,#v66ProductCategory){
+ height:44px!important;min-height:44px!important;font-size:16px!important;
+}
+}
 </style></body></html>
