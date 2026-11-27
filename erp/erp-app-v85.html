@@ -8912,8 +8912,8 @@ html body .heading-section .top-actions [data-v194-register]{min-height:44px!imp
  #mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>tbody>tr>td .product-name{font-size:13px!important;line-height:1.35!important;font-weight:500!important}
  #mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>:is(thead,tbody)>tr>:is(th,td):nth-child(1){min-width:90px!important;width:90px!important}
  #mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>:is(thead,tbody)>tr>:is(th,td):nth-child(2){min-width:58px!important;width:58px!important}
- #mainView#mainView#mainView#mainView :is(.v192-table .v192-col-name,.v87-history-results .history-table td.v181-item,.v87-history-results .history-table th:nth-child(5)){position:sticky!important;left:0!important;z-index:2!important;width:150px!important;min-width:150px!important;max-width:150px!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;background:#fff!important;box-shadow:2px 0 0 #d9d9df}
- #mainView#mainView#mainView#mainView :is(.v192-table th.v192-col-name,.v87-history-results .history-table th:nth-child(5)){top:0!important;z-index:4!important;background:#f2f2f4!important}
+
+
  #mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table) :is(.mini-btn,.undo-btn){min-height:32px!important;font-size:12px!important;padding:4px 7px!important;white-space:nowrap!important}
  #mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table):has(td.empty){display:table!important;width:100%!important;min-width:0!important;max-width:100%!important}
  #mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table):has(td.empty) thead{display:none!important}
@@ -8965,5 +8965,69 @@ html,body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!importan
 #mainView#mainView .v199-period-toolbar .v154-quick{flex:1 1 100%!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
 #mainView#mainView .v199-period-toolbar .v154-period-btn{flex:1 0 auto!important;min-width:max-content!important}
 #mainView#mainView#mainView .v199-period-toolbar :is(.btn,.v154-period-btn){min-height:40px!important;height:40px!important;font-size:12px!important}
+}
+</style><style id="v200-unified-rules-and-ledger-scroll">
+/* Screen-only line system. No database, print, calendar or entry behavior changes. */
+@media screen{
+:root{--erp-ui-rule:#e5e5ea;--erp-ui-control-rule:#d1d1d6}
+:is(#mainView,#v144Background) :is(.inventory-table,.history-table,.stock-table,.v72inner,.v36-table,.v37-table,.ac-table,.product-table,.v109-partner-table,.meat-lot-table,.fg20-ref-table,.fg20-lots-table):not(.v129-card-table)>:is(thead,tbody)>tr>:is(th,td){
+ border-top:0!important;border-left:0!important;border-right:0!important;border-bottom:1px solid var(--erp-ui-rule)!important;box-shadow:none!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table,.inventory-table,.stock-table,.v72inner,.v36-table,.v37-table,.ac-table,.product-table,.v109-partner-table,.meat-lot-table,.fg20-ref-table,.fg20-lots-table):not(.v129-card-table)>:is(thead,tbody)>tr>:is(th,td){
+ border:0!important;border-bottom:1px solid var(--erp-ui-rule)!important;box-shadow:none!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-ledger,.v87-history-results) :is(.panel-top,.hist-toolbar,.v192-controls,.table-footer){
+ border-color:var(--erp-ui-rule)!important;box-shadow:none!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-ledger,.v87-history-results)>.table-scroll{
+ border:0!important;box-shadow:none!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-controls,.v87-history-filters,.v199-period-toolbar) :is(input,select,button:not(.active):not([aria-pressed=true])){
+ border-color:var(--erp-ui-control-rule)!important;box-shadow:none!important;
+}
+}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+/* One scrollport, one sticky layer (header only). No frozen columns on phones. */
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-ledger,.v87-history-results)>.table-scroll{
+ position:relative!important;isolation:isolate!important;width:100%!important;min-width:0!important;max-width:100%!important;overflow:auto!important;max-height:clamp(160px,50vh,440px)!important;max-height:clamp(160px,50dvh,440px)!important;touch-action:pan-x pan-y!important;overscroll-behavior-x:contain;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table){
+ border:0!important;border-collapse:separate!important;border-spacing:0!important;table-layout:auto!important;width:max-content!important;min-width:100%!important;max-width:none!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>:is(thead,tbody),
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>:is(thead,tbody)>tr{
+ position:static!important;inset:auto!important;z-index:auto!important;box-shadow:none!important;border:0!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>tbody>tr>td{
+ position:static!important;inset:auto!important;z-index:auto!important;background:#fff!important;vertical-align:middle!important;min-height:0!important;height:38px!important;padding:8px 10px!important;font-size:13px!important;line-height:1.45!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>thead>tr>th{
+ position:sticky!important;inset:auto!important;top:0!important;z-index:5!important;background:var(--erp-ui-table-head)!important;vertical-align:middle!important;height:36px!important;padding:8px 10px!important;font-size:12px!important;line-height:1.4!important;white-space:nowrap!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table)>:is(thead,tbody)>tr>:is(th,td):is(.v192-col-name,.v181-item),
+#mainView#mainView#mainView#mainView#mainView#mainView .v87-history-results .history-table>thead>tr>th:nth-child(5){
+ width:180px!important;min-width:180px!important;max-width:220px!important;white-space:normal!important;overflow-wrap:anywhere!important;box-shadow:none!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-ledger,.v87-history-results)>.table-scroll:has(td.empty){overflow:hidden!important;max-height:none!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table):has(td.empty){width:100%!important;min-width:0!important;max-width:100%!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table):has(td.empty) thead{display:none!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-table,.v87-history-results .history-table) td.empty{width:100%!important;min-width:0!important;max-width:none!important;text-align:center!important;white-space:normal!important;height:65px!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-ledger,.v87-history-results)>.v129-scroll-hint{
+ background:#fff!important;border:0!important;margin:0!important;padding:5px 10px!important;font-size:11px!important;line-height:1.4!important;color:#73737a!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView .v192-controls{padding:10px!important;gap:8px!important;border:0!important}
+#mainView#mainView#mainView#mainView#mainView#mainView .v192-filter-row{gap:6px!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-period,.v87-history-filters .v70-filter)>.v154-quick{
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important;padding:0!important;overflow:visible!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-period,.v87-history-filters .v70-filter)>.v154-quick>.v154-period-btn{
+ min-width:0!important;width:100%!important;max-width:none!important;height:36px!important;min-height:36px!important;max-height:36px!important;padding:0 3px!important;font-size:12px!important;border-radius:6px!important;
+}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-controls,.v87-history-filters) .v61-tab-group{scrollbar-width:none!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-controls,.v87-history-filters) .v61-tab-group::-webkit-scrollbar{display:none!important}
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-controls,.v87-history-filters) :is(#v192Period,#v70Period,#v192Search,#v70Search,#v192Find,#v70Find){border-radius:6px!important}
+}
+@media screen and (max-width:340px){
+#mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-period,.v87-history-filters .v70-filter)>.v154-quick{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 </style></body></html>
