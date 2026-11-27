@@ -8204,7 +8204,7 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 /* History display only. LOT, route and notes remain in underlying transactions, CSV and edit dialogs. */
 #mainView#mainView .v87-history-results .history-table{width:1532px!important;min-width:1532px!important;max-width:1532px!important;table-layout:fixed!important;margin-left:0!important;margin-right:auto!important}
 #mainView#mainView .v87-history-results .history-table :is(td.v181-item,td.v181-company,td.v182-origin,td.v182-brand){white-space:normal!important;overflow-wrap:anywhere!important;text-align:left}
-#mainView#mainView .v87-history-results .history-table td.v181-item .product-name{font-weight:500!important}
+#mainView#mainView .v87-history-results .history-table td.v181-item .product-name{font-weight:var(--erp-ui-medium)!important}
 #mainView#mainView .v87-history-results .history-table :is(td.v178-date,td.v181-qty,td.v178-balance){white-space:nowrap!important;font-variant-numeric:tabular-nums;overflow-wrap:normal!important}
 #mainView#mainView .v87-history-results .history-table td.v178-date{text-align:left}
 #mainView#mainView .v87-history-results .history-table td.v181-kind{text-align:left}
@@ -8239,15 +8239,91 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .v87-history-results .history-table th:nth-child(12){width:120px!important;box-sizing:border-box}
 #mainView#mainView .v87-history-results .history-table th:nth-child(13){width:84px!important;box-sizing:border-box}
 /* Scoped typography, using the already-loaded Pretendard variable font. */
-#mainView#mainView :is(.v87-history-results,.v87-history-filters),#mainView#mainView :is(.v87-history-results,.v87-history-filters) :is(button,input,select,th,td),.v185-history-detail,.v185-history-detail button{font-family:"Pretendard Variable",Pretendard,"Malgun Gothic",sans-serif!important;letter-spacing:normal!important}
-#mainView#mainView .v87-history-results .history-table>thead>tr>th{font-size:13px!important;font-weight:500!important;color:#222!important;background:#f2f2f4!important;line-height:1.45!important;height:40px!important;padding:9px 10px!important}
-#mainView#mainView .v87-history-results .history-table>tbody>tr>td{font-size:14px!important;font-weight:400!important;color:#222!important;line-height:1.5!important;height:40px!important;min-height:40px!important;padding:9px 10px!important;vertical-align:middle!important}
-#mainView#mainView .v87-history-results .history-table :is(.product-name,.v181-qty strong,.v178-balance){font-size:14px!important;font-weight:500!important;color:#222!important}
-#mainView#mainView .v87-history-results .history-table .v185-kind-link{font-size:14px!important;font-weight:400!important;color:#222!important}
-#mainView#mainView .v87-history-results .history-table td.v181-actions button{font-size:13px!important;font-weight:400!important;color:#222!important}
-#mainView#mainView .v87-history-filters :is(.v87-filter-label,button,input){font-size:13px!important;font-weight:400!important;color:#222!important}
-#mainView#mainView .v87-history-filters .v61-tab.active{font-weight:500!important}
-#mainView#mainView .v87-history-results .hist-toolbar h2{font-size:15px!important;font-weight:500!important;color:#222!important}
-#mainView#mainView .v87-history-results .hist-toolbar :is(.v87-result-count,.v87-history-order,button){font-size:13px!important;font-weight:400!important}
-#mainView#mainView .v87-history-results .table-footer{font-size:12px!important;line-height:1.5!important}
+#mainView#mainView :is(.v87-history-results,.v87-history-filters),#mainView#mainView :is(.v87-history-results,.v87-history-filters) :is(button,input,select,th,td),.v185-history-detail,.v185-history-detail button{font-family:var(--erp-ui-font)!important;letter-spacing:normal!important}
+#mainView#mainView .v87-history-results .history-table>thead>tr>th{font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-medium)!important;color:var(--erp-ui-ink)!important;background:var(--erp-ui-table-head)!important;line-height:1.45!important;height:var(--erp-ui-row)!important;padding:9px 10px!important}
+#mainView#mainView .v87-history-results .history-table>tbody>tr>td{font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important;line-height:1.5!important;height:var(--erp-ui-row)!important;min-height:var(--erp-ui-row)!important;padding:9px 10px!important;vertical-align:middle!important}
+#mainView#mainView .v87-history-results .history-table :is(.product-name,.v181-qty strong,.v178-balance){font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-medium)!important;color:var(--erp-ui-ink)!important}
+#mainView#mainView .v87-history-results .history-table .v185-kind-link{font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important}
+#mainView#mainView .v87-history-results .history-table td.v181-actions button{font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important}
+#mainView#mainView .v87-history-filters :is(.v87-filter-label,button,input){font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important}
+#mainView#mainView .v87-history-filters .v61-tab.active{font-weight:var(--erp-ui-medium)!important}
+#mainView#mainView .v87-history-results .hist-toolbar h2{font-size:var(--erp-ui-subtitle)!important;font-weight:var(--erp-ui-medium)!important;color:var(--erp-ui-ink)!important}
+#mainView#mainView .v87-history-results .hist-toolbar :is(.v87-result-count,.v87-history-order,button){font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important}
+#mainView#mainView .v87-history-results .table-footer{font-size:var(--erp-ui-caption)!important;line-height:1.5!important}
+</style><style id="v187-erp-typography-system">
+/* ERP-only design tokens. History is the reference. Screen UI only; paper statement
+   and print styling are excluded. Change the variables here, not per-page font sizes. */
+@media screen{
+:root{
+ --erp-ui-font:"Pretendard Variable",Pretendard,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+ --erp-font:var(--erp-ui-font);--mac-font:var(--erp-ui-font);--font:var(--erp-ui-font);
+ --erp-ui-title:23px;--erp-ui-subtitle:15px;--erp-ui-body:14px;--erp-ui-label:13px;--erp-ui-caption:12px;
+ --erp-ui-regular:400;--erp-ui-medium:500;--erp-ui-semibold:600;
+ --erp-ui-ink:#222;--erp-ui-muted:#66666b;--erp-ui-table-head:#f2f2f4;--erp-ui-rule:#e5e5ea;
+ --erp-ui-row:40px;--erp-ui-cell-x:10px;--erp-ui-cell-y:9px;
+}
+html body,#mainView#mainView,#sidebar.sidebar,.heading-section,.topbar{font-family:var(--erp-ui-font)!important;letter-spacing:normal}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table),
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.inventory-table,.v72inner,.v36-table,.v37-table){
+ font-family:var(--erp-ui-font)!important;color:var(--erp-ui-ink)!important;font-variant-numeric:tabular-nums;
+}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table)>thead>tr>th,
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.inventory-table,.v72inner,.v36-table,.v37-table)>thead>tr>th{
+ font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-medium)!important;
+ color:var(--erp-ui-ink)!important;background:var(--erp-ui-table-head)!important;line-height:1.45!important;letter-spacing:normal!important;
+}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table)>tbody>tr>td,
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.inventory-table,.v72inner,.v36-table,.v37-table)>tbody>tr>td{
+ font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important;
+ color:var(--erp-ui-ink)!important;line-height:1.5!important;letter-spacing:normal!important;
+}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table)>tbody>tr>td :is(strong,b,.product-name,.lot-name,.fg20-product),
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table)>tbody>tr>td:is(.numeric,.v72qty,.v75qty,.v37-num,.fg20-numeric,.v153-name,.fg20-product,.total-cell){
+ font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-medium)!important;
+}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.v36-table,.v37-table) :is(.v174-sort-label,.v80-sort-label){font-family:var(--erp-ui-font)!important;font-size:inherit!important;font-weight:inherit!important;letter-spacing:normal!important}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table) :is(.subtle,.muted,.lot-ref,.v37-small,.fg20-code,small),
+#mainView#mainView#mainView :is(.table-footer,.v97-note,.v36-foot,.v37-small,.v38-footnote,.fg20-help,.fg20-note){font-size:var(--erp-ui-caption)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-muted)!important}
+#mainView#mainView#mainView :is(.panel-top,.hist-toolbar,.v75detailhead,.v37-head,.ac-head) :is(h2,h3),
+#mainView#mainView#mainView :is(.v75listhead,.v75listhead button){font-size:var(--erp-ui-subtitle)!important;font-weight:var(--erp-ui-medium)!important;letter-spacing:normal!important}
+#mainView#mainView#mainView :is(.filters,.v70-filter,.v90-report-controls,.v97-common,.v97-transaction,.v36-table,.v37-table,.ac-page,.product-table,.v109-partner-table,.v171-switch,.v61-tab-group) :is(button,input,select,textarea):not(.excel-filter-btn):not(.v174-sort-label):not(.v80-sort-label):not(.quick-date-calendar):not(.v150-dismiss):not([aria-label="닫기"]):not([type=checkbox]):not([type=radio]),
+#mainView#mainView#mainView :is(.mini-btn,.action-btn,.undo-btn,.intake-btn,.v37-tiny,.v61-tab):not(.v185-kind-link),
+#mainView#mainView#mainView :is(.filters,.v97-common,.v50-in-grid,.v50-out-grid,.v37-form,.v90-report-controls) label{
+ font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important;letter-spacing:normal!important;
+}
+#mainView#mainView#mainView :is(.v97-common,.v97-transaction,.v36-table,.v37-table,.ac-page,.filters,.v70-filter,.v90-report-controls) :is(input,select,textarea):not([type=checkbox]):not([type=radio]):not([type=hidden]):not(.quick-date-calendar){font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important}
+#mainView#mainView#mainView :is(.v61-tab.active,.v171-switch button[aria-pressed=true],.v72pick.active,.intake-save){font-weight:var(--erp-ui-medium)!important}
+#mainView#mainView#mainView :is(.v72pick,.v75qty,.v72qty,.v75metrics strong,.v36-stock){font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-medium)!important}
+#mainView#mainView#mainView .v72pick small{font-size:var(--erp-ui-caption)!important;font-weight:var(--erp-ui-regular)!important}
+#sidebar.sidebar#sidebar .v68-card>.v68-label{font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-caption)!important;font-weight:var(--erp-ui-medium)!important;letter-spacing:normal!important}
+#sidebar.sidebar#sidebar .v68-card :is(.v68-link,.v68-parent){font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-medium)!important;letter-spacing:normal!important}
+#sidebar.sidebar#sidebar .v68-card .nav-children .v68-link{font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important}
+#sidebar.sidebar#sidebar .v68-card .v68-link.selected{font-weight:var(--erp-ui-semibold)!important}
+html body .heading-section h1{font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-title)!important;font-weight:var(--erp-ui-semibold)!important;letter-spacing:-.3px!important;line-height:1.35!important}
+dialog:not(#v17StatementDialog):not(.v88-calendar),#modalLayer .drawer{font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important;letter-spacing:normal!important}
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.v95-titlebar,.v33-edit-head,.v147-titlebar) :is(h2,h3),#modalLayer .drawer-header h2{font-size:17px!important;font-weight:var(--erp-ui-medium)!important;letter-spacing:normal!important}
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.v33-edit-grid,.v95-product-fields,.v37-form) label,#modalLayer .form-field label{font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important}
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.v33-edit-grid,.v95-product-fields,.v37-form) :is(input,select,textarea):not([type=checkbox]):not([type=radio]),#modalLayer .form-field :is(input,select,textarea):not([type=checkbox]):not([type=radio]){font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important}
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.v33-edit-foot,.v37-buttons,.v147-actions) button,#modalLayer .drawer-footer button{font-family:var(--erp-ui-font)!important;font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important}
+}
+@media screen and (min-width:768px) and (pointer:fine){
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table):not(.v129-card-table)>thead>tr>th{
+ height:var(--erp-ui-row)!important;padding:var(--erp-ui-cell-y) var(--erp-ui-cell-x)!important;vertical-align:middle!important;text-align:left!important;
+}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table):not(.v129-card-table)>tbody>tr>td:not([colspan]){
+ height:var(--erp-ui-row)!important;min-height:var(--erp-ui-row)!important;padding:var(--erp-ui-cell-y) var(--erp-ui-cell-x)!important;vertical-align:middle!important;border-bottom-color:var(--erp-ui-rule)!important;text-align:left!important;
+}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.meat-lot-table,.fg20-ref-table,.fg20-lots-table,.v36-table,.v37-table):not(.history-table):not(.v129-card-table)>:is(thead,tbody)>tr>:is(th,td):is(.numeric,.v72qty,.v75qty,.v37-num,.fg20-numeric,.total-cell,[data-v161-col$="(원)"],[data-v161-col="수량"]){text-align:right!important;font-variant-numeric:tabular-nums}
+#mainView#mainView#mainView :is(.inventory-table,.v72inner,.v36-table,.v37-table):not(.history-table) th:is(.numeric,.v37-num) .v174-sort-label{justify-content:flex-end!important}
+}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+:root{--erp-ui-title:26px}
+#mainView#mainView#mainView :is(.v97-common,.v97-transaction,.v36-table,.v37-table,.ac-page,.filters,.v70-filter,.v90-report-controls) :is(input,select,textarea):not([type=checkbox]):not([type=radio]):not([type=hidden]):not(.quick-date-calendar),
+dialog:not(#v17StatementDialog):not(.v88-calendar) :is(.v33-edit-grid,.v95-product-fields,.v37-form) :is(input,select,textarea):not([type=checkbox]):not([type=radio]){font-size:16px!important}
+#mainView#mainView#mainView .v133-stock-name strong{font-size:16px!important;font-weight:var(--erp-ui-medium)!important}
+#mainView#mainView#mainView .v133-stock-qty strong{font-size:16px!important;font-weight:var(--erp-ui-medium)!important}
+#mainView#mainView#mainView :is(.v133-stock-name small,.v133-stock-qty small,.v133-stock-qty>span){font-size:var(--erp-ui-caption)!important;font-weight:var(--erp-ui-regular)!important}
+#mainView#mainView#mainView .v129-card-table>tbody>tr>td:first-child{font-size:16px!important;font-weight:var(--erp-ui-medium)!important}
+#mainView#mainView#mainView .v97-commands .intake-save{font-size:16px!important;font-weight:var(--erp-ui-medium)!important}
+}
 </style></body></html>
