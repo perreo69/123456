@@ -102,7 +102,7 @@ async function openERP(){
   if(ticket!==epoch)return;
   session=s;companyBody=st.data.body;personalBody=personal.data?.body||{};revision=Number(st.data.revision);personalRevision=Number(personal.data?.revision||0);lastCompany=JSON.stringify(companyBody);lastPersonal=JSON.stringify(personalBody);blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;shell.classList.remove('save-blocked');frame.inert=false;frame.style.pointerEvents='';frame.src=APP+'?v=20261128-live1&t='+Date.now();notice('연결됨 · 서버 저장');
+  gate.hidden=true;shell.hidden=false;shell.classList.remove('save-blocked');frame.inert=false;frame.style.pointerEvents='';frame.src=APP+'?v=20261128-live2&t='+Date.now();notice('연결됨 · 서버 저장');
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
 }
@@ -139,7 +139,8 @@ function saveNext(state){
   notice('저장 완료 · '+new Date().toLocaleTimeString('ko-KR'));return true;
  }catch(e){blockSave();return false}
 }
-window.erpNextHost={ready:()=>Boolean(session?.user&&!blocked&&!shell.hidden),initial:()=>combine(),actor:currentActor,save:saveNext,account:()=>$('changePw').click(),refresh:()=>$('refresh').click(),logout:()=>$('logout').click()};
+async function workRequest(action,payload={}){if(!session?.user||shell.hidden)throw Error('로그인이 필요합니다.');const ticket=epoch;const {data,error}=await db.rpc('erp_next_work',{p_action:action,p_payload:payload});if(ticket!==epoch)throw Error('로그인 상태가 변경되었습니다.');if(error)throw Error('업무 처리 실패 · 다시 확인해 주세요.');return data;}
+window.erpNextHost={work:workRequest,ready:()=>Boolean(session?.user&&!blocked&&!shell.hidden),initial:()=>combine(),actor:currentActor,save:saveNext,account:()=>$('changePw').click(),refresh:()=>$('refresh').click(),logout:()=>$('logout').click()};
 async function sync(){
  if(!session||loading||polling||blocked||shell.hidden)return;polling=true;const ticket=epoch,uid=session.user.id;
  try{
