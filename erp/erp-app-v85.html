@@ -3967,6 +3967,7 @@ function v178HistoryMeta(){
  const seeds=new Map(),ambiguous=new Set();
  EXTRA_ITEMS.forEach((l,i)=>{const id=l.id||'엑셀 '+(l.row||i+1)+'행';if(seeds.has(id)||meat.has(id)||extra.has(id))ambiguous.add(id);seeds.set(id,{l,key:v18Key(l,i)});});
  const receipts=new Map((state.receiptBatches||[]).flatMap(b=>(b.entries||[]).map(e=>[e.id,e])));
+ const receiptBatches=new Map((state.receiptBatches||[]).map(b=>[b.id,b]));
  const shipments=new Map((state.shippingBatches||[]).map(b=>[b.id,b]));
  const balances=new Map(),blocked=new Set(ambiguous),result=new Map();
  const valid=n=>n!==null&&n!==undefined&&n!==''&&Number.isFinite(Number(n))&&Number(n)>=0;
@@ -3996,7 +3997,10 @@ function v178HistoryMeta(){
   const entry=receipts.get(t.lotId),trace=t.traceSource||{},line=shipments.get(t.batchId)?.lines?.find(x=>x.lotId===t.lotId);
   const manufactured=l?.manufactured||entry?.manufactured||t.historyManufactured||'';
   const received=l?.received||entry?.received||t.historyReceived||trace.received||line?.date||'';
-  return {date:manufactured||received,manufactured:!!manufactured,expiry:l?.expiry||entry?.expiry||t.historyExpiry||trace.expiry||line?.expiry||'',remaining:result.get(t.id)??null};
+  const kind=v61HistoryKind(t),receipt=receiptBatches.get(t.batchId),shipment=shipments.get(t.batchId);
+  const outKind=t.outboundKind||shipment?.outboundKind||'';
+  const company=kind==='in'?(receipt?.vendor||entry?.vendor||t.vendor||l?.vendor||trace.vendor||''):kind==='out'&&(!outKind||outKind==='company')?(t.recipient||shipment?.partnerName||''):'';
+  return {date:manufactured||received,manufactured:!!manufactured,expiry:l?.expiry||entry?.expiry||t.historyExpiry||trace.expiry||line?.expiry||'',remaining:result.get(t.id)??null,company};
  };
 }
 function v178HistoryStamp(l,remaining){
@@ -4011,17 +4015,12 @@ function renderHistory(){
   const m=meta(t),balance=m.remaining===null?'—':fmt(m.remaining)+' '+esc(t.unit||'kg');
   const doc=visibleDocs.get(t.batchId);
   const docButton=doc?` <button type="button" class="undo-btn" data-history-doc-type="${doc.type}" data-history-doc-id="${esc(t.batchId)}">${doc.label}</button>`:'';
-  const types={receiveExtra:['입고','receive'],receive:['입고','receive'],productionReceipt:['생산 입고','receive'],move:['해동','move'],refreeze:['재냉동','move'],ship:['출고','ship'],shipExtra:['출고','ship'],issue:['기타 출고','ship'],fieldIssue:['현장 출고','ship'],fieldReturn:['현장 반납','move'],production:['생산 투입','ship'],productionExtra:['생산 투입','ship'],reverse:['취소','reverse'],productionCanceled:['생산 취소','reverse']};
-  const [baseTitle,cls]=types[t.type]||['조정','adjust'];const title=t.outboundKind&&v121Types[t.outboundKind]?v121Types[t.outboundKind]+' 출고':baseTitle;
-  const from=t.source?(t.source==='production'?'생산현장':ZONE[t.source]||'외부'):'—';
-  const to=t.type==='receive'?'입고':t.destination==='external'?t.recipient||'외부 업체':t.destination==='other'?'기타':t.destination==='production'?'생산현장':(ZONE[t.destination]||'기타');
-  const route=t.type==='receiveExtra'?(INTAKE_LABELS[t.category]||'입고')+' · 입고':t.type==='shipExtra'?(V18_CAT[t.category]||'부재료')+' · 외부 출고':t.type==='reverse'?'취소 내역':(t.type==='production'||t.type==='issue'||t.type==='ship'||t.type==='move'||t.type==='refreeze'||t.type==='fieldIssue'||t.type==='fieldReturn'?`${from} → ${to}`:ZONE[t.source]||'—');
-  const detail=[t.purpose,t.productionTarget?`생산품목: ${t.productionTarget}`:'',t.traceRunId?`생산번호: ${t.traceRunId}`:'',t.type==='production'?(t.unitCost>0?`투입 원가 ${fmt(t.qty*t.unitCost)}원 (기준 ${fmt(t.unitCost)}원/kg)`:'원가 미입력'):'',t.recipient?`${['parcel','personal'].includes(t.outboundKind)?'수령인':'받는 업체'}: ${t.recipient}`:'',t.note].filter(Boolean).join(' · ');
-  const unit=(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?' '+esc(t.unit||''):' kg';
-  return `<tr><td>${esc(v70Date(t))}</td><td><span class="history-type ${cls}">${title}</span>${t.undone?'<div class="subtle">취소됨</div>':''}</td><td>${(t.type==='receiveExtra'||t.type==='shipExtra'||t.type==='productionExtra'||t.type==='productionReceipt')?`<span class="meat-pill">${esc(INTAKE_LABELS[t.category]||V18_CAT[t.category]||t.category||'완제품')}</span>`:typeBadge(t.meatType)} <strong class="product-name">${esc(t.name)}</strong><div class="subtle v180-history-lot">${esc(t.lotId)}</div></td><td class="v180-history-route">${esc(route)}</td><td class="numeric"><strong>${fmt(t.qty)}${unit}</strong></td><td>${esc(detail||'—')}</td><td class="v178-date">${esc(m.date||'—')}${m.manufactured?'<div class="subtle">제조일</div>':''}</td><td class="v178-date">${esc(m.expiry||'—')}</td><td class="numeric v178-balance">${balance}</td><td class="numeric">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</td></tr>`;
+  const kind=v61HistoryKind(t),[title,cls]=({in:['입고','receive'],out:['출고','ship'],move:['이동','move']})[kind]||['기타','adjust'];
+  const unit=['receiveExtra','shipExtra','productionExtra','productionReceipt'].includes(t.type)?' '+esc(t.unit||''):' kg';
+  return `<tr><td class="v181-item"><strong class="product-name">${esc(t.name)}</strong></td><td class="numeric v181-qty"><strong>${fmt(t.qty)}${unit}</strong></td><td class="v178-date">${esc(m.date||'—')}${m.manufactured?'<div class="subtle">제조일</div>':''}</td><td class="v178-date">${esc(m.expiry||'—')}</td><td class="v181-company">${esc(m.company||'—')}</td><td class="v178-date">${esc(v70Date(t))}</td><td class="v181-kind"><span class="history-type ${cls}">${title}</span></td><td class="numeric v178-balance">${balance}</td><td class="numeric v181-actions">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</td></tr>`;
  }).join('');
  const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
- $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>작업 일시</th><th>구분</th><th>품목<span class="v180-history-lot"> / LOT</span></th><th class="v180-history-route">이동 경로 · 출고처</th><th class="numeric">수량 / 중량</th><th>기록</th><th>입고일 / 제조일</th><th>소비기한</th><th class="numeric">출고 후 잔여</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="10">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
+ $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>품목</th><th class="numeric">수량</th><th>입고일 / 제조일</th><th>소비기한</th><th>업체명</th><th>작업일</th><th>구분</th><th class="numeric">잔여수량</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="9">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
  // Saved paperwork remains available directly from its matching history row.
  $('downloadHistory').onclick=exportHistoryCsv; $('v70Period').onclick=e=>v70Calendar({anchor:e.currentTarget});v154BindPeriod('v70Period',(a,b)=>{v70From=a;v70To=b;renderHistory();}); document.querySelectorAll('[data-v70-cat]').forEach(b=>b.onclick=()=>{v70Category=b.dataset.v70Cat;renderHistory();}); $('v70Find').onclick=()=>{v70Query=$('v70Search').value;renderHistory();}; $('v70Search').onkeydown=e=>{if(e.key==='Enter')$('v70Find').click();};
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
@@ -8169,24 +8168,23 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .v171-grouped .v171-groups .v75listhead{box-sizing:border-box;height:40px;min-height:40px}
 #mainView#mainView .v171-grouped .v153-table thead th{box-sizing:border-box;height:40px;padding:0 8px!important;vertical-align:middle}
 #mainView#mainView .v171-grouped .v153-table thead .th-wrap{height:auto;min-height:0}
-</style><style id="v178-history-columns">
-#mainView#mainView .v87-history-results .history-table{min-width:1280px!important;table-layout:fixed!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(1){width:104px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(2){width:80px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(3){width:19%!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(4){width:13%!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(5){width:100px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(6){width:auto!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(7),#mainView#mainView .v87-history-results .history-table th:nth-child(8){width:110px!important}
+</style><style id="v181-history-priority">
+/* History display only. LOT, route and notes remain in underlying transactions, CSV and edit dialogs. */
+#mainView#mainView .v87-history-results .history-table{min-width:980px!important;table-layout:fixed!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(1){width:19%!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(2){width:95px!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(3){width:114px!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(4){width:104px!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(5){width:auto!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(6){width:104px!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(7){width:65px!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(8){width:100px!important}
 #mainView#mainView .v87-history-results .history-table th:nth-child(9){width:112px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(10){width:124px!important}
-#mainView#mainView .v87-history-results .history-table td.v178-date,#mainView#mainView .v87-history-results .history-table td.v178-balance{white-space:nowrap!important;font-variant-numeric:tabular-nums;overflow-wrap:normal!important}
-#mainView#mainView .v87-history-results .history-table td:nth-child(7){text-align:left}
-#mainView#mainView .v87-history-results .history-table td:nth-child(10){text-align:right}
-#mainView#mainView .v87-history-results .history-table td:nth-child(10) button{white-space:nowrap;min-width:0;margin:2px 0 2px 3px;padding:4px 7px!important}
-</style><style id="v180-history-hide-lot-route">
-/* Display only: remove this style to restore LOT and route columns. */
-#mainView#mainView .v87-history-results .history-table :is(.v180-history-lot,.v180-history-route){display:none!important}
-#mainView#mainView .v87-history-results .history-table{min-width:1040px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(3){width:19%!important}
+#mainView#mainView .v87-history-results .history-table :is(td.v181-item,td.v181-company){white-space:normal!important;overflow-wrap:anywhere!important;text-align:left}
+#mainView#mainView .v87-history-results .history-table td.v181-item .product-name{font-weight:600!important}
+#mainView#mainView .v87-history-results .history-table :is(td.v178-date,td.v181-qty,td.v178-balance){white-space:nowrap!important;font-variant-numeric:tabular-nums;overflow-wrap:normal!important}
+#mainView#mainView .v87-history-results .history-table td.v178-date{text-align:left}
+#mainView#mainView .v87-history-results .history-table td.v181-kind{text-align:left}
+#mainView#mainView .v87-history-results .history-table td.v181-actions{text-align:right}
+#mainView#mainView .v87-history-results .history-table td.v181-actions button{white-space:nowrap;min-width:0;margin:2px 0 2px 3px;padding:4px 7px!important}
 </style></body></html>
