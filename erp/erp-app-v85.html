@@ -4009,6 +4009,29 @@ function v178HistoryMeta(){
 function v178HistoryStamp(l,remaining){
  return {historyReceived:l?.received||'',historyManufactured:l?.manufactured||'',historyExpiry:l?.expiry||'',historyOrigin:l?.origin||'',historyBrand:l?.brand||'',...(remaining===undefined?{}:{historyRemaining:v18Round(remaining)})};
 }
+function v185HistoryLabel(t){
+ if(t.type==='move')return '해동';
+ if(t.type==='refreeze')return '재냉동';
+ if(t.type==='fieldReturn')return '현장 반납';
+ if(t.type==='fieldIssue'||t.outboundKind==='field')return '현장';
+ return ({in:'입고',out:'출고',move:'이동'})[v61HistoryKind(t)]||'기타';
+}
+function v185HistoryDetail(id){
+ const t=(state.transactions||[]).find(x=>x.id===id&&v110Live(x));if(!t)return toast('해당 내역을 찾지 못했습니다.');
+ const m=v178HistoryMeta()(t),label=v185HistoryLabel(t),kind=v61HistoryKind(t);
+ const isField=t.type==='fieldIssue'||t.outboundKind==='field';
+ const src=t.source||t.effects?.find(e=>e.delta<0)?.zone||'';
+ const dest=t.destination||t.effects?.find(e=>e.delta>0)?.zone||'';
+ const location=k=>({production:'생산현장',external:'외부',other:'기타'})[k]||ZONE[k]||k||'';
+ const from=t.type==='move'?'냉동고':t.type==='refreeze'?'냉장고':t.type==='fieldReturn'?'생산현장':location(src);
+ const to=t.type==='move'?'냉장고':t.type==='refreeze'?'냉동고':t.type==='fieldReturn'?'냉장고':isField?'생산현장':location(dest);
+ const route=[from,to].filter(Boolean).join(' → ');
+ const unit=t.unit||'kg';
+ const fields=[['날짜',v70Date(t)],['품목',t.name],['수량',fmt(t.qty)+' '+unit],['이동경로 / 출고처',route],['업체명',m.company],['입고일',m.receivedOnly],['소비기한',m.expiry],['원산지',m.origin],['브랜드',m.brand],['잔여재고',kind==='out'&&m.remaining!==null?fmt(m.remaining)+' '+unit:''],['생산품목',t.productionTarget],['비고',t.note]];
+ const d=document.createElement('dialog');d.className='v33-edit-dialog v185-history-detail';d.setAttribute('aria-label',label+' 상세내역');
+ d.innerHTML=`<div class="v33-edit-head" data-drag-handle><h2>${esc(label)} 상세내역</h2><button type="button" class="v150-dismiss" data-v185-close aria-label="닫기">×</button></div><div class="v33-edit-content"><dl class="v185-detail-grid">${fields.map(([key,value])=>`<dt>${esc(key)}</dt><dd>${esc(value||'—')}</dd>`).join('')}</dl></div><div class="v33-edit-foot"><button type="button" data-v185-close>닫기</button></div>`;
+ document.body.append(d);d.addEventListener('close',()=>d.remove(),{once:true});d.querySelectorAll('[data-v185-close]').forEach(b=>b.onclick=()=>d.close());d.showModal();
+}
 function renderHistory(){
  const tx=v61HistoryRows(),meta=v178HistoryMeta();
  const visibleDocs=new Map();
@@ -4017,11 +4040,12 @@ function renderHistory(){
  const items=tx.map(t=>{
   const m=meta(t),balance=m.remaining===null?'—':fmt(m.remaining)+' '+esc(t.unit||'kg');
   const doc=visibleDocs.get(t.batchId);
-  const docButton=doc?` <button type="button" class="undo-btn" data-history-doc-type="${doc.type}" data-history-doc-id="${esc(t.batchId)}">${doc.label}</button>`:'';
-  const kind=v61HistoryKind(t),[title,cls]=({in:['입고','receive'],out:['출고','ship'],move:['이동','move']})[kind]||['기타','adjust'];
+  const kind=v61HistoryKind(t),title=v185HistoryLabel(t),cls=({in:'receive',out:'ship',move:'move'})[kind]||'adjust';
+  const hasDoc=doc&&((kind==='in'&&doc.type==='in')||(kind==='out'&&doc.type==='out'&&title==='출고'));
+  const kindButton=hasDoc?`<button type="button" class="history-type ${cls} v185-kind-link" data-history-doc-type="${doc.type}" data-history-doc-id="${esc(t.batchId)}" title="${title}명세서 보기">${title}</button>`:`<button type="button" class="history-type ${cls} v185-kind-link" data-v185-detail="${esc(t.id)}" title="${title} 상세내역 보기">${title}</button>`;
   const unit=['receiveExtra','shipExtra','productionExtra','productionReceipt'].includes(t.type)?' '+esc(t.unit||''):' kg';
   const quantity=`<strong>${fmt(t.qty)}${unit}</strong>`;
-  return `<tr><td class="v178-date">${esc(v70Date(t))}</td><td class="v181-kind"><span class="history-type ${cls}">${title}</span>${kind==='move'?`<div class="v184-move-qty">${fmt(t.qty)}${unit}</div>`:''}</td><td class="v181-company">${esc(m.company||'—')}</td><td class="v181-item"><strong class="product-name" title="${esc(t.name)}">${esc(t.name)}</strong></td><td class="numeric v181-qty">${kind==='in'?quantity:'—'}</td><td class="numeric v181-qty">${kind==='out'?quantity:'—'}</td><td class="numeric v178-balance">${balance}</td><td class="v178-date">${esc(m.receivedOnly||'—')}</td><td class="v178-date">${esc(m.expiry||'—')}</td><td class="v182-origin">${esc(m.origin||'—')}</td><td class="v182-brand">${esc(m.brand||'—')}</td><td class="numeric v181-actions"><div class="v183-action-row">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</div></td></tr>`;
+  return `<tr><td class="v178-date">${esc(v70Date(t))}</td><td class="v181-kind">${kindButton}</td><td class="v181-company">${esc(m.company||'—')}</td><td class="v181-item"><strong class="product-name" title="${esc(t.name)}">${esc(t.name)}</strong></td><td class="numeric v181-qty">${kind==='in'?quantity:'—'}</td><td class="numeric v181-qty">${kind==='out'?quantity:'—'}</td><td class="numeric v178-balance">${balance}</td><td class="v178-date">${esc(m.receivedOnly||'—')}</td><td class="v178-date">${esc(m.expiry||'—')}</td><td class="v182-origin">${esc(m.origin||'—')}</td><td class="v182-brand">${esc(m.brand||'—')}</td><td class="numeric v181-actions"><div class="v183-action-row">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}</div></td></tr>`;
  }).join('');
  const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
  $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>날짜</th><th>구분</th><th>업체명</th><th>품목</th><th class="numeric">입고</th><th class="numeric">출고</th><th class="numeric" title="해당 LOT의 출고 직후 남은 수량">잔여재고</th><th>입고일</th><th>소비기한</th><th>원산지</th><th>브랜드</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="12">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
@@ -4030,6 +4054,7 @@ function renderHistory(){
  document.querySelectorAll('[data-v61-history]').forEach(b=>b.onclick=()=>{v61HistoryFilter=b.dataset.v61History;renderHistory();});
  document.querySelectorAll('[data-v158-edit]').forEach(b=>b.onclick=()=>v158HistoryEdit(b.dataset.v158Edit));
  document.querySelectorAll('[data-history-doc-id]').forEach(b=>b.onclick=()=>v17ShowSaved(b.dataset.historyDocType,b.dataset.historyDocId));
+ document.querySelectorAll('[data-v185-detail]').forEach(b=>b.onclick=()=>v185HistoryDetail(b.dataset.v185Detail));
 }
 function renderBackup(){$('mainView').innerHTML=`<div class="summary-hero"><h2>현재 데이터 보관</h2><p>업무 데이터는 서버에 저장되며 모든 승인된 직원과 공유됩니다.</p><div class="kpi-inline"><span>활성 LOT <strong>${fmt(activeLots().length)}건</strong></span><span>작업 이력 <strong>${fmt(state.transactions.length)}건</strong></span><span>기준 자료 <strong>2026.11.20 엑셀</strong></span></div></div><div class="backup-grid"><section class="card backup-card"><h3>데이터 백업</h3><p>현재 재고와 입출고 내역을 JSON 파일로 저장합니다. 다른 브라우저에서도 복원할 수 있습니다.</p><button class="btn btn-primary" id="downloadBackup">백업 파일 저장</button></section><section class="card backup-card"><h3>데이터 복원</h3><p>이 시제품에서 다운로드한 JSON 파일로 기존 데이터를 덮어씁니다.</p><button class="btn btn-outline" id="uploadBackupBtn">백업 파일 불러오기</button><input class="file-input" id="uploadBackup" type="file" accept=".json,application/json"></section><section class="card backup-card"><h3>재고 CSV 추출</h3><p>품목별이 아닌 LOT별 냉동고·냉장고 재고를 엑셀에서 열 수 있습니다.</p><button class="btn btn-outline" id="downloadStockCsv">재고 CSV 저장</button></section><section class="card backup-card"><h3>초기 자료로 되돌리기</h3><p>실험한 입출고를 지우고 최초 업로드한 엑셀 기준 재고로 초기화합니다.</p><button class="btn btn-outline" id="resetData">샘플 재고 초기화</button></section></div><div class="warning-box"><strong>중요</strong> · 현재 버전은 Supabase에 연결되지 않았습니다. 업무용으로 사용하기 전에 별도 DB 연결과 로그인·사용자 권한 설정이 필요합니다.</div>`;
  $('downloadBackup').onclick=exportBackup;$('downloadStockCsv').onclick=exportStockCsv;$('uploadBackupBtn').onclick=()=>$('uploadBackup').click();$('uploadBackup').onchange=importBackup;$('resetData').onclick=()=>{if(!confirm('입출고 기록과 변경된 재고가 모두 삭제됩니다. 초기 상태로 되돌리시겠습니까?'))return;state=fresh();initProductMaster();expanded.clear();renderBackup();toast('엑셀 기준 초기 재고로 복원했습니다.');};}
@@ -8174,7 +8199,7 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .v171-grouped .v153-table thead .th-wrap{height:auto;min-height:0}
 </style><style id="v181-history-priority">
 /* History display only. LOT, route and notes remain in underlying transactions, CSV and edit dialogs. */
-#mainView#mainView .v87-history-results .history-table{width:1324px!important;min-width:1324px!important;max-width:1324px!important;table-layout:fixed!important;margin-left:0!important;margin-right:auto!important}
+#mainView#mainView .v87-history-results .history-table{width:1264px!important;min-width:1264px!important;max-width:1264px!important;table-layout:fixed!important;margin-left:0!important;margin-right:auto!important}
 #mainView#mainView .v87-history-results .history-table :is(td.v181-item,td.v181-company,td.v182-origin,td.v182-brand){white-space:normal!important;overflow-wrap:anywhere!important;text-align:left}
 #mainView#mainView .v87-history-results .history-table td.v181-item .product-name{font-weight:600!important}
 #mainView#mainView .v87-history-results .history-table :is(td.v178-date,td.v181-qty,td.v178-balance){white-space:nowrap!important;font-variant-numeric:tabular-nums;overflow-wrap:normal!important}
@@ -8195,8 +8220,15 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .v87-history-results .history-table th:nth-child(9){width:104px!important;box-sizing:border-box}
 #mainView#mainView .v87-history-results .history-table th:nth-child(10){width:88px!important;box-sizing:border-box}
 #mainView#mainView .v87-history-results .history-table th:nth-child(11){width:120px!important;box-sizing:border-box}
-#mainView#mainView .v87-history-results .history-table th:nth-child(12){width:144px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(12){width:84px!important;box-sizing:border-box}
 #mainView#mainView .v87-history-results .history-table .v184-move-qty{font-size:11px;line-height:1.4;white-space:nowrap;font-variant-numeric:tabular-nums;color:#555;margin-top:2px}
 #mainView#mainView .v87-history-results .history-table td.v181-item{white-space:nowrap!important;overflow-wrap:normal!important;overflow:hidden!important}
 #mainView#mainView .v87-history-results .history-table td.v181-item .product-name{display:block!important;max-width:100%;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+#mainView#mainView .v87-history-results .history-table .v185-kind-link{display:inline-block!important;font:inherit!important;color:inherit!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;min-height:0!important;padding:4px 0!important;margin:0!important;white-space:nowrap!important;cursor:pointer}
+#mainView#mainView .v87-history-results .history-table .v185-kind-link:hover,#mainView#mainView .v87-history-results .history-table .v185-kind-link:focus-visible{text-decoration:underline;text-underline-offset:3px}
+.v185-history-detail{width:min(460px,calc(100vw - 28px));max-height:90vh}
+.v185-history-detail .v185-detail-grid{display:grid;grid-template-columns:110px minmax(0,1fr);gap:0;margin:0;font-size:13px}
+.v185-history-detail .v185-detail-grid dt,.v185-history-detail .v185-detail-grid dd{margin:0;padding:9px 0;border-bottom:1px solid #e5e5e5;overflow-wrap:anywhere}
+.v185-history-detail .v185-detail-grid dt{color:#666;padding-right:10px}
+.v185-history-detail .v185-detail-grid dd{font-weight:500}
 </style></body></html>
