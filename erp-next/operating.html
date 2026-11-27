@@ -113,6 +113,22 @@ header .headright{flex:none}
 .metric>span:not(.metricicon){overflow-wrap:anywhere}
 .quick .quick-link{white-space:normal;overflow-wrap:anywhere}
 @media(max-width:760px){.formgrid{grid-template-columns:minmax(0,1fr)}.quick{grid-template-columns:repeat(2,minmax(0,1fr))}.heading h1{min-width:0;overflow-wrap:anywhere}.heading>button{flex:none}.work-head{min-width:0}.work-head>span{flex:1 1 auto}.prefs-options,.delivery-choices{grid-template-columns:repeat(2,minmax(0,1fr))}.delivery-form-body{max-width:100%}.delivery-tabs{min-width:0}.stock-mobile-expiry{max-width:100%}.stock-mobile-expiry time{overflow-wrap:anywhere}.range-current{min-width:0;overflow-wrap:anywhere}}
+/* Shared catalog editor, scoped to dashboard/quick work. */
+#dashPersonalEditor .dash-edit-section{display:flex;align-items:center;justify-content:space-between;font-size:15px;font-weight:650;color:var(--ink);margin:13px 0 7px}
+#dashPersonalEditor .dash-edit-section span,.dash-edit-subtitle,.dash-catalog-group h4{font-size:12px;color:var(--muted);font-weight:600}
+.dash-edit-subtitle{margin:12px 0 1px}.dash-edit-label{flex:1;min-width:0;overflow-wrap:anywhere}
+#dashPersonalEditor .dash-edit-row button{flex:none;width:34px;padding:4px;justify-content:center}.dash-edit-row button .ico{width:15px;height:15px}
+.dash-add-heading{padding-top:13px;border-top:1px solid var(--line)}
+.dash-catalog-search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:6px;padding:0 9px;background:#fff}
+.dash-catalog-search .ico{flex:none;width:16px;height:16px;color:var(--muted)}
+.dash-catalog-search input{width:100%;min-width:0;border:0;background:transparent;padding:9px 0;outline:0}
+.dash-catalog-group{margin:12px 0}.dash-catalog-group h4{margin:0 0 6px}
+.dash-catalog-options{display:flex;flex-wrap:wrap;gap:6px}
+.dash-catalog-options button{max-width:100%;min-width:0;min-height:34px;white-space:normal;overflow-wrap:anywhere;text-align:left;justify-content:flex-start;padding:5px 8px;font-size:13px}
+.dash-catalog-options button .ico{flex:none;width:14px;height:14px}
+.dash-catalog-options button span{min-width:0;overflow-wrap:anywhere}
+#dashPersonalEditor .dialogbody{min-width:0}
+@media(max-width:760px){#dashPersonalEditor .dash-edit-row{gap:5px}#dashPersonalEditor .dash-edit-row button{width:33px;min-width:33px}.dash-catalog-options button{min-height:36px}}
 </style></head><body>
 <header><button class="hamb iconbtn" id="hamb" aria-label="메뉴 열기"></button><div class="brand"><svg class="logo" viewBox="0 0 32 32" fill="currentColor"><path d="M15 28C4 25 1 15 2 5c9 1 14 6 14 15V28zM17 28C28 25 31 15 30 5c-9 1-13 6-13 15z"/></svg>MirStar Food ERP</div><div class="tagline">식품 제조·유통 ERP</div><div class="headright"><span class="preview">운영</span><button id="notice" class="iconbtn" aria-label="알림"></button><button id="profile" class="iconbtn" aria-label="환경설정"></button></div></header>
 <div class="scrim" id="navscrim" hidden></div><aside id="sidebar" aria-label="주 메뉴"></aside><main id="main"></main>
@@ -196,8 +212,9 @@ function dash(){const t=today(),expiry=expirySummary(inventory(),t);const count=
  '재고 알림 상세':()=>card('재고 알림','warn','소비기한관리',expiryAlertPanel(expiry,t)),
  '월간 현황':()=>card('월간 현황','chart','매출보고서',empty('chart','데이터가 없습니다.','월간 집계는 추후 연동됩니다.')),
  '재고현황':()=>card('재고현황 (주요 품목)','box','재고현황','<div class="tablewrap dashboardtable">'+table(['품목코드','품목명','규격','단위','현재고','안전재고','재고상태'],[],false)+'</div><div class="dashboard-mobile-empty">'+empty()+'</div>')};
+ for(const c of dashCounters)metrics[c.key]=()=>metric(c.key,c.count()+'건',c.ic,'',c.page);
  const ordered=personalDashOrder(p);
- const metricHtml=ordered.filter(k=>Object.hasOwn(metrics,k)).map(k=>metrics[k]()).join('');
+ const metricHtml=ordered.filter(k=>Object.hasOwn(metrics,k)&&p.widgets.includes(k)).map(k=>metrics[k]()).join('');
  const detailKeys=ordered.filter(k=>Object.hasOwn(detail,k)&&p.widgets.includes(k));
  const firstDetails=detailKeys.filter(k=>k!=='재고현황');
  const stockDetail=detailKeys.includes('재고현황')?detail['재고현황']():'';
@@ -307,30 +324,52 @@ function renderBulkHistory(){const batches=Object.values(bulkBatches()).reverse(
 $('bulkFile').addEventListener('change',selectBulk);$('bulkTemplate').onclick=downloadBulkExcel;$('bulkCsvTemplate').onclick=downloadBulkCsv;$('bulkHistory').onclick=()=>{$('bulkHistoryList').hidden?renderBulkHistory():$('bulkHistoryList').hidden=true};$('bulkClose').onclick=$('bulkCancel').onclick=()=>{$('bulkEditor').close()};$('bulkEditor').addEventListener('close',()=>{bulkGeneration++;bulkBusy=false});$('bulkCommit').onclick=()=>{if(bulkBusy)return;const check=validateBulk(bulkRows),c=bulkCounts(check);bulkRows=check;renderBulkPreview();if(c.error||!c.ready)return;if(!confirm(c.ready+'건을 등록합니다. 중복 '+c.duplicate+'건은 제외됩니다. 계속하시겠습니까?'))return;const result=commitBulk(check,bulkFileName);if(!result.ok){bulkRows=result.checked;renderBulkPreview();toast(result.storageError?'서버 저장 실패 · 등록하지 않았습니다.':'등록할 내용을 다시 확인하세요.');return}bulkRows=[];$('bulkFile').value='';$('bulkStatus').textContent=result.count+'건 등록 완료';renderBulkPreview();renderBulkHistory();render();toast(result.count+'건 일괄등록 완료 (이 기기에만 저장)')};
 const workPages=['오늘의 업무','일정관리','할 일','업무공유','알림내역'];
 const widgetsDefault=['오늘 입고','오늘 출고','재고 알림','미처리 작업','빠른 업무','최근 작업','재고 알림 상세','월간 현황','재고현황'];
-const widgetOptions=[...widgetsDefault,'오늘의 업무','해동현황','미수금','미지급금'];
-const dashMetricOrder=['오늘 입고','오늘 출고','재고 알림','미처리 작업','오늘의 업무','해동현황','미수금','미지급금'];
+const baseDashMetrics=['오늘 입고','오늘 출고','재고 알림','미처리 작업','오늘의 업무','해동현황','미수금','미지급금'];
 const dashDetailOrder=['최근 작업','재고 알림 상세','월간 현황'];
+const menuGroup=p=>G.find(g=>g[2].includes(p))?.[0]||'기타';
+const menuIcon=p=>G.find(g=>g[2].includes(p))?.[1]||'list';
+/* Menu-backed counters only: count real rows, not inferred monetary or production totals. */
+function buildDashCounters(){const a=[];const special={
+ '재고현황':['재고 LOT 수',()=>inventory().length],
+ '해동관리':['해동 LOT 수',()=>inventory().filter(r=>r['보관상태']==='해동').length],
+ '소비기한관리':['소비기한 알림',()=>expirySummary(inventory()).alerts.length],
+ '품목분류관리':['품목 분류 수',()=>categories().length],
+ '일정관리':['등록 일정',()=>tasks().filter(t=>t.kind==='일정').length],
+ '할 일':['등록 할 일',()=>tasks().filter(t=>t.kind==='할 일').length],
+ '알림내역':['개인 업무 알림',()=>noticeRecords().length]
+ };const skip=new Set(['대시보드','오늘의 업무','업무공유','환경설정','미수금','미지급금','사용자관리','권한관리']);for(const [group,ic,pages] of G)for(const p of pages){if(skip.has(p))continue;const x=special[p];if(x)a.push({key:x[0],page:p,group,ic,count:x[1]});else if(Object.hasOwn(cfg,p))a.push({key:p+' 건수',page:p,group,ic,count:()=>source(p).length})}return a}
+const dashCounters=buildDashCounters();
+const dashMetricOrder=[...baseDashMetrics,...dashCounters.map(x=>x.key)];
 const dashOrderDefaults=[...dashMetricOrder,'빠른 업무',...dashDetailOrder,'재고현황'];
-const quickOptions=[
+const widgetOptions=[...new Set([...widgetsDefault,...dashMetricOrder,...dashDetailOrder])];
+const legacyQuickOptions=[
  ['입고입력','입고입력','box','new'],['출고입력','출고입력','truck','new'],['이동입력','이동입력','move','new'],['품목추가','품목관리','plus','new'],
  ['거래처 등록','거래처관리','plus','new'],['해동등록','해동','box','thaw'],['재고현황','재고현황','box','page'],['입출고내역','입출고내역','list','page'],
  ['소비기한관리','소비기한관리','warn','page'],['매입 등록','매입관리','cart','new'],['매출 등록','매출관리','shop','new'],['생산계획 등록','생산계획','factory','new'],['생산실적 등록','생산실적','factory','new'],['오늘의 업무','오늘의 업무','calendar','page'],['업무공유','업무공유','calendar','page']
 ];
-const quickDefaults=quickOptions.slice(0,4).map(x=>x[0]);
+/* Every menu gets a navigation shortcut. Existing names/actions are kept for saved preferences. */
+function buildQuickOptions(){const a=legacyQuickOptions.map(x=>[...x,x[3]==='thaw'?'재고관리':menuGroup(x[1])]);const add=(label,target,ic,action,group)=>{if(a.some(x=>x[1]===target&&x[3]===action))return;if(a.some(x=>x[0]===label))label+=' · '+(action==='page'?'조회':'등록');if(a.some(x=>x[0]===label))return;a.push([label,target,ic,action,group])};for(const [group,ic,pages] of G)for(const p of pages){if(p==='대시보드')continue;add(p,p,ic,'page',group);if(Object.hasOwn(cfg,p)&&!readOnly.has(p)&&p!=='품목분류관리')add(p+' 등록',p,'plus','new',group)}for(const k of ['생산 투입','재냉동','냉장보관'])add(k,k,'move','thaw','재고관리');return a}
+const quickOptions=buildQuickOptions();
+const quickDefaults=legacyQuickOptions.slice(0,4).map(x=>x[0]);
 const quickKeys=quickOptions.map(x=>x[0]);
 const cleanPersonalList=(list,allowed,fallback)=>Array.isArray(list)?[...new Set(list.filter(x=>allowed.includes(x)))]:[...fallback];
 function personalDashOrder(p){return [...new Set([...cleanPersonalList(p.dashboardOrder,dashOrderDefaults,dashOrderDefaults),...dashOrderDefaults])]}
 function personalQuick(p){return cleanPersonalList(p.quickActions,quickKeys,quickDefaults)}
 function quickButtons(p){const chosen=personalQuick(p);return chosen.length?chosen.map((k,i)=>{const [label,target,ic,action]=quickOptions.find(x=>x[0]===k);return '<button class="quick-link '+(i?'outline':'primary')+'" data-'+action+'="'+esc(target)+'">'+I(ic)+esc(label)+'</button>'}).join(''):'<span class="quick-empty">등록된 빠른 업무가 없습니다. 편집에서 추가할 수 있습니다.</span>'}
+const baseDashGroups={'오늘 입고':'재고관리','오늘 출고':'재고관리','재고 알림':'품질관리','미처리 작업':'판매관리','오늘의 업무':'업무관리','해동현황':'재고관리','미수금':'정산관리','미지급금':'정산관리','빠른 업무':'홈','최근 작업':'재고관리','재고 알림 상세':'품질관리','월간 현황':'보고서','재고현황':'재고관리'};
+function personalCatalog(mode){return mode==='quick'?quickOptions.map(([key,target,ic,action,group])=>({key,group,description:action==='new'?'등록 화면':action==='thaw'?'재고 작업':'메뉴 이동'})):widgetOptions.map(key=>{const counter=dashCounters.find(x=>x.key===key);return {key,group:counter?.group||baseDashGroups[key]||'기타',description:counter?'실제 조회 건수':key==='미수금'||key==='미지급금'||key==='미처리 작업'||key==='월간 현황'?'기존 카드 · 집계 미연동':key==='빠른 업무'?'빠른 업무 영역':dashDetailOrder.includes(key)||key==='재고현황'?'상세 카드':'기존 카드'}})}
 let dashPersonalDraft=null;
-function openDashPersonal(mode){const p=preferences();dashPersonalDraft={mode,device:device(),selected:mode==='quick'?personalQuick(p):p.widgets.filter(x=>widgetOptions.includes(x)),order:mode==='quick'?[...new Set([...personalQuick(p),...quickKeys])]:personalDashOrder(p)};drawDashPersonal();$('dashPersonalEditor').showModal()}
-function drawDashPersonal(){const d=dashPersonalDraft;if(!d)return;const quick=d.mode==='quick';$('dashPersonalTitle').textContent=quick?'빠른 업무 편집':'대시보드 편집';$('dashPersonalIntro').textContent=(d.device==='mobile'?'모바일':'PC')+' · 내 계정에만 적용됩니다. 표시할 항목을 선택하고 순서를 바꾸세요.';const label=k=>esc(k);const groups=quick?[['빠른 업무 버튼',quickKeys]]:[['상단 카드',dashMetricOrder],['빠른 업무 영역',['빠른 업무']],['상세 카드',dashDetailOrder],['하단 영역',['재고현황']]];$('dashPersonalList').innerHTML=groups.map(([title,keys])=>{const ordered=d.order.filter(k=>keys.includes(k));return '<h3 class="dash-edit-section">'+esc(title)+'</h3>'+ordered.map((k,i)=>'<div class="dash-edit-row"><label><input type="checkbox" data-dash-personal-check="'+label(k)+'" '+(d.selected.includes(k)?'checked':'')+'>'+label(k)+'</label>'+(keys.length>1?'<button type="button" data-dash-personal-move="'+label(k)+'" data-dir="-1" aria-label="'+label(k)+' 위로" '+(i===0?'disabled':'')+'>↑</button><button type="button" data-dash-personal-move="'+label(k)+'" data-dir="1" aria-label="'+label(k)+' 아래로" '+(i===ordered.length-1?'disabled':'')+'>↓</button>':'')+'</div>').join('')}).join('')}
-function moveDashPersonal(k,dir){const d=dashPersonalDraft;if(!d)return;const group=d.mode==='quick'?quickKeys:dashMetricOrder.includes(k)?dashMetricOrder:dashDetailOrder.includes(k)?dashDetailOrder:[];if(!group.includes(k))return;const visible=d.order.filter(x=>group.includes(x)),i=visible.indexOf(k),j=i+dir;if(i<0||j<0||j>=visible.length)return;const a=d.order.indexOf(k),b=d.order.indexOf(visible[j]);[d.order[a],d.order[b]]=[d.order[b],d.order[a]];drawDashPersonal()}
-function resetDashPersonal(){const d=dashPersonalDraft;if(!d)return;d.selected=[...(d.mode==='quick'?quickDefaults:widgetsDefault)];d.order=[...(d.mode==='quick'?quickKeys:dashOrderDefaults)];drawDashPersonal()}
+function openDashPersonal(mode){const p=preferences();dashPersonalDraft={mode,device:device(),selected:mode==='quick'?personalQuick(p):cleanPersonalList(p.widgets,widgetOptions,widgetsDefault),order:mode==='quick'?[...new Set([...personalQuick(p),...quickKeys])]:personalDashOrder(p),search:''};drawDashPersonal();$('dashPersonalEditor').showModal()}
+function selectedDashGroups(d){return d.mode==='quick'?[['빠른 업무 버튼',quickKeys]]:[['상단 카드',dashMetricOrder],['빠른 업무 영역',['빠른 업무']],['상세 카드',dashDetailOrder],['하단 영역',['재고현황']]]}
+function drawDashPersonal(){const d=dashPersonalDraft;if(!d)return;const quick=d.mode==='quick';$('dashPersonalTitle').textContent=quick?'빠른 업무 편집':'대시보드 편집';$('dashPersonalIntro').textContent=(d.device==='mobile'?'모바일':'PC')+' · 내 계정에만 적용됩니다. 항목을 추가하거나 빼고 순서를 변경하세요.';const groups=selectedDashGroups(d);const label=k=>esc(k);$('dashPersonalList').innerHTML='<h3 class="dash-edit-section">현재 표시 항목 <span>'+d.selected.length+'개</span></h3>'+groups.map(([title,keys])=>{const ordered=d.order.filter(k=>keys.includes(k)&&d.selected.includes(k));if(!ordered.length)return '';return (quick?'':'<h4 class="dash-edit-subtitle">'+esc(title)+'</h4>')+ordered.map((k,i)=>'<div class="dash-edit-row"><span class="dash-edit-label">'+label(k)+'</span>'+(keys.length>1?'<button type="button" data-dash-personal-move="'+label(k)+'" data-dir="-1" aria-label="'+label(k)+' 위로" '+(i===0?'disabled':'')+'>↑</button><button type="button" data-dash-personal-move="'+label(k)+'" data-dir="1" aria-label="'+label(k)+' 아래로" '+(i===ordered.length-1?'disabled':'')+'>↓</button>':'')+'<button type="button" data-dash-personal-remove="'+label(k)+'" aria-label="'+label(k)+' 제거">'+I('x')+'</button></div>').join('')}).join('')+(d.selected.length?'':'<p class="dash-edit-intro">선택된 항목이 없습니다.</p>')+'<h3 class="dash-edit-section dash-add-heading">추가 가능한 항목</h3><div class="dash-catalog-search">'+I('search')+'<input id="dashCatalogSearch" type="search" aria-label="추가 항목 검색" placeholder="항목 또는 분류 검색" value="'+esc(d.search)+'"></div><div id="dashCatalogOptions"></div>';drawDashCatalog()}
+function drawDashCatalog(){const d=dashPersonalDraft;if(!d)return;const q=norm(d.search),available=personalCatalog(d.mode).filter(x=>!d.selected.includes(x.key)&&(!q||norm(x.key+' '+x.group+' '+x.description).includes(q)));const groups=[...new Set([...G.map(g=>g[0]),...available.map(x=>x.group)])];$('dashCatalogOptions').innerHTML=groups.map(g=>{const items=available.filter(x=>x.group===g);return items.length?'<div class="dash-catalog-group"><h4>'+esc(g)+'</h4><div class="dash-catalog-options">'+items.map(x=>'<button type="button" data-dash-personal-add="'+esc(x.key)+'" title="'+esc(x.description)+'">'+I('plus')+'<span>'+esc(x.key)+'</span></button>').join('')+'</div></div>':''}).join('')||'<p class="dash-edit-intro">추가 가능한 항목이 없습니다.</p>'}
+function changeDashPersonal(k,add){const d=dashPersonalDraft;if(!d||!personalCatalog(d.mode).some(x=>x.key===k))return;if(add){if(d.selected.includes(k))return;d.selected.push(k);d.order=d.order.filter(x=>x!==k);d.order.push(k)}else d.selected=d.selected.filter(x=>x!==k);drawDashPersonal()}
+function moveDashPersonal(k,dir){const d=dashPersonalDraft;if(!d)return;const group=selectedDashGroups(d).find(([,keys])=>keys.includes(k))?.[1]||[];const visible=d.order.filter(x=>group.includes(x)&&d.selected.includes(x)),i=visible.indexOf(k),j=i+dir;if(i<0||j<0||j>=visible.length)return;const a=d.order.indexOf(k),b=d.order.indexOf(visible[j]);[d.order[a],d.order[b]]=[d.order[b],d.order[a]];drawDashPersonal()}
+function resetDashPersonal(){const d=dashPersonalDraft;if(!d)return;d.selected=[...(d.mode==='quick'?quickDefaults:widgetsDefault)];d.order=[...(d.mode==='quick'?quickKeys:dashOrderDefaults)];d.search='';drawDashPersonal()}
 function saveDashPersonal(){const d=dashPersonalDraft;if(!d||d.device!==device()){toast('화면 크기가 변경되었습니다. 다시 편집해 주세요.');return false}const old=data.__prefs,p=preferences();const next=d.mode==='quick'?{...p,quickActions:d.order.filter(k=>d.selected.includes(k)&&quickKeys.includes(k))}:{...p,widgets:cleanPersonalList(d.selected,widgetOptions,widgetsDefault),dashboardOrder:cleanPersonalList(d.order,dashOrderDefaults,dashOrderDefaults)};data.__prefs={...(old||{}),[d.device]:next};if(!persist()){data.__prefs=old;toast('설정 저장 실패');return false}$('dashPersonalEditor').close();dashPersonalDraft=null;render();toast('개인 설정을 저장했습니다.');return true}
-function handleDashPersonal(b){const d=b.dataset||{};if(b.id==='dashPersonalEdit'){openDashPersonal('dashboard');return true}if(b.id==='quickPersonalEdit'){openDashPersonal('quick');return true}if(d.dashPersonalMove){moveDashPersonal(d.dashPersonalMove,Number(d.dir));return true}if(b.id==='dashPersonalReset'){resetDashPersonal();return true}if(b.id==='dashPersonalSave'){saveDashPersonal();return true}if(b.id==='dashPersonalClose'||b.id==='dashPersonalCancel'){$('dashPersonalEditor').close();dashPersonalDraft=null;return true}return false}
+function handleDashPersonal(b){const d=b.dataset||{};if(b.id==='dashPersonalEdit'){openDashPersonal('dashboard');return true}if(b.id==='quickPersonalEdit'){openDashPersonal('quick');return true}if(d.dashPersonalAdd){changeDashPersonal(d.dashPersonalAdd,true);return true}if(d.dashPersonalRemove){changeDashPersonal(d.dashPersonalRemove,false);return true}if(d.dashPersonalMove){moveDashPersonal(d.dashPersonalMove,Number(d.dir));return true}if(b.id==='dashPersonalReset'){resetDashPersonal();return true}if(b.id==='dashPersonalSave'){saveDashPersonal();return true}if(b.id==='dashPersonalClose'||b.id==='dashPersonalCancel'){$('dashPersonalEditor').close();dashPersonalDraft=null;return true}return false}
 $('dashPersonalEditor').addEventListener('close',()=>{dashPersonalDraft=null});
-document.addEventListener('change',e=>{const k=e.target.dataset?.dashPersonalCheck,d=dashPersonalDraft;if(!d||!k||!d.order.includes(k))return;d.selected=e.target.checked?[...new Set([...d.selected,k])]:d.selected.filter(x=>x!==k)});
+document.addEventListener('input',e=>{if(e.target.id==='dashCatalogSearch'&&dashPersonalDraft){dashPersonalDraft.search=e.target.value;drawDashCatalog()}});
 const allPages=()=>G.flatMap(g=>g[2]);
 const device=()=>window.innerWidth<=760?'mobile':'pc';
 const defaultPrefs=()=>({home:'대시보드',hidden:[],order:G.map(g=>g[0]),favorites:[],widgets:[...widgetsDefault],columns:{},font:'normal',reminders:true,workView:'month'});
