@@ -4020,7 +4020,7 @@ function renderHistory(){
   const docButton=doc?` <button type="button" class="undo-btn" data-history-doc-type="${doc.type}" data-history-doc-id="${esc(t.batchId)}">${doc.label}</button>`:'';
   const kind=v61HistoryKind(t),[title,cls]=({in:['입고','receive'],out:['출고','ship'],move:['이동','move']})[kind]||['기타','adjust'];
   const unit=['receiveExtra','shipExtra','productionExtra','productionReceipt'].includes(t.type)?' '+esc(t.unit||''):' kg';
-  return `<tr><td class="v178-date">${esc(v70Date(t))}</td><td class="v181-company">${esc(m.company||'—')}</td><td class="v181-item"><strong class="product-name">${esc(t.name)}</strong></td><td class="numeric v181-qty"><strong>${fmt(t.qty)}${unit}</strong></td><td class="v178-date">${esc(m.receivedOnly||'—')}</td><td class="v178-date">${esc(m.expiry||'—')}</td><td class="v182-origin">${esc(m.origin||'—')}</td><td class="v182-brand">${esc(m.brand||'—')}</td><td class="v181-kind"><span class="history-type ${cls}">${title}</span></td><td class="numeric v178-balance">${balance}</td><td class="numeric v181-actions">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</td></tr>`;
+  return `<tr><td class="v178-date">${esc(v70Date(t))}</td><td class="v181-company">${esc(m.company||'—')}</td><td class="v181-item"><strong class="product-name">${esc(t.name)}</strong></td><td class="numeric v181-qty"><strong>${fmt(t.qty)}${unit}</strong></td><td class="v178-date">${esc(m.receivedOnly||'—')}</td><td class="v178-date">${esc(m.expiry||'—')}</td><td class="v182-origin">${esc(m.origin||'—')}</td><td class="v182-brand">${esc(m.brand||'—')}</td><td class="v181-kind"><span class="history-type ${cls}">${title}</span></td><td class="numeric v178-balance">${balance}</td><td class="numeric v181-actions"><div class="v183-action-row">${v110Live(t)?`<button type="button" class="undo-btn" data-v158-edit="${esc(t.id)}">수정</button>`:'—'}${docButton}</div></td></tr>`;
  }).join('');
  const opts=[['all','전체'],['in','입고'],['out','출고'],['move','이동']];
  $('mainView').innerHTML=`<section class="card v61-history-header v87-history-filters" aria-label="입출고내역 조회 조건"><div class="v87-history-row"><span class="v87-filter-label">품목 분류</span><div class="v61-tab-group" role="group" aria-label="품목 분류">${v61StockKinds.map(([key,label])=>`<button type="button" class="v61-tab ${v70Category===key?'active':''}" data-v70-cat="${key}" aria-pressed="${v70Category===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">거래 구분</span><div class="v61-tab-group" role="group" aria-label="거래 구분">${opts.map(([key,label])=>`<button class="v61-tab ${v61HistoryFilter===key?'active':''}" data-v61-history="${key}" type="button" aria-pressed="${v61HistoryFilter===key}">${label}</button>`).join('')}</div></div><div class="v87-history-row"><span class="v87-filter-label">조회 조건</span><div class="v70-filter"><button class="btn btn-outline" id="v70Period" type="button">기간설정</button>${v154PeriodButtons(v70From,v70To)}${v89PeriodLabel(v70From,v70To)}<div class="v161-search-group"><input id="v70Search" type="search" aria-label="품목명, 브랜드, 업체 검색" placeholder="품목명 · 브랜드 · 업체 검색" value="${esc(v70Query)}"><button class="btn btn-outline" id="v70Find" type="button">검색</button></div></div></div></section><section class="card history-panel v87-history-results"><div class="hist-toolbar"><h2>작업 내역</h2><span class="v87-result-count">총 <strong>${fmt(tx.length)}</strong>건</span><span class="subtle v87-history-order">최신 순서</span><button class="btn btn-outline" id="downloadHistory" type="button">CSV 저장</button></div><div class="table-scroll"><table class="inventory-table history-table"><thead><tr><th>날짜</th><th>업체명</th><th>품목</th><th class="numeric">수량</th><th>입고일</th><th>소비기한</th><th>원산지</th><th>브랜드</th><th>구분</th><th class="numeric">잔여수량</th><th class="numeric">관리</th></tr></thead><tbody>${items||'<tr><td class="empty" colspan="11">해당 구분의 기록이 없습니다.</td></tr>'}</tbody></table></div><div class="table-footer"><span>조회 ${fmt(tx.length)}건 / 전체 ${fmt(state.transactions.filter(v110Live).length)}건</span><span>수정·삭제 기록은 변경 이력에서 확인할 수 있습니다.</span></div></section>`;
@@ -8173,23 +8173,25 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .v171-grouped .v153-table thead .th-wrap{height:auto;min-height:0}
 </style><style id="v181-history-priority">
 /* History display only. LOT, route and notes remain in underlying transactions, CSV and edit dialogs. */
-#mainView#mainView .v87-history-results .history-table{min-width:1190px!important;table-layout:fixed!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(3){width:auto!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(4){width:95px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(5){width:114px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(6){width:104px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(2){width:120px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(1){width:104px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(9){width:65px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(10){width:100px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(11){width:112px!important}
+#mainView#mainView .v87-history-results .history-table{width:1204px!important;min-width:1204px!important;max-width:1204px!important;table-layout:fixed!important;margin-left:0!important;margin-right:auto!important}
+#mainView#mainView .v87-history-results .history-table th:nth-child(3){width:160px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(4){width:95px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(5){width:104px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(6){width:104px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(2){width:120px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(1){width:104px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(9){width:65px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(10){width:100px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(11){width:144px!important;box-sizing:border-box}
 #mainView#mainView .v87-history-results .history-table :is(td.v181-item,td.v181-company,td.v182-origin,td.v182-brand){white-space:normal!important;overflow-wrap:anywhere!important;text-align:left}
 #mainView#mainView .v87-history-results .history-table td.v181-item .product-name{font-weight:600!important}
 #mainView#mainView .v87-history-results .history-table :is(td.v178-date,td.v181-qty,td.v178-balance){white-space:nowrap!important;font-variant-numeric:tabular-nums;overflow-wrap:normal!important}
 #mainView#mainView .v87-history-results .history-table td.v178-date{text-align:left}
 #mainView#mainView .v87-history-results .history-table td.v181-kind{text-align:left}
-#mainView#mainView .v87-history-results .history-table td.v181-actions{text-align:right}
-#mainView#mainView .v87-history-results .history-table td.v181-actions button{white-space:nowrap;min-width:0;margin:2px 0 2px 3px;padding:4px 7px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(7){width:88px!important}
-#mainView#mainView .v87-history-results .history-table th:nth-child(8){width:120px!important}
+#mainView#mainView .v87-history-results .history-table td.v181-actions{text-align:right;white-space:nowrap!important;overflow-wrap:normal!important}
+#mainView#mainView .v87-history-results .history-table td.v181-actions button{display:inline-flex!important;align-items:center;justify-content:center;white-space:nowrap!important;min-width:44px;margin:0!important;padding:4px 7px!important;flex:0 0 auto}
+#mainView#mainView .v87-history-results .history-table th:nth-child(7){width:88px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .history-table th:nth-child(8){width:120px!important;box-sizing:border-box}
+#mainView#mainView .v87-history-results .table-scroll{overflow-x:auto!important}
+#mainView#mainView .v87-history-results .history-table .v183-action-row{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:4px;white-space:nowrap!important}
 </style></body></html>
