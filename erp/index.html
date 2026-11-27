@@ -86,7 +86,7 @@ async function openERP(){
   if(seed.error||st.error||!seed.data?.payload||!st.data)throw Error('공동 데이터 연결 실패');
   if(ticket!==epoch)return;session=s;window.erpSeed=seed.data.payload;window.erpInitialState=st.data.body;revision=Number(st.data.revision);lastJSON=st.data.body?JSON.stringify(st.data.body):'';blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=199&t='+Date.now();notice('연결됨 · 서버 저장');
+  gate.hidden=true;shell.hidden=false;frame.style.pointerEvents='';frame.src=APP+'?v=200&t='+Date.now();notice('연결됨 · 서버 저장');
   if(!channel){channel=db.channel('mirrstar-erp-state-v85').on('postgres_changes',{event:'UPDATE',schema:'public',table:'erp_company_state',filter:'id=eq.1'},()=>{void sync();}).subscribe();}
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
@@ -245,4 +245,17 @@ html body #gate .panel #submit:not(:disabled),html body button:is(.primary,#save
 html body #gate .panel #switchMode{color:var(--erp-ui-accent)!important}
 
 }
-</style></body></html>
+</style><style id="v200-shell-mobile-close">
+.erp-added-close{display:none}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+html body dialog .erp-added-close{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;max-width:36px!important;height:36px!important;min-height:36px!important;max-height:36px!important;border:0!important;border-radius:50%!important;background:#eeeef0!important;color:#55555b!important;padding:0!important;margin:0!important;box-shadow:none!important;touch-action:manipulation!important}
+html body .erp-close-heading{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
+}
+</style><script id="v200-shell-mobile-close-script">
+(()=>{
+ const mq=matchMedia('screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse)');
+ const svg='<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg>';
+ function update(){if(!mq.matches)return;for(const [id,selector] of [['passwordDialog','#cancelPw'],['inviteDialog','#closeInvite']]){const d=document.getElementById(id);if(!d||d.querySelector('.erp-added-close'))continue;const target=d.querySelector(selector),h=d.querySelector(':scope > h2,:scope > form > h2');if(!target||!h)continue;const b=document.createElement('button');b.type='button';b.className='erp-added-close';b.setAttribute('aria-label','닫기');b.innerHTML=svg;b.onclick=e=>{e.stopPropagation();target.click();};h.append(b);h.classList.add('erp-close-heading');}}
+ mq.addEventListener('change',update);update();
+})();
+</script></body></html>
