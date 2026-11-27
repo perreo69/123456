@@ -3636,9 +3636,9 @@ function v192Render(key){
  const buttons=cats.map(([k,label])=>'<button type="button" class="v61-tab '+(f.category===k?'active':'')+'" data-v192-category="'+k+'" aria-pressed="'+(f.category===k)+'">'+label+'</button>').join('');
  const moves=conf.kind==='move'?'<label class="v192-movement-label">이동 구분 <select id="v192Movement">'+[['all','전체'],['해동','해동'],['재냉동','재냉동'],['이동','기타 이동']].map(([k,l])=>'<option value="'+k+'" '+(k===f.movement?'selected':'')+'>'+l+'</option>').join('')+'</select></label>':'';
  $('mainView').innerHTML='<section class="card inventory-panel v192-ledger" aria-label="'+conf.name+'내역"><div class="panel-top v192-head"><div><h2>'+conf.name+'내역</h2><span class="v192-count">총 '+fmt(rows.length)+'건</span></div><button type="button" class="btn btn-primary" id="v192Register">+ '+conf.name+'등록</button></div><div class="v192-controls"><div class="v192-filter-row"><span>품목 분류</span><div class="v61-tab-group">'+buttons+'</div>'+moves+'</div><div class="v192-filter-row"><span>조회 조건</span><div class="v192-period"><button type="button" class="btn btn-outline" id="v192Period">기간설정</button>'+v154PeriodButtons(f.from,f.to)+v89PeriodLabel(f.from,f.to)+'</div><div class="v192-search"><input type="search" id="v192Search" aria-label="품목, 업체, 브랜드 검색" placeholder="품목명 · 업체 · 브랜드 검색" value="'+esc(f.query)+'"><button type="button" class="btn btn-outline" id="v192Find">검색</button></div></div></div><div class="table-scroll"><table class="inventory-table v192-table"><thead><tr>'+cols.map(([k,title])=>'<th class="v192-col-'+k+'">'+title+'</th>').join('')+'</tr></thead><tbody>'+ (items||'<tr><td class="empty" colspan="'+cols.length+'">조회되는 '+conf.name+'내역이 없습니다.</td></tr>')+'</tbody></table></div><div class="table-footer"><span>최신 날짜 순 · LOT별 기록</span><span>조회 '+fmt(rows.length)+'건</span></div></section>';
- const redraw=()=>v192Render(key),apply=(a,b)=>{f.from=a;f.to=b;redraw();};
+ const redraw=()=>{const strip=$('mainView').querySelector('.v192-ledger .v61-tab-group'),left=strip?.scrollLeft||0;v192Render(key);const next=$('mainView').querySelector('.v192-ledger .v61-tab-group');if(next)next.scrollLeft=left;},apply=(a,b)=>{f.from=a;f.to=b;redraw();};
  $('v192Register').onclick=()=>{if(conf.entry==='operations'){v160MoveScope=null;v36Mode='move';}setView(conf.entry);};
- v194PlaceTitleRegistration(['v192Register']);
+ if(!matchMedia('(max-width:767px), (max-width:1023px) and (pointer:coarse)').matches)v194PlaceTitleRegistration(['v192Register']);
  $('v192Period').onclick=e=>v70Calendar({anchor:e.currentTarget,from:f.from,to:f.to,apply});v154BindPeriod('v192Period',apply);
  $('v192Find').onclick=()=>{f.query=$('v192Search').value;redraw();};
  $('v192Search').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();$('v192Find').click();}};
@@ -8741,5 +8741,62 @@ html body .heading-section .top-actions [data-v194-register]{flex:0 0 auto!impor
 }
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
 html body .heading-section .top-actions [data-v194-register]{min-height:44px!important}
+}
+</style><style id="v195-mobile-scroll-layout">
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+ /* Constrain layout to the viewport; only explicit scrollers may overflow. */
+ html,body,.app-shell,.work-area,.main-content,#mainView{box-sizing:border-box!important;min-width:0!important;max-width:100%!important}
+ #mainView#mainView{overflow-x:clip!important}
+ #mainView#mainView>:is(.card,.inventory-panel,.history-panel,.ac-page,.v153-flat-panel,.v192-ledger),#v144Background{box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important}
+ #mainView#mainView .v192-ledger{overflow:visible!important}
+ #mainView#mainView .v192-controls{display:grid!important;grid-template-columns:minmax(0,1fr)!important;min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;padding:10px 12px!important;gap:14px!important}
+ #mainView#mainView .v192-filter-row{display:grid!important;grid-template-columns:minmax(0,1fr)!important;min-width:0!important;width:100%!important;max-width:100%!important;gap:7px!important}
+ #mainView#mainView .v192-filter-row>span{min-width:0!important;font-size:12px!important;color:#505057!important;font-weight:500!important}
+ #mainView#mainView :is(.v192-period,.v192-search,.v192-movement-label){box-sizing:border-box!important;width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important}
+ #mainView#mainView .v192-period{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
+ #mainView#mainView .v192-period>#v192Period{justify-self:start;min-height:40px!important;white-space:nowrap!important}
+ #mainView#mainView .v192-search{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:6px!important}
+ #mainView#mainView .v192-search>input{min-width:0!important;width:100%!important;max-width:100%!important;box-sizing:border-box!important;font-size:14px!important}
+ #mainView#mainView .v192-search>button{min-height:44px!important;min-width:52px!important;white-space:nowrap!important}
+ #mainView#mainView .v192-movement-label{display:flex!important;justify-content:space-between;flex-wrap:wrap}
+ #mainView#mainView .v192-head{padding:11px 12px!important;gap:8px!important}
+ #mainView#mainView .v192-head>div{min-width:0!important;gap:7px!important;flex:1 1 auto}
+ #mainView#mainView .v192-head #v192Register{flex:0 0 auto!important;min-height:40px!important;white-space:nowrap!important;padding:5px 10px!important}
+ #mainView#mainView .v192-head h2{font-size:16px!important}
+ #mainView#mainView .v192-head .v192-count{font-size:12px!important}
+ /* Category strips stay within their parent and accept native touch gestures. */
+ #mainView#mainView .v61-tab-group,#v130StockShortcuts{display:flex!important;flex-wrap:nowrap!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;overflow-x:auto!important;overflow-y:hidden!important;justify-content:flex-start!important;touch-action:pan-x pan-y!important;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin!important}
+ #v130StockShortcuts[style*="display: none"]{display:none!important}
+ #mainView#mainView .v61-tab-group{width:100%!important;flex:0 1 100%!important}
+ #mainView#mainView .v61-tab-group::-webkit-scrollbar,#v130StockShortcuts::-webkit-scrollbar{display:block!important;height:3px}
+ #mainView#mainView .v61-tab-group::-webkit-scrollbar-thumb,#v130StockShortcuts::-webkit-scrollbar-thumb{background:#bcbcc3;border-radius:4px}
+ #mainView#mainView#mainView .v61-tab-group .v61-tab{flex:1 0 auto!important;min-width:max-content!important;white-space:nowrap!important;touch-action:pan-x pan-y!important;padding:6px 10px!important;min-height:40px!important}
+ /* Quick periods use the available width instead of fixed desktop columns. */
+ #mainView#mainView :is(.v192-period,.v87-history-filters,.v110-deleted) .v154-quick{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;width:100%!important;max-width:100%!important;min-width:0!important;flex:1 1 100%!important;gap:4px!important}
+ #mainView#mainView#mainView :is(.v192-period,.v87-history-filters,.v110-deleted) .v154-quick .v154-period-btn{width:100%!important;max-width:none!important;min-width:0!important;min-height:40px!important;white-space:nowrap!important;padding:0 2px!important;font-size:11px!important;box-sizing:border-box!important}
+ #mainView#mainView .v89-period-value{min-width:0!important;max-width:100%!important;width:100%!important;white-space:normal!important;overflow-wrap:anywhere!important}
+ #mainView#mainView .v87-history-row{grid-template-columns:minmax(0,1fr)!important;min-width:0!important}
+ #mainView#mainView .v87-history-row>*{min-width:0!important;max-width:100%!important}
+ #mainView#mainView :is(.v87-history-filters,.v110-deleted,.v190-master-panel,.ac-page) :is(.filters,.v70-filter,.v90-report-controls){min-width:0!important;max-width:100%!important;flex-wrap:wrap!important;box-sizing:border-box!important}
+ #mainView#mainView .v171-layout.v171-grouped{grid-template-columns:minmax(0,1fr)!important}
+ #mainView#mainView .v171-groups{border-right:0!important;max-width:100%!important}
+ /* Wide tables scroll inside a fixed-width viewport, not in the page. */
+ #mainView#mainView :is(.table-scroll,.v153-scroll,.v75tablewrap,.v36-table-wrap,.v35-lot-scroll,.v50-intake-scroller,.v50-out-scroller,.v97-list,.meat-detail-scroll){box-sizing:border-box!important;min-width:0!important;max-width:100%!important;overflow-x:auto!important;overscroll-behavior-x:contain;touch-action:pan-x pan-y!important;-webkit-overflow-scrolling:touch;scrollbar-gutter:auto!important}
+ #mainView#mainView :is(.table-scroll,.v153-scroll,.v75tablewrap,.v36-table-wrap){width:100%!important;max-height:none!important;min-height:0!important}
+ #mainView#mainView :is(.table-scroll,.v153-scroll,.v75tablewrap,.v36-table-wrap)>table{touch-action:pan-x pan-y!important}
+ #mainView#mainView .v192-ledger .table-scroll{overflow-y:hidden!important}
+ #mainView#mainView .v192-table{width:max-content!important;min-width:1060px!important;max-width:none!important;table-layout:auto!important}
+ #mainView#mainView .v192-table :is(th,td){white-space:nowrap!important}
+ #mainView#mainView .v192-table .v192-col-name{min-width:180px!important;max-width:280px!important;white-space:normal!important}
+ #mainView#mainView .v192-ledger .table-scroll:has(td.empty){overflow:hidden!important}
+ #mainView#mainView .v192-table:has(td.empty){width:100%!important;min-width:0!important;max-width:100%!important;display:block!important}
+ #mainView#mainView .v192-table:has(td.empty) thead{display:none!important}
+ #mainView#mainView .v192-table:has(td.empty) :is(tbody,tr,td.empty){display:block!important;width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+ #mainView#mainView .v192-table td.empty{height:auto!important;min-height:72px!important;text-align:center!important;white-space:normal!important;padding:24px 10px!important;color:#636366!important}
+ #mainView#mainView .v129-scroll-hint:has(+.table-scroll td.empty){display:none!important}
+ #mainView#mainView .v192-ledger .table-footer{min-height:0!important;padding:8px 12px!important;display:flex!important;flex-wrap:wrap!important;gap:4px!important;font-size:11px!important}
+}
+@media screen and (max-width:360px){
+ #mainView#mainView :is(.v192-period,.v87-history-filters,.v110-deleted) .v154-quick{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 </style></body></html>
