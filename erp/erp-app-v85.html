@@ -3402,16 +3402,16 @@ function v198CurrentStockPage(v){showZeroStock=v171Zero.get(v)===true;if(v132Mob
 /* v198: read-only period stock. Reconstruct from live balances and the effective-dated ledger. */
 let v198Period=null,v198Query='';
 function v198Balance(current,events,from,to){
- let qty=Number(current),closing=qty,opening=qty,held=false,bad=!Number.isFinite(qty)||qty<0;
+ let qty=Number(current),closing=qty,opening=qty,held=false,peak=0,bad=!Number.isFinite(qty)||qty<0;
  for(const e of events.slice().sort((a,b)=>b.date.localeCompare(a.date)||b.at.localeCompare(a.at)||a.order-b.order)){
   if(e.date<from)break;
-  if(e.date<=to){held=held||qty>0.000001;}
+  if(e.date<=to){held=held||qty>0.000001;peak=Math.max(peak,qty);}
   qty=Math.round((qty-e.delta)*10000)/10000;
   if(qty< -0.000001||!Number.isFinite(qty))bad=true;
-  if(e.date>to)closing=qty;else held=held||qty>0.000001;
+  if(e.date>to)closing=qty;else {held=held||qty>0.000001;peak=Math.max(peak,qty);}
  }
  opening=qty;held=held||closing>0.000001||opening>0.000001;
- return {opening,closing,held,bad};
+ return {opening,closing,held,bad,peak:Math.max(peak,opening,closing)};
 }
 function v198Stock(scope,from,to){
  const lots=new Map(),byId=new Map(),events=new Map(),bad=new Set(),dates=[];let missing=0;
@@ -3462,11 +3462,11 @@ function v198Toolbar(v){
 }
 function v198HistoricalPage(v){
  const root=$('mainView'),p=v198Period,scope=v198Scope(v),data=v198Stock(scope,p.from,p.to);
- root.innerHTML='<section class="card v198-history"><div class="v198-title"><strong>기간별 재고 · 조회 전용</strong><small>기초: 시작일 직전 / 기말: 종료일 마감(오늘은 현재까지)</small></div>'+(v==='stock_overview'&&!v132Mobile()?'<label class="v198-cat">품목 분류 <select id="v198Cat">'+v61StockKinds.map(([k,label])=>'<option value="'+esc(k)+'" '+(k===v61StockKind?'selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>':'')+'<p class="v198-note">현재 재고와 유효한 입출고·이동·수정 기록으로 역산한 참고 재고입니다. 삭제·수정된 과거 기록과 초기 재고는 당시 상태와 다를 수 있습니다. 기록이 부족한 수량은 확인 불가로 표시합니다.'+(data.earliest?' 최초 확인 기록: '+esc(data.earliest)+'.':' 거래 기록 없음.')+(data.missing?' 연결되지 않은 이력 '+data.missing+'건.':'')+'</p><div class="v198-search"><input id="v198Search" type="search" placeholder="품목 · 브랜드 · 업체 · LOT 검색" value="'+esc(v198Query)+'"><span id="v198Count"></span></div><div id="v198Rows" class="v198-rows"></div></section>';
+ root.innerHTML='<section class="card v198-history"><div class="v198-title"><strong>기간별 재고 · 조회 전용</strong><small>기초: 시작일 직전 / 기말: 종료일 마감 / 기간 최대: 기록상 최대 보유량</small></div>'+(v==='stock_overview'&&!v132Mobile()?'<label class="v198-cat">품목 분류 <select id="v198Cat">'+v61StockKinds.map(([k,label])=>'<option value="'+esc(k)+'" '+(k===v61StockKind?'selected':'')+'>'+esc(label)+'</option>').join('')+'</select></label>':'')+'<p class="v198-note">현재 재고와 유효한 입출고·이동·수정 기록으로 역산한 참고 재고입니다. 삭제·수정된 과거 기록과 초기 재고는 당시 상태와 다를 수 있습니다. 기록이 부족한 수량은 확인 불가로 표시합니다.'+(data.earliest?' 최초 확인 기록: '+esc(data.earliest)+'.':' 거래 기록 없음.')+(data.missing?' 연결되지 않은 이력 '+data.missing+'건.':'')+'</p><div class="v198-search"><input id="v198Search" type="search" placeholder="품목 · 브랜드 · 업체 · LOT 검색" value="'+esc(v198Query)+'"><span id="v198Count"></span></div><div id="v198Rows" class="v198-rows"></div></section>';
  v198Toolbar(v);
  const cat=$('v198Cat');if(cat)cat.onchange=()=>{v61StockKind=cat.value;v198HistoricalPage(v);};
  const input=$('v198Search'),out=$('v198Rows');
- const draw=()=>{v198Query=input.value;const rows=data.rows.filter(l=>matchesSearch(v198Query,[l.name,l.brand,l.vendor,l.origin,l.lotId,l.location,l.spec,l.category]));$('v198Count').textContent='LOT '+rows.length+'건';out.innerHTML=rows.map(l=>'<article class="v198-row"><div class="v198-item"><strong>'+esc(l.name||'품목 미기재')+'</strong><small>'+esc([l.spec,l.origin,v66BrandLabel(l.brand),l.vendor,l.location].filter(Boolean).join(' · '))+'</small><small>'+esc('LOT '+l.lotId+(l.expiry?' · 소비기한 '+l.expiry:''))+'</small></div><div class="v198-qty"><span>기초 <b>'+esc(l.unknown?'확인 불가':fmt(l.opening)+' '+l.unit)+'</b></span><span>기말 <b>'+esc(l.unknown?'확인 불가':fmt(l.closing)+' '+l.unit)+'</b></span></div></article>').join('')||'<p class="v198-note">조회되는 재고가 없습니다. 기록이 없는 과거 재고는 확인할 수 없습니다.</p>';};input.oninput=draw;draw();
+ const draw=()=>{v198Query=input.value;const rows=data.rows.filter(l=>matchesSearch(v198Query,[l.name,l.brand,l.vendor,l.origin,l.lotId,l.location,l.spec,l.category]));$('v198Count').textContent='LOT '+rows.length+'건';out.innerHTML=rows.map(l=>'<article class="v198-row"><div class="v198-item"><strong>'+esc(l.name||'품목 미기재')+'</strong><small>'+esc([l.spec,l.origin,v66BrandLabel(l.brand),l.vendor,l.location].filter(Boolean).join(' · '))+'</small><small>'+esc('LOT '+l.lotId+(l.expiry?' · 소비기한 '+l.expiry:''))+'</small></div><div class="v198-qty"><span>기초 <b>'+esc(l.unknown?'확인 불가':fmt(l.opening)+' '+l.unit)+'</b></span><span>기말 <b>'+esc(l.unknown?'확인 불가':fmt(l.closing)+' '+l.unit)+'</b></span><span>기간 최대 <b>'+esc(l.unknown?'확인 불가':fmt(l.peak)+' '+l.unit)+'</b></span></div></article>').join('')||'<p class="v198-note">조회되는 재고가 없습니다. 기록이 없는 과거 재고는 확인할 수 없습니다.</p>';};input.oninput=draw;draw();
 }
 function v171StockPage(v){if(v198Period){v198HistoricalPage(v);return;}v198CurrentStockPage(v);v198Toolbar(v);}
 
@@ -8934,6 +8934,6 @@ html,body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!importan
 .v198-history{padding:12px;min-width:0;max-width:100%;background:#fff}
 .v198-title{display:grid;gap:4px}.v198-title strong{font-size:15px}.v198-title small,.v198-note,.v198-item small{font-size:12px;color:#636366;line-height:1.5}
 .v198-note{margin:8px 0;overflow-wrap:anywhere}.v198-cat,.v198-search{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.v198-search input{flex:1 1 180px;min-width:0;max-width:100%;padding:8px;border:1px solid #d1d1d6;border-radius:6px}.v198-search span{font-size:12px;color:#636366}
-.v198-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,auto);align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid #e5e5ea;font-size:13px}.v198-item{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}.v198-qty{display:grid;grid-template-columns:1fr 1fr;gap:10px;white-space:nowrap;font-variant-numeric:tabular-nums}.v198-qty span{display:grid;gap:2px;color:#636366}.v198-qty b{color:#222;font-weight:600}
-@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){.v198-toolbar{margin:0 0 8px;padding:4px 2px;border:0;border-radius:0;font-size:12px}.v198-toolbar button{min-height:40px!important;font-size:12px!important;padding:4px 8px!important}.v198-history{padding:8px 4px}.v198-row{grid-template-columns:minmax(0,1fr);gap:6px}.v198-qty{grid-template-columns:1fr 1fr;gap:6px}.v198-qty span{display:flex;justify-content:space-between;align-items:center;gap:4px}.v198-search input{font-size:16px!important;min-height:40px}.v198-item strong{font-size:14px}}
+.v198-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,auto);align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid #e5e5ea;font-size:13px}.v198-item{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}.v198-qty{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;white-space:nowrap;font-variant-numeric:tabular-nums}.v198-qty span{display:grid;gap:2px;color:#636366}.v198-qty b{color:#222;font-weight:600}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){.v198-toolbar{margin:0 0 8px;padding:4px 2px;border:0;border-radius:0;font-size:12px}.v198-toolbar button{min-height:40px!important;font-size:12px!important;padding:4px 8px!important}.v198-history{padding:8px 4px}.v198-row{grid-template-columns:minmax(0,1fr);gap:6px}.v198-qty{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.v198-qty span{display:grid;gap:2px;white-space:normal;overflow-wrap:anywhere}.v198-search input{font-size:16px!important;min-height:40px}.v198-item strong{font-size:14px}}
 </style></body></html>
