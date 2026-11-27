@@ -1798,13 +1798,118 @@ function v109PartnerPage(){
  $('v109PartnerBody').onclick=e=>{const b=e.target.closest('[data-v109-partner]');if(!b)return;const p=V17_PARTNERS.find(x=>String(x.id)===b.dataset.v109Partner);if(!p||p.id===own)return;$('v109PartnerTitle').textContent=v17Label(p);$('v109PartnerDetail').innerHTML=v147Section('기본정보',[['상호',p.n],['거래처명',p.a],['사업자번호',p.no],['대표자',p.own],['전화번호',p.tel],['주소',p.addr],['사용 여부',inactive(p)?'미사용':'사용 중']])+v147Additional('추가정보',[['휴대전화',p.hp],['팩스',p.fax],['업태',p.biz],['종목',p.item],['담당자',p.mgr],['담당자 연락처',p.mgrTel],['이메일',p.email]]);$('v109PartnerDialog').showModal();};
  $('v109PartnerClose').onclick=()=>$('v109PartnerDialog').close();draw();
 }
+
+/* v189: bulk product master registration, not inventory receipt. */
+const v189Kinds=[['원료육','원료육'],['finished_own','생산제품'],['finished_buy','매입상품'],['소스','소스'],['향신료','향신료'],['야채류','야채'],['부재료','기타 부재료'],['부자재','부자재'],['분류 확인','분류 확인']];
+function v189Kind(raw){
+ const k=String(raw||'').trim(),aliases={'완제품·생산제품':'finished_own','완제품·매입상품':'finished_buy','완제품 / 생산제품':'finished_own','완제품 / 매입상품':'finished_buy','야채':'야채류','기타 부재료':'부재료'};
+ return v189Kinds.find(([v,l])=>k===v||k===l)?.[0]||(Object.hasOwn(aliases,k)?aliases[k]:'');
+}
+function v189Plan(text,defaultKind,defaultType){
+ const raw=String(text||'').replace(/^\uFEFF/,'').split(/\r?\n/),rows=[],issues=[],catalog=v66ProductList();
+ const codes=new Set(v95CodeEntries().map(p=>v95CodeKey(p.code)).filter(Boolean)),explicit=new Set(),seenNames=new Set();
+ const key=(g,n,s,t)=>JSON.stringify([g,searchText(n),g==='원료육'?t:searchText(s)]);
+ const existing=new Set(catalog.map(p=>key(p.group,p.name,p.spec,p.type||'')));
+ const unknownMeat=new Set(catalog.filter(p=>p.group==='원료육'&&!p.type).map(p=>searchText(p.name)));
+ const typeOf=v=>typeChoices.find(([id,label])=>v===id||v===label)?.[0]||'';
+ let first=true;
+ for(let i=0;i<raw.length;i++){
+  if(!raw[i].trim())continue;
+  const c=raw[i].split('\t').map(x=>x.trim());
+  if(first&&c[0]==='품목코드'&&['구분','품목 구분','품목 분류'].includes(c[1])&&['품목명','상품명'].includes(c[2])){first=false;continue;}
+  first=false;
+  if(rows.length>=500){issues.push('한 번에 최대 500개까지 등록할 수 있습니다.');break;}
+  const single=c.length===1,[code,kind,name,spec,unit,type]=single?['',defaultKind,c[0],'','','']:c;
+  const k=v189Kind(kind||defaultKind),group=k.startsWith('finished_')?'완제품':k;
+  const row={line:i+1,code:code||'',kind:k,group,name:canonicalName(name),spec:spec||'',unit:unit||'',type:typeOf(type||defaultType),error:''},errs=[];
+  if(!single&&(c.length<3||c.length>6))errs.push('열 순서를 확인하세요.');
+  if(!k)errs.push('품목 구분을 확인하세요. 완제품은 생산제품 또는 매입상품으로 구분하세요.');
+  if(!row.name)errs.push('품목명이 비어 있습니다.');
+  if(row.code.length>80)errs.push('품목코드는 80자 이내로 입력하세요.');
+  if(k==='원료육'){
+   if(!row.type)errs.push('육류 구분을 확인하세요.');
+   if(row.spec)errs.push('원료육은 규격을 입력하지 않습니다.');
+   if(row.unit&&row.unit.toLowerCase()!=='kg')errs.push('원료육 단위는 kg입니다.');
+   row.unit='kg';row.spec='';
+  }else{if(type)errs.push('육류 구분은 원료육에만 입력하세요.');row.type='';}
+  if(row.code){
+   const ck=v95CodeKey(row.code);
+   if(/^P\d+$/i.test(ck))errs.push('P+숫자 코드는 내부 관리용입니다.');
+   if(codes.has(ck)||explicit.has(ck))errs.push('중복 품목코드입니다.');
+   explicit.add(ck);
+  }
+  if(k&&row.name){
+   const nk=key(group,row.name,row.spec,row.type);
+   if(existing.has(nk)||seenNames.has(nk)||(k==='원료육'&&(unknownMeat.has(searchText(row.name))||checkProduct(row.type,row.name))))errs.push('기존 또는 입력 목록과 중복된 품목입니다.');
+   seenNames.add(nk);
+  }
+  row.error=errs.join(' ');rows.push(row);
+ }
+ if(!rows.length)issues.push('등록할 품목을 입력해 주세요.');
+ const reserved=new Set([...codes,...explicit]);let n=1;
+ for(const code of reserved){const m=/^ITEM-(\d+)$/i.exec(code);if(m&&Number.isSafeInteger(Number(m[1]))&&Number(m[1])<999999999)n=Math.max(n,Number(m[1])+1);}
+ for(const row of rows)if(!row.code){let code;do{code='ITEM-'+String(n++).padStart(6,'0');}while(reserved.has(v95CodeKey(code)));row.code=code;reserved.add(v95CodeKey(code));}
+ return {rows,issues,ok:!issues.length&&!rows.some(r=>r.error)};
+}
+function v189Commit(plan){
+ if(!plan.ok)throw Error('입력 오류를 먼저 수정해 주세요.');
+ const previous=structuredClone(state);
+ try{
+  for(const row of plan.rows){
+   if(v95CodeTaken(row.code))throw Error('품목코드가 중복되었습니다: '+row.code);
+   if(row.kind==='원료육'){
+    const result=addProduct(row.type,row.name);if(result.error)throw Error(row.name+': '+result.error);
+    result.product.itemCode=row.code;
+   }else{
+    state.v66CustomCatalog=state.v66CustomCatalog||[];
+    state.v66CustomCatalog.push({code:row.code,name:row.name,group:row.group,spec:row.spec,unit:row.unit,active:true});
+    if(row.kind.startsWith('finished_')){state.v37Kinds=state.v37Kinds||{};state.v37Kinds[row.code]=row.kind==='finished_own'?'own':'buy';}
+   }
+  }
+  if(!persist())throw Error('서버 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.');
+ }catch(e){state=previous;throw e;}
+ return plan.rows.length;
+}
+function v189OpenBulk(){
+ const d=document.createElement('dialog');d.id='v189BulkDialog';d.className='v37-modal v95-product-modal';d.setAttribute('aria-labelledby','v189BulkTitle');
+ const options=v189Kinds.map(([v,l])=>'<option value="'+esc(v)+'">'+esc(l)+'</option>').join('');
+ const types=typeChoices.map(([v,l])=>'<option value="'+esc(v)+'">'+esc(l)+'</option>').join('');
+ d.innerHTML='<form id="v189BulkForm" method="dialog"><header class="v95-titlebar" data-drag-handle><h3 id="v189BulkTitle">품목 일괄등록</h3><button type="button" class="v95-close v150-dismiss" data-v189-close aria-label="닫기"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">취소</span></button></header><div class="v95-product-fields"><div class="v189-defaults"><label>기본 품목 구분<select id="v189Kind">'+options+'</select></label><label>기본 육류 구분<select id="v189Type">'+types+'</select></label></div><label>등록할 품목<textarea id="v189Text" rows="7" spellcheck="false" placeholder="품목명만 한 줄씩 입력하거나 엑셀에서 복사하여 붙여넣으세요."></textarea></label><small>품목명만 한 줄씩 입력하면 위 기본 구분을 적용합니다. 여러 구분을 함께 등록하려면 엑셀에서 다음 열 순서로 붙여넣으세요: 품목코드 / 구분 / 품목명 / 규격 / 단위 / 육류 구분. 코드는 비우면 자동 부여됩니다.</small><div class="v189-tools"><button type="button" class="btn btn-outline" id="v189Template">엑셀 양식</button><button type="button" class="btn btn-outline" id="v189Preview">미리보기</button><span id="v189Count" aria-live="polite"></span></div><div id="v189Error" class="v37-error" role="alert"></div><div id="v189Results" class="v189-results" hidden></div></div><div class="v37-buttons v95-product-footer"><button type="button" data-v189-close>취소</button><button type="submit" class="primary" id="v189Save" disabled>일괄등록</button></div></form>';
+ document.body.append(d);const get=id=>d.querySelector('#'+id);
+ const invalidate=()=>{get('v189Save').disabled=true;get('v189Results').hidden=true;get('v189Results').innerHTML='';get('v189Error').textContent='';get('v189Count').textContent='';};
+ const plan=()=>v189Plan(get('v189Text').value,get('v189Kind').value,get('v189Type').value);
+ const show=p=>{
+  const errors=p.rows.filter(r=>r.error).length;
+  get('v189Error').textContent=p.issues.join(' ')||(errors?errors+'개 행에 오류가 있습니다. 수정 후 다시 미리보기 하세요.':'');
+  get('v189Count').textContent=p.rows.length+'개 · 오류 '+errors+'개';
+  get('v189Results').hidden=!p.rows.length;
+  get('v189Results').innerHTML='<table><thead><tr><th>행</th><th>품목코드</th><th>구분</th><th>품목명</th><th>규격</th><th>단위</th><th>육류 구분</th><th>검사</th></tr></thead><tbody>'+p.rows.map(r=>'<tr>'+[r.line,r.code,v189Kinds.find(([v])=>v===r.kind)?.[1]||'',r.name,r.spec,r.unit,typeChoices.find(([v])=>v===r.type)?.[1]||'',r.error||'등록 가능'].map(v=>'<td>'+esc(String(v))+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
+  get('v189Save').disabled=!p.ok;
+ };
+ get('v189Kind').onchange=get('v189Type').onchange=get('v189Text').oninput=invalidate;
+ get('v189Preview').onclick=()=>show(plan());
+ get('v189Template').onclick=()=>{
+  try{const rows=[['품목코드','구분','품목명','규격','단위','육류 구분'],['','','','','','']],blob=new Blob(officialZip(v168MasterWorkbook('품목 일괄등록',rows,[20,16,38,25,12,14])),{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='품목_일괄등록_양식.xlsx';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),3000);}catch(e){get('v189Error').textContent='양식 다운로드 실패: '+e.message;}
+ };
+ get('v189BulkForm').onsubmit=e=>{
+  e.preventDefault();if(get('v189Save').disabled)return;
+  const p=plan();show(p);if(!p.ok)return;
+  get('v189Save').disabled=true;
+  let count;try{count=v189Commit(p);}catch(err){get('v189Error').textContent=err.message;return;}
+  d.close();renderProducts();toast(count+'개 품목이 등록되었습니다. 재고 수량은 변경되지 않았습니다.');
+ };
+ d.querySelectorAll('[data-v189-close]').forEach(b=>b.onclick=()=>v158AskClose(d));
+ d.addEventListener('close',()=>d.remove(),{once:true});d.showModal();v158BindInputDialog(d);
+}
+
 function productPage(){
- $('mainView').innerHTML=`<section class="inventory-panel card"><div class="panel-top"><div><h2>전체 상품(품목) 등록·관리</h2><p class="page-desc">상태 버튼을 누르면 사용 중 / 미사용으로 전환됩니다. 미사용 품목은 신규 입고 목록에서 제외되며 기존 재고와 기록은 유지됩니다.</p></div><div class="v168-master-actions"><button type="button" class="btn btn-outline v168-export" id="v168ProductExcel" title="검색 조건과 관계없이 전체 품목 저장">엑셀 다운로드</button><button type="button" class="btn btn-primary" id="v66NewGeneral">+ 품목 등록</button></div></div><div class="filters"><div class="search-field"><input id="productSearch" type="search" placeholder="품목코드·상품명·규격·원산지·브랜드 검색"></div><select id="v66ProductCategory" class="product-status-select">${V66_CATEGORIES.map(g=>`<option value="${g}">${v66GroupLabel(g)}</option>`).join('')}</select><select id="productStatus" class="product-status-select"><option value="all">전체 상태</option><option value="active">사용 중</option><option value="inactive">미사용</option></select><span class="filter-count" id="productCount"></span></div><div class="table-scroll"><table class="inventory-table product-table"><thead><tr><th>품목코드</th><th>구분</th><th>상품명</th><th>규격</th><th>단위</th><th>원산지 / 브랜드</th><th>사용 여부</th><th>관리 / 분류변경</th></tr></thead><tbody id="productBody"></tbody></table></div><div class="table-footer"><span>원본 코드 보존 · 불분명한 분류는 ‘분류 확인’에서 변경 가능</span><button type="button" id="v66MoreProducts" class="mini-btn" hidden>더 표시</button><select id="v66PageSize" class="product-status-select" aria-label="표시 개수"><option value="200">200개씩</option><option value="500">500개씩</option><option value="99999">전체 표시</option></select></div></section>
+ $('mainView').innerHTML=`<section class="inventory-panel card"><div class="panel-top"><div><h2>전체 상품(품목) 등록·관리</h2><p class="page-desc">상태 버튼을 누르면 사용 중 / 미사용으로 전환됩니다. 미사용 품목은 신규 입고 목록에서 제외되며 기존 재고와 기록은 유지됩니다.</p></div><div class="v168-master-actions"><button type="button" class="btn btn-outline v168-export" id="v168ProductExcel" title="검색 조건과 관계없이 전체 품목 저장">엑셀 다운로드</button><button type="button" class="btn btn-primary" id="v66NewGeneral">+ 품목 등록</button><button type="button" class="btn btn-primary" id="v189BulkOpen">일괄등록</button></div></div><div class="filters"><div class="search-field"><input id="productSearch" type="search" placeholder="품목코드·상품명·규격·원산지·브랜드 검색"></div><select id="v66ProductCategory" class="product-status-select">${V66_CATEGORIES.map(g=>`<option value="${g}">${v66GroupLabel(g)}</option>`).join('')}</select><select id="productStatus" class="product-status-select"><option value="all">전체 상태</option><option value="active">사용 중</option><option value="inactive">미사용</option></select><span class="filter-count" id="productCount"></span></div><div class="table-scroll"><table class="inventory-table product-table"><thead><tr><th>품목코드</th><th>구분</th><th>상품명</th><th>규격</th><th>단위</th><th>원산지 / 브랜드</th><th>사용 여부</th><th>관리 / 분류변경</th></tr></thead><tbody id="productBody"></tbody></table></div><div class="table-footer"><span>원본 코드 보존 · 불분명한 분류는 ‘분류 확인’에서 변경 가능</span><button type="button" id="v66MoreProducts" class="mini-btn" hidden>더 표시</button><select id="v66PageSize" class="product-status-select" aria-label="표시 개수"><option value="200">200개씩</option><option value="500">500개씩</option><option value="99999">전체 표시</option></select></div></section>
  <dialog id="v66NewDialog" class="v37-modal v95-product-modal" aria-labelledby="v95ProductTitle"><form id="v66NewForm" method="dialog"><header class="v95-titlebar" data-drag-handle><h3 id="v95ProductTitle">품목 등록</h3><button type="button" class="v95-close v150-dismiss" id="v95CloseProduct" aria-label="취소"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg><span class="v151-mobile-dismiss" aria-hidden="true">취소</span></button></header><div class="v95-product-fields"><label>품목 구분<select id="v66Group">${[['원료육','원료육'],['finished_own','생산제품'],['finished_buy','매입상품'],['소스','소스'],['향신료','향신료'],['야채류','야채'],['부재료','기타 부재료'],['부자재','부자재'],['분류 확인','분류 확인']].map(([g,t])=>`<option value="${g}">${t}</option>`).join('')}</select></label><label>품목코드<input id="v66Code" placeholder="기존 코드 입력 또는 자동 부여" autocomplete="off" maxlength="80"><small>기존 코드가 있으면 입력하세요. 비워 두면 자동 부여됩니다.</small></label><label>품목명<input id="v66Name" required placeholder="품목명"></label><div id="v95MeatFields"><label>육류 구분<select id="v95MeatType">${typeChoices.map(([v,t])=>`<option value="${v}">${t}</option>`).join('')}</select></label><label>단위<input value="kg" readonly></label></div><div id="v95GeneralFields" hidden><label>규격<input id="v66Spec" placeholder="예: 1kg*10팩"></label><label>단위<input id="v66Unit" placeholder="예: 팩 / kg"></label></div><div class="v37-error" id="v66Err" role="alert"></div></div><div class="v37-buttons v95-product-footer"><button type="button" id="v66Cancel">취소</button><button class="primary" type="submit">등록</button></div></form></dialog>`;
  $('productSearch').oninput=renderProducts;$('productStatus').onchange=renderProducts;$('v66ProductCategory').onchange=renderProducts;$('v168ProductExcel').onclick=()=>v168DownloadMaster('products');
  $('v66PageSize').onchange=renderProducts;
  $('v66MoreProducts').onclick=()=>{$('v66PageSize').value='99999';renderProducts()};
  const switchKind=()=>{const meat=$('v66Group').value==='원료육';$('v95MeatFields').hidden=!meat;$('v95GeneralFields').hidden=meat;};
+ $('v189BulkOpen').onclick=v189OpenBulk;
  $('v66Group').onchange=switchKind;
  $('v66NewGeneral').onclick=()=>{$('v66NewForm').reset();$('v66Err').textContent='';switchKind();$('v66NewDialog').showModal();v158BindInputDialog($('v66NewDialog'));};
  $('v66Cancel').onclick=$('v95CloseProduct').onclick=()=>v158AskClose($('v66NewDialog'));switchKind();
@@ -6244,9 +6349,9 @@ body button:where(:not(.side-link,.nav-heading,.quick-link,.menu-toggle,.excel-f
 body button:where(:not(.side-link,.nav-heading,.quick-link,.menu-toggle,.excel-filter-btn,.v80-sort-label,.collapse-btn,.link-btn,.tiny-link,.v72pick,.v61-tab,.v18-remove,.in-remove,.v47-done-edit,.icon-button,.v37-tiny,.undo-btn,.v50-in-detail-toggle,.erp-key-active,[data-view],[data-group-toggle],[data-filter],[data-v40-filter],[data-v72-select],[data-v80-sort],[data-v80-group-sort],[aria-pressed="true"],[aria-selected="true"]):not(.active):not(.selected):not(.on):not(.chosen):not(:disabled)):active:not(:disabled){background:#e3e3e8!important;box-shadow:inset 0 1px 3px #00000020!important}
 body :is(.btn,.reset-filters,.csv-link,.intake-btn,.intake-save,.v61-tab,.v36-mode button,.v37-buttons button,.v33-edit-foot button,.v88-calendar .v88-footer button,.popup-actions button){min-height:var(--mac-control)!important;font-size:12px!important;line-height:1.35!important;border-radius:var(--mac-radius)!important;padding:5px 11px!important}
 body :is(.mini-btn,.action-btn){min-height:28px!important;font-size:11px!important;padding:4px 9px!important;border-radius:var(--mac-radius)!important}
-body :is(button.btn-primary,button.primary,button.intake-save,button[type=submit],#saveAction,#v33EditSave,#saveQuickProduct,#v36Save,#v37RecipeSave,#v37MakeSave,#v38SavePlan,#acNewPurchase,#acNewSale,#acNew,#intakeSave,#v18Save,#addProduct,#v66NewGeneral,button[data-filter-apply],button[data-v40-apply],button[data-apply],.v88-calendar .v88-footer .v88-apply):not(:disabled){background:var(--mac-primary)!important;color:white!important;border-color:var(--mac-blue-border)!important;border-radius:var(--mac-radius)!important;box-shadow:var(--mac-primary-shadow)!important;font-weight:600!important}
-body :is(button.btn-primary,button.primary,button.intake-save,button[type=submit],#saveAction,#v33EditSave,#saveQuickProduct,#v36Save,#v37RecipeSave,#v37MakeSave,#v38SavePlan,#acNewPurchase,#acNewSale,#acNew,#intakeSave,#v18Save,#addProduct,#v66NewGeneral,button[data-filter-apply],button[data-v40-apply],button[data-apply],.v88-calendar .v88-footer .v88-apply):hover:not(:disabled){background:var(--erp-ui-accent-fill)!important}
-body :is(button.btn-primary,button.primary,button.intake-save,button[type=submit],#saveAction,#v33EditSave,#saveQuickProduct,#v36Save,#v37RecipeSave,#v37MakeSave,#v38SavePlan,#acNewPurchase,#acNewSale,#acNew,#intakeSave,#v18Save,#addProduct,#v66NewGeneral,button[data-filter-apply],button[data-v40-apply],button[data-apply],.v88-calendar .v88-footer .v88-apply):active:not(:disabled){background:var(--erp-ui-accent-fill)!important;box-shadow:inset 0 1px 2px #00000020!important}
+body :is(button.btn-primary,button.primary,button.intake-save,button[type=submit],#saveAction,#v33EditSave,#saveQuickProduct,#v36Save,#v37RecipeSave,#v37MakeSave,#v38SavePlan,#acNewPurchase,#acNewSale,#acNew,#intakeSave,#v18Save,#addProduct,#v66NewGeneral,#v189BulkOpen,button[data-filter-apply],button[data-v40-apply],button[data-apply],.v88-calendar .v88-footer .v88-apply):not(:disabled){background:var(--mac-primary)!important;color:white!important;border-color:var(--mac-blue-border)!important;border-radius:var(--mac-radius)!important;box-shadow:var(--mac-primary-shadow)!important;font-weight:600!important}
+body :is(button.btn-primary,button.primary,button.intake-save,button[type=submit],#saveAction,#v33EditSave,#saveQuickProduct,#v36Save,#v37RecipeSave,#v37MakeSave,#v38SavePlan,#acNewPurchase,#acNewSale,#acNew,#intakeSave,#v18Save,#addProduct,#v66NewGeneral,#v189BulkOpen,button[data-filter-apply],button[data-v40-apply],button[data-apply],.v88-calendar .v88-footer .v88-apply):hover:not(:disabled){background:var(--erp-ui-accent-fill)!important}
+body :is(button.btn-primary,button.primary,button.intake-save,button[type=submit],#saveAction,#v33EditSave,#saveQuickProduct,#v36Save,#v37RecipeSave,#v37MakeSave,#v38SavePlan,#acNewPurchase,#acNewSale,#acNew,#intakeSave,#v18Save,#addProduct,#v66NewGeneral,#v189BulkOpen,button[data-filter-apply],button[data-v40-apply],button[data-apply],.v88-calendar .v88-footer .v88-apply):active:not(:disabled){background:var(--erp-ui-accent-fill)!important;box-shadow:inset 0 1px 2px #00000020!important}
 body :is(.v61-tab,.v36-mode button,.v37-kind button,.v72modes button,.v37-tabs button,.v38-crumbnav button){background:var(--mac-normal)!important;border-color:#c4c4ca!important;color:#343438!important;box-shadow:var(--mac-shadow)!important}
 body :is(.v61-tab.active,.v87-history-filters .v61-tab.active,.v36-mode button.active,.v37-kind button.active,.v72modes button.active,.v37-tabs button.active,.v38-crumbnav button.active,.segmented button.on){background:var(--mac-primary)!important;border-color:var(--mac-blue-border)!important;color:white!important;box-shadow:var(--mac-primary-shadow)!important;font-weight:600!important}
 body :is(.menu-toggle,.excel-filter-btn,.v80-sort-label,.collapse-btn,.link-btn,.v37-tiny,.undo-btn){background:transparent!important;box-shadow:none!important;color:#56565c!important}
@@ -8347,5 +8452,23 @@ html body #v130Tabs button[aria-current=page] svg,html body #v130StockShortcuts 
 #sidebar.sidebar .v68-card .side-menu .v68-link.selected:hover{background:var(--erp-ui-accent-fill)!important}
 dialog.v155-calendar .v88-days button.chosen,dialog.v155-calendar .v88-days button.chosen:hover{background:var(--erp-ui-accent-fill)!important;border-color:var(--erp-ui-accent)!important;color:#fff!important;box-shadow:none!important}
 
+}
+</style>
+<style id="v189-bulk-product">
+@media screen{
+#v66Err:empty,#v189Error:empty{display:none!important}
+#v189BulkDialog{width:min(870px,calc(100vw - 24px))!important}
+#v189BulkDialog .v189-defaults{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#v189BulkDialog [hidden]{display:none!important}
+#v189BulkDialog textarea{width:100%;min-height:126px;resize:vertical;box-sizing:border-box;padding:10px;border:1px solid #d1d1d6;border-radius:6px;font:inherit;line-height:1.5}
+#v189BulkDialog .v189-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#v189BulkDialog .v189-tools button{min-height:32px}
+#v189BulkDialog .v189-tools span{margin-left:auto;color:#666;font-size:13px}
+#v189BulkDialog .v189-results{max-height:260px;overflow:auto;border:1px solid #ddd;border-radius:6px}
+#v189BulkDialog table{width:100%;border-collapse:collapse;min-width:680px;font-size:13px;text-align:left}
+#v189BulkDialog th,#v189BulkDialog td{padding:8px;border-bottom:1px solid #e5e5e5;white-space:normal;overflow-wrap:anywhere}
+#v189BulkDialog th{position:sticky;top:0;background:#f2f2f4;font-weight:500}
+#v189BulkDialog td:last-child{min-width:100px}
+#v189BulkDialog #v189Error{margin-top:0}
 }
 </style></body></html>
