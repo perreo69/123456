@@ -51,7 +51,7 @@ html,body{font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;backgr
 dialog{border:0;border-radius:18px;box-shadow:0 10px 36px #0002}
 }
 </style></head><body>
-<section id="gate"><div class="panel"><h1>미르스타푸드 ERP</h1><p>직원 전용 · 공동 재고 관리</p><form id="login"><label for="uid">아이디 또는 이메일</label><input id="uid" required autocomplete="username" maxlength="254" placeholder="아이디 또는 이메일"><label for="pw">비밀번호</label><input id="pw" type="password" required autocomplete="current-password"><div id="inviteField" hidden><label for="registerName">이름</label><input id="registerName" autocomplete="name" maxlength="50" placeholder="이름을 입력하세요"><input id="invite" type="hidden"><label for="confirmPw">비밀번호 확인</label><input id="confirmPw" type="password" autocomplete="new-password"></div><button class="primary full" id="submit">로그인</button></form><button id="switchMode" class="full" type="button">계정 생성</button><p id="message" class="msg" role="status"></p></div></section>
+<section id="gate"><div class="panel"><div class="next-login-brand"><svg viewBox="0 0 32 32" width="40" height="40" aria-hidden="true" fill="#1260db"><path d="M15 28C4 25 1 15 2 5c9 1 14 6 14 15V28zM17 28C28 25 31 15 30 5c-9 1-14 6-13 15z"/></svg><h1>MirStar Food ERP</h1><p>식품 제조·유통 통합관리 시스템</p></div><form id="login"><label for="uid">아이디 또는 이메일</label><input id="uid" required autocomplete="username" maxlength="254" placeholder="아이디 또는 이메일 입력"><label for="pw">비밀번호</label><div class="next-login-password"><input id="pw" type="password" required autocomplete="current-password" placeholder="비밀번호 입력"><button type="button" id="toggleLoginPw" aria-label="비밀번호 표시" aria-pressed="false"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/><path id="loginEyeSlash" d="M3 3l18 18" style="display:none"/></svg></button></div><div id="inviteField" hidden><label for="registerName">이름</label><input id="registerName" autocomplete="name" maxlength="50" placeholder="이름을 입력하세요"><input id="invite" type="hidden"><label for="confirmPw">비밀번호 확인</label><input id="confirmPw" type="password" autocomplete="new-password"></div><label class="next-login-remember" for="rememberLogin"><input type="checkbox" id="rememberLogin" checked><span>로그인 상태 유지</span></label><button class="primary full" id="submit">로그인</button></form><div class="next-login-links"><button id="switchMode" type="button">계정 생성</button><span class="next-login-link-divider" aria-hidden="true">│</span><button id="loginHelp" type="button">비밀번호 찾기</button></div><p id="message" class="msg" role="status"></p></div></section>
 <section id="shell" hidden><header id="bar"><strong id="who"></strong><span id="status" aria-live="polite">연결 중</span><button id="refresh" title="최신 ERP 버전 및 서버 데이터 불러오기">새로고침</button><button id="changePw">내 정보</button><button id="logout">로그아웃</button></header><iframe id="app" title="미르스타푸드 ERP" referrerpolicy="no-referrer"></iframe></section>
 <dialog id="passwordDialog"><form id="passwordForm"><h2>내 정보</h2><label for="accountName">이름</label><div style="display:flex;gap:6px"><input id="accountName" maxlength="50" autocomplete="name" placeholder="이름을 입력하세요"><button id="saveName" type="button" style="white-space:nowrap">이름 저장</button></div><p id="nameMessage" class="msg" role="status"></p><label for="accountId">아이디 또는 이메일</label><input id="accountId" readonly aria-readonly="true" style="background:#f1f1f1;color:#444"><p>아이디는 변경할 수 없습니다. 이름과 비밀번호는 변경할 수 있습니다.</p><label for="oldPw">현재 비밀번호</label><input id="oldPw" type="password" required autocomplete="current-password"><label for="newPw">새 비밀번호 (8자 이상)</label><input id="newPw" type="password" required minlength="8" maxlength="72" autocomplete="new-password"><label for="newPw2">새 비밀번호 확인</label><input id="newPw2" type="password" required autocomplete="new-password"><p class="msg" id="passwordMessage"></p><div id="staffLinkTools" hidden style="margin-top:16px;padding-top:12px;border-top:1px solid #d1d1d6"><button id="newInvite" type="button">직원 가입 링크 발급</button></div><div class="actions"><button type="button" id="cancelPw">취소</button><button class="primary" id="savePw">비밀번호 변경</button></div></form></dialog>
 <dialog id="inviteDialog"><h2>직원 가입 링크</h2><p>카카오톡으로 해당 직원에게만 보내세요. 가입 1회에 한해 유효하며 48시간 후 만료됩니다.</p><div id="inviteOutput"></div><div class="actions"><button id="copyInvite">복사</button><button id="closeInvite">닫기</button></div></dialog>
@@ -60,7 +60,22 @@ dialog{border:0;border-radius:18px;box-shadow:0 10px 36px #0002}
 const URL_BASE='https://waxjmsadrjqwjogfonyv.supabase.co',KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndheGptc2Fkcmpxd2pvZ2Zvbnl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxODg3MjcsImV4cCI6MjExMDc2NDcyN30.OQkNANKHl5TrGYfuIuoHoHA71AtDoBggBvMbAloRL5I',APP='erp-app-v85.html',DOMAIN='@mirrstarfood-erp.example.com';
 const $=id=>document.getElementById(id),gate=$('gate'),shell=$('shell'),frame=$('app'),status=$('status'),msg=$('message');
 if(!window.supabase?.createClient){msg.textContent='인증 모듈을 불러오지 못했습니다. 인터넷 연결을 확인한 후 새로고침해 주세요. (AUTH-SDK)';}
-const db=window.supabase?.createClient(URL_BASE,KEY,{auth:{storage:sessionStorage,storageKey:'mirrstar-erp-auth-v85',persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+// Authentication only: never persist plaintext passwords.
+const authStorageKey='mirrstar-erp-auth-v85',authModeKey='mirrstar-erp-auth-v85-remember';
+const authGet=(type,key)=>{try{return window[type].getItem(key)}catch{return null}};
+const authSet=(type,key,value)=>{try{window[type].setItem(key,value);return true}catch{return false}};
+const authRemove=(type,key)=>{try{window[type].removeItem(key)}catch{}};
+let rememberAuth=authGet('sessionStorage',authModeKey)!=='0';
+$('rememberLogin').checked=rememberAuth;
+const authStorage={
+ getItem(k){return rememberAuth?(authGet('localStorage',k)??authGet('sessionStorage',k)):authGet('sessionStorage',k)},
+ setItem(k,v){if(rememberAuth&&authSet('localStorage',k,v)){authRemove('sessionStorage',k)}else{authSet('sessionStorage',k,v);if(!rememberAuth)authRemove('localStorage',k)}},
+ removeItem(k){authRemove('localStorage',k);authRemove('sessionStorage',k)}
+};
+function setRememberAuth(value){rememberAuth=Boolean(value);authSet('sessionStorage',authModeKey,rememberAuth?'1':'0')}
+$('toggleLoginPw').onclick=()=>{const visible=$('pw').type==='password';$('pw').type=visible?'text':'password';$('toggleLoginPw').setAttribute('aria-label',visible?'비밀번호 숨기기':'비밀번호 표시');$('toggleLoginPw').setAttribute('aria-pressed',String(visible));$('loginEyeSlash').style.display=visible?'':'none'};
+$('loginHelp').onclick=()=>{msg.textContent='비밀번호를 잊으셨다면 관리자에게 문의해 주세요. 로그인 후 내 정보에서 비밀번호를 변경할 수 있습니다.'};
+const db=window.supabase?.createClient(URL_BASE,KEY,{auth:{storage:authStorage,storageKey:authStorageKey,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let session=null,revision=0,lastJSON='',registration=false,channel=null,pollTimer=null,polling=false,blocked=false,loading=false,epoch=0;
 window.erpSeed=null;window.erpInitialState=null;
 function loginEmail(input){
@@ -73,7 +88,7 @@ let staffName='',staffAdmin=false;
 function updateWho(){const email=session?.user?.email||'';const id=email.endsWith(DOMAIN)?email.slice(0,-DOMAIN.length):email;$('who').textContent=(staffName||id)+(staffAdmin?' (관리자)':'');}
 function notice(t){status.textContent=t;}
 const joinParam=new URLSearchParams(location.hash.slice(1)).get('join')||'';let joinCode=/^[a-f0-9]{64}$/i.test(joinParam)?joinParam.toLowerCase():'';
-function mode(register){register=Boolean(register);registration=register;$('inviteField').hidden=!register;$('registerName').required=register;$('invite').value=register?joinCode:'';$('confirmPw').required=register;$('pw').autocomplete=register?'new-password':'current-password';$('pw').placeholder=register?'8자 이상':'';$('submit').textContent=register?'계정 생성':'로그인';$('switchMode').textContent=register?'로그인으로 돌아가기':'계정 생성';msg.textContent='';}
+function mode(register){register=Boolean(register);registration=register;$('inviteField').hidden=!register;$('registerName').required=register;$('invite').value=register?joinCode:'';$('confirmPw').required=register;$('pw').autocomplete=register?'new-password':'current-password';$('pw').placeholder=register?'8자 이상':'비밀번호 입력';$('submit').textContent=register?'계정 생성':'로그인';$('switchMode').textContent=register?'로그인으로 돌아가기':'계정 생성';msg.textContent='';}
 $('switchMode').hidden=false;$('switchMode').onclick=()=>mode(!registration);if(joinCode)mode(true);
 async function closeERP(){epoch++;clearInterval(pollTimer);pollTimer=null;if(channel){const ch=channel;channel=null;db.removeChannel(ch);}frame.src='about:blank';window.erpSeed=null;window.erpInitialState=null;lastJSON='';blocked=false;session=null;shell.hidden=true;gate.hidden=false;}
 db?.auth.onAuthStateChange((event,s)=>{session=s;if(event==='SIGNED_OUT')closeERP();});
@@ -102,7 +117,7 @@ $('login').onsubmit=async e=>{
    const out=await res.json().catch(()=>({}));if(!res.ok)throw Error((out.message||'계정 생성 요청 실패')+' (HTTP '+res.status+(out.code?' / '+out.code:'')+')');joinCode='';history.replaceState(null,'',location.pathname+location.search);$('switchMode').hidden=false;mode(false);$('invite').value='';$('confirmPw').value='';if(out.pending){msg.textContent='직원 가입 링크가 유효하지 않습니다.';return;}
    if(!db){msg.textContent='계정은 생성되었습니다. 인증 모듈 연결 실패로 새로고침 후 로그인해 주세요. (AUTH-SDK)';return;}
   }
-  if(!db)throw Error('인증 모듈 연결 실패 (AUTH-SDK)');const result=await db.auth.signInWithPassword({email,password});if(result.error)throw Error('아이디 또는 비밀번호를 확인해 주세요.');session=result.data.session;$('pw').value='';await openERP();
+  if(!db)throw Error('인증 모듈 연결 실패 (AUTH-SDK)');setRememberAuth($('rememberLogin').checked);const result=await db.auth.signInWithPassword({email,password});if(result.error)throw Error('아이디 또는 비밀번호를 확인해 주세요.');session=result.data.session;$('pw').value='';await openERP();
  }catch(err){msg.textContent=err.message;}finally{$('pw').value='';$('submit').disabled=false;$('switchMode').disabled=false;}
 };
 window.erpAuditActor=()=>{const u=session?.user;if(!u)return null;const email=u.email||'';const login=email.endsWith(DOMAIN)?email.slice(0,-DOMAIN.length):email;return {id:u.id,name:String(staffName||'').trim()||login||u.id};};
@@ -142,7 +157,7 @@ $('passwordForm').onsubmit=async e=>{e.preventDefault();const n=$('newPw').value
 $('newInvite').onclick=async()=>{$('newInvite').disabled=true;try{const {data,error}=await db.rpc('erp_make_invite');if(error||!data)throw Error('직원 초대 코드 생성 실패');$('inviteOutput').textContent=new URL('./',location.href).href+'#join='+data;$('inviteDialog').showModal();}catch(e){alert(e.message);}finally{$('newInvite').disabled=false;}};
 $('copyInvite').onclick=async()=>{try{await navigator.clipboard.writeText($('inviteOutput').textContent);$('copyInvite').textContent='복사됨';}catch{alert('코드를 직접 선택해서 복사하세요.');}};
 $('closeInvite').onclick=()=>{$('inviteDialog').close();$('inviteOutput').textContent='';$('copyInvite').textContent='복사';};
-(async()=>{if(!db)return;const {data}=await db.auth.getSession();if(data.session){session=data.session;await openERP();}})();
+(async()=>{if(!db)return;const {data}=await db.auth.getSession();if(data.session){session=data.session;if(rememberAuth){const stored=authGet('sessionStorage',authStorageKey);if(stored&&authSet('localStorage',authStorageKey,stored))authRemove('sessionStorage',authStorageKey)}await openERP();}})();
 </script><style id="v89-popup-drag">.erp-window-handle{cursor:move!important;touch-action:none;user-select:none}.erp-window-handle button,.erp-window-handle input,.erp-window-handle select,.erp-window-handle a{cursor:pointer!important;touch-action:auto;user-select:auto}.erp-window-grip{padding:7px 10px;border-bottom:1px solid #ddd;background:#f5f5f5;color:#555;font-size:12px;font-weight:600}.excel-popup .erp-window-grip{margin:-2px -2px 5px}.v88-top{cursor:move}.v89-period-value{display:inline-flex;align-items:center;color:#555;font-size:12px;white-space:nowrap;font-variant-numeric:tabular-nums;padding:0 4px}.v87-history-filters #v70Period,.ac-page #acPeriod{min-width:86px!important;justify-content:center}.ac-page .ac-filters{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.ac-page .ac-filters .btn,.ac-page .ac-filters input,.ac-page .ac-filters select{box-sizing:border-box;height:32px!important;min-height:32px!important;max-height:32px!important;margin:0!important;padding:0 11px!important;line-height:normal!important;border:1px solid #d0d0d0;border-radius:4px;font-size:12px!important;font-weight:400;background:#fff;color:#333;vertical-align:middle}.ac-page .ac-filters .btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}.ac-page .ac-filters #acQuery{width:240px;min-width:0;flex:0 1 240px}.ac-page .ac-filters select{min-width:105px;padding-right:25px!important}.ac-page .ac-filters input::placeholder{color:#777;opacity:1}@media print{.erp-window-grip{display:none!important}.erp-window-handle{cursor:auto!important}}</style><script>(function installDrag(){
  if(window.__erpDraggableWindows)return;window.__erpDraggableWindows=true;
  const saved=new WeakMap();let drag=null,pending=false;
@@ -258,4 +273,27 @@ html body .erp-close-heading{display:flex!important;align-items:center!important
  function update(){if(!mq.matches)return;for(const [id,selector] of [['passwordDialog','#cancelPw'],['inviteDialog','#closeInvite']]){const d=document.getElementById(id);if(!d||d.querySelector('.erp-added-close'))continue;const target=d.querySelector(selector),h=d.querySelector(':scope > h2,:scope > form > h2');if(!target||!h)continue;const b=document.createElement('button');b.type='button';b.className='erp-added-close';b.setAttribute('aria-label','닫기');b.innerHTML=svg;b.onclick=e=>{e.stopPropagation();target.click();};h.append(b);h.classList.add('erp-close-heading');}}
  mq.addEventListener('change',update);update();
 })();
-</script></body></html>
+</script><style id="next-login-only">
+html body #gate{background:#f2f4f8!important;font:14px/1.5 Pretendard,Inter,"Noto Sans KR","Malgun Gothic",Arial,sans-serif!important;min-height:100dvh;padding:24px 14px}
+html body #gate .panel{width:min(400px,100%)!important;border:1px solid #e0e4ea!important;border-radius:18px!important;background:#fff!important;box-shadow:0 4px 24px #1720330d!important;padding:30px 28px!important;color:#202733!important}
+html body #gate .next-login-brand{display:flex;align-items:center;flex-direction:column;gap:8px;margin:0 0 24px;text-align:center}
+html body #gate .next-login-brand h1{font:750 23px/1.25 Pretendard,Inter,"Noto Sans KR",Arial,sans-serif!important;letter-spacing:-.6px;color:#252c36;margin:0!important}
+html body #gate .next-login-brand p{color:#697483!important;font-size:13px!important;margin:0!important}
+html body #gate label:not(.next-login-remember){font-size:13px!important;font-weight:600;color:#202733;margin:14px 0 6px}
+html body #gate input:not([type=checkbox]){width:100%!important;height:44px!important;min-height:44px!important;border:1px solid #d1d6df!important;border-radius:8px!important;box-shadow:none!important;background:white!important;font:400 14px/1.5 inherit;color:#202733!important;padding:10px 12px!important}
+html body #gate input::placeholder{color:#9298a1}
+html body #gate input:focus{outline:2px solid #1260db!important;outline-offset:1px}
+html body #gate .next-login-password{position:relative}
+html body #gate .next-login-password input{padding-right:46px!important}
+html body #gate #toggleLoginPw{position:absolute;right:4px;top:4px;width:36px;height:36px;min-height:36px;border:0!important;border-radius:6px!important;background:transparent!important;box-shadow:none!important;color:#697483!important;padding:6px;display:grid;place-items:center}
+html body #gate .next-login-remember{display:flex;align-items:center;gap:8px;margin:17px 0 2px;font-size:13px;color:#394454;cursor:pointer}
+html body #gate #rememberLogin{appearance:auto!important;width:17px!important;height:17px!important;min-height:0!important;margin:0!important;accent-color:#1260db!important;padding:0!important}
+html body #gate .panel #submit:not(:disabled){height:44px!important;min-height:44px!important;background:#1260db!important;color:white!important;border:1px solid #1260db!important;border-radius:8px!important;font-weight:650!important;font-size:15px!important;margin-top:15px!important;box-shadow:none!important}
+html body #gate .next-login-links{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:15px}
+html body #gate .next-login-links button{width:auto!important;min-height:28px!important;height:auto!important;margin:0!important;padding:4px 3px!important;border:0!important;background:transparent!important;box-shadow:none!important;font-size:13px!important;font-weight:500!important;color:#697483!important}
+html body #gate .panel #switchMode{color:#1260db!important}
+html body #gate .next-login-link-divider{color:#d1d6df}
+html body #gate #message{margin:8px 0 0!important;min-height:0!important;font-size:13px!important;color:#56616e!important}
+html body #gate #message:empty{display:none!important}
+@media(max-width:600px){html body #gate .panel{padding:26px 23px!important;width:min(360px,100%)!important}html body #gate input:not([type=checkbox]){font-size:16px!important}}
+</style></body></html>
