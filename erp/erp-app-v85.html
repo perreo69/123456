@@ -9030,4 +9030,27 @@ html,body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!importan
 @media screen and (max-width:340px){
 #mainView#mainView#mainView#mainView#mainView#mainView :is(.v192-period,.v87-history-filters .v70-filter)>.v154-quick{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
-</style></body></html>
+</style><style id="v200-compact-mobile">.erp-compact-period{display:contents}.erp-added-close{display:none}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+#mainView#mainView#mainView#mainView#mainView#mainView#mainView .erp-compact-period{display:flex!important;align-items:center!important;gap:3px!important;width:100%!important;min-width:0!important;max-width:100%!important;flex:1 0 100%!important;grid-column:1/-1!important;box-sizing:border-box!important}
+#mainView#mainView#mainView#mainView#mainView#mainView#mainView .erp-compact-period>.btn{flex:0 0 auto!important;width:auto!important;min-width:0!important;max-width:none!important;padding:0 5px!important;margin:0!important;height:36px!important;min-height:36px!important;max-height:36px!important;font-size:11px!important;white-space:nowrap!important;line-height:1!important}
+#mainView#mainView#mainView#mainView#mainView#mainView#mainView .erp-compact-period>.v154-quick{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important;flex:1 1 0%!important;width:0!important;min-width:0!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important}
+#mainView#mainView#mainView#mainView#mainView#mainView#mainView .erp-compact-period .v154-period-btn{width:100%!important;min-width:0!important;max-width:none!important;min-height:36px!important;height:36px!important;max-height:36px!important;padding:0 2px!important;margin:0!important;font-size:11px!important;white-space:nowrap!important;line-height:1!important}
+html body button.erp-added-close,html body button.v150-dismiss.v150-dismiss,html body #v144EntryDialog button#v144Close.v148-close.v150-dismiss,html body dialog.v155-calendar button.v155-close{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 36px!important;width:36px!important;min-width:36px!important;max-width:36px!important;height:36px!important;min-height:36px!important;max-height:36px!important;border:0!important;border-radius:50%!important;background:#eeeef0!important;color:#55555b!important;padding:0!important;margin:0!important;font-size:20px!important;line-height:1!important;box-shadow:none!important;touch-action:manipulation!important}
+html body button.v150-dismiss.v150-dismiss svg,html body #v144EntryDialog button#v144Close.v148-close.v150-dismiss svg{display:block!important;width:16px!important;height:16px!important}
+html body button.v150-dismiss.v150-dismiss .v151-mobile-dismiss{display:none!important}
+html body .erp-close-heading{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
+}</style><script id="v200-compact-mobile-script">(()=>{
+ const mq=matchMedia('screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse)');
+ const ids='v192Period v70Period acPeriod v198Period v110Period v154TracePeriod'.split(' ');
+ const svg='<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4.5 4.5l7 7m0-7-7 7"/></svg>';
+ let pending=false;
+ function update(){pending=false;if(!mq.matches){for(const w of document.querySelectorAll('.erp-compact-period'))w.replaceWith(...w.childNodes);return;}
+ for(const id of ids){const b=document.getElementById(id),q=b?.parentElement?.querySelector(':scope > .v154-quick');if(!q||b.parentElement.classList.contains('erp-compact-period'))continue;const w=document.createElement('div');w.className='erp-compact-period';b.before(w);w.append(b,q);}
+ for(const [id,selector] of [['v37NewDialog','#v37NewCancel'],['passwordDialog','#cancelPw'],['inviteDialog','#closeInvite'],['columnFilterPopup','[data-filter-cancel]'],['v40ColumnPopup','[data-v40-cancel]']]){const d=document.getElementById(id);if(d)add(d,selector);}
+ for(const d of document.querySelectorAll('dialog.ac-modal'))add(d,'[data-ac-close],[data-close]');
+ }
+ function add(d,selector){if(d.querySelector('.erp-added-close'))return;const target=d.querySelector(selector);if(!target)return;const h=d.querySelector(':scope > h2,:scope > h3,:scope > form > h2,:scope > form > h3,:scope > .erp-window-grip');if(!h)return;const b=document.createElement('button');b.type='button';b.className='erp-added-close';b.setAttribute('aria-label','닫기');b.innerHTML=svg;b.onclick=e=>{e.stopPropagation();target.click();};h.append(b);h.classList.add('erp-close-heading');}
+ function schedule(){if(!pending){pending=true;requestAnimationFrame(update);}}
+ new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});mq.addEventListener('change',schedule);schedule();
+})();</script></body></html>
