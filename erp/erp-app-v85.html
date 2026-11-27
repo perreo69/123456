@@ -8245,7 +8245,12 @@ dialog .quick-date.v164-converted-date>input[data-quick-date]:disabled{cursor:de
 #mainView#mainView .v87-history-results .history-table :is(.product-name,.v181-qty strong,.v178-balance){font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-medium)!important;color:var(--erp-ui-ink)!important}
 #mainView#mainView .v87-history-results .history-table .v185-kind-link{font-size:var(--erp-ui-body)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important}
 #mainView#mainView .v87-history-results .history-table td.v181-actions button{font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important}
-#mainView#mainView .v87-history-filters :is(.v87-filter-label,button,input){font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important;color:var(--erp-ui-ink)!important}
+#mainView#mainView .v87-history-filters :is(.v87-filter-label,button,input){font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important}
+#mainView#mainView .v87-history-filters :is(.v87-filter-label,input,button:not(.active):not([aria-pressed=true])){color:var(--erp-ui-ink)!important}
+/* Preserve white labels on blue desktop history selections; mobile white tabs retain dark text. */
+@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
+#mainView#mainView .v87-history-filters .v61-tab.active{color:#fff!important}
+}
 #mainView#mainView .v87-history-filters .v61-tab.active{font-weight:var(--erp-ui-medium)!important}
 #mainView#mainView .v87-history-results .hist-toolbar h2{font-size:var(--erp-ui-subtitle)!important;font-weight:var(--erp-ui-medium)!important;color:var(--erp-ui-ink)!important}
 #mainView#mainView .v87-history-results .hist-toolbar :is(.v87-result-count,.v87-history-order,button){font-size:var(--erp-ui-label)!important;font-weight:var(--erp-ui-regular)!important}
