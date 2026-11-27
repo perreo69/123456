@@ -9078,4 +9078,25 @@ html body .erp-close-heading{display:flex!important;align-items:center!important
  function add(d,selector){if(d.querySelector('.erp-added-close'))return;const target=d.querySelector(selector);if(!target)return;const h=d.querySelector(':scope > h2,:scope > h3,:scope > form > h2,:scope > form > h3,:scope > .erp-window-grip');if(!h)return;const b=document.createElement('button');b.type='button';b.className='erp-added-close';b.setAttribute('aria-label','닫기');b.innerHTML=svg;b.onclick=e=>{e.stopPropagation();target.click();};h.append(b);h.classList.add('erp-close-heading');}
  function schedule(){if(!pending){pending=true;requestAnimationFrame(update);}}
  new MutationObserver(schedule).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['open']});mq.addEventListener('change',schedule);schedule();
-})();</script></body></html>
+})();</script><script id="v201-mobile-search-dismiss">(function installMobileSearch(doc,mq){
+ const ids=new Set(['v192Search','v70Search','acQuery','v116Search','v110Search','v198Search','v133StockSearch','searchInput','categorySearch','v61AllSearch','fg20Search','v109PartnerSearch','productSearch','v37CatalogSearch']);
+ const buttons='#v192Find,#v70Find,#acFind,#v116Find,#v110Find';
+ const field=e=>!!(e&&e.tagName==='INPUT'&&ids.has(e.id)&&!e.disabled&&!e.readOnly);
+ const composing=new WeakSet();
+ function prepare(e){if(mq.matches&&field(e.target))e.target.setAttribute('enterkeyhint','search');}
+ doc.addEventListener('focusin',prepare,true);
+ doc.addEventListener('compositionstart',e=>{if(field(e.target))composing.add(e.target);},true);
+ doc.addEventListener('compositionend',e=>{if(field(e.target))composing.delete(e.target);},true);
+ doc.addEventListener('keydown',e=>{
+  if(!mq.matches||!field(e.target)||e.key!=='Enter'||e.isComposing||e.keyCode===229||composing.has(e.target))return;
+  e.target.blur();
+ },true);
+ doc.addEventListener('search',e=>{
+  if(!mq.matches||!e.isTrusted||!field(e.target)||!e.target.value.trim()||composing.has(e.target))return;
+  e.target.blur();
+ },true);
+ doc.addEventListener('click',e=>{
+  if(!mq.matches||!e.isTrusted||!e.target.closest?.(buttons))return;
+  if(field(doc.activeElement)&&!composing.has(doc.activeElement))doc.activeElement.blur();
+ },true);
+})(document,matchMedia("screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse)"));</script></body></html>
