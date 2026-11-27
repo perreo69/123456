@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>미르스타푸드 ERP</title>
 <style>*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;color:#222;background:#eee}button,input{font:inherit}button{cursor:pointer;border:1px solid #bcbcbc;background:#fff;color:#222;border-radius:4px;padding:9px 13px}button.primary{color:white;background:#303030;border-color:#303030}button:disabled{opacity:.5;cursor:wait}input{width:100%;padding:11px;border:1px solid #bbb;border-radius:4px;background:white;color:#222}label{display:block;font-size:13px;margin:12px 0 5px}h1{font-size:23px;margin:0 0 5px}h2{font-size:17px;margin:0 0 12px}p{font-size:13px;line-height:1.6;color:#555}.panel{width:min(400px,calc(100% - 32px));padding:30px;border:1px solid #ccc;border-radius:8px;background:white;box-shadow:0 4px 20px #0001}#gate{min-height:100%;display:grid;place-items:center}.full{width:100%;margin-top:14px}.msg{min-height:24px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#333}#shell{height:100dvh;display:flex;flex-direction:column}#bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#eee;border-bottom:1px solid #bbb;flex-wrap:wrap;font-size:12px}#bar button{padding:5px 10px;font-size:12px}#status{margin-right:auto;color:#555}iframe{width:100%;flex:1;border:none;min-height:0;background:#fff}dialog{width:min(460px,calc(100% - 24px));border:1px solid #aaa;border-radius:6px;padding:22px}dialog::backdrop{background:#0006}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}#inviteOutput{overflow-wrap:anywhere;font-family:monospace;padding:12px;background:#f3f3f3;border:1px solid #ccc;user-select:all} [hidden]{display:none!important}@media(max-width:600px){.panel{padding:22px}#bar{padding:5px 7px;gap:5px}#bar button{padding:5px 6px}#status{max-width:100%;flex:1 1 100%;order:2}}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><style id="v106-reference-buttons">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){button:not(:disabled){background:#fff;border-color:#c4c4ca;border-radius:5px;box-shadow:0 1px 1px #00000012;color:#2c2c30}button:not(:disabled):hover{background:#f2f2f4}button.primary:not(:disabled){background:linear-gradient(var(--erp-ui-accent),var(--erp-ui-accent));border-color:var(--erp-ui-accent);color:#fff;box-shadow:0 1px 1px #00000010,inset 0 1px 0 #ffffff26}button.primary:not(:disabled):hover{background:var(--erp-ui-accent)}button.primary:not(:disabled):active{background:var(--erp-ui-accent)}}</style><style id="v129-mobile-shell">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><style id="v106-reference-buttons">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){button:not(:disabled){background:#fff;border-color:#c4c4ca;border-radius:5px;box-shadow:0 1px 1px #00000012;color:#2c2c30}button:not(:disabled):hover{background:#f2f2f4}button.primary:not(:disabled){background:var(--erp-ui-accent-fill);border-color:var(--erp-ui-accent);color:#fff;box-shadow:0 1px 1px #00000010,inset 0 1px 0 #ffffff26}button.primary:not(:disabled):hover{background:var(--erp-ui-accent-fill)}button.primary:not(:disabled):active{background:var(--erp-ui-accent-fill)}}</style><style id="v129-mobile-shell">
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
 html,body{height:100%;background:#f2f2f7;overflow:hidden}
 #gate{min-height:100dvh;max-height:100dvh;overflow:auto;padding:18px 0;place-items:center}
@@ -8,7 +8,7 @@ html,body{height:100%;background:#f2f2f7;overflow:hidden}
 .panel h1{font-size:25px;letter-spacing:-.6px}.panel p{font-size:13px}
 input{font-size:16px;min-height:46px;border-radius:8px}
 button{min-height:44px;border-radius:8px;font-size:14px}
-button.primary{background:var(--erp-ui-accent);color:#fff;border-color:var(--erp-ui-accent)}
+button.primary{background:var(--erp-ui-accent-fill);color:#fff;border-color:var(--erp-ui-accent)}
 #shell{height:100dvh;min-height:0}
 #bar{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:5px;padding:5px 8px;flex-shrink:0;background:#fbfbfd;border-bottom:1px solid #dedee3}
 #who{min-width:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:12px}
@@ -43,7 +43,7 @@ html,body{font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;backgr
 .panel p{color:var(--ds-secondary)}
 .panel label{font-size:13px;color:var(--ds-secondary);font-weight:500}
 .panel input{font-size:17px;min-height:48px;background:#f5f5f8;border:1px solid var(--ds-rule)}
-.panel #submit{background:var(--ds-accent);border-color:var(--ds-accent);font-size:16px}
+.panel #submit{background:var(--erp-ui-accent-fill);border-color:var(--ds-accent);font-size:16px}
 .panel #switchMode{font-size:15px;color:var(--ds-accent)}
 #bar{background:var(--ds-bg)!important}
 #bar button{color:var(--ds-accent)!important;min-height:36px!important}
@@ -207,7 +207,7 @@ h1,h2{color:var(--mac-ink)!important;font-weight:650!important}
 button{background:var(--mac-normal)!important;color:#2c2c30!important;border:1px solid #c4c4ca!important;border-radius:var(--mac-radius)!important;box-shadow:var(--mac-shadow)!important;font-weight:500!important}
 button:hover:not(:disabled){background:linear-gradient(#fff,#e7e7eb)!important}
 button:is(.primary,#saveName):not(:disabled){background:var(--mac-primary)!important;color:#fff!important;border-color:var(--mac-blue-border)!important;box-shadow:var(--mac-primary-shadow)!important;font-weight:600!important}
-button:is(.primary,#saveName):hover:not(:disabled){background:linear-gradient(#126de0,#0759c5)!important}
+button:is(.primary,#saveName):hover:not(:disabled){background:var(--erp-ui-accent-fill)!important}
 :is(button,input[type=button],input[type=submit],input[type=reset]){font-family:var(--mac-font)!important;accent-color:var(--mac-blue)}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--erp-ui-accent)!important;outline-offset:2px!important}
 button:disabled,input[type=button]:disabled,input[type=submit]:disabled{background:#e5e5ea!important;color:#818187!important;border-color:#d1d1d6!important;box-shadow:none!important;opacity:1!important;cursor:not-allowed}
@@ -234,14 +234,14 @@ html,body,#shell{box-sizing:border-box!important;width:100%!important;max-width:
 /* A single ERP accent; soft states use opacity of the same base color. */
 @media screen{
 :root{
- --erp-ui-accent:#006BD6;--erp-ui-accent-soft:rgba(0,107,214,.10);--erp-ui-accent-halo:rgba(0,107,214,.25);
- --erp-accent:var(--erp-ui-accent)!important;--mac-blue:var(--erp-ui-accent)!important;--mac-blue-top:var(--erp-ui-accent)!important;--mac-blue-bottom:var(--erp-ui-accent)!important;--mac-blue-border:var(--erp-ui-accent)!important;
- --mac-primary:var(--erp-ui-accent)!important;--mac-primary-shadow:none!important;--mac-tint:var(--erp-ui-accent-soft)!important;
+ --erp-ui-accent:#1978f4;--erp-ui-accent-top:#55a7fa;--erp-ui-accent-fill:linear-gradient(180deg,var(--erp-ui-accent-top),var(--erp-ui-accent));--erp-ui-accent-soft:rgba(25,120,244,.10);--erp-ui-accent-halo:rgba(25,120,244,.25);
+ --erp-accent:var(--erp-ui-accent)!important;--mac-blue:var(--erp-ui-accent)!important;--mac-blue-top:var(--erp-ui-accent-top)!important;--mac-blue-bottom:var(--erp-ui-accent)!important;--mac-blue-border:#3289e9!important;
+ --mac-primary:var(--erp-ui-accent-fill)!important;--mac-primary-shadow:none!important;--mac-tint:var(--erp-ui-accent-soft)!important;
  --ds-accent:var(--erp-ui-accent)!important;--app-accent:var(--erp-ui-accent)!important;--mobile-blue:var(--erp-ui-accent)!important;--blue:var(--erp-ui-accent)!important;--blue-h:var(--erp-ui-accent)!important;
  --erp-input-focus:var(--erp-ui-accent)!important;--erp-input-halo:var(--erp-ui-accent-halo)!important;
 }
 body :is(button,input,select,textarea):not(:disabled){accent-color:var(--erp-ui-accent)}
-html body #gate .panel #submit:not(:disabled),html body button:is(.primary,#saveName):not(:disabled){background:var(--erp-ui-accent)!important;border-color:var(--erp-ui-accent)!important;color:#fff!important;box-shadow:none!important}
+html body #gate .panel #submit:not(:disabled),html body button:is(.primary,#saveName):not(:disabled){background:var(--erp-ui-accent-fill)!important;border-color:var(--erp-ui-accent)!important;color:#fff!important;box-shadow:none!important}
 html body #gate .panel #switchMode{color:var(--erp-ui-accent)!important}
 
 }
