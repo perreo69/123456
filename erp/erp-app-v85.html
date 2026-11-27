@@ -3452,13 +3452,27 @@ function v198Stock(scope,from,to){
  return {rows:result.sort((a,b)=>v82NameCompare(a.name||'',b.name||'')||String(a.location||'').localeCompare(String(b.location||''),'ko')),earliest,missing};
 }
 function v198Scope(v){return v==='stock_overview'&&!v132Mobile()?(({meat:'dashboard',finished:'finished_all',ingredients:'ingredients_all',all:'stock_overview'})[v61StockKind]||v61StockKind):v;}
+function v199StockPeriodApply(v,from,to,preset=''){
+ if(!from&&!to){v198Period=null;}
+ else {
+  const now=today();
+  if(!from||!to||from>to){toast('조회 기간을 확인해 주세요.');return false;}
+  if(from>now){toast('미래 재고는 조회할 수 없습니다.');return false;}
+  v198Period={from,to:to>now?now:to,preset};
+ }
+ v198Query='';v171StockPage(v);v171Bind(v);return true;
+}
 function v198Toolbar(v){
  const root=$('mainView'),p=v198Period;
- const bar=document.createElement('div');bar.className='v198-toolbar';
- bar.innerHTML='<button type="button" class="btn btn-outline" id="v198Period">기간설정</button><span class="v198-range">'+(p?esc(p.from+' ~ '+p.to):'현재 재고')+'</span>'+(p?'<button type="button" class="btn btn-outline" id="v198Current">현재 재고</button>':'');
+ root.querySelector('.v198-toolbar')?.remove();
+ const bar=document.createElement('div');bar.className='v198-toolbar v199-period-toolbar';
+ const options=[['all','전체 기간'],['today','오늘'],['week','이번 주'],['month','이번 달']];
+ const selected=p?(p.preset||options.find(([k])=>{const [a,b]=v154Range(k);return a===p.from&&b===p.to;})?.[0]||''):'all';
+ bar.innerHTML='<span class="v199-period-label">조회 조건</span><button type="button" class="btn btn-outline" id="v198Period">기간설정</button><div class="v154-quick" role="group" aria-label="빠른 기간 선택">'+options.map(([k,l])=>'<button type="button" class="v154-period-btn" data-v154-period="'+k+'" aria-pressed="'+(k===selected)+'">'+l+'</button>').join('')+'</div><span class="v198-range">'+(p?esc(p.from+' ~ '+p.to):'현재 재고')+'</span>'+(p?'<button type="button" class="btn btn-outline" id="v198Current">현재 재고</button>':'');
  root.prepend(bar);
- $('v198Period').onclick=e=>v70Calendar({anchor:e.currentTarget,from:p?.from||today(),to:p?.to||today(),apply:(from,to)=>{if(from>today()){toast('미래 재고는 조회할 수 없습니다.');return;}v198Period={from,to:to>today()?today():to};v198Query='';v171StockPage(v);}});
- if(p)$('v198Current').onclick=()=>{v198Period=null;v198Query='';v171StockPage(v);};
+ $('v198Period').onclick=e=>v70Calendar({anchor:e.currentTarget,from:p?.from||today(),to:p?.to||today(),apply:(from,to)=>v199StockPeriodApply(v,from,to)});
+ bar.querySelector('.v154-quick').onclick=e=>{const button=e.target.closest('[data-v154-period]');if(!button)return;const k=button.dataset.v154Period,range=v154Range(k);if(range)v199StockPeriodApply(v,...range,k);};
+ if(p)$('v198Current').onclick=()=>v199StockPeriodApply(v,'','');
 }
 function v198HistoricalPage(v){
  const root=$('mainView'),p=v198Period,scope=v198Scope(v),data=v198Stock(scope,p.from,p.to);
@@ -8936,4 +8950,20 @@ html,body{-webkit-text-size-adjust:100%!important;text-size-adjust:100%!importan
 .v198-note{margin:8px 0;overflow-wrap:anywhere}.v198-cat,.v198-search{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0}.v198-search input{flex:1 1 180px;min-width:0;max-width:100%;padding:8px;border:1px solid #d1d1d6;border-radius:6px}.v198-search span{font-size:12px;color:#636366}
 .v198-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,auto);align-items:center;gap:12px;padding:9px 4px;border-bottom:1px solid #e5e5ea;font-size:13px}.v198-item{display:grid;gap:2px;min-width:0;overflow-wrap:anywhere}.v198-qty{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;white-space:nowrap;font-variant-numeric:tabular-nums}.v198-qty span{display:grid;gap:2px;color:#636366}.v198-qty b{color:#222;font-weight:600}
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){.v198-toolbar{margin:0 0 8px;padding:4px 2px;border:0;border-radius:0;font-size:12px}.v198-toolbar button{min-height:40px!important;font-size:12px!important;padding:4px 8px!important}.v198-history{padding:8px 4px}.v198-row{grid-template-columns:minmax(0,1fr);gap:6px}.v198-qty{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.v198-qty span{display:grid;gap:2px;white-space:normal;overflow-wrap:anywhere}.v198-search input{font-size:16px!important;min-height:40px}.v198-item strong{font-size:14px}}
+</style><style id="v199-stock-period-restoration">
+@media screen{
+#mainView#mainView .v199-period-toolbar{box-sizing:border-box;display:flex!important;align-items:center!important;justify-content:flex-start!important;flex-wrap:wrap!important;gap:6px 8px!important;padding:10px 14px!important;min-width:0!important;max-width:100%!important;background:#fff!important;border:1px solid #d1d1d6!important;border-radius:6px!important}
+#mainView#mainView .v199-period-label{font-size:13px;font-weight:400;min-width:70px;color:var(--erp-ui-ink,#222)}
+#mainView#mainView .v199-period-toolbar .v198-range{flex:0 1 auto;min-width:0;overflow-wrap:anywhere;color:var(--erp-ui-ink,#222);font-size:13px}
+#mainView#mainView#mainView .v199-period-toolbar :is(.btn,.v154-period-btn){box-sizing:border-box;min-height:32px!important;height:32px!important;max-height:none!important;padding:0 11px!important;line-height:normal!important;font-size:13px!important;white-space:nowrap!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+#mainView#mainView .v199-period-toolbar .v154-quick{display:flex!important;flex:0 1 auto!important;width:auto!important;min-width:0!important;max-width:100%!important;gap:4px!important;flex-wrap:wrap}
+#mainView#mainView .v199-period-toolbar .v154-period-btn{width:auto!important;min-width:70px!important;max-width:none!important}
+}
+@media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
+#mainView#mainView .v199-period-toolbar{padding:8px!important;gap:6px!important}
+#mainView#mainView .v199-period-label{min-width:0}
+#mainView#mainView .v199-period-toolbar .v154-quick{flex:1 1 100%!important;flex-wrap:nowrap!important;overflow-x:auto!important;-webkit-overflow-scrolling:touch}
+#mainView#mainView .v199-period-toolbar .v154-period-btn{flex:1 0 auto!important;min-width:max-content!important}
+#mainView#mainView#mainView .v199-period-toolbar :is(.btn,.v154-period-btn){min-height:40px!important;height:40px!important;font-size:12px!important}
+}
 </style></body></html>
