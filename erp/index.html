@@ -1,6 +1,6 @@
 <!DOCTYPE html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="referrer" content="no-referrer"><title>미르스타푸드 ERP</title>
 <style>*{box-sizing:border-box}html,body{height:100%;margin:0;font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;color:#222;background:#eee}button,input{font:inherit}button{cursor:pointer;border:1px solid #bcbcbc;background:#fff;color:#222;border-radius:4px;padding:9px 13px}button.primary{color:white;background:#303030;border-color:#303030}button:disabled{opacity:.5;cursor:wait}input{width:100%;padding:11px;border:1px solid #bbb;border-radius:4px;background:white;color:#222}label{display:block;font-size:13px;margin:12px 0 5px}h1{font-size:23px;margin:0 0 5px}h2{font-size:17px;margin:0 0 12px}p{font-size:13px;line-height:1.6;color:#555}.panel{width:min(400px,calc(100% - 32px));padding:30px;border:1px solid #ccc;border-radius:8px;background:white;box-shadow:0 4px 20px #0001}#gate{min-height:100%;display:grid;place-items:center}.full{width:100%;margin-top:14px}.msg{min-height:24px;font-size:13px;line-height:1.6;white-space:pre-wrap;color:#333}#shell{height:100dvh;display:flex;flex-direction:column}#bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:#eee;border-bottom:1px solid #bbb;flex-wrap:wrap;font-size:12px}#bar button{padding:5px 10px;font-size:12px}#status{margin-right:auto;color:#555}iframe{width:100%;flex:1;border:none;min-height:0;background:#fff}dialog{width:min(460px,calc(100% - 24px));border:1px solid #aaa;border-radius:6px;padding:22px}dialog::backdrop{background:#0006}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:15px}#inviteOutput{overflow-wrap:anywhere;font-family:monospace;padding:12px;background:#f3f3f3;border:1px solid #ccc;user-select:all} [hidden]{display:none!important}@media(max-width:600px){.panel{padding:22px}#bar{padding:5px 7px;gap:5px}#bar button{padding:5px 6px}#status{max-width:100%;flex:1 1 100%;order:2}}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><style id="v106-reference-buttons">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){button:not(:disabled){background:#fff;border-color:#c4c4ca;border-radius:5px;box-shadow:0 1px 1px #00000012;color:#2c2c30}button:not(:disabled):hover{background:#f2f2f4}button.primary:not(:disabled){background:linear-gradient(#55a7fa,#1978f4);border-color:#3289e9;color:#fff;box-shadow:0 1px 1px #00000010,inset 0 1px 0 #ffffff26}button.primary:not(:disabled):hover{background:linear-gradient(#4b9ef7,#146ce5)}button.primary:not(:disabled):active{background:linear-gradient(#3489ef,#125fd4)}}</style><style id="v129-mobile-shell">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.js"></script><style id="v106-reference-buttons">@media screen and (min-width:901px) and (hover:hover) and (pointer:fine){button:not(:disabled){background:#fff;border-color:#c4c4ca;border-radius:5px;box-shadow:0 1px 1px #00000012;color:#2c2c30}button:not(:disabled):hover{background:#f2f2f4}button.primary:not(:disabled){background:linear-gradient(var(--erp-ui-accent),var(--erp-ui-accent));border-color:var(--erp-ui-accent);color:#fff;box-shadow:0 1px 1px #00000010,inset 0 1px 0 #ffffff26}button.primary:not(:disabled):hover{background:var(--erp-ui-accent)}button.primary:not(:disabled):active{background:var(--erp-ui-accent)}}</style><style id="v129-mobile-shell">
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
 html,body{height:100%;background:#f2f2f7;overflow:hidden}
 #gate{min-height:100dvh;max-height:100dvh;overflow:auto;padding:18px 0;place-items:center}
@@ -8,7 +8,7 @@ html,body{height:100%;background:#f2f2f7;overflow:hidden}
 .panel h1{font-size:25px;letter-spacing:-.6px}.panel p{font-size:13px}
 input{font-size:16px;min-height:46px;border-radius:8px}
 button{min-height:44px;border-radius:8px;font-size:14px}
-button.primary{background:#0066cc;color:#fff;border-color:#0066cc}
+button.primary{background:var(--erp-ui-accent);color:#fff;border-color:var(--erp-ui-accent)}
 #shell{height:100dvh;min-height:0}
 #bar{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:5px;padding:5px 8px;flex-shrink:0;background:#fbfbfd;border-bottom:1px solid #dedee3}
 #who{min-width:0;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-size:12px}
@@ -24,16 +24,16 @@ html,body{font-family:"Inter","Pretendard Variable",Pretendard,sans-serif;backgr
 #bar{background:#f2f2f7!important;border:0!important;display:flex!important;align-items:center;gap:6px!important;padding:8px 14px 2px!important;min-height:40px;flex-wrap:nowrap}
 #who{min-width:0;max-width:40%;font-size:12px;font-weight:650;color:#66666d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #status{order:0;flex:1 1 0;white-space:normal;font-size:10px;color:#66666d;line-height:1.2;margin:0;min-width:0}
-#bar button{min-height:34px!important;border:0!important;background:transparent;color:#006bd6;font-size:11px!important;font-weight:600;padding:3px 4px!important;white-space:nowrap}
+#bar button{min-height:34px!important;border:0!important;background:transparent;color:var(--erp-ui-accent);font-size:11px!important;font-weight:600;padding:3px 4px!important;white-space:nowrap}
 .panel{box-shadow:none;border:1px solid #e1e1e7;border-radius:22px;padding:28px 23px}
 .panel h1{font-size:28px;font-weight:750;letter-spacing:-.9px}
 .panel input{background:#f5f5f8;border-color:#e2e2e8;border-radius:10px}
 .panel .full{border-radius:11px;min-height:48px;font-weight:650}
-.panel #switchMode{background:#edf4ff;color:#006bd6;border:0}
+.panel #switchMode{background:var(--erp-ui-accent-soft);color:var(--erp-ui-accent);border:0}
 }
 </style><style id="v131-design-system-shell">
 @media screen{
-:root{--ds-bg:#f2f2f7;--ds-ink:#1c1c1e;--ds-secondary:#636366;--ds-rule:#e5e5ea;--ds-accent:#006bd6}
+:root{--ds-bg:#f2f2f7;--ds-ink:#1c1c1e;--ds-secondary:#636366;--ds-rule:#e5e5ea;--ds-accent:var(--erp-ui-accent)}
 #gate,#bar,dialog{font-family:"Inter","Pretendard Variable",Pretendard,sans-serif}
 }
 @media screen and (max-width:767px),screen and (max-width:1023px) and (pointer:coarse){
@@ -197,7 +197,7 @@ $('closeInvite').onclick=()=>{$('inviteDialog').close();$('inviteOutput').textCo
 })();</script><style id="v92-macos-desktop-shell">
 @media screen and (min-width:901px) and (hover:hover) and (pointer:fine){
 :root{
- --mac-white:#fff;--mac-bg:#f5f5f7;--mac-sidebar:#eaeaed;--mac-bar:#f6f6f8;--mac-line:#d1d1d6;--mac-softline:#e5e5ea;--mac-ink:#1d1d1f;--mac-muted:#626269;--mac-blue:#0866d9;--mac-blue-top:#1979ed;--mac-blue-bottom:#0860ce;--mac-blue-border:#075ac5;--mac-tint:#e5efff;
+ --mac-white:#fff;--mac-bg:#f5f5f7;--mac-sidebar:#eaeaed;--mac-bar:#f6f6f8;--mac-line:#d1d1d6;--mac-softline:#e5e5ea;--mac-ink:#1d1d1f;--mac-muted:#626269;--mac-blue:var(--erp-ui-accent);--mac-blue-top:var(--erp-ui-accent);--mac-blue-bottom:var(--erp-ui-accent);--mac-blue-border:var(--erp-ui-accent);--mac-tint:var(--erp-ui-accent-soft);
  --mac-normal:linear-gradient(180deg,#fff 0%,#f0f0f2 100%);--mac-primary:linear-gradient(180deg,var(--mac-blue-top),var(--mac-blue-bottom));--mac-shadow:0 1px 2px #00000017,inset 0 1px 0 #ffffffb0;--mac-primary-shadow:0 1px 2px #00000022,inset 0 1px 0 #ffffff3d;
  --mac-radius:5px;--mac-control:32px;--mac-font:"Inter","Pretendard Variable",Pretendard,sans-serif;--ink:var(--mac-ink);--muted:var(--mac-muted);--bg:var(--mac-bg);--border:var(--mac-softline);--blue:var(--mac-blue);--blue-h:var(--mac-blue-border)
 }
@@ -209,7 +209,7 @@ button:hover:not(:disabled){background:linear-gradient(#fff,#e7e7eb)!important}
 button:is(.primary,#saveName):not(:disabled){background:var(--mac-primary)!important;color:#fff!important;border-color:var(--mac-blue-border)!important;box-shadow:var(--mac-primary-shadow)!important;font-weight:600!important}
 button:is(.primary,#saveName):hover:not(:disabled){background:linear-gradient(#126de0,#0759c5)!important}
 :is(button,input[type=button],input[type=submit],input[type=reset]){font-family:var(--mac-font)!important;accent-color:var(--mac-blue)}
-button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #5a9cf0!important;outline-offset:2px!important}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--erp-ui-accent)!important;outline-offset:2px!important}
 button:disabled,input[type=button]:disabled,input[type=submit]:disabled{background:#e5e5ea!important;color:#818187!important;border-color:#d1d1d6!important;box-shadow:none!important;opacity:1!important;cursor:not-allowed}
 input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=button]):not([type=submit]):not([type=reset]):not(.quick-date-calendar),select,textarea{font-family:var(--mac-font)!important;background-color:#fff!important;color:var(--mac-ink)!important;border-color:var(--mac-line)!important;border-radius:var(--mac-radius)!important;font-weight:400!important;box-shadow:inset 0 1px 2px #00000007!important}
 input::placeholder,textarea::placeholder{color:#74747a!important;opacity:1!important}input[readonly]:not(.quick-date-calendar){background-color:#f2f2f4!important}input[type=checkbox],input[type=radio]{accent-color:var(--mac-blue)!important}
@@ -225,9 +225,24 @@ html,body,#shell{box-sizing:border-box!important;width:100%!important;max-width:
 #bar{display:grid!important;grid-template-columns:minmax(0,1fr) repeat(3,auto)!important;grid-template-rows:auto auto;gap:0 5px!important;padding:3px 8px!important;flex:0 0 auto;min-width:0!important;width:100%!important;max-width:100%!important;min-height:44px!important}
 #who{grid-column:1;grid-row:1;min-width:0;max-width:100%!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px!important;align-self:end}
 #status{grid-column:1;grid-row:2;font-size:10px!important;min-width:0;max-width:100%;overflow-wrap:anywhere;white-space:normal!important;align-self:start;line-height:1.2;margin:0}
-#bar button{grid-row:1/3;min-width:0!important;min-height:40px!important;padding:4px 5px!important;font-size:11px!important;white-space:nowrap;border:0!important;background:none!important;color:#006bd6!important}
+#bar button{grid-row:1/3;min-width:0!important;min-height:40px!important;padding:4px 5px!important;font-size:11px!important;white-space:nowrap;border:0!important;background:none!important;color:var(--erp-ui-accent)!important}
 #refresh{grid-column:2}#changePw{grid-column:3}#logout{grid-column:4}
 #app{display:block;flex:1 1 0!important;width:100%!important;min-width:0!important;max-width:100%!important;min-height:0!important;border:0}
 }
 </style><link rel="stylesheet" href="../design-system.css?v=20261125_137" data-erp-design="v135">
-</body></html>
+<style id="v188-erp-accent-unified">
+/* A single ERP accent; soft states use opacity of the same base color. */
+@media screen{
+:root{
+ --erp-ui-accent:#006BD6;--erp-ui-accent-soft:rgba(0,107,214,.10);--erp-ui-accent-halo:rgba(0,107,214,.25);
+ --erp-accent:var(--erp-ui-accent)!important;--mac-blue:var(--erp-ui-accent)!important;--mac-blue-top:var(--erp-ui-accent)!important;--mac-blue-bottom:var(--erp-ui-accent)!important;--mac-blue-border:var(--erp-ui-accent)!important;
+ --mac-primary:var(--erp-ui-accent)!important;--mac-primary-shadow:none!important;--mac-tint:var(--erp-ui-accent-soft)!important;
+ --ds-accent:var(--erp-ui-accent)!important;--app-accent:var(--erp-ui-accent)!important;--mobile-blue:var(--erp-ui-accent)!important;--blue:var(--erp-ui-accent)!important;--blue-h:var(--erp-ui-accent)!important;
+ --erp-input-focus:var(--erp-ui-accent)!important;--erp-input-halo:var(--erp-ui-accent-halo)!important;
+}
+body :is(button,input,select,textarea):not(:disabled){accent-color:var(--erp-ui-accent)}
+html body #gate .panel #submit:not(:disabled),html body button:is(.primary,#saveName):not(:disabled){background:var(--erp-ui-accent)!important;border-color:var(--erp-ui-accent)!important;color:#fff!important;box-shadow:none!important}
+html body #gate .panel #switchMode{color:var(--erp-ui-accent)!important}
+
+}
+</style></body></html>
