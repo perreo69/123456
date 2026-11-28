@@ -18,10 +18,12 @@ concurrency:
   cancel-in-progress: true
 jobs:
   browser-regression:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -39,3 +41,38 @@ jobs:
           path: erp/tests/artifacts/
           if-no-files-found: warn
           retention-days: 7
+  deployed-file-check:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: browser-regression
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Read-only comparison of deployed operating ERP
+        run: |
+          python3 - <<'PY'
+          import hashlib, pathlib, time, urllib.request
+          files = ['erp/index.html', 'erp-next/operating.html']
+          base = 'https://perreo69.github.io/123456/'
+          for attempt in range(18):
+              pending = []
+              for name in files:
+                  try:
+                      url = base + name + '?erp_ci=' + str(time.time_ns())
+                      with urllib.request.urlopen(url, timeout=10) as response:
+                          remote = response.read()
+                      if hashlib.sha256(remote).digest() != hashlib.sha256(pathlib.Path(name).read_bytes()).digest():
+                          pending.append(name)
+                  except Exception as exc:
+                      print(name, type(exc).__name__)
+                      pending.append(name)
+              if not pending:
+                  print('Deployed ERP files match this commit.')
+                  break
+              print('Not yet matched:', pending)
+              time.sleep(10)
+          else:
+              raise SystemExit('Deployed file comparison failed')
+          PY
