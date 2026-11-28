@@ -77,7 +77,9 @@ $('toggleLoginPw').onclick=()=>{const visible=$('pw').type==='password';$('pw').
 $('loginHelp').onclick=()=>{msg.textContent='비밀번호를 잊으셨다면 관리자에게 문의해 주세요. 로그인 후 내 정보에서 비밀번호를 변경할 수 있습니다.'};
 const db=window.supabase?.createClient(URL_BASE,KEY,{auth:{storage:authStorage,storageKey:authStorageKey,persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
 let session=null,revision=0,personalRevision=0,companyBody={},personalBody={},lastCompany='',lastPersonal='',registration=false,channel=null,pollTimer=null,polling=false,blocked=false,loading=false,epoch=0;
-const copy=x=>JSON.parse(JSON.stringify(x));const personalKeys=new Set(['__prefs','__workTasks','__workNotices']);const combine=()=>({...copy(companyBody),...copy(personalBody)});
+const copy=x=>JSON.parse(JSON.stringify(x));const personalKeys=new Set(['__prefs','__workTasks','__workNotices']);let financeBody={},financeRights={},lastFinance='';
+const combine=()=>({...copy(companyBody),...copy(personalBody),__finance:copy(financeBody),__financeRights:copy(financeRights)});
+
 function loginEmail(input){
  const u=input.trim().toLowerCase();
  if(/^[a-z0-9][a-z0-9._-]{2,31}$/.test(u))return u+DOMAIN;
@@ -90,19 +92,19 @@ function notice(t){status.textContent=t;}
 const joinParam=new URLSearchParams(location.hash.slice(1)).get('join')||'';let joinCode=/^[a-f0-9]{64}$/i.test(joinParam)?joinParam.toLowerCase():'';
 function mode(register){register=Boolean(register);registration=register;$('inviteField').hidden=!register;$('registerName').required=register;$('invite').value=register?joinCode:'';$('confirmPw').required=register;$('pw').autocomplete=register?'new-password':'current-password';$('pw').placeholder=register?'8자 이상':'비밀번호 입력';$('submit').textContent=register?'계정 생성':'로그인';$('switchMode').textContent=register?'로그인으로 돌아가기':'계정 생성';msg.textContent='';}
 $('switchMode').hidden=false;$('switchMode').onclick=()=>mode(!registration);if(joinCode)mode(true);
-async function closeERP(){epoch++;clearInterval(pollTimer);pollTimer=null;if(channel){const ch=channel;channel=null;db.removeChannel(ch)}frame.src='about:blank';companyBody={};personalBody={};revision=personalRevision=0;lastCompany=lastPersonal='';blocked=false;session=null;staffName='';staffAdmin=false;frame.inert=false;shell.classList.remove('save-blocked');shell.hidden=true;gate.hidden=false;}
+async function closeERP(){epoch++;clearInterval(pollTimer);pollTimer=null;if(channel){const ch=channel;channel=null;db.removeChannel(ch)}frame.src='about:blank';companyBody={};personalBody={};financeBody={};financeRights={};lastFinance='';revision=personalRevision=0;lastCompany=lastPersonal='';blocked=false;session=null;staffName='';staffAdmin=false;frame.inert=false;shell.classList.remove('save-blocked');shell.hidden=true;gate.hidden=false;}
 db?.auth.onAuthStateChange((event,s)=>{session=s;if(event==='SIGNED_OUT')closeERP();});
 async function openERP(){
  if(loading)return;loading=true;const ticket=++epoch;blocked=true;msg.textContent='계정 권한 및 데이터 확인 중...';
  try{
   const {data:{session:s}}=await db.auth.getSession();if(!s)throw Error('로그인해 주세요.');
   const {data:staff,error:staffErr}=await db.from('erp_staff').select('is_admin,display_name').eq('user_id',s.user.id).maybeSingle();if(staffErr||!staff)throw Error('직원 계정 정보를 확인할 수 없습니다.');
-  const [st,personal]=await Promise.all([db.from('erp_next_company_state').select('revision,body').eq('id',1).single(),db.from('erp_next_personal_state').select('revision,body').eq('user_id',s.user.id).maybeSingle()]);
+  const [st,personal]=await Promise.all([db.rpc('erp_next_finance_load'),db.from('erp_next_personal_state').select('revision,body').eq('user_id',s.user.id).maybeSingle()]);
   if(st.error||personal.error||!st.data?.body)throw Error('신규 ERP 공동 데이터 연결 실패');
   if(ticket!==epoch)return;
-  session=s;companyBody=st.data.body;personalBody=personal.data?.body||{};revision=Number(st.data.revision);personalRevision=Number(personal.data?.revision||0);lastCompany=JSON.stringify(companyBody);lastPersonal=JSON.stringify(personalBody);blocked=false;
+  session=s;companyBody=st.data.body;financeBody=st.data.finance||{};financeRights=st.data.rights||{};lastFinance=JSON.stringify(financeBody);personalBody=personal.data?.body||{};revision=Number(st.data.revision);personalRevision=Number(personal.data?.revision||0);lastCompany=JSON.stringify(companyBody);lastPersonal=JSON.stringify(personalBody);blocked=false;
   staffName=staff.display_name||'';staffAdmin=staff.is_admin;updateWho();$('staffLinkTools').hidden=!staff.is_admin;
-  gate.hidden=true;shell.hidden=false;shell.classList.remove('save-blocked');frame.inert=false;frame.style.pointerEvents='';frame.src=APP+'?v=20261128-live2&t='+Date.now();notice('연결됨 · 서버 저장');void window.erpPush?.afterLogin();
+  gate.hidden=true;shell.hidden=false;shell.classList.remove('save-blocked');frame.inert=false;frame.style.pointerEvents='';frame.src=APP+'?v=20261128-finance1&t='+Date.now();notice('연결됨 · 서버 저장');void window.erpPush?.afterLogin();
   clearInterval(pollTimer);pollTimer=setInterval(()=>void sync(),4000);
  }catch(e){await closeERP();msg.textContent=e.message;await db.auth.signOut();}finally{loading=false;}
 }
@@ -121,38 +123,38 @@ $('login').onsubmit=async e=>{
  }catch(err){msg.textContent=err.message;}finally{$('pw').value='';$('submit').disabled=false;$('switchMode').disabled=false;}
 };
 function currentActor(){const u=session?.user;if(!u)return null;const email=u.email||'';const login=email.endsWith(DOMAIN)?email.slice(0,-DOMAIN.length):email;return {id:u.id,name:String(staffName||'').trim()||login||u.id,admin:staffAdmin};}
-function splitState(state){const company={},personal={};for(const [k,v] of Object.entries(state)){(personalKeys.has(k)?personal:company)[k]=v}return {company,personal}}
+function splitState(state){const company={},personal={};for(const [k,v] of Object.entries(state)){if(k==='__finance'||k==='__financeRights')continue;(personalKeys.has(k)?personal:company)[k]=v}return {company,personal}}
 function blockSave(){blocked=true;shell.classList.add('save-blocked');frame.style.pointerEvents='none';frame.inert=true;notice('저장 확인 실패 · 새로고침 필요');alert('서버 저장을 확인하지 못했습니다. 다른 직원의 변경이나 연결 오류일 수 있습니다. 상단 새로고침 후 실제 기록을 확인하세요.');}
 function saveNext(state){
  if(blocked||!session?.access_token||shell.hidden)return false;
- const {company,personal}=splitState(state),cs=JSON.stringify(company),ps=JSON.stringify(personal),cc=cs!==lastCompany,pc=ps!==lastPersonal;
+ const {company,personal}=splitState(state),cs=JSON.stringify(company),ps=JSON.stringify(personal),fs=JSON.stringify(state.__finance||{}),fc=fs!==lastFinance,cc=cs!==lastCompany||fc,pc=ps!==lastPersonal;
  if(!cc&&!pc)return true;
  try{
-  const xhr=new XMLHttpRequest();xhr.open('POST',URL_BASE+'/rest/v1/rpc/erp_next_save',false);
+  const xhr=new XMLHttpRequest();xhr.open('POST',URL_BASE+'/rest/v1/rpc/erp_next_finance_save',false);
   xhr.setRequestHeader('apikey',KEY);xhr.setRequestHeader('Authorization','Bearer '+session.access_token);xhr.setRequestHeader('Content-Type','application/json');
-  xhr.send(JSON.stringify({p_revision:revision,p_personal_revision:personalRevision,p_company:cc?company:null,p_personal:pc?personal:null}));
+  xhr.send(JSON.stringify({p_revision:revision,p_personal_revision:personalRevision,p_company:cc?company:null,p_personal:pc?personal:null,p_finance:fc?state.__finance:null}));
   if(xhr.status!==200)throw Error('server '+xhr.status);
   const result=JSON.parse(xhr.responseText);
   if((cc&&Number(result.company_revision)!==revision+1)||(pc&&Number(result.personal_revision)!==personalRevision+1))throw Error('revision mismatch');
-  if(cc){revision=Number(result.company_revision);lastCompany=cs;companyBody=copy(company)}
+  if(cc){revision=Number(result.company_revision);lastCompany=cs;companyBody=copy(company);if(fc){financeBody=copy(state.__finance);lastFinance=fs}}
   if(pc){personalRevision=Number(result.personal_revision);lastPersonal=ps;personalBody=copy(personal)}
   notice('저장 완료 · '+new Date().toLocaleTimeString('ko-KR'));return true;
  }catch(e){blockSave();return false}
 }
 async function workRequest(action,payload={}){if(!session?.user||shell.hidden)throw Error('로그인이 필요합니다.');const ticket=epoch;const {data,error}=await db.rpc('erp_next_work',{p_action:action,p_payload:payload});if(ticket!==epoch)throw Error('로그인 상태가 변경되었습니다.');if(error)throw Error('업무 처리 실패 · 다시 확인해 주세요.');return data;}
-window.erpNextHost={work:workRequest,ready:()=>Boolean(session?.user&&!blocked&&!shell.hidden),initial:()=>combine(),actor:currentActor,save:saveNext,account:()=>$('changePw').click(),refresh:()=>$('refresh').click(),logout:()=>$('logout').click()};
+window.erpNextHost={financeManage:async(action,payload={})=>{if(!session?.user||shell.hidden||!staffAdmin)throw Error('관리자 권한이 필요합니다.');const {data,error}=await db.rpc('erp_next_finance_manage',{p_action:action,p_payload:payload});if(error)throw Error('권한관리 요청 실패');return data},work:workRequest,ready:()=>Boolean(session?.user&&!blocked&&!shell.hidden),initial:()=>combine(),actor:currentActor,save:saveNext,account:()=>$('changePw').click(),refresh:()=>$('refresh').click(),logout:()=>$('logout').click()};
 async function sync(){
  if(!session||loading||polling||blocked||shell.hidden)return;polling=true;const ticket=epoch,uid=session.user.id;
  try{
   const [cr,pr]=await Promise.all([db.from('erp_next_company_state').select('revision').eq('id',1).single(),db.from('erp_next_personal_state').select('revision').eq('user_id',uid).maybeSingle()]);
   if(cr.error||pr.error||!cr.data)throw Error('server read');if(ticket!==epoch)return;
   if(Number(cr.data.revision)<=revision&&Number(pr.data?.revision||0)<=personalRevision)return;
-  const [c,p]=await Promise.all([db.from('erp_next_company_state').select('revision,body').eq('id',1).single(),db.from('erp_next_personal_state').select('revision,body').eq('user_id',uid).maybeSingle()]);
+  const [c,p]=await Promise.all([db.rpc('erp_next_finance_load'),db.from('erp_next_personal_state').select('revision,body').eq('user_id',uid).maybeSingle()]);
   if(c.error||p.error||!c.data||ticket!==epoch||blocked)return;
   const nr=Number(c.data.revision),np=Number(p.data?.revision||0);
   if(nr<revision||np<personalRevision||(nr===revision&&np===personalRevision))return;
-  const nc=nr>revision?c.data.body:companyBody,npp=np>personalRevision?p.data?.body||{}:personalBody;
-  if(frame.contentWindow?.erpApplyRemote?.({...copy(nc),...copy(npp)})){revision=nr;personalRevision=np;companyBody=nc;personalBody=npp;lastCompany=JSON.stringify(nc);lastPersonal=JSON.stringify(npp);notice('변경사항 반영 완료')}
+  const nc=nr>revision?c.data.body:companyBody,npp=np>personalRevision?p.data?.body||{}:personalBody,nf=c.data.finance||{},nrts=c.data.rights||{};
+  if(JSON.stringify(nrts)!==JSON.stringify(financeRights)){frame.src='about:blank';revision=nr;personalRevision=np;companyBody=nc;personalBody=npp;financeBody=nf;financeRights=nrts;lastFinance=JSON.stringify(nf);lastCompany=JSON.stringify(nc);lastPersonal=JSON.stringify(npp);frame.src=APP+'?v=20261128-finance1&t='+Date.now();notice('권한 변경 반영 완료');return}if(frame.contentWindow?.erpApplyRemote?.({...copy(nc),...copy(npp),__finance:copy(nf),__financeRights:copy(nrts)})){revision=nr;personalRevision=np;companyBody=nc;personalBody=npp;financeBody=nf;financeRights=nrts;lastFinance=JSON.stringify(nf);lastCompany=JSON.stringify(nc);lastPersonal=JSON.stringify(npp);notice('변경사항 반영 완료')}
   else notice('다른 변경사항 있음 · 입력 완료 후 반영');
  }catch(e){notice('연결 확인 필요 · 저장 시 서버 검증');}finally{polling=false;}
 }
