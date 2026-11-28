@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "미르스타푸드 ERP",
+  "short_name": "미르스타 ERP",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "gcm_sender_id": "103953800507",
+  "icons": [
+    {
+      "src": "push-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
