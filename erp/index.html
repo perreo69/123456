@@ -309,4 +309,15 @@ html body #gate .next-login-link-divider{color:#d1d6df}
 html body #gate #message{margin:8px 0 0!important;min-height:0!important;font-size:13px!important;color:#56616e!important}
 html body #gate #message:empty{display:none!important}
 @media(max-width:600px){html body #gate .panel{padding:26px 23px!important;width:min(360px,100%)!important}html body #gate input:not([type=checkbox]){font-size:16px!important}}
-</style><style id="next-operating-shell">html body #shell:not(.save-blocked) #bar{display:none!important}html body #shell{height:100dvh;overflow:hidden}html body #shell iframe{display:block;flex:1;width:100%;height:100%;min-height:0;border:0}</style></body></html>
+</style><style id="next-operating-shell">html body #shell:not(.save-blocked) #bar{display:none!important}html body #shell{height:100dvh;overflow:hidden}html body #shell iframe{display:block;flex:1;width:100%;height:100%;min-height:0;border:0}</style><script id="mobile-bottom-nav-loader">
+(()=>{
+  frame.addEventListener('load',()=>{
+    if(shell.hidden||!window.erpNextHost?.ready())return;
+    try{
+      const doc=frame.contentDocument,url=new URL(frame.contentWindow.location.href);
+      if(url.origin!==location.origin||url.pathname!==new URL(APP,location.href).pathname||!doc?.getElementById('sidebar')||doc.getElementById('erp-bottom-module'))return;
+      const script=doc.createElement('script');script.id='erp-bottom-module';script.src=new URL('mobile-bottom-nav.js?v=26d4dcc0',location.href).href;doc.head.append(script);
+    }catch(e){console.warn('Mobile menu unavailable',e);}
+  });
+})();
+</script></body></html>
