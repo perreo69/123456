@@ -320,4 +320,35 @@ html body #gate #message:empty{display:none!important}
     }catch(e){console.warn('Mobile menu unavailable',e);}
   });
 })();
+</script><style id="erp-mobile-popup-fixed">/* Mobile only: retain the existing form and click handlers. */
+@media (max-width:760px){
+  html body dialog[open]:has(>.dialoghead),html body dialog[open]:has(>form>.dialoghead){display:flex!important;flex-direction:column;overflow:hidden!important;min-height:0;max-height:min(90dvh,calc(100dvh - 16px))!important}
+  html body dialog[open]:has(>form>.dialoghead)>form{display:flex;flex-direction:column;min-height:0;max-height:inherit;overflow:hidden}
+  html body dialog[open] .dialoghead{flex:0 0 auto;position:relative;z-index:3;background:#fff;min-width:0}
+  html body dialog[open] .dialoghead>button{flex:0 0 auto;min-width:40px;min-height:40px;touch-action:manipulation}
+  html body dialog[open] .dialogbody,html body dialog[open] .delivery-form-body{flex:1 1 auto;min-height:0;min-width:0;overflow:auto;overscroll-behavior:contain;scroll-padding-bottom:70px}
+  html body dialog[open] .dialogfoot{flex:0 0 auto;background:#fff;z-index:2}
+  html body dialog[open] .dialogactions,html body #rangeDialog[open] .range-footer{position:sticky;bottom:0;z-index:2;background:#fff;border-top:1px solid var(--line,#e0e3e8);padding-top:10px;padding-bottom:8px;box-shadow:0 -5px 8px #fff}
+  html body #bulkEditor .bulkbody{display:grid;grid-auto-rows:max-content;align-items:stretch}
+  html body #bulkEditor .bulkbody>.dialogactions{order:2;margin-top:auto}
+  html body #filterpanel:not([hidden]){overscroll-behavior:contain;scroll-padding-top:50px;scroll-padding-bottom:62px}
+  html body #filterpanel .filtertitle{position:sticky;top:0;background:#fff;z-index:3;padding:6px 0;min-height:44px}
+  html body #filterpanel .filtertitle>button{min-width:40px;min-height:40px;flex:none}
+  html body #filterpanel .filteractions{position:sticky;bottom:0;background:#fff;z-index:2;padding:10px 0 3px;border-top:1px solid var(--line,#e0e3e8);box-shadow:0 -5px 8px #fff}
+  html body #passwordDialog[open],html body #inviteDialog[open]{overflow:auto;overscroll-behavior:contain;scroll-padding-top:60px;scroll-padding-bottom:65px}
+  html body #passwordDialog h2,html body #inviteDialog h2{position:sticky;top:0;margin-top:0;background:#fff;z-index:3;padding:8px 0;border-bottom:1px solid #e0e3e8}
+  html body #passwordDialog .actions,html body #inviteDialog .actions{position:sticky;bottom:0;background:#fff;z-index:2;padding:10px 0 8px;border-top:1px solid #e0e3e8;box-shadow:0 -5px 8px #fff}
+}
+</style><script id="erp-mobile-popup-fixed-loader">
+(()=>{
+  const style=document.getElementById('erp-mobile-popup-fixed');
+  function apply(){
+    try{
+      const doc=frame.contentDocument,url=new URL(frame.contentWindow.location.href);
+      if(!doc||url.origin!==location.origin||url.pathname!==new URL(APP,location.href).pathname||!doc.getElementById('sidebar')||doc.getElementById(style.id))return;
+      doc.head.append(doc.importNode(style,true));
+    }catch(e){console.warn('Mobile popup layout unavailable',e);}
+  }
+  frame.addEventListener('load',apply);apply();
+})();
 </script></body></html>
