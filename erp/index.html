@@ -316,7 +316,7 @@ html body #gate #message:empty{display:none!important}
     try{
       const doc=frame.contentDocument,url=new URL(frame.contentWindow.location.href);
       if(url.origin!==location.origin||url.pathname!==new URL(APP,location.href).pathname||!doc?.getElementById('sidebar')||doc.getElementById('erp-bottom-module'))return;
-      const script=doc.createElement('script');script.id='erp-bottom-module';script.src=new URL('mobile-bottom-nav.js?v=26d4dcc0',location.href).href;doc.head.append(script);
+      const script=doc.createElement('script');script.id='erp-bottom-module';script.src=new URL('mobile-bottom-nav-v2.js?v=308f28cc',location.href).href;doc.head.append(script);
     }catch(e){console.warn('Mobile menu unavailable',e);}
   });
 })();
