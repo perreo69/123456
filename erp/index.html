@@ -362,4 +362,15 @@ html body #gate #message:empty{display:none!important}
     }catch(e){console.warn('Input autocomplete unavailable',e);}
   });
 })();
+</script><script id="erp-flex-date-loader">
+(()=>{
+  frame.addEventListener('load',()=>{
+    if(shell.hidden||!window.erpNextHost?.ready())return;
+    try{
+      const doc=frame.contentDocument,url=new URL(frame.contentWindow.location.href);
+      if(!doc||url.origin!==location.origin||url.pathname!==new URL(APP,location.href).pathname||!doc.getElementById('editorform')||doc.getElementById('erp-flex-date-module'))return;
+      const s=doc.createElement('script');s.id='erp-flex-date-module';s.src=new URL('flexible-date.js?v=bcd6dd86',location.href).href;doc.head.append(s);
+    }catch(e){console.warn('Flexible dates unavailable',e);}
+  });
+})();
 </script></body></html>
