@@ -9,7 +9,7 @@ ART = ROOT / "erp" / "tests" / "artifacts"
 ART.mkdir(parents=True, exist_ok=True)
 SOURCE = APP.read_text(encoding="utf-8")
 ORIGIN = "http://erp-test.invalid"
-HOST = """<!doctype html><html><head><meta charset="utf-8"><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;display:block}</style></head><body><script>
+HOST = """<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>html,body,iframe{margin:0;width:100%;height:100%;border:0;display:block}</style></head><body><script>
 window.testState={};window.testSaves=0;window.testReject=false;
 window.erpNextHost={ready:()=>true,initial:()=>structuredClone(window.testState),actor:()=>({id:'test-only',name:'테스트',admin:true}),save:s=>{if(window.testReject)return false;window.testState=structuredClone(s);window.testSaves++;return true},work:async()=>({staff:[],messages:[]}),account:()=>{},refresh:()=>{},logout:()=>{}};
 </script><iframe src="/erp-next/operating.html"></iframe></body></html>"""
@@ -34,6 +34,11 @@ def run(browser, label, width, height, mobile):
         main = frame.locator("#main")
         expect(main.locator("h1")).to_be_visible(timeout=10000)
         app = page.frames[1]
+        dimensions = app.evaluate("()=>({width:innerWidth,mobile:matchMedia('(max-width:760px)').matches})")
+        print(label+": viewport "+str(dimensions),flush=True)
+        assert abs(dimensions["width"]-width)<=2 and dimensions["mobile"]==mobile, dimensions
+        if mobile:
+            expect(frame.locator("#hamb")).to_be_visible(timeout=5000)
         def nav(group, target):
             if mobile:
                 frame.locator("#hamb").click()
