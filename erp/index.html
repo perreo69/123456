@@ -414,4 +414,20 @@ html body #gate #message:empty{display:none!important}
   }
   frame.addEventListener('load',apply);apply();
 })();
+</script><style id="erp-mobile-edit-unified">@media (max-width:760px){
+ #main .heading>button.erp-edit-button,#main .quick .quick-edit-head>button.erp-edit-button{display:inline-flex;align-items:center;justify-content:center;flex:0 0 84px;box-sizing:border-box;width:84px;min-width:84px;max-width:84px;height:40px;min-height:40px;max-height:40px;margin:0 0 0 auto;padding:0 10px;gap:6px;white-space:nowrap;font-size:14px;font-weight:600;line-height:20px;align-self:center}
+ #main .heading>button.erp-edit-button>.ico,#main .quick .quick-edit-head>button.erp-edit-button>.ico{width:18px;height:18px;min-width:18px;flex:0 0 18px;margin:0;color:inherit;stroke-width:1.7}
+ #main .quick .quick-edit-head{min-width:0;justify-content:space-between}
+}</style><script id="erp-mobile-edit-unified-loader">
+(()=>{
+  const style=document.getElementById('erp-mobile-edit-unified');
+  function apply(){
+    try{
+      const doc=frame.contentDocument,url=new URL(frame.contentWindow.location.href);
+      if(!doc||url.origin!==location.origin||url.pathname!==new URL(APP,location.href).pathname||!doc.getElementById('sidebar')||doc.getElementById(style.id))return;
+      doc.head.append(doc.importNode(style,true));
+    }catch(e){console.warn('Mobile edit styling unavailable',e);}
+  }
+  frame.addEventListener('load',apply);apply();
+})();
 </script></body></html>
