@@ -1,0 +1,20 @@
+name: ERP isolated browser validation
+on:
+  push:
+    branches: [erp-finance-browser-check-20261128]
+permissions:
+  contents: read
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-save --ignore-scripts playwright@1.51.1
+      - run: npx playwright install --with-deps chromium
+      - run: node erp-next/finance-browser-test.cjs
