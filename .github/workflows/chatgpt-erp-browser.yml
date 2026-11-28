@@ -1,0 +1,41 @@
+name: ChatGPT ERP browser regression
+on:
+  pull_request:
+    paths:
+      - 'erp/**'
+      - 'erp-next/**'
+      - '.github/workflows/chatgpt-erp-browser.yml'
+  push:
+    paths:
+      - 'erp/**'
+      - 'erp-next/**'
+      - '.github/workflows/chatgpt-erp-browser.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: chatgpt-erp-browser-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  browser-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install browser test dependencies
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Test isolated ERP in PC and mobile Chromium
+        run: python erp/tests/browser_regression.py
+      - name: Save screenshots even when checks fail
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatgpt-erp-screenshots
+          path: erp/tests/artifacts/
+          if-no-files-found: warn
+          retention-days: 7
