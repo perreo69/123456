@@ -87,7 +87,7 @@ def run(browser, label, width, height, mobile):
         expect(frame.locator("#editor")).not_to_be_visible()
         assert len(page.evaluate("window.testState")["입고입력"])==1
         # Exercise actual application inventory replay and sequence/identity logic with isolated state.
-        result=app.evaluate("""()=>{const r=rows('입고입력')[0], original=structuredClone(r); const move={...r,'날짜':'2026-11-21','구분':'해동','출발상태':'냉동','도착상태':'해동','출발창고':'냉동고','도착창고':'냉장고','수량':4};const moved=saveEvent('이동입력',move);const afterMove=inventory().map(x=>[x['보관상태'],Number(x['수량'])]);const out={...r,'날짜':'2026-11-22','구분':'출고','수량':2};const sold=saveEvent('출고입력',out);const bad=saveEvent('출고입력',{...out,'수량':100});const after=inventory().reduce((a,x)=>a+Number(x['수량']),0);const edit=saveEvent('입고입력',{...r,'비고':'수정 테스트'},0);const kept=rows('입고입력')[0];return {moved,afterMove,sold,bad,after,edit,seq:kept._seq===original._seq&&move._seq<out._seq&&original._seq<move._seq,registered:kept._registeredAt===original._registeredAt&&kept._registeredBy===original._registeredBy}}""")
+        result=app.evaluate("""()=>{const r=rows('입고입력')[0], original=structuredClone(r); const move={...r,'날짜':'2026-11-21','구분':'해동','출발상태':'냉동','도착상태':'해동','출발창고':'냉동고','도착창고':'냉장고','수량':4};const moved=saveEvent('이동입력',move);const afterMove=inventory().map(x=>[x['보관상태'],Number(x['수량'])]);const out={...r,'날짜':'2026-11-22','구분':'출고','수량':2,'거래유형':'비거래','단가':null};const sold=saveEvent('출고입력',out);const bad=saveEvent('출고입력',{...out,'수량':100});const after=inventory().reduce((a,x)=>a+Number(x['수량']),0);const edit=saveEvent('입고입력',{...r,'비고':'수정 테스트'},0);const kept=rows('입고입력')[0];return {moved,afterMove,sold,bad,after,edit,seq:kept._seq===original._seq&&move._seq<out._seq&&original._seq<move._seq,registered:kept._registeredAt===original._registeredAt&&kept._registeredBy===original._registeredBy}}""")
         assert result["moved"] and result["sold"] and not result["bad"], result
         assert sorted(x[1] for x in result["afterMove"])==[4,6] and result["after"]==8, result
         assert result["edit"] and result["seq"] and result["registered"],result
@@ -136,6 +136,15 @@ def run(browser, label, width, height, mobile):
             # Validate historical snapshot, partial payment, and supplier vs buyer identity.
             checks=app.evaluate("""()=>{const rr=priceHistory(),old=rows('입고입력').find(x=>x['LOT']==='TEST-2');const m=rows('단가등록')[0];m['단가']=999;const snapshot=old['단가']===100;old['정산금액']=200;const due=financeRows('미지급금');const row=due.find(r=>r['LOT']==='TEST-2');return {snapshot,partial:row?.['잔액']===300,unknown:due.some(r=>r['LOT']==='TEST-3'&&r['잔액']===null),freeExcluded:!due.some(r=>r['LOT']==='TEST-4'),weighted:priceStats(rr.filter(r=>r['거래유형']==='매입')).avg===100}}""")
             assert all(checks.values()),checks
+            # Real outbound editor: stock supplier stays unchanged; buyer is separately recorded.
+            nav("재고관리","출고입력")
+            main.locator('[data-new="출고입력"]').click()
+            for k,v in {"날짜":"2026-11-26","품목명":"자동검증꽃갈비","업체명":"테스트업체","분류":"원료육","하위분류":"소고기","원산지":"미국","브랜드":"TEST","보관상태":"냉동","창고":"냉동고","LOT":"TEST-2","수량":"1","단위":"kg","거래유형":"매출","판매처":"테스트판매처","단가":"200","세금구분":"면세","정산금액":"50"}.items():
+                setfield(k,v)
+            form.locator('button[type="submit"]').click()
+            expect(frame.locator("#editor")).not_to_be_visible()
+            sales=app.evaluate("""()=>({sales:financeRows('매출관리').filter(x=>x._pricePage).map(x=>[x['업체명'],x['금액']]),receivable:financeRows('미수금').find(x=>x._pricePage)?.['잔액'],supplier:rows('출고입력').at(-1)['업체명'],stock:inventory().find(x=>x['LOT']==='TEST-2')?.['수량']})""")
+            assert sales=={"sales":[["테스트판매처",200]],"receivable":150,"supplier":"테스트업체","stock":4},sales
             nav("정산관리","미지급금")
             expect(main.locator("#resultcount")).to_contain_text("2")
             layout("payables")
