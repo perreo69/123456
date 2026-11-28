@@ -351,4 +351,15 @@ html body #gate #message:empty{display:none!important}
   }
   frame.addEventListener('load',apply);apply();
 })();
+</script><script id="erp-input-autocomplete-loader">
+(()=>{
+  frame.addEventListener('load',()=>{
+    if(shell.hidden||!window.erpNextHost?.ready())return;
+    try{
+      const doc=frame.contentDocument,url=new URL(frame.contentWindow.location.href);
+      if(!doc||url.origin!==location.origin||url.pathname!==new URL(APP,location.href).pathname||!doc.getElementById('editorform')||doc.getElementById('erp-input-autocomplete-module'))return;
+      const s=doc.createElement('script');s.id='erp-input-autocomplete-module';s.src=new URL('input-autocomplete.js?v=67cac5bd',location.href).href;doc.head.append(s);
+    }catch(e){console.warn('Input autocomplete unavailable',e);}
+  });
+})();
 </script></body></html>
