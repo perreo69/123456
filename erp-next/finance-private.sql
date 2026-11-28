@@ -35,12 +35,12 @@ create function erp_finance_private.guard_company() returns trigger language plp
 begin if not erp_finance_private.clean_company(new.body) then raise exception 'finance data must use protected ERP API' using errcode='42501'; end if;return new;end $$;
 create trigger erp_finance_guard before update of body or insert on public.erp_next_company_state for each row execute function erp_finance_private.guard_company();
 create function erp_finance_private.load() returns jsonb language plpgsql security definer set search_path='' as $$
-declare r jsonb:=erp_finance_private.rights(auth.uid()); c public.erp_next_company_state%rowtype; f jsonb; outval jsonb;
+declare v_rights jsonb:=erp_finance_private.rights(auth.uid()); v_result jsonb;
 begin
- if r is null then raise exception 'staff required' using errcode='42501';end if;
+ if v_rights is null then raise exception 'staff required' using errcode='42501';end if;
  -- One snapshot for both shared and financial rows.
- select jsonb_build_object('revision',c.revision,'body',c.body,'finance',coalesce((select jsonb_object_agg(g.key,g.value) from jsonb_each(f.body) g where erp_finance_private.allowed(r,g.key)), '{}'::jsonb),'rights',r) into outval from public.erp_next_company_state c cross join erp_finance_private.state f where c.id=1 and f.id=1;
- return outval;
+ select jsonb_build_object('revision',c.revision,'body',c.body,'finance',coalesce((select jsonb_object_agg(g.key,g.value) from jsonb_each(f.body) g where erp_finance_private.allowed(v_rights,g.key)), '{}'::jsonb),'rights',v_rights) into v_result from public.erp_next_company_state c cross join erp_finance_private.state f where c.id=1 and f.id=1;
+ return v_result;
 end $$;
 create function erp_finance_private.validate(g text,v jsonb,c jsonb) returns boolean language plpgsql immutable set search_path='' as $$
 declare x record; sec text; permitted text[];
