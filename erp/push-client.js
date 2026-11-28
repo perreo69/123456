@@ -1,0 +1,39 @@
+(()=>{"use strict";
+const $p=id=>document.getElementById(id), dialog=$p("erpPushDialog"), message=$p("erpPushMessage"), yes=$p("erpPushEnable"), off=$p("erpPushDisable"), test=$p("erpPushTest");
+const get=k=>{try{return localStorage.getItem(k)}catch{return null}},set=(k,v)=>{try{localStorage.setItem(k,v)}catch{}},del=k=>{try{localStorage.removeItem(k)}catch{}};
+const id=()=>session?.user?.id, key=k=>"mirrstar.push."+k+"."+id(),ownerKey="mirrstar.push.owner";
+const isApple=/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1),standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const ua=navigator.userAgent, browser=/SamsungBrowser/i.test(ua)?"삼성인터넷":/NAVER/i.test(ua)?"네이버 앱":/Edg/i.test(ua)?"Edge":/Firefox|FxiOS/i.test(ua)?"Firefox":/Chrome|CriOS/i.test(ua)?"Chrome":/Safari/i.test(ua)?"Safari":"현재 브라우저";
+const platform=isApple?"iPhone / iPad":/Android/i.test(ua)?"Android":/Windows/i.test(ua)?"Windows":/Mac/i.test(ua)?"macOS":"현재 기기";
+const support=()=>window.isSecureContext&&"serviceWorker" in navigator&&"PushManager" in window&&"Notification" in window&&(!isApple||standalone());
+const say=t=>{message.textContent=t};
+let regPromise=null,busy=false,active=false,shownFor="",openWanted=new URLSearchParams(location.search).get("erp_notice");
+async function rpc(action,payload={}){if(!id())throw Error("로그인이 필요합니다.");const {data,error}=await db.rpc("erp_push_client",{p_action:action,p_payload:payload});if(error)throw Error("알림 서버 연결을 확인해 주세요.");return data}
+async function registration(){if(!regPromise)regPromise=navigator.serviceWorker.register("./push-sw.js",{scope:"./"}).then(()=>navigator.serviceWorker.ready).catch(e=>{regPromise=null;throw e});return regPromise}
+const decode=s=>Uint8Array.from(atob(s.replace(/-/g,"+").replace(/_/g,"/").padEnd(Math.ceil(s.length/4)*4,"=")),c=>c.charCodeAt(0));
+function state(){yes.hidden=!support()||active||Notification.permission==="denied";off.hidden=!active;test.hidden=!active;yes.disabled=off.disabled=test.disabled=busy;$p("erpPushEnvironment").textContent=platform+" · "+browser+" · 기기 기본 알림음";}
+function explanation(){if(isApple&&!standalone())return "홈 화면에서 알림을 받으려면 Safari 공유 메뉴 → 홈 화면에 추가 → 추가한 ERP 아이콘을 열고 알림을 허용해 주세요.";if(!support())return browser==="네이버 앱"?"네이버 앱에서 푸시 알림을 지원하지 않습니다. 삼성인터넷 또는 Chrome으로 ERP를 열고 알림을 허용해 주세요.":"이 접속 환경은 웹 푸시를 지원하지 않습니다. 지원 브라우저에서 ERP를 열어 주세요.";if(Notification.permission==="denied")return "브라우저의 사이트 설정에서 알림을 허용한 뒤 다시 열어 주세요.";if(active)return "이 기기에 알림이 등록되었습니다. 소리·진동은 기기 설정을 따릅니다.";return "업무 알림을 받으려면 최초 한 번 알림을 허용해 주세요."}
+function open(){if(!id())return;state();say(explanation());if(!dialog.open)dialog.showModal()}
+async function enable(ask){if(busy||!support()||!id())return;busy=true;state();const uid=id();let created=null;try{
+ if(ask&&Notification.permission!=="granted"){const perm=await Notification.requestPermission();if(perm!=="granted"){say(explanation());return}}
+ if(Notification.permission!=="granted")return;
+ const r=await registration(),info=await rpc("key");if(!info?.key)throw Error("알림 서버 준비 상태를 확인해 주세요.");
+ if(uid!==id())return;let sub=await r.pushManager.getSubscription();if(!sub){sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:decode(info.key)});created=sub}
+ if(uid!==id()){if(created)await created.unsubscribe();return}
+ await rpc("register",{subscription:sub.toJSON()});if(uid!==id()){await sub.unsubscribe();return}set(ownerKey,uid);del(key("disabled"));active=true;say(explanation());
+ }catch(e){if(created)try{await created.unsubscribe()}catch{};active=false;say("알림 등록 실패 · 브라우저 알림 설정 또는 지원 여부를 확인해 주세요.");if(ask&&!dialog.open)open()}finally{busy=false;state()}}
+async function disable(logout=false){if(!id())return false;const uid=id();if(!logout)set(key("disabled"),"1");let localOk=true,serverOk=true;try{if("serviceWorker" in navigator){const r=await navigator.serviceWorker.getRegistration("./");const sub=await r?.pushManager?.getSubscription();if(sub){try{await Promise.race([rpc("disable",{endpoint:sub.endpoint}),new Promise((_,rej)=>setTimeout(()=>rej(Error("timeout")),3500))])}catch{serverOk=false}try{await sub.unsubscribe()}catch{localOk=false}}}}catch{localOk=false}if(uid===get(ownerKey))del(ownerKey);active=false;state();if(!logout)say(localOk||serverOk?"이 기기의 알림을 껐습니다.":"알림 해제에 실패했습니다. 브라우저에서 알림 권한을 차단해 주세요.");return localOk||serverOk}
+async function afterLogin(){const uid=id();if(!uid||shell.hidden)return;active=false;state();if(get(ownerKey)&&get(ownerKey)!==uid){try{if("serviceWorker" in navigator){const r=await navigator.serviceWorker.getRegistration("./"),sub=await r?.pushManager?.getSubscription();if(sub)await sub.unsubscribe()}}catch{}del(ownerKey)}
+ if(support())registration().catch(()=>{});
+ if(support()&&Notification.permission==="granted"&&get(key("disabled"))!=="1"){await enable(false);if(active)return}
+ if(get(key("disabled"))==="1"||shownFor===uid||get(key("shown"))==="1")return;shownFor=uid;set(key("shown"),"1");if(id()===uid&&!shell.hidden)open()}
+yes.onclick=()=>void enable(true);off.onclick=()=>void disable(false);$p("erpPushLater").onclick=()=>dialog.close();
+test.onclick=async()=>{if(!active||busy)return;test.disabled=true;try{const r=await registration(),sub=await r.pushManager.getSubscription();if(!sub)throw Error("missing");await rpc("test",{endpoint:sub.endpoint});say("테스트 알림을 요청했습니다. 1~2분 내 기기 알림을 확인해 주세요.")}catch{say("테스트 요청 실패 · 알림 등록을 확인해 주세요.")}finally{test.disabled=false}};
+$p("erpPushAccount").onclick=()=>{if($p("passwordDialog").open)$p("passwordDialog").close();open()};
+function route(){if(!openWanted||!id())return;try{const win=frame.contentWindow;if(typeof win?.go!=="function")return;win.go(openWanted==="test"?"환경설정":"업무공유");openWanted=null;const u=new URL(location.href);u.searchParams.delete("erp_notice");history.replaceState(null,"",u.href)}catch{}}
+function addSettings(){try{const doc=frame.contentDocument;if(!doc)return;const h=[...doc.querySelectorAll("h3")].find(x=>x.textContent.trim()==="계정 관리");if(!h)return;const section=h.closest("section");if(!section||section.querySelector("[data-erp-push-settings]"))return;const b=doc.createElement("button");b.type="button";b.textContent="알림 설정";b.dataset.erpPushSettings="1";b.onclick=open;(section.querySelector(".work-actions")||section).prepend(b)}catch{}}
+let obs;frame.addEventListener("load",()=>{obs?.disconnect();try{const body=frame.contentDocument?.body;if(body){obs=new MutationObserver(addSettings);obs.observe(body,{childList:true,subtree:true});addSettings()}}catch{}route()});
+navigator.serviceWorker?.addEventListener("message",e=>{if(e.data?.type==="ERP_PUSH_OPEN"){openWanted=e.data.kind==="test"?"test":"work";route()}});
+window.erpPush={afterLogin,beforeLogout:()=>disable(true),open};
+if(id()&&!shell.hidden)void afterLogin();
+})();
