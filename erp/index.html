@@ -395,6 +395,13 @@ html body #gate #message:empty{display:none!important}
  #main .countrow>.mobile-list-sort>button:disabled{opacity:.35;cursor:default}
  #main .countrow>.mobile-list-sort>:focus-visible{outline:2px solid var(--blue,#1260db);outline-offset:1px}
 }
+@media (max-width:760px){
+ #main .countrow:has(>.mobile-list-sort)>#resultcount{line-height:20px;align-self:center}
+ #main .countrow>.mobile-list-sort{align-items:center;min-height:40px}
+ #main .countrow>.mobile-list-sort>select{box-sizing:border-box;align-self:center;line-height:20px;padding-top:0;padding-bottom:0}
+ #main .countrow>.mobile-list-sort>button{position:relative;display:block;box-sizing:border-box;align-self:center;overflow:hidden;text-indent:-9999px}
+ #main .countrow>.mobile-list-sort>button::before{position:absolute;inset:0;margin:auto;text-indent:0}
+}
 </style><script id="erp-mobile-sort-ui-loader">
 (()=>{
   const style=document.getElementById('erp-mobile-sort-ui');
