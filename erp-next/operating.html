@@ -810,7 +810,7 @@ const rangeExtra=[['yesterday','전일'],['prevweek','지난 주'],['prevmonth',
 function rangeKey(a,b){if(!a&&!b)return 'all';return rangeQuick.slice(0,3).find(([k])=>{const r=periodPreset(k);return r[0]===a&&r[1]===b})?.[0]||'custom'}
 function priceRangeQuick(){return page==='단가관리'?[['all','전체기간'],['week','주별'],['month','월별'],['year','연도별'],['custom','기간설정']]:rangeQuick}
 function priceRangeKey(a,b){if(!a&&!b)return 'all';return ['week','month','year'].find(k=>{const r=periodPreset(k);return r[0]===a&&r[1]===b})||'custom'}
-function periodBar(){const key=rangeKey(from,to);return '<div class="period"><div class="range-quick">'+listRangeQuick.map(([k,label])=>'<button data-period="'+k+'" class="'+(key===k?'primary':'')+'" aria-pressed="'+(key===k)+'">'+label+'</button>').join('')+'</div><div class="range-current">'+I('calendar')+esc(!from&&!to?'전체 기간':(from||'시작일 없음')+' ~ '+(to||'종료일 없음'))+'</div></div>'}
+function periodBar(){const key=rangeKey(from,to);return '<div class="period"><div class="range-quick">'+listRangeQuick.map(([k,label])=>'<button data-period="'+k+'" class="'+(key===k?'primary':'')+'" aria-pressed="'+(key===k)+'">'+label+'</button>').join('')+'</div>'+((from||to)?'<div class="range-current">'+I('calendar')+esc((from||'시작일 없음')+' ~ '+(to||'종료일 없음'))+'</div>':'')+'</div>'}
 function applyRange(a,b){if((a||b)&&(!validRangeDate(a)||!validRangeDate(b)||a>b))return false;from=a;to=b;render();return true}
 let rangeDraft=null;
 function openRange(){const all=page==='단가관리'&&!from&&!to,a=all?'':from||today(),b=all?'':to||today();rangeDraft={a,b,left:(a||today()).slice(0,7),right:(b||today()).slice(0,7),expanded:false,year:Number(today().slice(0,4)),key:page==='단가관리'?priceRangeKey(from,to):'custom'};drawRange();$('rangeDialog').showModal()}
