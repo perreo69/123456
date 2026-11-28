@@ -131,7 +131,35 @@ header .headright{flex:none}
 @media(max-width:760px){#dashPersonalEditor .dash-edit-row{gap:5px}#dashPersonalEditor .dash-edit-row button{width:33px;min-width:33px}.dash-catalog-options button{min-height:36px}}
 </style>
 <style id="pc-stock-inline-totals">.stock-inline-total-cell{position:relative}.stock-inline-total{position:absolute;top:50%;transform:translateY(-50%);margin-left:.7em;color:var(--muted);font-size:.85em;font-weight:400;white-space:nowrap;pointer-events:none;visibility:hidden}</style>
-</head><body>
+
+<style id="erp-popup-behavior-v1">
+html.erp-popup-open{overflow:hidden;overscroll-behavior:none;scrollbar-gutter:stable}
+html.erp-popup-open body{overscroll-behavior:none}
+dialog[open]{display:flex;flex-direction:column;min-height:0;max-height:min(90dvh, var(--erp-popup-available, 90dvh));overflow:hidden;overscroll-behavior:contain}
+dialog[open]>form{display:flex;flex-direction:column;min-height:0;max-height:inherit;overflow:hidden;margin:0}
+dialog[open] .dialoghead{flex:0 0 auto;background:#fff}
+dialog[open] .dialogbody,dialog[open] .delivery-form-body{min-height:0;flex:0 1 auto;overflow:auto;overscroll-behavior:contain}
+dialog[open] .erp-fixed-actions{flex:0 0 auto;margin:0;padding:15px 19px 19px;background:#fff}
+dialog[open] .dialogbody.erp-split-body{padding-bottom:0}
+dialog[open] .dialogfoot{flex:0 0 auto}
+#bulkEditor[open] .erp-fixed-actions{padding-top:13px;flex-wrap:wrap}
+#rangeDialog[open]{max-height:min(94dvh,var(--erp-popup-available,94dvh))}
+#rangeDialog[open] .range-footer{position:sticky;bottom:0;background:white;z-index:2;padding-bottom:8px;margin-bottom:-8px}
+.filterpanel{overscroll-behavior:contain;max-height:min(85dvh,var(--erp-popup-available,85dvh))}
+.filterpanel .filtertitle{position:sticky;top:0;background:white;z-index:2}
+.filterpanel .filteractions{position:sticky;bottom:0;background:white;z-index:2;padding:6px 0}
+@media(min-width:761px) and (hover:hover) and (pointer:fine){
+dialog[open] .dialoghead,.filterpanel .filtertitle{cursor:move;user-select:none;touch-action:none}
+dialog[open][data-erp-dragged]{position:fixed;inset:auto;margin:0}
+}
+@media(max-width:760px),(pointer:coarse){
+html.erp-popup-open{scrollbar-gutter:auto}
+dialog[open] .erp-fixed-actions{padding:12px 15px 15px}
+.filterpanel{max-height:min(88dvh,var(--erp-popup-available,88dvh))}
+html.erp-popup-keyboard dialog[open]{position:fixed;inset:auto 0 auto;top:var(--erp-popup-top,8px);margin:0 auto}
+html.erp-popup-keyboard .filterpanel{bottom:auto!important;top:var(--erp-popup-top,8px)!important}
+}
+</style></head><body>
 <header><button class="hamb iconbtn" id="hamb" aria-label="메뉴 열기"></button><div class="brand"><svg class="logo" viewBox="0 0 32 32" fill="currentColor"><path d="M15 28C4 25 1 15 2 5c9 1 14 6 14 15V28zM17 28C28 25 31 15 30 5c-9 1-13 6-13 15z"/></svg>MirStar Food ERP</div><div class="tagline">식품 제조·유통 ERP</div><div class="headright"><span class="preview">운영</span><button id="notice" class="iconbtn" aria-label="알림"></button><button id="profile" class="iconbtn" aria-label="환경설정"></button></div></header>
 <div class="scrim" id="navscrim" hidden></div><aside id="sidebar" aria-label="주 메뉴"></aside><main id="main"></main>
 <div class="scrim filterscrim" id="filterscrim" hidden></div><section id="filterpanel" class="filterpanel" role="dialog" aria-label="검색조건" hidden></section>
@@ -521,7 +549,7 @@ function render(){$('main').setAttribute('data-font',preferences().font);$('main
 function refresh(){if(!$('listtable'))return;const rr=filtered(),cols=visibleCols(page),editable=!readOnly.has(page),mobile=$('mobileStockList');if(page==='단가관리'){$('resultcount').textContent='총 '+rr.length+'건';$('listtable').style.setProperty('display','block','important');$('listtable').innerHTML=pricePanel(rr);if(mobile)mobile.innerHTML='';$('filtercount').textContent=conditions.length?' ('+conditions.length+')':'';$('chips').innerHTML=conditions.map((c,i)=>'<span class="chip">'+esc(c.field)+': '+esc(c.value)+'<button aria-label="조건 삭제" data-remove-chip="'+i+'">'+I('x')+'</button></span>').join('');$('chips').style.display=conditions.length?'flex':'none';return;}$('resultcount').textContent='총 '+rr.length+'건';if(device()==='mobile'&&mobile){$('listtable').innerHTML='';const opened=new Set([...mobile.querySelectorAll('details[open]')].map(el=>el.dataset.mobileStockKey));mobile.innerHTML=page==='재고현황'?mobileStockList(rr):mobileRecordList(page,rr,cols,editable);for(const el of mobile.querySelectorAll('details'))if(opened.has(el.dataset.mobileStockKey))el.open=true}else{$('listtable').innerHTML=table(cols,rr,editable);if(mobile)mobile.innerHTML=''}fitStockInlineTotals();if($('mobileSort'))$('mobileSort').value=sortCol;if($('mobileSortDirection')){$('mobileSortDirection').disabled=!sortCol;$('mobileSortDirection').textContent=sortDir===1?'↑':'↓';$('mobileSortDirection').setAttribute('aria-label',sortDir===1?'오름차순':'내림차순')}$('filtercount').textContent=conditions.length?' ('+conditions.length+')':'';$('chips').innerHTML=conditions.map((c,i)=>'<span class="chip">'+esc(c.field)+': '+esc(c.value)+'<button aria-label="조건 삭제" data-remove-chip="'+i+'">'+I('x')+'</button></span>').join('');$('chips').style.display=conditions.length?'flex':'none'}
 function available(){return (cfg[page]||[]).filter(c=>c!=='날짜')}
 function showFilter(){draft=conditions.map(c=>({...c}));$('filterpanel').hidden=false;$('filterscrim').hidden=false;$('filterbtn').setAttribute('aria-expanded','true');drawFilter();positionFilter()}
-function positionFilter(){if($('filterpanel').hidden||!$('filterbtn'))return;const r=$('filterbtn').getBoundingClientRect();$('filterpanel').style.top=Math.min(r.bottom+8,Math.max(10,innerHeight-$('filterpanel').offsetHeight-10))+'px';$('filterpanel').style.left=Math.max(12,Math.min(r.left,innerWidth-$('filterpanel').offsetWidth-12))+'px'}
+function positionFilter(){if($('filterpanel').hidden||!$('filterbtn'))return;if($('filterpanel').dataset.erpDragged)return;const r=$('filterbtn').getBoundingClientRect();$('filterpanel').style.top=Math.min(r.bottom+8,Math.max(10,innerHeight-$('filterpanel').offsetHeight-10))+'px';$('filterpanel').style.left=Math.max(12,Math.min(r.left,innerWidth-$('filterpanel').offsetWidth-12))+'px'}
 function closeFilter(){$('filterpanel').hidden=true;$('filterscrim').hidden=true;$('filterbtn')?.setAttribute('aria-expanded','false')}
 function drawFilter(){const opts=available();$('filterpanel').innerHTML='<div class="filtertitle">검색 조건<button class="iconbtn" id="closefilter" aria-label="닫기">'+I('x')+'</button></div><div class="note">필요한 조건만 추가해서 사용하세요.</div><div id="conditionrows">'+draft.map((c,i)=>'<div class="condition"><select data-field="'+i+'" aria-label="검색항목">'+opts.map(o=>'<option '+(o===c.field?'selected':'')+'>'+esc(o)+'</option>').join('')+'</select><input data-val="'+i+'" aria-label="검색값" placeholder="검색값 입력" value="'+esc(c.value)+'"><button class="iconbtn" data-remove="'+i+'" aria-label="조건 삭제">'+I('x')+'</button></div>').join('')+'</div><button class="addcondition" id="addcondition">'+I('plus')+' 조건 추가</button><div class="available">추가 가능한 조건 (직접 선택하여 추가)<div class="options">'+opts.map(o=>'<button data-addfield="'+esc(o)+'">'+esc(o)+'</button>').join('')+'</div></div><div class="filteractions"><button id="filterreset">초기화</button><button class="primary" id="applyfilter">검색</button></div>';positionFilter()}
 function applyFilter(){conditions=draft.filter(c=>c.value.trim()).map(c=>({...c}));closeFilter();refresh()}
@@ -532,4 +560,111 @@ $('editorform').addEventListener('submit',e=>{e.preventDefault();const r={...(ed
 function csv(){const cols=cfg[page]||[];const quote=s=>'"'+String(s??'').replace(/"/g,'""')+'"';const safe=s=>/^[=+@\-\t\r]/.test(String(s??''))?"'"+s:s;const b=new Blob(['\ufeff'+[cols.map(quote).join(','),...filtered().map(r=>cols.map(c=>quote(safe(viewValue(r,c)))).join(','))].join('\r\n')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(b);const a=document.createElement('a');a.href=url;a.download=page+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 document.addEventListener('click',e=>{const b=e.target.closest('button');const el=e.target.closest('[data-sort]');if(el&&page!=='대시보드'){const c=el.dataset.sort;sortDir=sortCol===c?-sortDir:1;sortCol=c;refresh();return}if(!b)return;const d=b.dataset;if(handlePriceClick(b)||handlePersonalWork(b))return;if(b.id==='bulkItems'){openBulk();return}if(d.undoBulk){const reason=bulkUndoReason(bulkBatches()[d.undoBulk]);if(reason){toast(reason);return}if(!confirm('이 일괄등록 건의 품목만 취소할까요?'))return;const result=undoBulk(d.undoBulk);if(!result.ok){toast(result.reason);return}renderBulkHistory();render();toast('일괄등록 취소 완료');return}if(d.thaw){openThaw(d.thaw);return}if(d.stock!==undefined){go('재고현황',{category:d.stock,warehouse:d.warehouse||''});return}if(d.toggleStock){stockExpanded=!stockExpanded;nav();return}if(d.toggleMeat){meatExpanded=!meatExpanded;nav();return}if(d.catAction){categoryAction(d.catAction,Number(d.catIndex),Number(d.subIndex));return}if(d.page){go(d.page);return}if(d.group){if(d.group==='홈'){go('대시보드');return}openGroups.has(d.group)?openGroups.delete(d.group):openGroups.add(d.group);nav();return}if(d.new){openEditor(d.new);return}if(d.edit!==undefined){openEditor(page,+d.edit);return}if(d.addfield){addCondition(d.addfield);return}if(d.remove!==undefined){draft.splice(+d.remove,1);drawFilter();return}if(d.removeChip!==undefined){conditions.splice(+d.removeChip,1);refresh();return}if(d.period){if(!hasPeriod(page))return;if(d.period==='custom'){openRange();return}const r=periodPreset(d.period,today());if(r)applyRange(r[0],r[1]);return}switch(b.id){case'hamb':$('sidebar').classList.toggle('shown');$('navscrim').hidden=!$('sidebar').classList.contains('shown');break;case'notice':go('알림내역');break;case'profile':go('환경설정');break;case'filterbtn':$('filterpanel').hidden?showFilter():closeFilter();break;case'closefilter':closeFilter();break;case'addcondition':addCondition();break;case'filterreset':draft=[];drawFilter();break;case'applyfilter':applyFilter();break;case'searchsubmit':$('search').blur();refresh();break;case'reset':query='';conditions=[];from='';to='';sortCol='';render();break;case'csv':csv();break;case'mobileSortDirection':if(sortCol){sortDir=-sortDir;refresh()}break;case'closeEditor':case'cancelEditor':$('editor').close();break;case'clearLocal':break}});
 window.erpApplyRemote=function(next){if(!next||typeof next!=='object'||document.querySelector('dialog[open]')||prefsDraft)return false;data=cloneState(next);committedState=cloneState(data);nav();render();paintNotice();return true};$('navscrim').onclick=closeNav;$('filterscrim').onclick=closeFilter;window.addEventListener('resize',positionFilter);document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFilter();closeNav()}});$('hamb').innerHTML=I('menu');$('profile').innerHTML=I('user');go(startupPage());paintNotice();checkWorkAlerts();setInterval(checkWorkAlerts,30000);void refreshDelivery();setInterval(refreshDelivery,5000);let lastDevice=device();window.addEventListener('resize',()=>{if(device()!==lastDevice){lastDevice=device();prefsDraft=null;nav();render();paintNotice()}});
+</script>
+<script id="erp-popup-behavior-v1-script">
+(()=>{
+'use strict';
+const root=document.documentElement;
+const filter=document.getElementById('filterpanel');
+const desktop=matchMedia('(min-width:761px) and (hover:hover) and (pointer:fine)');
+const selector='dialog[open],#filterpanel:not([hidden])';
+const interactive='button,input,select,textarea,a,label,[role=button],[contenteditable]';
+const openBoxes=()=>Array.from(document.querySelectorAll(selector));
+let drag=null,queued=false;
+const moved=new Set();
+function reset(box){
+ if(!moved.has(box))return;
+ moved.delete(box);delete box.dataset.erpDragged;
+ box.style.removeProperty('left');box.style.removeProperty('top');
+}
+for(const box of document.querySelectorAll('dialog')){
+ const body=box.querySelector('.dialogbody');
+ const actions=body?.querySelector(':scope > .dialogactions');
+ if(actions){body.classList.add('erp-split-body');actions.classList.add('erp-fixed-actions');body.after(actions);}
+}
+let outerViewport=null,frame=null;
+try{if(parent!==window){outerViewport=parent.visualViewport;frame=window.frameElement;}}catch{}
+function viewport(){
+ const local=window.visualViewport;
+ let top=local?.offsetTop||0, bottom=top+(local?.height||innerHeight);
+ if(outerViewport&&frame){
+  const rect=frame.getBoundingClientRect();
+  top=Math.max(top,outerViewport.offsetTop-rect.top);
+  bottom=Math.min(bottom,outerViewport.offsetTop+outerViewport.height-rect.top);
+ }
+ return {top:Math.max(0,top),bottom:Math.max(top+32,bottom)};
+}
+function updateViewport(){
+ const v=viewport(),height=v.bottom-v.top;
+ const keyboard=!desktop.matches&&height<innerHeight-80;
+ root.classList.toggle('erp-popup-keyboard',keyboard);
+ root.style.setProperty('--erp-popup-available',Math.max(32,height-16)+'px');
+ root.style.setProperty('--erp-popup-top',(v.top+8)+'px');
+ if(keyboard){
+  const active=document.activeElement;
+  const scroller=active?.closest('.dialogbody,.delivery-form-body,.filterpanel');
+  if(scroller&&active.matches('input,textarea,select')){
+   const a=active.getBoundingClientRect(),b=scroller.getBoundingClientRect();
+   if(a.bottom>b.bottom-8)scroller.scrollTop+=a.bottom-b.bottom+8;
+   else if(a.top<b.top+8)scroller.scrollTop-=b.top-a.top+8;
+  }
+ }
+}
+function clamp(n,min,max){return Math.max(min,Math.min(Math.max(min,max),n));}
+function place(box,x,y){
+ const r=box.getBoundingClientRect();
+ box.style.left=clamp(x,8,root.clientWidth-r.width-8)+'px';
+ box.style.top=clamp(y,8,innerHeight-r.height-8)+'px';
+}
+function sync(){
+ queued=false;
+ const boxes=openBoxes();
+ root.classList.toggle('erp-popup-open',boxes.length>0);
+ for(const box of moved)if(!boxes.includes(box)||!desktop.matches)reset(box);
+ if(boxes.length)updateViewport();
+}
+function schedule(){if(!queued){queued=true;requestAnimationFrame(sync);}}
+new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['open','hidden']});
+document.addEventListener('close',e=>{reset(e.target);sync();},true);
+document.addEventListener('pointerdown',e=>{
+ if(!desktop.matches||e.pointerType!=='mouse'||e.button!==0||!e.isPrimary||!(e.target instanceof Element)||e.target.closest(interactive))return;
+ const h=e.target.closest('.dialoghead,.filtertitle');
+ const box=h?.closest(selector);if(!box)return;
+ const r=box.getBoundingClientRect();
+ drag={box,h,id:e.pointerId,x:e.clientX,y:e.clientY,left:r.left,top:r.top,started:false};
+ try{h.setPointerCapture(e.pointerId);}catch{}
+ e.preventDefault();
+},true);
+document.addEventListener('pointermove',e=>{
+ const d=drag;if(!d||d.id!==e.pointerId||!d.box.matches(selector))return;
+ const dx=e.clientX-d.x,dy=e.clientY-d.y;
+ if(!d.started&&Math.abs(dx)+Math.abs(dy)<4)return;
+ if(!d.started){d.started=true;d.box.dataset.erpDragged='1';moved.add(d.box);}
+ place(d.box,d.left+dx,d.top+dy);e.preventDefault();
+},true);
+function finish(e){if(drag?.id===e.pointerId){const d=drag;drag=null;try{if(d.h.hasPointerCapture(e.pointerId))d.h.releasePointerCapture(e.pointerId);}catch{}}}
+for(const name of ['pointerup','pointercancel','lostpointercapture'])document.addEventListener(name,finish,true);
+function outside(e){
+ if(!openBoxes().length)return;
+ const box=e.target instanceof Element?e.target.closest(selector):null;
+ if(!box){if(e.cancelable)e.preventDefault();return;}
+ const p=e.touches?.[0]||e;
+ if(Number.isFinite(p.clientX)){const r=box.getBoundingClientRect();if(p.clientX<r.left||p.clientX>r.right||p.clientY<r.top||p.clientY>r.bottom){if(e.cancelable)e.preventDefault();}}
+}
+document.addEventListener('wheel',outside,{capture:true,passive:false});
+document.addEventListener('touchmove',outside,{capture:true,passive:false});
+function resized(){
+ if(!desktop.matches){for(const b of moved)reset(b);}
+ else for(const b of moved){const r=b.getBoundingClientRect();place(b,r.left,r.top);}
+ schedule();
+}
+window.addEventListener('resize',resized);
+desktop.addEventListener('change',resized);
+window.visualViewport?.addEventListener('resize',schedule);
+window.visualViewport?.addEventListener('scroll',schedule);
+outerViewport?.addEventListener('resize',schedule);
+outerViewport?.addEventListener('scroll',schedule);
+document.addEventListener('focusin',schedule);
+sync();
+})();
 </script></body></html>
